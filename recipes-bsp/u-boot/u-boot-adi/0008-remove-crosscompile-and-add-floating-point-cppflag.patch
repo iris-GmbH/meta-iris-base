@@ -1,0 +1,37 @@
+From edf040eb52026d36dfe1832b5197724c8ee0ea32 Mon Sep 17 00:00:00 2001
+From: Jasper Orschulko <jasper@fancydomain.eu>
+Date: Tue, 23 Feb 2021 17:04:12 +0100
+Subject: [PATCH 08/20] remove crosscompile and add floating point cppflag
+
+enable fpu to compile with new toolchain
+
+Signed-off-by: Jasper Orschulko <jasper@fancydomain.eu>
+---
+ arch/arm/config.mk | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/arch/arm/config.mk b/arch/arm/config.mk
+index 0921e6ca50..e4a2149566 100644
+--- a/arch/arm/config.mk
++++ b/arch/arm/config.mk
+@@ -5,7 +5,7 @@
+ # SPDX-License-Identifier:	GPL-2.0+
+ #
+ 
+-CROSS_COMPILE := arm-none-eabi-
++#CROSS_COMPILE := arm-none-eabi-
+ 
+ ifndef CONFIG_STANDALONE_LOAD_ADDR
+ ifneq ($(CONFIG_OMAP_COMMON),)
+@@ -26,6 +26,8 @@ __HAVE_ARCH_GENERIC_BOARD := y
+ 
+ PLATFORM_CPPFLAGS += -D__ARM__
+ 
++PLATFORM_CPPFLAGS += -mfpu=vfp
++
+ # Choose between ARM/Thumb instruction sets
+ ifeq ($(CONFIG_SYS_THUMB_BUILD),y)
+ AFLAGS_IMPLICIT_IT	:= $(call as-option,-Wa$(comma)-mimplicit-it=always)
+-- 
+2.30.1
+

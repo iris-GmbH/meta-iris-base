@@ -1,0 +1,56 @@
+From 8a79ce6115f7fc87d7b504b1b713230c252ce670 Mon Sep 17 00:00:00 2001
+From: Jasper Orschulko <jasper@fancydomain.eu>
+Date: Wed, 24 Feb 2021 15:50:22 +0100
+Subject: [PATCH 17/20] use mmap for flash on spi2 (saves 1.6sec)
+
+Signed-off-by: Jasper Orschulko <jasper@fancydomain.eu>
+---
+ drivers/spi/adi_spi3.c | 12 ++++++------
+ drivers/spi/adi_spi3.h |  5 +++--
+ 2 files changed, 9 insertions(+), 8 deletions(-)
+
+diff --git a/drivers/spi/adi_spi3.c b/drivers/spi/adi_spi3.c
+index e3d903e2..901683fa 100644
+--- a/drivers/spi/adi_spi3.c
++++ b/drivers/spi/adi_spi3.c
+@@ -277,14 +277,14 @@ int spi_xfer(struct spi_slave *slave, unsigned int bitlen, const void *dout,
+ 	if (flags & SPI_XFER_MMAP) {
+ 		u32 control = sdev->control;
+ 		u32 delay = SPI_DLY_LEADX | SPI_DLY_LAGX | 3;
+-		u32 mmrdh =  3 << SPI_MMRDH_ADRSIZE_OFF;
+ 		u32 ssel = readl(&sdev->regs->ssel);
+-
+-		/* Use Octal word read quad IO command in memory mapped mode */
+-		mmrdh |= 0xE3 | 1 << SPI_MMRDH_DMYSIZE_OFF;
++		u32 mmrdh = 3 << SPI_MMRDH_ADRSIZE_OFF;
++		mmrdh |= 0xeb; /* CMD_READ_QUAD_IO_FAST */
++		mmrdh |= SPI_MMRDH_ADRPINS;
++		mmrdh |= 3 << SPI_MMRDH_DMYSIZE_OFF;
++		mmrdh |= 0xff << SPI_MMRDH_MODE_OFF;
+ 		mmrdh |= 1 << SPI_MMRDH_TRIDMY_OFF;
+-		/* Ask SPI controller to send out address via 4-pin mode */
+-		mmrdh |= SPI_MMRDH_ADRPINS | SPI_MMRDH_MERGE;
++		mmrdh |= SPI_MMRDH_MERGE;
+ 
+ 		control |= SPI_CTL_MMSE | SPI_CTL_MIO_QUAD;
+ 		/* Enable hardware auto chip select signal */
+diff --git a/drivers/spi/adi_spi3.h b/drivers/spi/adi_spi3.h
+index c494b828..e18d73db 100644
+--- a/drivers/spi/adi_spi3.h
++++ b/drivers/spi/adi_spi3.h
+@@ -216,9 +216,10 @@
+ #define SPI_MMRDH_ADRSIZE   0x00000700 /*Bytes of Read Address */
+ #define SPI_MMRDH_OPCODE    0x000000FF /*Read Opcode */
+ 
+-#define SPI_MMRDH_TRIDMY_OFF  24 /*Bytes of Dummy offset */
++#define SPI_MMRDH_TRIDMY_OFF  24 /*Bytes of Tristate Dummy Timing offset */
++#define SPI_MMRDH_MODE_OFF	  16 /*Bytes of Mode offset */
+ #define SPI_MMRDH_DMYSIZE_OFF 12 /*Bytes of Dummy offset */
+-#define SPI_MMRDH_ADRSIZE_OFF 8 /*Bytes of Read Addres offset */
++#define SPI_MMRDH_ADRSIZE_OFF 8  /*Bytes of Read Addres offset */
+ 
+ #define BIT_SSEL_VAL(x) ((1 << 8) << x) /* Slave Select input value bit */
+ #define BIT_SSEL_EN(x) (1 << x)         /* Slave Select enable bit*/
+-- 
+2.26.3
+

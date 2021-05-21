@@ -1,0 +1,15 @@
+Copyright (c) 2021 iris GmbH infrared & intelligent sensors
+
+All metadata (e.g. recipe, config and class files) is MIT licensed
+unless otherwise stated. See LICENSE.MIT for details. Source code
+included in tree for individual recipes (e.g. patches) are under the
+LICENSE stated in the associated recipe (.bb file) unless 
+otherwise stated.
+
+Individual files contain the following style tags instead of the full license 
+text to identify their license:
+
+    SPDX-License-Identifier: MIT
+
+This enables machine processing of license information based on the SPDX
+License Identifiers that are here available: http://spdx.org/licenses/

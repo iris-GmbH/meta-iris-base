@@ -1,0 +1,23 @@
+From 5d79ab03badce83374d15ae71aeeb0f172a97ed8 Mon Sep 17 00:00:00 2001
+From: Jasper Orschulko <jasper@fancydomain.eu>
+Date: Tue, 23 Feb 2021 17:03:12 +0100
+Subject: [PATCH 05/20] remove duplicate const specifier
+
+Signed-off-by: Jasper Orschulko <jasper@fancydomain.eu>
+---
+ common/system_map.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/common/system_map.c b/common/system_map.c
+index 8307293bf3..71396fd88a 100644
+--- a/common/system_map.c
++++ b/common/system_map.c
+@@ -5,4 +5,4 @@
+  * Licensed under the GPL-2 or later.
+  */
+ 
+-const char const system_map[] = SYSTEM_MAP;
++const char system_map[] = SYSTEM_MAP;
+-- 
+2.30.1
+

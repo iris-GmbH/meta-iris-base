@@ -1,0 +1,20 @@
+From b77d1c3e85d58b96d6ed3486e4bc29e534e2bfa8 Mon Sep 17 00:00:00 2001
+From: Kas User <kas@example.com>
+Date: Thu, 1 Apr 2021 12:33:05 +0000
+Subject: [PATCH] remove space from localversion-adi
+
+localversion-* is parsed within u-boot to the linux kernel, which shall not contain spaces
+---
+ localversion-adi | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/localversion-adi b/localversion-adi
+index 22dbf9f..e6349c4 100644
+--- a/localversion-adi
++++ b/localversion-adi
+@@ -1 +1 @@
+- ADI-YOCTO-1.0.0
++-ADI-YOCTO-1.0.0
+-- 
+2.20.1
+

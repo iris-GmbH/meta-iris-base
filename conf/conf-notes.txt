@@ -1,0 +1,5 @@
+Common targets are:
+    irma-six-base
+    linux-gen6
+    u-boot-adi
+    irma-six-base -c populate_sdk

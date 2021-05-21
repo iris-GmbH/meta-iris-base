@@ -1,0 +1,44 @@
+From ae571e913f7430243fc59a499ea5a2072262cd1c Mon Sep 17 00:00:00 2001
+From: Lutz Freitag <Lutz.Freitag@irisgmbh.de>
+Date: Fri, 2 Jun 2017 11:36:22 +0200
+Subject: [PATCH 14/20] this commit hackily fixes the issues with double
+ probing the spi-flash
+
+The issue was that subsequent calls to "sf probe" result in unusable flash memory.
+The sequence: [probe; write to flash; probe; write to flash] would perform the first write but not the second as well as calls to saveenv would not work after the second call to probe.
+
+The actual problem resides in cmd_sf where the new spi-interface is allocated before the previously allocated is freed.
+I guess the idea behind that decision is to always have a "fallback" flash memory where stuff can be written to.
+However, this fallback mechanism is completely transparent to anyone creating bootscripts.
+
+Anyways, I think for this very reason (free after malloc) most vendors _dont_ deinitialize the peripherials on free but rather leave them in the state where they were.
+ADI however, does deinit the spi and thus renders subsequent transactions on the spi useless.
+
+This is the worst possible location to fix that bug but provides vendor independent behavior :(
+
+Signed-off-by: Jasper Orschulko <jasper@fancydomain.eu>
+---
+ drivers/spi/adi_spi3.c | 7 ++++++-
+ 1 file changed, 6 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/spi/adi_spi3.c b/drivers/spi/adi_spi3.c
+index 4ed6bee5..e3d903e2 100644
+--- a/drivers/spi/adi_spi3.c
++++ b/drivers/spi/adi_spi3.c
+@@ -144,7 +144,12 @@ void spi_free_slave(struct spi_slave *slave)
+ {
+ 	struct adi_spi_slave *sdev = to_adi_spi_slave(slave);
+ 
+-	peripheral_free_list(sdev->pins);
++/**
++ * When the cleanup here is _not_ performed any other driver that utilizes the spi can continue to do so.
++ * Otherwise a call to spi_free_slave from anywhere results in undefined behavior when multiple drivers
++ * utilize the spi interface.
++ */
++//	peripheral_free_list(sdev->pins);
+ 	if (is_gpio_cs(slave->cs))
+ 		gpio_free(gpio_cs(slave->cs));
+ 
+-- 
+2.26.3
+

@@ -1,0 +1,1385 @@
+From 743fe96a6681e2f4d83ebd81f6bed285de0bc5f6 Mon Sep 17 00:00:00 2001
+From: Jasper Orschulko <jasper@fancydomain.eu>
+Date: Tue, 23 Feb 2021 15:25:36 +0100
+Subject: [PATCH 10/20] Add iris common functions
+
+add custom u-boot shell commands:
+
+- bootmanager for iris hardwarespecific boot configuration
+- eeprom (backend) and fram (frontend) utils
+- mac - read and set mac address from eeprom
+
+support utilities:
+
+- i2c memory wrapper
+- i2c powergood wrapper
+- u32_to_env convert uint32_t variable from memory into environment variable
+
+Signed-off-by: Jasper Orschulko <jasper@fancydomain.eu>
+---
+ board/iris/common/Makefile         |   9 +
+ board/iris/common/bootmanager.c    | 238 +++++++++++++++++++++
+ board/iris/common/bootmanager.h    |   6 +
+ board/iris/common/eeprom_backend.c | 319 +++++++++++++++++++++++++++++
+ board/iris/common/eeprom_backend.h |  26 +++
+ board/iris/common/epc660init.c     |  10 +
+ board/iris/common/fram_frontend.c  | 276 +++++++++++++++++++++++++
+ board/iris/common/fram_frontend.h  |  61 ++++++
+ board/iris/common/i2c_memory.c     |  77 +++++++
+ board/iris/common/i2c_memory.h     |  11 +
+ board/iris/common/i2c_power_good.c |  18 ++
+ board/iris/common/i2c_power_good.h |  14 ++
+ board/iris/common/mac.c            |  63 ++++++
+ board/iris/common/mac.h            |   6 +
+ board/iris/common/power_good.c     |  38 ++++
+ board/iris/common/power_good.h     |   8 +
+ board/iris/common/u32_to_env.c     |  45 ++++
+ 17 files changed, 1225 insertions(+)
+ create mode 100644 board/iris/common/Makefile
+ create mode 100644 board/iris/common/bootmanager.c
+ create mode 100644 board/iris/common/bootmanager.h
+ create mode 100644 board/iris/common/eeprom_backend.c
+ create mode 100644 board/iris/common/eeprom_backend.h
+ create mode 100644 board/iris/common/epc660init.c
+ create mode 100644 board/iris/common/fram_frontend.c
+ create mode 100644 board/iris/common/fram_frontend.h
+ create mode 100644 board/iris/common/i2c_memory.c
+ create mode 100644 board/iris/common/i2c_memory.h
+ create mode 100644 board/iris/common/i2c_power_good.c
+ create mode 100644 board/iris/common/i2c_power_good.h
+ create mode 100644 board/iris/common/mac.c
+ create mode 100644 board/iris/common/mac.h
+ create mode 100644 board/iris/common/power_good.c
+ create mode 100644 board/iris/common/power_good.h
+ create mode 100644 board/iris/common/u32_to_env.c
+
+diff --git a/board/iris/common/Makefile b/board/iris/common/Makefile
+new file mode 100644
+index 0000000000..33e0d2b4fd
+--- /dev/null
++++ b/board/iris/common/Makefile
+@@ -0,0 +1,9 @@
++obj-y	+= fram_frontend.o
++obj-y	+= u32_to_env.o
++obj-y	+= power_good.o
++obj-y	+= i2c_power_good.o
++obj-y	+= i2c_memory.o
++obj-y	+= mac.o
++obj-y	+= eeprom_backend.o
++obj-y	+= bootmanager.o
++
+diff --git a/board/iris/common/bootmanager.c b/board/iris/common/bootmanager.c
+new file mode 100644
+index 0000000000..759045a1a8
+--- /dev/null
++++ b/board/iris/common/bootmanager.c
+@@ -0,0 +1,238 @@
++#include <common.h>
++#include <command.h>
++#include "fram_frontend.h"
++#include "eeprom_backend.h"
++
++#define BOOT_CMD_FLASHBOOT	"flashboot"
++#define BOOT_CMD_NFSBOOT	"nfsboot"
++#define BOOT_CMD_INITRAMFS	"initramboot"
++
++enum nonvolatile_memory_location {
++	FRONTEND = 0, BACKEND = 1
++};
++
++void read_bootstr(char *bootstr) {
++	if (get_nfs_boot_fe() == NFS_BOOT_FE || get_nfs_boot_be() == NFS_BOOT_BE) {
++		sprintf(bootstr, "%s", BOOT_CMD_NFSBOOT);
++	} else if (get_fw_initramfs(get_fw()) == INITRAMFS) {
++		sprintf(bootstr, "%s", BOOT_CMD_INITRAMFS);
++	} else {
++		sprintf(bootstr, "%s", BOOT_CMD_FLASHBOOT);
++	}
++}
++
++void store_bootstr_in_env(void) {
++	char bootstr[15];
++	read_bootstr(bootstr);
++	setenv("bootstr", bootstr);
++}
++
++/*
++ * store_fw_nr_in_env - update the environment variable firmware_nr
++ */
++void store_fw_nr_in_env(void) {
++	char nr[2];
++	snprintf(nr, 2, "%d", (int) get_fw() + 1);
++	setenv("firmware_nr", nr);
++}
++
++/*
++ * update_active_firmware_bit
++ * !!!platform application uses this marker to detect the active firmware bank!
++ */
++void update_active_firmware_bit(void) {
++	int value = get_fw_active();
++
++	/* active firmware bit is set to current boot firmware on change */
++	if (value != get_fw()) {
++		set_fw_active(value ^ 1);
++	}
++}
++
++int setup_bootmanager(void) {
++	init_fram();
++	init_eeprom();
++
++	store_bootstr_in_env();
++	store_fw_nr_in_env();
++	update_active_firmware_bit();
++	return 0;
++}
++
++static int do_bootmanager_set_fw(cmd_tbl_t *cmdtp, int argc,
++		char * const argv[]) {
++	int fw_nr;
++
++	if (argc != 2) {
++		return cmd_usage(cmdtp);
++	}
++
++	fw_nr = simple_strtoul(argv[1], NULL, 10);
++
++	if (fw_nr == (int) get_fw()) {
++		/* nothing to do */
++	} else if (fw_nr == FIRMWARE_1 || fw_nr == FIRMWARE_2) {
++		set_fw(fw_nr);
++		store_fw_nr_in_env();
++		update_active_firmware_bit();
++	} else {
++		return cmd_usage(cmdtp);
++	}
++
++	return 0;
++}
++
++static int do_bootmanager_set_status(cmd_tbl_t *cmdtp, int argc,
++		char * const argv[]) {
++	int fw_nr;
++	int fw_status;
++
++	if (argc != 3) {
++		return cmd_usage(cmdtp);
++	}
++
++	fw_nr = simple_strtoul(argv[1], NULL, 10);
++	fw_status = simple_strtoul(argv[2], NULL, 10);
++
++	if (fw_status != STATUS_ERROR && fw_status != STATUS_OK) {
++		printf("invalid fw_status\n");
++		return cmd_usage(cmdtp);
++	}
++
++	if (fw_nr == FIRMWARE_1 || fw_nr == FIRMWARE_2) {
++		if (get_fw_status(fw_nr) != fw_status) {
++			set_fw_status(fw_nr, fw_status);
++		} else {
++			/* nothing to do */
++		}
++	} else {
++		printf("invalid firmware number\n");
++		return cmd_usage(cmdtp);
++	}
++	return 0;
++}
++
++static int do_bootmanager_show(void) {
++	char bootstr[15];
++
++	read_bootstr(bootstr);
++	printf("Bootmanager: %s", bootstr);
++	if (strcmp(bootstr, BOOT_CMD_NFSBOOT)) {
++		enum firmware fw_nr = get_fw();
++		printf(" (nr: %d, status: %d)", fw_nr, get_fw_status(fw_nr));
++	}
++	printf("\n");
++
++	return 0;
++}
++
++static int do_bootmanager_set_nfs_boot(cmd_tbl_t *cmdtp, int argc,
++		char * const argv[], enum nonvolatile_memory_location location) {
++	int nfs_boot;
++
++	if (argc != 2) {
++		return cmd_usage(cmdtp);
++	}
++
++	nfs_boot = simple_strtoul(argv[1], NULL, 10);
++
++	if (nfs_boot != 0 && nfs_boot != 1) {
++		return cmd_usage(cmdtp);
++	}
++
++	if (location == FRONTEND) {
++		if (nfs_boot != get_nfs_boot_fe()) {
++			set_nfs_boot_fe(nfs_boot);
++			store_bootstr_in_env();
++		}
++	} else if (location == BACKEND) {
++		if (nfs_boot != get_nfs_boot_be()) {
++			set_nfs_boot_be(nfs_boot);
++			store_bootstr_in_env();
++		}
++	}
++
++	return 0;
++}
++
++static int do_bootmanager_set_initramfs(cmd_tbl_t *cmdtp, int argc,
++		char * const argv[]) {
++	int fw_nr;
++	int mode;
++
++	if (argc != 3) {
++		return cmd_usage(cmdtp);
++	}
++
++	fw_nr = simple_strtoul(argv[1], NULL, 10);
++	mode = simple_strtoul(argv[2], NULL, 10);
++
++	if (fw_nr != FIRMWARE_1 && fw_nr != FIRMWARE_2) {
++		printf("invalid firmware number\n");
++		return cmd_usage(cmdtp);
++	}
++
++	if (mode != 0 && mode != 1) {
++			printf("invalid initramfs mode\n");
++			return cmd_usage(cmdtp);
++	}
++
++	if (get_fw_initramfs(fw_nr) != mode) {
++		set_fw_initramfs(fw_nr, mode);
++		store_bootstr_in_env();
++	}
++
++	return 0;
++}
++
++int do_bootmanager(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]) {
++	const char *cmd;
++
++	if (argc < 2) {
++		return cmd_usage(cmdtp);
++	}
++
++	cmd = argv[1];
++
++	--argc;
++	++argv;
++
++	if (!strcmp(cmd, "show")) {
++		return do_bootmanager_show();
++	} else if (!strcmp(cmd, "set_fw")) {
++		return do_bootmanager_set_fw(cmdtp, argc, argv);
++	} else if (!strcmp(cmd, "set_status")) {
++		return do_bootmanager_set_status(cmdtp, argc, argv);
++	} else if (!strcmp(cmd, "set_nfs_fe")) {
++		return do_bootmanager_set_nfs_boot(cmdtp, argc, argv, FRONTEND);
++	} else if (!strcmp(cmd, "set_nfs_be")) {
++		return do_bootmanager_set_nfs_boot(cmdtp, argc, argv, BACKEND);
++	} else if (!strcmp(cmd, "set_initramfs")) {
++		return do_bootmanager_set_initramfs(cmdtp, argc, argv);
++	}
++
++	return cmd_usage(cmdtp);
++}
++
++U_BOOT_CMD(
++	bootmanager, 5, 1,  do_bootmanager,
++	"validate, which source to boot from",
++	"[show|set_fw|set_status|set_nfs_fe|set_nfs_be|set_initramfs]\n"
++	"bootmanager show\n"
++	"    - print boot info\n"
++    "bootmanager set_fw <firmware_nr>\n"
++    "    - set the firmware nr to boot next\n"
++	"    - firmware1 = 0, firmware2 = 1\n"
++    "bootmanager set_status <firmware_nr> <status>\n"
++	"    - set the status of firmware1 = 0, firmware2 = 1\n"
++    "    - status error = 0, status ok = 1\n"
++    "bootmanager set_nfs_fe <nfs_boot>\n"
++    "    - set frontend nfs bit\n"
++    "    - nfs_boot: 0 = default, 1 = nfs boot\n"
++    "bootmanager set_nfs_be <nfs_boot>\n"
++    "    - set backend nfs bit\n"
++    "    - nfs_boot: 0 = default, 1 = nfs boot\n"
++    "bootmanager set_initramfs <firmware_nr> <mode>\n"
++    "    - set the initramfs boot for firmware1 = 0, firmware2 = 1\n"
++    "    - mode: flashboot = 0, initramfs = 1\n"
++);
+diff --git a/board/iris/common/bootmanager.h b/board/iris/common/bootmanager.h
+new file mode 100644
+index 0000000000..6de64ab227
+--- /dev/null
++++ b/board/iris/common/bootmanager.h
+@@ -0,0 +1,6 @@
++#ifndef BOARD_IRIS_COMMON_BOOTMANAGER_H_
++#define BOARD_IRIS_COMMON_BOOTMANAGER_H_
++
++int setup_bootmanager(void);
++
++#endif /* BOARD_IRIS_COMMON_BOOTMANAGER_H_ */
+diff --git a/board/iris/common/eeprom_backend.c b/board/iris/common/eeprom_backend.c
+new file mode 100644
+index 0000000000..994d51229c
+--- /dev/null
++++ b/board/iris/common/eeprom_backend.c
+@@ -0,0 +1,319 @@
++#include <common.h>
++#include <command.h>
++#include <linux/ctype.h>
++#include "i2c_memory.h"
++#include "eeprom_backend.h"
++
++/* enable the mac command to read the mac address from eeprom */
++#define BACKEND_EEPROM_ADDR 	0x51
++#define BACKEND_EEPROM_BUS_NUM 	0
++
++#define BACKEND_BASE_ADDR        0x00 /* EEPROM Base Address */
++#define BACKEND_CIB_ADDR         0x00 /* Component Identification Block */
++#define BACKEND_CIB_VERSION_ADDR 0x04
++#define BACKEND_BCB_ADDR         0x10 /* Backend Configuration Block */
++#define BACKEND_MAC_ADDR         0x11 /* EEPROM MAC Address */
++#define BACKEND_BCB_FLAGS_ADDR   0x1F
++#define BACKEND_BCB_VERSION_ADDR 0x10
++
++#define BACKEND_EEPROM_BLOCK_MAGIC { 0x49, 0x52, 0x49, 0x53 }
++#define BACKEND_CIB_VERSION 0x01
++#define BACKEND_BCB_VERSION 0x02
++
++struct __attribute__ ((__packed__)) component_identification_block {
++	uint8_t magic[4];
++	uint8_t version;
++	uint8_t flags;
++	uint8_t comp_ident;
++	uint8_t revision;
++	uint8_t sn[6];
++	uint8_t reserved[2];
++};
++
++struct __attribute__ ((__packed__)) backend_configuration_block {
++	uint8_t version;
++	uint8_t mac[6];
++	uint8_t dn[8];
++	struct bcb_flags_t {
++		uint8_t nfs :1, dhcp :1, reserved :6;
++	} flags;
++};
++
++static struct __attribute__ ((__packed__)) eeprom {
++	struct component_identification_block cib;
++	struct backend_configuration_block bcb;
++} e;
++
++enum eeprom_validity_state {
++	VALID = 0, UNUSABLE = 1, UPDATABLE = 2, USING_DEFAULTS = 3
++};
++
++static enum eeprom_validity_state eeprom_cib_state = UNUSABLE;
++static enum eeprom_validity_state eeprom_bcb_state = UNUSABLE;
++
++static int write_eeprom_mac(void);
++static int read_eeprom_mac(void);
++
++static void set_fallback_values(void) {
++	memset((void *) &e, 0, sizeof(e));
++
++	/* set default values for Component Identification Block */
++	uint8_t MAGIC[4] = BACKEND_EEPROM_BLOCK_MAGIC;
++	memcpy(&e.cib.magic, &MAGIC, sizeof(MAGIC));
++	e.cib.version = BACKEND_CIB_VERSION;
++	// e.cib.flags = 0x00;
++
++	/* set default values for Backend Configuration Block */
++	e.bcb.version = BACKEND_BCB_VERSION;
++	// e.bcb.flags = 0x00;
++}
++
++static enum eeprom_validity_state compare_versions(uint8_t version_in_hardware, uint8_t current_version) {
++	if (version_in_hardware == current_version) {
++		return VALID;
++	} else if (version_in_hardware < current_version) {
++		return UPDATABLE;
++	}
++	return UNUSABLE;
++}
++
++static enum eeprom_validity_state validate_cib_content(struct component_identification_block * cib) {
++	/* check magic number */
++	uint8_t MAGIC[4] = BACKEND_EEPROM_BLOCK_MAGIC;
++	if (memcmp(cib->magic, MAGIC, 4)) {
++		return UNUSABLE;
++	}
++	return compare_versions(cib->version, BACKEND_CIB_VERSION);
++}
++
++static enum eeprom_validity_state validate_bcb_content(struct backend_configuration_block * bcb) {
++	return compare_versions(bcb->version, BACKEND_BCB_VERSION);
++}
++
++static int write_cib_values(void) {
++	return write_memory(BACKEND_EEPROM_BUS_NUM, BACKEND_EEPROM_ADDR,
++		BACKEND_CIB_ADDR, (void *) &e.cib,
++		sizeof(e.cib.magic) + sizeof(e.cib.version) + sizeof(e.cib.flags));
++}
++
++static int write_bcb_values(void) {
++	int ret = 0;
++	ret |= write_memory(BACKEND_EEPROM_BUS_NUM, BACKEND_EEPROM_ADDR,
++		BACKEND_BCB_VERSION_ADDR, (void *) &e.bcb.version, sizeof(e.bcb.version));
++	ret |= write_memory(BACKEND_EEPROM_BUS_NUM, BACKEND_EEPROM_ADDR,
++		BACKEND_BCB_FLAGS_ADDR, (void *) &e.bcb.flags, sizeof(e.bcb.flags));
++	return ret;
++}
++
++static int initialize_eeprom_content(void) {
++	int ret = 0;
++	set_fallback_values();
++	eeprom_cib_state = UNUSABLE;
++	eeprom_bcb_state = UNUSABLE;
++
++	/* write CIB values */
++	ret |= write_cib_values();
++
++	/* write BCB values */
++	ret |= write_bcb_values();
++
++	return (ret != 0);
++}
++
++/* See Hardwareerkennung Generation 6 - Rev. 0.9 */
++static int migrate_cib_content(void) {
++	if (e.cib.version == BACKEND_CIB_VERSION) {
++		printf("EEPROM CIB has current version!\n");
++		return 0; /* nothing to migrate */
++	} else if (e.cib.version > BACKEND_CIB_VERSION) {
++		printf("EEPROM CIB update error: version unsupported (too high)!\n");
++		return 1; /* cannot downgrade */
++	} /* there is only one version ... migration not possible */
++	printf("EEPROM CIB update error: version unsupported!\n");
++	return 1;
++}
++
++static int migrate_bcb_content(void) {
++	if (e.bcb.version == BACKEND_BCB_VERSION) {
++		printf("EEPROM BCB has current version!\n");
++		return 0; /* nothing to migrate */
++	} else if (e.bcb.version > BACKEND_BCB_VERSION) {
++		printf("EEPROM BCB update error: version unsupported (too high)!\n");
++		return 1; /* cannot downgrade */
++	} else if (e.bcb.version == 0x01) {
++		/* version -> 0x02 */
++		e.bcb.version = 0x02;
++		/* set previously unused bits to 0 */
++		e.bcb.flags.nfs = 0;
++		e.bcb.flags.dhcp = 0;
++		printf("EEPROM BCB update (version 0x01 -> 0x02)\n");
++		return write_bcb_values();
++	}
++	printf("EEPROM BCB update error: version unsupported!\n");
++	return 1;
++}
++
++int get_mac(char *ethaddr) {
++	if (0 > read_eeprom_mac()) {
++		return -1;
++	}
++
++	if (0 == memcmp(&e.bcb.mac, "\0\0\0\0\0\0", 6)
++			|| 0 == memcmp(&e.bcb.mac, "\xFF\xFF\xFF\xFF\xFF\xFF", 6)) {
++		printf("eeprom does not provide a valid mac\n");
++		return -1;
++	}
++
++	snprintf(ethaddr, 18, "%02X:%02X:%02X:%02X:%02X:%02X", e.bcb.mac[0],
++			e.bcb.mac[1], e.bcb.mac[2], e.bcb.mac[3], e.bcb.mac[4],
++			e.bcb.mac[5]);
++	return 0;
++}
++
++/**
++ * set_mac_address - stores a MAC address into the EEPROM
++ *
++ * This function takes a pointer to MAC address string
++ * (i.e."XX:XX:XX:XX:XX:XX", where "XX" is a two-digit hex number) and
++ * stores it in one of the MAC address fields of the EEPROM local copy.
++ */
++int set_mac(const char *ethaddr) {
++	char *p = (char *) ethaddr;
++	unsigned int i;
++
++	if (!ethaddr || strlen(ethaddr) != 17) {
++		printf("Usage: mac set XX:XX:XX:XX:XX:XX\n");
++		return -1;
++	}
++
++	for (i = 0; *p && (i < 6); i++) {
++		e.bcb.mac[i] = simple_strtoul(p, &p, 16);
++		while (!isxdigit(*p)) {
++			p++;
++		}
++	}
++
++	return write_eeprom_mac();
++}
++
++static int write_eeprom_mac(void) {
++	eeprom_bcb_state = UNUSABLE;
++	return write_memory(BACKEND_EEPROM_BUS_NUM, BACKEND_EEPROM_ADDR,
++			BACKEND_MAC_ADDR, (void *) &e.bcb.mac, sizeof(e.bcb.mac));
++}
++
++static int read_eeprom_mac(void) {
++	return read_memory(BACKEND_EEPROM_BUS_NUM, BACKEND_EEPROM_ADDR,
++			BACKEND_MAC_ADDR, (void *) &e.bcb.mac, sizeof(e.bcb.mac));
++}
++
++static int write_bcb_flags(void) {
++	eeprom_bcb_state = UNUSABLE;
++	return write_memory(BACKEND_EEPROM_BUS_NUM, BACKEND_EEPROM_ADDR,
++			BACKEND_BCB_FLAGS_ADDR, (void *) &e.bcb.flags, sizeof(e.bcb.flags));
++}
++
++static void read_eeprom_full(void) {
++	int ret = 0;
++	if (eeprom_cib_state != VALID || eeprom_bcb_state != VALID) {
++		ret = read_memory(BACKEND_EEPROM_BUS_NUM, BACKEND_EEPROM_ADDR,
++				BACKEND_BASE_ADDR, (void *) &e, sizeof(e));
++		if (ret) {
++			/* read failed */
++			printf("EEPROM content not readable! Using default values.\n");
++			set_fallback_values();
++			eeprom_cib_state = USING_DEFAULTS;
++			eeprom_bcb_state = USING_DEFAULTS;
++		} else {
++			/* read successfull */
++			eeprom_cib_state = validate_cib_content(&e.cib);
++			eeprom_bcb_state = validate_bcb_content(&e.bcb);
++			if (eeprom_cib_state == UPDATABLE) {
++				printf("EEPROM CIB content outdated! Trying update to current version.\n");
++				eeprom_cib_state = (migrate_cib_content()) ? UNUSABLE : VALID;
++			}
++			if (eeprom_bcb_state == UPDATABLE) {
++				printf("EEPROM BCB content outdated! Trying update to current version.\n");
++				eeprom_bcb_state = (migrate_bcb_content()) ? UNUSABLE : VALID;
++			}
++			if (eeprom_cib_state == UNUSABLE || eeprom_bcb_state == UNUSABLE) {
++				printf("EEPROM content invalid! Using default values.\n");
++				set_fallback_values();
++				eeprom_cib_state = USING_DEFAULTS;
++				eeprom_bcb_state = USING_DEFAULTS;
++			} else {
++				eeprom_cib_state = VALID;
++				eeprom_bcb_state = VALID;
++			}
++		}
++	}
++}
++
++int init_eeprom(void) {
++	read_eeprom_full();
++	return (eeprom_cib_state != VALID || eeprom_bcb_state != VALID);
++}
++
++void set_nfs_boot_be(enum network_boot_be nfs_boot) {
++	e.bcb.flags.nfs = nfs_boot;
++	write_bcb_flags();
++}
++
++enum network_boot_be get_nfs_boot_be(void) {
++	read_eeprom_full();
++	return e.bcb.flags.nfs;
++}
++
++int show_eeprom_content(void) {
++	read_eeprom_full();
++
++	printf("Backend EEPROM Content:\n");
++	printf("  Component Identification Block:\n");
++	printf("\tmagic: %.*s (0x%02x 0x%02x 0x%02x 0x%02x)\n", 4, e.cib.magic,
++			e.cib.magic[0], e.cib.magic[1], e.cib.magic[2], e.cib.magic[3]);
++	printf("\tversion: 0x%02x\n", e.cib.version);
++	printf("\tflags: 0x%02x\n", e.cib.flags);
++	printf("\tcomp_ident: 0x%02x\n", e.cib.comp_ident);
++	printf("\trevision: 0x%02x\n", e.cib.revision);
++	printf("\tserialnr: %02x%02x%02x%02x%02x%02x\n", e.cib.sn[0], e.cib.sn[1],
++			e.cib.sn[2], e.cib.sn[3], e.cib.sn[4], e.cib.sn[5]);
++	printf("  Backend Configuration Block:\n");
++	printf("\tversion: 0x%02x\n", e.bcb.version);
++	printf("\tmacaddr: %02x:%02x:%02x:%02x:%02x:%02x\n", e.bcb.mac[0],
++			e.bcb.mac[1], e.bcb.mac[2], e.bcb.mac[3], e.bcb.mac[4],
++			e.bcb.mac[5]);
++	printf("\tdevicenr: %02x%02x%02x%02x%02x%02x%02x%02x\n", e.bcb.dn[0],
++			e.bcb.dn[1], e.bcb.dn[2], e.bcb.dn[3], e.bcb.dn[4], e.bcb.dn[5],
++			e.bcb.dn[6], e.bcb.dn[7]);
++	printf("\tflags: 0x%02x\n", (uint8_t) * ((uint8_t*) &e.bcb.flags));
++	printf("\t\tnfs: %d\n", e.bcb.flags.nfs);
++	printf("\t\tdhcp: %d\n", e.bcb.flags.dhcp);
++	return 0;
++}
++
++int do_be_utils(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]) {
++	const char *cmd;
++
++	if (argc != 2) {
++		return cmd_usage(cmdtp);
++	}
++
++	cmd = argv[1];
++
++	if (!strcmp(cmd, "show")) {
++		return show_eeprom_content();
++	} else if (!strcmp(cmd, "initialize")) {
++		return initialize_eeprom_content();
++	}
++
++	return cmd_usage(cmdtp);
++}
++
++U_BOOT_CMD(
++		be_utils, 2, 1,  do_be_utils,
++    "display and manipulate backend info from EEPROM",
++    "[show|initialize]\n"
++    "  show       - print backend eeprom content\n"
++	"  initialize - reset EEPROM to default values\n"
++	"               (does not overwrite serial numbers)\n"
++);
+diff --git a/board/iris/common/eeprom_backend.h b/board/iris/common/eeprom_backend.h
+new file mode 100644
+index 0000000000..5b17fe2f7f
+--- /dev/null
++++ b/board/iris/common/eeprom_backend.h
+@@ -0,0 +1,26 @@
++#ifndef BOARD_IRIS_COMMON_EEPROM_BACKEND_H_
++#define BOARD_IRIS_COMMON_EEPROM_BACKEND_H_
++
++enum network_boot_be {
++	DEFAULT_BE = 0, NFS_BOOT_BE = 1
++};
++
++/*
++ * Read full EEPROM content to memory and return whether EEPROM was accessible
++ */
++int init_eeprom(void);
++
++/*
++ * getter and setter for the ethernet mac address
++ */
++int set_mac(const char *ethaddr);
++int get_mac(char *ethaddr);
++
++/*
++ * getter and setter for the backend nfs bit
++ *  - boot from nfs, when this bit is set
++ */
++void set_nfs_boot_be(enum network_boot_be);
++enum network_boot_be get_nfs_boot_be(void);
++
++#endif /* BOARD_IRIS_COMMON_EEPROM_BACKEND_H_ */
+diff --git a/board/iris/common/epc660init.c b/board/iris/common/epc660init.c
+new file mode 100644
+index 0000000000..9a60d069ff
+--- /dev/null
++++ b/board/iris/common/epc660init.c
+@@ -0,0 +1,10 @@
++void epc660_ireset(void) {
++	/* the epc660 is able to block the i2c-bus, if the device 
++     * is not well initialized. so we do toggle the ireset pin */
++		gpio_request(GPIO_PB4, "epc660_ireset_pin");
++		gpio_direction_output(GPIO_PB4, 0);
++		udelay(1);
++		gpio_direction_output(GPIO_PB4, 1);
++		mdelay(10);
++		gpio_free(GPIO_PB4);
++}
+diff --git a/board/iris/common/fram_frontend.c b/board/iris/common/fram_frontend.c
+new file mode 100644
+index 0000000000..083e31bee2
+--- /dev/null
++++ b/board/iris/common/fram_frontend.c
+@@ -0,0 +1,276 @@
++#include <common.h>
++#include <command.h>
++#include <linux/ctype.h>
++#include <configs/sc_adi_common.h>
++#include "i2c_memory.h"
++#include "fram_frontend.h"
++
++/* read the current bootable firmware version */
++#define FRONTEND_FRAM_ADDR 		0x50
++#define FRONTEND_FRAM_BUS_NUM	2
++#define FRONTEND_BASE_ADDR		0x0
++#define FRONTEND_VERSION_ADDR   0x4
++#define FRONTEND_BOOTSEQ_ADDR   0x5
++
++#define FRONTEND_FRAM_BLOCK_MAGIC { 0x49, 0x52, 0x49, 0x53 }
++#define FRONTEND_FRAM_BLOCK_VERSION 0x03
++
++static struct __attribute__ ((__packed__)) FramInitBlock {
++	uint8_t magic[4];
++	uint8_t version;
++	struct bseq_bf {
++		uint8_t currentBootFirmware :2, statusFirmware1 :1, statusFirmware2 :1,
++				activeFirmware :1, nfsBoot :1, advancedBootMode1 :1,
++				advancedBootMode2 :1;
++	} bootseq;
++	uint8_t sn[6];
++	uint8_t dn[8];
++    uint8_t componentId;
++    uint8_t componentRev;
++    uint8_t reserved[10];
++} f;
++
++enum fram_validity_state {
++	VALID = 0, UNUSABLE = 1, UPDATABLE = 2, USING_DEFAULTS = 3
++};
++
++/* set to 1 if we have read FRAM into memory */
++static enum fram_validity_state fram_state = UNUSABLE;
++
++static int write_bootseq(void);
++
++/* provide default values that can also be used to initialize the FRAM */
++static void set_fallback_values(void) {
++	memset((void *) &f, 0, sizeof(f));
++
++	/* set magic number */
++	uint8_t MAGIC[4] = FRONTEND_FRAM_BLOCK_MAGIC;
++	memcpy(&f.magic, &MAGIC, sizeof(MAGIC));
++
++	/* set version */
++	f.version = FRONTEND_FRAM_BLOCK_VERSION;
++
++	/* set default bits for FRAM bootsequence */
++	f.bootseq.currentBootFirmware = 1;
++	f.bootseq.statusFirmware1 = 1;
++}
++
++static enum fram_validity_state validate_fram_content(struct FramInitBlock * fib) {
++	/* check magic number */
++	uint8_t MAGIC[4] = FRONTEND_FRAM_BLOCK_MAGIC;
++	if (memcmp(fib->magic, MAGIC, 4)) {
++		return UNUSABLE;
++	}
++
++	/* check version */
++	if (fib->version == FRONTEND_FRAM_BLOCK_VERSION) {
++		return VALID;
++	} else if (fib->version < FRONTEND_FRAM_BLOCK_VERSION) {
++		return UPDATABLE;
++	}
++	return UNUSABLE;
++}
++
++static int write_fram_values(void) {
++	return write_memory(FRONTEND_FRAM_BUS_NUM, FRONTEND_FRAM_ADDR,
++			FRONTEND_BASE_ADDR, (void *) &f, sizeof(f.magic) + sizeof(f.version) + sizeof(f.bootseq));
++}
++
++static int initialize_fram_content(void) {
++	set_fallback_values();
++	fram_state = UNUSABLE;
++	/* write magic number, version and bootseq bits - do not overwrite S/N or D/N */
++	return write_fram_values();
++}
++
++static int write_bootseq(void) {
++	fram_state = UNUSABLE;
++	return write_memory(FRONTEND_FRAM_BUS_NUM, FRONTEND_FRAM_ADDR,
++			FRONTEND_BOOTSEQ_ADDR, (void *) &f.bootseq, sizeof(f.bootseq));
++}
++
++/* See Hardwareerkennung Generation 6 - Rev. 0.9 */
++static int migrate_fram_content(void) {
++	if (f.version == FRONTEND_FRAM_BLOCK_VERSION) {
++		printf("FRAM has current version!\n");
++		return 0; /* nothing to migrate */
++	} else if (f.version > FRONTEND_FRAM_BLOCK_VERSION) {
++		printf("FRAM update error: version unsupported (too high)!\n");
++		return 1; /* cannot downgrade */
++    } else if (f.version == 0x01) {
++        /* version -> 0x03 */
++        f.version = 0x03;
++        /* set previously unused bits to 0 */
++        f.bootseq.nfsBoot = 0;
++        f.bootseq.advancedBootMode1 = 0;
++        f.bootseq.advancedBootMode2 = 0;
++        printf("FRAM update (version 0x01 -> 0x03)\n");
++        return write_fram_values();
++    } else if (f.version == 0x02) {
++        /* version -> 0x03 */
++        f.version = 0x03;
++        printf("FRAM update (version 0x02 -> 0x03)\n");
++        return write_fram_values();
++    }
++    printf("FRAM update error: version unsupported!\n");
++	return 1;
++}
++
++static void read_fram_full(void) {
++	if (fram_state != VALID) {
++		if (read_memory(FRONTEND_FRAM_BUS_NUM, FRONTEND_FRAM_ADDR,
++				FRONTEND_BASE_ADDR, (void *) &f, sizeof(f))) {
++			/* read failed */
++			printf("FRAM content not readable! Using default values.\n");
++			set_fallback_values();
++			fram_state = USING_DEFAULTS;
++		} else {
++			/* read successfull */
++			fram_state = validate_fram_content(&f);
++			if (fram_state == UPDATABLE) {
++				printf("FRAM content outdated! Trying update to current version.\n");
++				fram_state = (migrate_fram_content()) ? UNUSABLE : VALID;
++			}
++			if (fram_state == UNUSABLE) {
++				printf("FRAM content invalid! Using default values.\n");
++				set_fallback_values();
++				fram_state = USING_DEFAULTS;
++			} else {
++				fram_state = VALID;
++			}
++		}
++	}
++}
++
++int init_fram(void) {
++	read_fram_full();
++	return (fram_state != VALID);
++}
++
++void set_fw(enum firmware nr) {
++	if (f.bootseq.currentBootFirmware == nr + 1) {
++		/* nothing to do */
++	} else if (nr == FIRMWARE_1 || nr == FIRMWARE_2) {
++		f.bootseq.currentBootFirmware = nr + 1;
++		write_bootseq();
++	}
++}
++
++enum firmware get_fw(void) {
++	read_fram_full();
++	if (f.bootseq.currentBootFirmware == 2) {
++		return FIRMWARE_2;
++	} else {
++		return FIRMWARE_1;
++	}
++}
++
++void set_fw_status(enum firmware nr, enum firmware_status status) {
++	if (nr == FIRMWARE_1) {
++		f.bootseq.statusFirmware1 = status;
++	} else {
++		f.bootseq.statusFirmware2 = status;
++	}
++	write_bootseq();
++}
++
++enum firmware_status get_fw_status(enum firmware nr) {
++	read_fram_full();
++	if (nr == FIRMWARE_1) {
++		return f.bootseq.statusFirmware1;
++	} else {
++		return f.bootseq.statusFirmware2;
++	}
++}
++
++void set_fw_active(enum firmware nr) {
++	f.bootseq.activeFirmware = nr;
++	write_bootseq();
++}
++
++enum firmware get_fw_active(void) {
++	read_fram_full();
++	return f.bootseq.activeFirmware;
++}
++
++void set_nfs_boot_fe(enum network_boot_fe nfs_boot) {
++	f.bootseq.nfsBoot = nfs_boot;
++	write_bootseq();
++}
++
++enum network_boot_fe get_nfs_boot_fe(void) {
++	read_fram_full();
++	return f.bootseq.nfsBoot;
++}
++
++void set_fw_initramfs(enum firmware nr, enum advanced_boot_mode mode) {
++	if (nr == FIRMWARE_1) {
++		f.bootseq.advancedBootMode1 = mode;
++	} else {
++		f.bootseq.advancedBootMode2 = mode;
++	}
++	write_bootseq();
++}
++
++enum advanced_boot_mode get_fw_initramfs(enum firmware nr) {
++	read_fram_full();
++	if (nr == FIRMWARE_1) {
++		return f.bootseq.advancedBootMode1;
++	} else {
++		return f.bootseq.advancedBootMode2;
++	}
++}
++
++/**
++ * do_fe_info - display the contents of the FRAM
++ */
++int show_fram_content(void) {
++	read_fram_full();
++
++	printf("Frontend FRAM Content:\n");
++	printf("  Frontend Init Block:\n");
++	printf("\tmagic: %.*s (0x%02x 0x%02x 0x%02x 0x%02x)\n", 4, f.magic,
++			f.magic[0], f.magic[1], f.magic[2], f.magic[3]);
++	printf("\tversion: 0x%02x\n", f.version);
++	printf("\tbootseq: 0x%02x\n", (uint8_t) * ((uint8_t*) &f.bootseq));
++	printf("\t\tcurrent boot firmware: %d\n", f.bootseq.currentBootFirmware);
++	printf("\t\tstatus firmware 1: %d\n", f.bootseq.statusFirmware1);
++	printf("\t\tstatus firmware 2: %d\n", f.bootseq.statusFirmware2);
++	printf("\t\tactive firmware: %d\n", f.bootseq.activeFirmware);
++	printf("\t\tnfsBoot: %d\n", f.bootseq.nfsBoot);
++	printf("\t\tadvancedBootMode1: %d\n", f.bootseq.advancedBootMode1);
++	printf("\t\tadvancedBootMode2: %d\n", f.bootseq.advancedBootMode2);
++	printf("\tserial nr: 0x%02x%02x%02x%02x%02x%02x\n", f.sn[0], f.sn[1],
++			f.sn[2], f.sn[3], f.sn[4], f.sn[5]);
++    printf("\tdevice nr: 0x%02x%02x%02x%02x%02x%02x%02x%02x\n", f.dn[0],
++            f.dn[1], f.dn[2], f.dn[3], f.dn[4], f.dn[5], f.dn[6], f.dn[7]);
++    printf("\tcomponent id: 0x%02x\n", f.componentId);
++    printf("\tcomponent rev: 0x%02x\n", f.componentRev);
++    return 0;
++}
++int do_fe_utils(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]) {
++	const char *cmd;
++
++	if (argc != 2) {
++		return cmd_usage(cmdtp);
++	}
++
++	cmd = argv[1];
++
++	if (!strcmp(cmd, "show")) {
++		return show_fram_content();
++	} else if (!strcmp(cmd, "initialize")) {
++		return initialize_fram_content();
++	}
++
++	return cmd_usage(cmdtp);
++}
++
++U_BOOT_CMD(
++		fe_utils, 2, 1,  do_fe_utils,
++    "display and manipulate frontend info from FRAM",
++    "[show|initialize]\n"
++    "  show       - print frontend fram content\n"
++	"  initialize - reset FRAM to default values\n"
++	"               (does not overwrite serial numbers)\n"
++);
+diff --git a/board/iris/common/fram_frontend.h b/board/iris/common/fram_frontend.h
+new file mode 100644
+index 0000000000..edf4721954
+--- /dev/null
++++ b/board/iris/common/fram_frontend.h
+@@ -0,0 +1,61 @@
++#ifndef BOARD_IRIS_COMMON_FRAM_FRONTEND_H_
++#define BOARD_IRIS_COMMON_FRAM_FRONTEND_H_
++#include <common.h>
++
++enum firmware_status {
++	STATUS_ERROR = 0, STATUS_OK = 1
++};
++
++enum firmware {
++	FIRMWARE_1 = 0, FIRMWARE_2 = 1
++};
++
++enum network_boot_fe {
++	DEFAULT_FE = 0, NFS_BOOT_FE = 1
++};
++
++enum advanced_boot_mode {
++	ROOTFS = 0, INITRAMFS = 1
++};
++
++/*
++ * Read full FRAM content to memory and return whether FRAM was accessible
++ */
++int init_fram(void);
++
++/*
++ * getter and setter for the current firmware bit
++ *  - marks the firmware nr to boot next
++ */
++void set_fw(enum firmware nr);
++enum firmware get_fw(void);
++
++/*
++ * getter and setter for the active firmware bit
++ *  - marker for the active firmware nr from previous/last boot
++ *  - this bit is used to detect the active firmware bank
++ */
++void set_fw_active(enum firmware nr);
++enum firmware get_fw_active(void);
++
++/*
++ * getter and setter for the firmware status
++ */
++void set_fw_status(enum firmware nr, enum firmware_status status);
++enum firmware_status get_fw_status(enum firmware nr);
++
++/*
++ * getter and setter for the frontend nfs bit
++ *  - boot from nfs, when this bit is set
++ */
++void set_nfs_boot_fe(enum network_boot_fe);
++enum network_boot_fe get_nfs_boot_fe(void);
++
++/*
++ * getter and setter for the initramfs boot
++ *  - boot initramfs for firmware nr
++ */
++void set_fw_initramfs(enum firmware nr, enum advanced_boot_mode);
++enum advanced_boot_mode get_fw_initramfs(enum firmware nr);
++
++#endif /* BOARD_IRIS_COMMON_FRAM_FRONTEND_H_ */
+diff --git a/board/iris/common/i2c_memory.c b/board/iris/common/i2c_memory.c
+new file mode 100644
+index 0000000000..3ca8bd69c6
+--- /dev/null
++++ b/board/iris/common/i2c_memory.c
+@@ -0,0 +1,77 @@
++#include "i2c_memory.h"
++#include <i2c.h>
++#include "i2c_power_good.h"
++
++#define MEMORY_ADDR_LEN 1
++#define READRETRIES		50
++/**
++ * write_memory - write the content into EEPROM/FRAM
++ */
++int write_memory(unsigned int bus, uint8_t chip, unsigned int addr,
++		uint8_t *buffer, int len) {
++	int ret = 0;
++	int i;
++	void *p;
++	unsigned int _bus;
++
++	_bus = i2c_get_bus_num();
++	if (_bus != bus)
++		i2c_set_bus_num(bus);
++
++	for (i = 0, p = buffer; i < len; i += 8, p += 8) {
++		ret = i2c_pg_write(chip, i + addr, MEMORY_ADDR_LEN, p,
++				min((int) (len - i), 8));
++		if (ret)
++			break;
++		udelay(5000); /* 5ms write cycle timing */
++	}
++
++	if (!ret) {
++		/* Verify the write by reading back the EEPROM and comparing */
++		uint8_t temp[len];
++		ret = i2c_pg_read(chip, addr, MEMORY_ADDR_LEN, (uint8_t*) &temp, len);
++		if (!ret && memcmp(buffer, &temp, len))
++			ret = -1;
++	}
++
++	if (_bus != bus)
++		i2c_set_bus_num(_bus);
++
++	if (ret) {
++		printf("eeprom/fram is not writable on chip: 0x%02x, error: %d\n", chip,
++				ret);
++	} else {
++		printf("eeprom/fram write succeeded.\n");
++	}
++
++	return ret;
++}
++
++/**
++ * read_memory - read the EEPROM/FRAM content into memory
++ */
++int read_memory(unsigned int bus, uint8_t chip, unsigned int addr,
++		uint8_t *buffer, int len) {
++	int ret = 0;
++	unsigned int _bus;
++	int _tries = READRETRIES;
++
++	_bus = i2c_get_bus_num();
++	if (_bus != bus)
++		i2c_set_bus_num(bus);
++
++	while (_tries--
++			&& (ret = i2c_pg_read(chip, addr, MEMORY_ADDR_LEN, buffer, len)))
++		;
++
++	if (_tries <= 0 || ret) {
++		printf("eeprom/fram is not reachable on chip: 0x%02x, error: %d\n",
++				chip, ret);
++		ret = -1;
++	}
++
++	if (_bus != bus)
++		i2c_set_bus_num(_bus);
++
++	return ret;
++}
+diff --git a/board/iris/common/i2c_memory.h b/board/iris/common/i2c_memory.h
+new file mode 100644
+index 0000000000..32de692653
+--- /dev/null
++++ b/board/iris/common/i2c_memory.h
+@@ -0,0 +1,11 @@
++#ifndef BOARD_IRIS_COMMON_I2C_MEMORY_H_
++#define BOARD_IRIS_COMMON_I2C_MEMORY_H_
++
++#include <common.h>
++
++int write_memory(unsigned int bus, uint8_t chip, unsigned int addr,
++		uint8_t *buffer, int len);
++int read_memory(unsigned int bus, uint8_t chip, unsigned int addr,
++		uint8_t *buffer, int len);
++
++#endif /* BOARD_IRIS_COMMON_I2C_MEMORY_H_ */
+diff --git a/board/iris/common/i2c_power_good.c b/board/iris/common/i2c_power_good.c
+new file mode 100644
+index 0000000000..fdce69ecac
+--- /dev/null
++++ b/board/iris/common/i2c_power_good.c
+@@ -0,0 +1,18 @@
++#include <common.h>
++#include <i2c.h>
++#include <asm/gpio.h>
++#include "i2c_power_good.h"
++#include "power_good.h"
++
++int i2c_pg_read(uint8_t chip, unsigned int addr, int alen,
++				uint8_t *buffer, int len) {
++	wait_for_power_good();
++	return i2c_read(chip, addr, alen, buffer, len);
++}
++
++int i2c_pg_write(uint8_t chip, unsigned int addr, int alen,
++				 uint8_t *buffer, int len) {
++	wait_for_power_good();
++	return i2c_write(chip, addr, alen, buffer, len);
++}
++
+diff --git a/board/iris/common/i2c_power_good.h b/board/iris/common/i2c_power_good.h
+new file mode 100644
+index 0000000000..86a8f43f17
+--- /dev/null
++++ b/board/iris/common/i2c_power_good.h
+@@ -0,0 +1,14 @@
++#ifndef _I2C_POWER_GOOD_H_
++#define _I2C_POWER_GOOD_H_
++
++#include <linux/ctype.h>
++
++/* i2c-wrapper: check power good before i2c_* calls */ 
++
++int i2c_pg_read(uint8_t chip, unsigned int addr, int alen,
++				uint8_t *buffer, int len);
++	     
++int i2c_pg_write(uint8_t chip, unsigned int addr, int alen,
++				uint8_t *buffer, int len);
++	     
++#endif
+diff --git a/board/iris/common/mac.c b/board/iris/common/mac.c
+new file mode 100644
+index 0000000000..6724981a47
+--- /dev/null
++++ b/board/iris/common/mac.c
+@@ -0,0 +1,63 @@
++#include <common.h>
++#include <command.h>
++#include <linux/ctype.h>
++#include "eeprom_backend.h"
++#include "mac.h"
++
++int mac_read_from_eeprom_into_env() {
++	const char enetvar[] = "ethaddr";
++	char ethaddr[18];
++
++	if (0 == get_mac(ethaddr)) {
++		printf("set MAC address from eeprom value %s\n", ethaddr);
++		setenv(enetvar, ethaddr);
++	} else {
++		/* use default CONFIG_ETHADDR, because the eeprom does not provide a valid ethaddr */
++		printf(
++				"Failed to read the MAC address, use the default MAC address %s\n",
++				getenv(enetvar));
++		return -1;
++	}
++	return 0;
++}
++
++/**
++ * show_mac - display the current mac-address from eeprom
++ */
++static void show_mac(void) {
++	char ethaddr[18];
++	if (0 == get_mac(ethaddr)) {
++		printf("macaddr: %s\n", ethaddr);
++	}
++}
++
++int do_mac(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]) {
++	if (argc == 2) {
++		if (0 == strcmp(argv[1], "read")) {
++			mac_read_from_eeprom_into_env();
++		}
++		if (0 == strcmp(argv[1], "show")) {
++			show_mac();
++		}
++	} else if (argc == 3 && 0 == strcmp(argv[1], "set")) {
++		if (0 == set_mac(argv[2])) {
++			mac_read_from_eeprom_into_env();
++		}
++	} else {
++		return cmd_usage(cmdtp);
++	}
++
++	return 0;
++}
++
++U_BOOT_CMD(
++	mac, 3, 1,  do_mac,
++	"display and program the MAC address in EEPROM",
++	"[read|show|set]\n"
++	"mac read\n"
++	"    - read mac from EEPROM into env \"ethaddr\"\n"
++	"mac show\n"
++	"    - print the EEPROM content\n"
++	"mac set addr\n"
++	"    - set the MAC-addr to the EEPROM\n"
++);
+diff --git a/board/iris/common/mac.h b/board/iris/common/mac.h
+new file mode 100644
+index 0000000000..b8a8841b48
+--- /dev/null
++++ b/board/iris/common/mac.h
+@@ -0,0 +1,6 @@
++#ifndef BOARD_IRIS_COMMON_MAC_H_
++#define BOARD_IRIS_COMMON_MAC_H_
++
++int mac_read_from_eeprom_into_env(void);
++
++#endif /* BOARD_IRIS_COMMON_MAC_H_ */
+diff --git a/board/iris/common/power_good.c b/board/iris/common/power_good.c
+new file mode 100644
+index 0000000000..47fd8263ed
+--- /dev/null
++++ b/board/iris/common/power_good.c
+@@ -0,0 +1,38 @@
++#include <common.h>
++#include <asm/gpio.h>
++#include <asm/errno.h>
++#include "power_good.h"
++
++#define msleep(a)			udelay(a * 1000)
++
++static int has_been_init = 0;
++
++static int init_pg(void) {
++	int ret = 0;
++
++	if((ret = gpio_request(GPIO_POWER_GOOD,"power_good"))) {
++		printf("init power good: gpio_request failed on pin: %d\n", GPIO_POWER_GOOD);
++		return ret;
++	}
++	if((ret = gpio_direction_input(GPIO_POWER_GOOD))) {
++		gpio_free(GPIO_POWER_GOOD);
++		printf("init power good: gpio_direction_input failed on pin: %d\n", GPIO_POWER_GOOD);
++		return ret;
++	}
++	has_been_init = 1;
++	return ret;
++}
++
++static inline int get_power_good(void) {
++	return gpio_get_value(GPIO_POWER_GOOD);
++}
++
++int wait_for_power_good() {
++	if(has_been_init==0 && init_pg()!=0)
++		return -ENODEV;
++	while(!get_power_good()) {
++		printf("error: power is not good!!!\n");
++	    msleep(200);
++	}
++	return 0;
++}
+diff --git a/board/iris/common/power_good.h b/board/iris/common/power_good.h
+new file mode 100644
+index 0000000000..66fea8d636
+--- /dev/null
++++ b/board/iris/common/power_good.h
+@@ -0,0 +1,8 @@
++#ifndef _POWER_GOOD_H_
++#define _POWER_GOOD_H_
++
++#define GPIO_POWER_GOOD		67
++
++int wait_for_power_good(void);
++
++#endif
+diff --git a/board/iris/common/u32_to_env.c b/board/iris/common/u32_to_env.c
+new file mode 100644
+index 0000000000..8cad44678d
+--- /dev/null
++++ b/board/iris/common/u32_to_env.c
+@@ -0,0 +1,45 @@
++#include <common.h>
++#include <command.h>
++
++#define BUF_SIZE	9
++#define PAGE_SIZE	0x1000
++
++uint32_t swap_uint32(uint32_t val) {
++    val = ((val << 8) & 0xFF00FF00 ) | ((val >> 8) & 0xFF00FF ); 
++    return (val << 16) | (val >> 16);
++}
++
++/* convert uint32_t variable from memory into environment variable
++ *  - variable is round up to the next page size
++ *  - variable is converted to hex representation
++ */
++int do_u32_to_env(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]) {
++	uint32_t *addr;
++	uint32_t var;
++	char buf[BUF_SIZE];
++
++	if (argc != 3) {
++		   return cmd_usage(cmdtp);
++	}
++	buf[BUF_SIZE-1] = '\0';
++	addr = (uint32_t*)simple_strtol(argv[2], NULL, 16);
++	var = swap_uint32(*addr); /* big endian to little endian */
++	if(var%PAGE_SIZE != 0) {
++		/* the kernel size needs to be a multiple of the page size */ 
++		var = (var/PAGE_SIZE + 1) * PAGE_SIZE;
++	}
++	sprintf (buf, "%08x", var);
++	setenv(argv[1], buf);
++	return 0;
++}
++
++
++U_BOOT_CMD(
++	u32_to_env, 3, 1,  do_u32_to_env,
++	"u32_to_env  - get uint32_t environment variable from ram\n"
++	"and round up to multiple of page size\n",
++	"name addr\n"
++       "    - set environment variable 'name' from addr 'addr'\n"
++);
++
++
+-- 
+2.30.1
+

@@ -1,0 +1,200 @@
+From c14d9cdc6a1600acf87c078c02b52f3a7f32d8d3 Mon Sep 17 00:00:00 2001
+From: Jasper Orschulko <jasper@fancydomain.eu>
+Date: Tue, 23 Feb 2021 17:06:52 +0100
+Subject: [PATCH 18/20] add support for MEM_AS4C64M16D3 and RMII
+
+Signed-off-by: Jasper Orschulko <jasper@fancydomain.eu>
+---
+ arch/arm/cpu/armv7/sc57x/dmcinit.h        |  7 +++++-
+ arch/arm/cpu/armv7/sc57x/init.c           | 30 +++++++++++++++++++----
+ arch/arm/include/asm/arch-sc57x/portmux.h | 24 +++++++++++++-----
+ arch/arm/include/asm/arch-sc57x/sc57x.h   |  6 +++++
+ 4 files changed, 55 insertions(+), 12 deletions(-)
+
+diff --git a/arch/arm/cpu/armv7/sc57x/dmcinit.h b/arch/arm/cpu/armv7/sc57x/dmcinit.h
+index 31ae04ff..f18b37a1 100644
+--- a/arch/arm/cpu/armv7/sc57x/dmcinit.h
++++ b/arch/arm/cpu/armv7/sc57x/dmcinit.h
+@@ -52,6 +52,7 @@
+ #define DMC_PADCTL0_VALUE      (BITM_DMC_PAD_CTL0_PUCALEN| BITM_DMC_PAD_CTL0_PDCALEN| BITM_DMC_PAD_CTL0_RTTCALEN)
+ #define DMC_PADCTL1_VALUE      0
+ #define DMC_PADCTL2_VALUE      0x00782828
++#define DMC_CPHYCTL_VALUE      0x0000001A
+ 
+ #define ENUM_DMC_PHY_CTL4_DDRMODE_DDR3  0x00000000
+ #define ENUM_DMC_PHY_CTL4_DDRMODE_DDR2  0x00000001
+@@ -96,7 +97,7 @@
+ #define BITP_DMC_DLLCTL_DATACYC               8                               /* Data Cycles */
+ #define BITP_DMC_DLLCTL_DLLCALRDCNT           0                               /* DLL Calibration RD Count */
+ 
+-#if defined(MEM_MT41K128M16JT)
++#if defined(MEM_MT41K128M16JT) || defined(MEM_AS4C64M16D3)
+ /* Default DDR3 part assumed: MT41K128M16JT-125, 2Gb part */
+ /* For DCLK= 450 MHz */
+ # define MEM_DDR3
+@@ -165,7 +166,11 @@
+ #endif
+ 
+ #define DMC_DLLCTL_VALUE	(DMC_DATACYC<<BITP_DMC_DLLCTL_DATACYC)|(DMC_DLLCALRDCNT<<BITP_DMC_DLLCTL_DLLCALRDCNT)
++#if defined(MEM_AS4C64M16D3)
++#define DMC_CFG_VALUE 		(ENUM_DMC_CFG_IFWID16|ENUM_DMC_CFG_SDRWID16|ENUM_DMC_CFG_SDRSIZE1G|ENUM_DMC_CFG_EXTBANK1)
++#else
+ #define DMC_CFG_VALUE 		(ENUM_DMC_CFG_IFWID16|ENUM_DMC_CFG_SDRWID16|ENUM_DMC_CFG_SDRSIZE2G|ENUM_DMC_CFG_EXTBANK1)
++#endif
+ #define DMC_TR0_VALUE		((DMC_TRCD<<BITP_DMC_TR0_TRCD)|(DMC_TWTR<<BITP_DMC_TR0_TWTR)|(DMC_TRP<<BITP_DMC_TR0_TRP)|(DMC_TRAS<<BITP_DMC_TR0_TRAS)|(DMC_TRC<<BITP_DMC_TR0_TRC)|(DMC_TMRD<<BITP_DMC_TR0_TMRD))
+ #define DMC_TR1_VALUE		((DMC_TREF<<BITP_DMC_TR1_TREF)|(DMC_TRFC<<BITP_DMC_TR1_TRFC)|(DMC_TRRD<<BITP_DMC_TR1_TRRD))
+ #define DMC_TR2_VALUE		((DMC_TFAW<<BITP_DMC_TR2_TFAW)|(DMC_TRTP<<BITP_DMC_TR2_TRTP)|(DMC_TWR<<BITP_DMC_TR2_TWR)|(DMC_TXP<<BITP_DMC_TR2_TXP)|(DMC_TCKE<<BITP_DMC_TR2_TCKE))
+diff --git a/arch/arm/cpu/armv7/sc57x/init.c b/arch/arm/cpu/armv7/sc57x/init.c
+index 0d954dc6..3434aef5 100644
+--- a/arch/arm/cpu/armv7/sc57x/init.c
++++ b/arch/arm/cpu/armv7/sc57x/init.c
+@@ -163,7 +163,10 @@ static inline void cgu_init(void)
+ 						CONFIG_OCLK_DIV };
+ 	struct CGU_Settings Clock_Diverders1 = {5,0,1,2,2,2,2,3};
+ 
+-	CGU_Init(0,0,&Clock_Diverders0, CLKO7);
++	/*
++	 * Select CLKIN0 for SYS_CLKOUT to drive the PHY at 25 MHz.
++	 */
++	CGU_Init(0,0,&Clock_Diverders0, CLKIN0);
+ 	CGU_Init(1,0,&Clock_Diverders1, 0);
+ }
+ 
+@@ -178,7 +181,6 @@ __attribute__((always_inline)) static inline void
+ dmc0_init(void)
+ {
+ 	int i;
+-	unsigned int temp11;
+ 
+ #ifdef MEM_DDR3
+ 	writel(0xC0000000 | readl(REG_DMC0_PHY_CTL2), REG_DMC0_PHY_CTL2);
+@@ -192,9 +194,25 @@ dmc0_init(void)
+ 	writel(readl(REG_DMC0_PHY_CTL2) | 0xF, REG_DMC0_PHY_CTL2);
+ 
+ 	//Positive delay lower byte
+-
++	/* 1. Set DDR mode to DDR3/DDR2/LPDDR in DMCx_PHY_CTL4 register */
+ 	writel(ENUM_DMC_PHY_CTL4_DDRMODE_DDR3, REG_DMC0_PHY_CTL4);
+ 
++	/* 2. Make sure that the bits 6, 7, 25, and 27 of the DMC_PHY_
++         * CTL3 register are set */
++        writel(0xA00000C0, REG_DMC0_PHY_CTL3);
++
++	/* 3. For DDR2/DDR3 mode, make sure that the bits 0, 1, 2, 3 of
++         * the DMC_PHY_CTL0 register and the bits 26, 27, 28, 29, 30, 31
++         * of the DMC_PHY_CTL2 are set. */
++        writel(0XFC000000, REG_DMC0_PHY_CTL2);
++        writel(0x0000000f, REG_DMC0_PHY_CTL0);
++        
++	/* 4. For DDR3 mode, set bit 1 and configure bits [5:2] of the
++         * DMC_CPHY_CTL register with WL=CWL+AL in DCLK cycles. */
++        writel(DMC_CPHYCTL_VALUE, REG_DMC0_CPHY_CTL); 
++
++	/* 5. Perform On Die Termination (ODT) and Driver Impedance Calibration */
++	
+ 	//Program the PAD RTT and driver impedence values required here
+ 	writel(DMC_PADCTL0_VALUE, REG_DMC0_CAL_PADCTL0);
+ 	writel(DMC_PADCTL2_VALUE, REG_DMC0_CAL_PADCTL2);
+@@ -202,6 +220,8 @@ dmc0_init(void)
+ 	//Start calibration
+ 
+ 	writel(readl(REG_DMC0_CAL_PADCTL0) | BITM_DMC_PAD_CTL0_CALSTART, REG_DMC0_CAL_PADCTL0);
++	/* delay */
++        for(i=0;i<300;i++);
+ 
+ #elif defined(MEM_DDR2)
+ 	writel(0xC0000000 | readl(REG_DMC0_PHY_CTL2), REG_DMC0_PHY_CTL2);
+@@ -242,7 +262,7 @@ dmc0_init(void)
+ 	writel(DMC_DLLCTL_VALUE, REG_DMC0_DLLCTL);
+ 
+ 	//Dummy read to fix a DDR anomaly
+-	temp11 = *(unsigned int *)0x80000000;
++	(void)*(unsigned int *)0x80000000;
+ 
+ 	writel(readl(REG_DMC0_PHY_CTL0) | 0x1000, REG_DMC0_PHY_CTL0);
+ 	writel(readl(REG_DMC0_PHY_CTL0) & ~0x1000, REG_DMC0_PHY_CTL0);
+@@ -320,8 +340,8 @@ void initcode(void)
+ 	writel(0x800, REG_DMC1_PHY_CTL0);
+ # endif
+ # endif
+-	cgu_init();
+ 	cdu_init();
++	cgu_init();
+ 
+ # ifdef MEM_DDR3
+ 	writel(0x0, REG_DMC0_PHY_CTL0);
+diff --git a/arch/arm/include/asm/arch-sc57x/portmux.h b/arch/arm/include/asm/arch-sc57x/portmux.h
+index 95525507..b069bb1e 100644
+--- a/arch/arm/include/asm/arch-sc57x/portmux.h
++++ b/arch/arm/include/asm/arch-sc57x/portmux.h
+@@ -98,7 +98,7 @@
+ #define P_SPI2_SSEL6    (P_DEFINED | P_IDENT(GPIO_PA10) | P_FUNCT(2))
+ #define P_SPI2_SSEL7    (P_DEFINED | P_IDENT(GPIO_PB7) | P_FUNCT(2))
+ 
+-/* EMAC RGMII Port Mux */
++/* EMAC R/G/MII Port Mux */
+ #define P_MII0_ETxD0	(P_DEFINED | P_IDENT(GPIO_PB7) | P_FUNCT(0))
+ #define P_MII0_ETxD1	(P_DEFINED | P_IDENT(GPIO_PB8) | P_FUNCT(0))
+ #define P_MII0_ETxD2	(P_DEFINED | P_IDENT(GPIO_PB6) | P_FUNCT(0))
+@@ -111,12 +111,24 @@
+ #define P_MII0_ERxD2	(P_DEFINED | P_IDENT(GPIO_PA14) | P_FUNCT(0))
+ #define P_MII0_ERxD3	(P_DEFINED | P_IDENT(GPIO_PA15) | P_FUNCT(0))
+ #define P_MII0_REFCLK	(P_DEFINED | P_IDENT(GPIO_PB0) | P_FUNCT(0))
+-#define P_MII0_RXDV		(P_DEFINED | P_IDENT(GPIO_PB2) | P_FUNCT(0))
+-#define P_MII0_RXER		(P_DEFINED | P_IDENT(GPIO_PB3) | P_FUNCT(0))
++#define P_MII0_RXDV	(P_DEFINED | P_IDENT(GPIO_PB2) | P_FUNCT(0))
++#define P_MII0_RXER	(P_DEFINED | P_IDENT(GPIO_PB3) | P_FUNCT(0))
+ 
+-#define P_MII0_MDC		(P_DEFINED | P_IDENT(GPIO_PA11) | P_FUNCT(0))
+-#define P_MII0_MDIO		(P_DEFINED | P_IDENT(GPIO_PA10) | P_FUNCT(0))
+-#define P_MII0_CRS		(P_DEFINED | P_IDENT(GPIO_PB1) | P_FUNCT(0))
++#define P_MII0_MDC	(P_DEFINED | P_IDENT(GPIO_PA11) | P_FUNCT(0))
++#define P_MII0_MDIO	(P_DEFINED | P_IDENT(GPIO_PA10) | P_FUNCT(0))
++#define P_MII0_CRS	(P_DEFINED | P_IDENT(GPIO_PB1) | P_FUNCT(0))
++
++#define P_RMII0 {\
++	P_MII0_ETxD0, \
++	P_MII0_ETxD1, \
++	P_MII0_ERxD0, \
++	P_MII0_ERxD1, \
++	P_MII0_REFCLK,\
++	P_MII0_ETxEN, \
++	P_MII0_RXDV,   \
++	P_MII0_MDIO,  \
++	P_MII0_MDC,   \
++	0}
+ 
+ /*MSI*/
+ #define P_MSI0_D0	(P_DEFINED | P_IDENT(GPIO_PE12) | P_FUNCT(0))
+diff --git a/arch/arm/include/asm/arch-sc57x/sc57x.h b/arch/arm/include/asm/arch-sc57x/sc57x.h
+index b4d4fefd..0f7617ce 100644
+--- a/arch/arm/include/asm/arch-sc57x/sc57x.h
++++ b/arch/arm/include/asm/arch-sc57x/sc57x.h
+@@ -132,7 +132,9 @@
+    DMC0
+    ========================= */
+ #define REG_DMC0_PHY_CTL0               0x31071000         /* DMC0 PHY Control 0 Register */
++#define REG_DMC0_PHY_CTL1               0x31071004         /* DMC0 PHY Control 1 Register */
+ #define REG_DMC0_PHY_CTL2               0x31071008         /* DMC0 PHY Control 2 Register */
++#define REG_DMC0_PHY_CTL3               0x3107100C         /* DMC0 PHY Control 2 Register */
+ #define REG_DMC0_PHY_CTL4               0x31071010         /* DMC0 PHY Control 4 Register */
+ #define REG_DMC0_CAL_PADCTL0            0x31071034         /* DMC0 CALIBRATION PAD CTL 0 Register */
+ #define REG_DMC0_CAL_PADCTL2            0x3107103C         /* DMC0 CALIBRATION PAD CTL2 Register */
+@@ -147,6 +149,7 @@
+ #define REG_DMC0_EMR1                   0x31070064         /* DMC0 Shadow EMR1 Register */
+ #define REG_DMC0_EMR2                   0x31070068         /* DMC0 Shadow EMR2 Register */
+ #define REG_DMC0_DLLCTL                 0x31070080         /* DMC0 DLL Control Register */
++#define REG_DMC0_CPHY_CTL               0x310701C0         /* DMC0 Controller to PHY Interface Register */
+ 
+ /* =========================
+         USB0
+@@ -170,3 +173,6 @@
+         PADS0
+    ========================= */
+ #define REG_PADS0_PCFG0                 0x31004404         /* PADS0 Peripheral Configuration0 Register */
++
++#define PADS_PCFG_EMACNORESET		0x4	   	   /* EMAC reset: 0 = asserted */
++#define PADS_PCFG_EMACRMII		0x10		   /* Set EMAC to RMII mode */
+-- 
+2.26.3
+

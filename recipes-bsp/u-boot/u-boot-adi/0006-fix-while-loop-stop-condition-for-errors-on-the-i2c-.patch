@@ -1,0 +1,39 @@
+From 8e7d4260ec9fda36910ae73ded3e3b7e20840948 Mon Sep 17 00:00:00 2001
+From: michael glembotzki <michael.glembotzki@irisgmbh.de>
+Date: Thu, 16 Aug 2018 13:52:55 +0200
+Subject: [PATCH 06/20] fix: while loop stop condition, for errors on the
+ i2c-bus
+
+Signed-off-by: Jasper Orschulko <jasper@fancydomain.eu>
+---
+ drivers/i2c/adi_i2c.c | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/i2c/adi_i2c.c b/drivers/i2c/adi_i2c.c
+index 178ad83793..80e152d241 100644
+--- a/drivers/i2c/adi_i2c.c
++++ b/drivers/i2c/adi_i2c.c
+@@ -84,7 +84,7 @@ struct i2c_msg {
+  */
+ static int wait_for_completion(struct twi_regs *twi, struct i2c_msg *msg)
+ {
+-	u16 int_stat, ctl;
++	u16 int_stat, t = 0, ctl;
+ 	ulong timebase = get_timer(0);
+ 
+ 	do {
+@@ -133,9 +133,10 @@ static int wait_for_completion(struct twi_regs *twi, struct i2c_msg *msg)
+ 		}
+ 
+ 		/* If we were able to do something, reset timeout */
+-		if (int_stat)
++		if (int_stat != t)
+ 			timebase = get_timer(0);
+ 
++		t = int_stat;
+ 	} while (get_timer(timebase) < I2C_TIMEOUT);
+ 
+ 	return msg->len;
+-- 
+2.30.1
+
