@@ -1,0 +1,352 @@
+From 6044253a18dab265d9902ff79283c04b6f2d538e Mon Sep 17 00:00:00 2001
+From: Jasper Orschulko <jasper@fancydomain.eu>
+Date: Tue, 23 Feb 2021 17:12:02 +0100
+Subject: [PATCH 11/20] changes to sc_adi_common.h
+
+---
+ include/configs/sc_adi_common.h | 206 ++++++++++++++++++++++++++------
+ 1 file changed, 167 insertions(+), 39 deletions(-)
+
+diff --git a/include/configs/sc_adi_common.h b/include/configs/sc_adi_common.h
+index ed6303d4..b2227b31 100644
+--- a/include/configs/sc_adi_common.h
++++ b/include/configs/sc_adi_common.h
+@@ -18,6 +18,7 @@
+ #  define CONFIG_BOOTP_GATEWAY
+ #  define CONFIG_BOOTP_DNS
+ #  define CONFIG_BOOTP_NTPSERVER
++#  define CONFIG_BOOTP_SERVERIP
+ #  define CONFIG_KEEP_SERVERADDR
+ #  define CONFIG_CMD_DNS
+ #  define CONFIG_CMD_PING
+@@ -93,7 +94,8 @@
+ # if (CONFIG_SC_BOOT_MODE == SC_BOOT_UART)
+ #  define CONFIG_BOOTDELAY	-1
+ # else
+-#  define CONFIG_BOOTDELAY	5
++#  define CONFIG_ZERO_BOOTDELAY_CHECK  /* check for keypress on bootdelay==0 */
++#  define CONFIG_BOOTDELAY	0
+ # endif
+ #endif
+ 
+@@ -103,8 +105,11 @@
+ # define CONFIG_BOOTARGS_VIDEO ""
+ #endif
+ 
++#define CONFIG_BOOTCOMMAND "run ${bootstr};"
+ #define CONFIG_BOOTARGS_ROOT_NAND "/dev/mtdblock2 rw"
+ #define CONFIG_BOOTARGS_ROOT_SDCARD    "/dev/mmcblk0p1 rw"
++#define CONFIG_BOOTARGS_ROOT_NOR1 "/dev/mtdblock4 rw"
++#define CONFIG_BOOTARGS_ROOT_NOR2 "/dev/mtdblock7 rw"
+ 
+ #define CONFIG_BOOTARGS_SDCARD	\
+ 	"root=" CONFIG_BOOTARGS_ROOT_SDCARD " " \
+@@ -119,6 +124,7 @@
+ #define CONFIG_BOOTARGS_NFS	\
+ 	"root=/dev/nfs rw " \
+ 	"nfsroot=${serverip}:${rootpath},tcp,nfsvers=3 " \
++    "uboot_version=${ver} " \
+ 	"clkin_hz=" __stringify(CONFIG_CLKIN_HZ) " " \
+ 	CONFIG_BOOTARGS_VIDEO \
+ 	"earlyprintk=serial,uart0,57600 " \
+@@ -127,26 +133,55 @@
+ 	"mem=" CONFIG_LINUX_MEMSIZE
+ 
+ #define CONFIG_BOOTARGS	\
+-	"root=" CONFIG_BOOTARGS_ROOT_NAND " " \
+ 	"rootfstype=jffs2 " \
+ 	"clkin_hz=" __stringify(CONFIG_CLKIN_HZ) " " \
+ 	CONFIG_BOOTARGS_VIDEO \
+ 	"earlyprintk=serial,uart0,57600 " \
+ 	"console=ttySC" __stringify(CONFIG_UART_CONSOLE) "," \
+ 			__stringify(CONFIG_BAUDRATE) " "\
+-		"mem=" CONFIG_LINUX_MEMSIZE
++		"mem=" CONFIG_LINUX_MEMSIZE " "\
++        "quiet " \
++        /* setting lpj avoids the cost associated with having to calibrate the loops per jiffy with each boot */ \
++        "lpj=595968 "
++
++#define CONFIG_BOOTARGS_INITRAMFS \
++        CONFIG_BOOTARGS " " \
++        "rdinit=/sbin/init uboot_version=${ver}"
+ 
+ #if defined(CONFIG_CMD_NET)
+ # define UBOOT_ENV_FILE "u-boot-" CONFIG_SYS_BOARD ".ldr"
+ # if (CONFIG_SC_BOOT_MODE == SC_BOOT_SPI_MASTER)
+-#  ifndef CONFIG_SPI_IMG_SIZE
+-#   define CONFIG_SPI_IMG_SIZE 0x80000
++#  define CONFIG_PART_UBOOT_IMG_SIZE    0x080000
++#  define CONFIG_PART_DATA_SIZE         0x100000
++#  define CONFIG_PART_DTB_IMG_SIZE      0x010000
++#  define CONFIG_PART_KERNEL_IMG_SIZE   0x270000
++#  ifndef CONFIG_PART_ROOTFS_IMG_SIZE
++#   define CONFIG_PART_ROOTFS_IMG_SIZE  0xCC0000
++#  endif
++#  define UBOOT_FILE_SIZE_LENGTH        4 /* length of the file size stored in the u-boot header */
++
++#  define CONFIG_FLASH_ADDR             0x0
++#  define CONFIG_PART_UBOOT_ADDR        0x0
++#  define CONFIG_PART_DATA_ADDR         0x0080000
++#  define CONFIG_PART_KERNEL1_ADDR      0x0180000
++#  define KERNEL1_HEADER_ADDR_SIZE      0x018000C /* the real kernel size is stored in the uImage header */
++#  define CONFIG_PART_DTB1_ADDR         0x03F0000
++#  define CONFIG_PART_ROOTFS1_ADDR      0x0400000
++#  define ROOTFS1_HEADER_ADDR           0x040000C
++#  if CONFIG_FLASH_SIZE        >= 0x02000000 /* >= 32MB */
++#   define CONFIG_PART_KERNEL2_ADDR     0x10C0000
++#   define KERNEL2_HEADER_ADDR_SIZE     0x10C000C /* the real kernel size is stored in the uImage header */
++#   define CONFIG_PART_DTB2_ADDR        0x1330000
++#   define CONFIG_PART_ROOTFS2_ADDR     0x1340000
++#   define ROOTFS2_HEADER_ADDR          0x134000C
+ #  endif
++
+ #  define UBOOT_ENV_UPDATE \
+-		"sf probe " __stringify(CONFIG_SC_BOOT_SPI_BUS) ":" \
+-		__stringify(CONFIG_SC_BOOT_SPI_SSEL) ";" \
+-		"sf erase 0 " __stringify(CONFIG_SPI_IMG_SIZE) ";" \
+-		"sf write ${loadaddr} 0 ${filesize}"
++    "echo;echo Start u-boot update ...;echo;"\
++       "sf probe " __stringify(CONFIG_SC_BOOT_SPI_BUS) ":" __stringify(CONFIG_SC_BOOT_SPI_SSEL)";" \
++       "sf erase " __stringify(CONFIG_PART_UBOOT_ADDR) " " __stringify(CONFIG_PART_UBOOT_IMG_SIZE) ";" \
++       "sf write ${loadaddr} " __stringify(CONFIG_PART_UBOOT_ADDR) " ${filesize};"
++
+ # else
+ #  define UBOOT_ENV_UPDATE
+ # endif
+@@ -161,72 +196,154 @@
+ # else
+ #  define NETCONSOLE_ENV
+ # endif
+-# define NETWORK_ENV_SETTINGS \
++# define NETWORK_ENV_SETTINGS_COMMON \
+ 	NETCONSOLE_ENV \
++    "enable_dhcp=1\0" \
++    "dhcp_setup=" \
++            "if test ${enable_dhcp} -ne 0; then;" \
++                    "dhcp;" \
++                    "set serverip ${gatewayip};" \
++            "else " \
++                    "echo WARN: dhcp is not enabled;" \
++            "fi\0" \
+ 	\
+ 	"ubootfile=" UBOOT_ENV_FILE "\0" \
+-	"update=" \
+-		"tftp ${loadaddr} ${ubootfile};" \
+-		UBOOT_ENV_UPDATE \
+-		"\0" \
++    "flash_uboot=run dhcp_setup;" \
++            "if tftp ${loadaddr} ${ubootfile};then " \
++                    UBOOT_ENV_UPDATE \
++              "else " \
++                     "echo ${tftp_issue};" \
++             "fi;\0" \
++    "delete_data_partition=run sfprobecommon;" \
++            "sf erase " __stringify(CONFIG_PART_DATA_ADDR) " " __stringify(CONFIG_PART_DATA_SIZE) ";\0" \
+ 	"addip=set bootargs ${bootargs} " \
+ 		"ip=${ipaddr}:${serverip}:${gatewayip}:${netmask}:" \
+ 		   "${hostname}:eth0:off" \
+ 		"\0" \
+ 	\
+-	"ramfile=zImage\0" \
+-	"initramfile=ramdisk.cpio.xz.u-boot\0" \
+-	"initramaddr=" INITRAMADDR "\0" \
++	"kernel_img=uImage\0" \
+ 	"dtbfile=" CONFIG_DTBNAME "\0" \
+-	"dtbaddr=" CONFIG_DTBLOADADDR "\0" \
++	"dtbaddr=" __stringify(CONFIG_DTBLOADADDR) "\0" \
++    "kernelflashaddr=" __stringify(CONFIG_PART_KERNEL1_ADDR) "\0"\
++    "dtbflashaddr=" __stringify(CONFIG_PART_DTB1_ADDR) "\0" \
++    "rootfsflashaddr=" __stringify(CONFIG_PART_ROOTFS1_ADDR) "\0"\
++    "bootargsroot=" __stringify(CONFIG_BOOTARGS_ROOT_NOR1) "\0" \
++    "kernel_img_size=" __stringify(CONFIG_PART_KERNEL_IMG_SIZE) "\0"\
++    "dtb_img_size=" __stringify(CONFIG_PART_DTB_IMG_SIZE) "\0"\
++    "rootfsflashsize=" __stringify(CONFIG_PART_ROOTFS_IMG_SIZE) "\0"\
++    "bank1=set kernelflashaddr " __stringify(CONFIG_PART_KERNEL1_ADDR) "; "\
++        "set kernelsizeaddr " __stringify(KERNEL1_HEADER_ADDR_SIZE) ";"\
++            "set dtbflashaddr " __stringify(CONFIG_PART_DTB1_ADDR) ";" \
++            "set rootfsflashaddr " __stringify(CONFIG_PART_ROOTFS1_ADDR) ";"\
++            "set bootargsroot " __stringify(CONFIG_BOOTARGS_ROOT_NOR1) ";" \
++     "set initramfs_size_addr " __stringify(ROOTFS1_HEADER_ADDR) ";\0" \
++    "select_bank=run bank${firmware_nr};echo;echo Select bank${firmware_nr} ...;echo; \0"\
++     "tftp_issue=WARN: Issue with TFTP\0" \
++     "flash_kernel=run dhcp_setup;" \
++             "if tftp ${loadaddr} ${kernel_img};then " \
++                     "run sfprobecommon;" \
++                    "sf erase ${kernelflashaddr} " __stringify(CONFIG_PART_KERNEL_IMG_SIZE) ";" \
++                    "sf write ${loadaddr} ${kernelflashaddr} ${filesize};" \
++              "else " \
++                     "echo ${tftp_issue};" \
++              "fi;\0" \
++     "flash_devtree=run dhcp_setup;" \
++             "if tftp ${loadaddr} ${dtbfile};then " \
++                     "run sfprobecommon;" \
++                    "sf erase ${dtbflashaddr} " __stringify(CONFIG_PART_DTB_IMG_SIZE) ";" \
++                    "sf write ${loadaddr} ${dtbflashaddr} ${filesize};" \
++              "else " \
++                     "echo ${tftp_issue};" \
++              "fi;\0" \
++     "flash_rootfs=run dhcp_setup;" \
++             "if tftp ${loadaddr} rootfs.img;then " \
++                     "run sfprobecommon;" \
++                    "sf erase ${rootfsflashaddr} " __stringify(CONFIG_PART_ROOTFS_IMG_SIZE) ";" \
++                    "sf write ${loadaddr} ${rootfsflashaddr} ${filesize};" \
++              "else " \
++                     "echo ${tftp_issue};" \
++              "fi;\0" \
++    "firmware_nr=1\0" \
++    "flashread=run sfprobecommon;" \
++        "sf read ${loadaddr} ${kernelsizeaddr} " __stringify(UBOOT_FILE_SIZE_LENGTH) ";u32_to_env kernel_img_size ${loadaddr};" \
++            "sf read ${loadaddr} ${kernelflashaddr} ${kernel_img_size};" \
++            "sf read ${dtbaddr} ${dtbflashaddr}  ${dtb_img_size};\0" \
++    "flashboot=run flashread;" \
++            "set bootargs ${bootargs} root=${bootargsroot} rootfstype=jffs2 uboot_version=${ver};" \
++            "bootm ${loadaddr} - ${dtbaddr}" \
++    \
+ 	"sdcardargs=set bootargs " CONFIG_BOOTARGS_SDCARD "\0" \
+ 	"ramargs=set bootargs " CONFIG_BOOTARGS "\0" \
+ 	"nfsargs=set bootargs " CONFIG_BOOTARGS_NFS "\0" \
++    "initramfsargs=set bootargs "CONFIG_BOOTARGS_INITRAMFS "\0" \
+ 	"ramboot_emmc=" \
+ 		"mmc rescan;" \
+ 		"mmc dev 0 0;" \
+-		"ext2load mmc 0:1 ${loadaddr} /boot/${ramfile};" \
++		"ext2load mmc 0:1 ${loadaddr} /boot/${kernel_img};" \
+ 		"ext2load mmc 0:1 ${dtbaddr} /boot/${dtbfile};" \
+-		"ext2load mmc 0:1 ${initramaddr} /boot/${initramfile};" \
++		"ext2load mmc 0:1 ${initramaddr} /boot/${initkernel_img};" \
+ 		"run sdcardargs;" \
+ 		"run addip;" \
+-		"bootz ${loadaddr} ${initramaddr} ${dtbaddr}" \
++		"bootm ${loadaddr} ${initramaddr} ${dtbaddr}" \
+ 		"\0" \
+ 	\
+ 	"ramboot=" \
+-		"tftp ${loadaddr} ${ramfile};" \
++		"tftp ${loadaddr} ${kernel_img};" \
+ 		"tftp ${dtbaddr} ${dtbfile};" \
+-		"tftp ${initramaddr} ${initramfile};" \
++		"tftp ${initramaddr} ${initkernel_img};" \
+ 		"run ramargs;" \
+ 		"run addip;" \
+-		"bootz ${loadaddr} ${initramaddr} ${dtbaddr}" \
++		"bootm ${loadaddr} ${initramaddr} ${dtbaddr}" \
+ 		"\0" \
+ 	\
+ 	"norboot=" \
+-		"tftp ${loadaddr} ${ramfile};" \
++		"tftp ${loadaddr} ${kernel_img};" \
+ 		"tftp ${dtbaddr} ${dtbfile};" \
+ 		"run ramargs;" \
+ 		"run addip;" \
+-		"bootz ${loadaddr} - ${dtbaddr}" \
++		"bootm ${loadaddr} - ${dtbaddr}" \
+ 		"\0" \
+ 	\
+ 	"sdcardboot=" \
+ 		"mmc rescan;" \
+ 		"mmc dev 0 0;" \
+-		"ext2load mmc 0:1 ${loadaddr} /boot/${ramfile};" \
++		"ext2load mmc 0:1 ${loadaddr} /boot/${kernel_img};" \
+ 		"ext2load mmc 0:1 ${dtbaddr} /boot/${dtbfile};" \
+ 		"run sdcardargs;" \
+-		"bootz ${loadaddr} - ${dtbaddr}" \
++		"bootm ${loadaddr} - ${dtbaddr}" \
+ 		"\0" \
+ 	\
+-	"nfsfile=zImage\0" \
++	"kernel_img=uImage\0" \
+ 	"nfsboot=" \
+-		"tftp ${loadaddr} ${nfsfile};" \
++        "run dhcp_setup;" \
++		"tftp ${loadaddr} ${kernel_img};" \
+ 		"tftp ${dtbaddr} ${dtbfile};" \
+ 		"run nfsargs;" \
+ 		"run addip;" \
+-		"bootz ${loadaddr} - ${dtbaddr}" \
+-		"\0"
++		"bootm ${loadaddr} - ${dtbaddr}" \
++		"\0" \
++    "rootfsaddr=" __stringify(CONFIG_INITRAMFS_LOADADDR) "\0" \
++    "initramboot=" \
++        "run flashread;" \
++        "run initramfsargs;" \
++        "sf read ${rootfsaddr} ${initramfs_size_addr} " __stringify(UBOOT_FILE_SIZE_LENGTH) ";" \
++        "u32_to_env rootfsflashsize ${rootfsaddr};sf read ${rootfsaddr} ${rootfsflashaddr} ${rootfsflashsize};" \
++        "bootm ${loadaddr} ${rootfsaddr} ${dtbaddr};\0"
++
++# if CONFIG_FLASH_SIZE >= 0x02000000 /* >= 32MB */
++    # define NETWORK_ENV_SETTINGS \
++    NETWORK_ENV_SETTINGS_COMMON \
++    "bank2=set kernelflashaddr " __stringify(CONFIG_PART_KERNEL2_ADDR) ";"\
++        "set kernelsizeaddr " __stringify(KERNEL2_HEADER_ADDR_SIZE) ";"\
++        "set dtbflashaddr " __stringify(CONFIG_PART_DTB2_ADDR) ";" \
++        "set rootfsflashaddr " __stringify(CONFIG_PART_ROOTFS2_ADDR) ";"\
++        "set bootargsroot " __stringify(CONFIG_BOOTARGS_ROOT_NOR2) ";" \
++    "set initramfs_size_addr " __stringify(ROOTFS2_HEADER_ADDR) ";\0"
++# else
++# define NETWORK_ENV_SETTINGS \
++        NETWORK_ENV_SETTINGS_COMMON
++# endif
++
+ #else
+ # define NETWORK_ENV_SETTINGS
+ #endif
+@@ -237,8 +354,18 @@
+ # define BOARD_ENV_SETTINGS
+ #endif
+ #define CONFIG_EXTRA_ENV_SETTINGS \
++    /* u-boot checks the kernel for valid CRC, however it does nothing if this check fails. We only need a CRC check during flashing, but not on every boot. */ \
++    "verify=0\0" \
+ 	NETWORK_ENV_SETTINGS \
+-	BOARD_ENV_SETTINGS
++	BOARD_ENV_SETTINGS \
++    "eraseall=run sfprobecommon;" \
++        "sf erase " __stringify(CONFIG_FLASH_ADDR) " " __stringify(CONFIG_FLASH_SIZE) ";" \
++        "\0" \
++    \
++    "flash_all=run flash_uboot; run flash_fw;\0" \
++    "flash_fw=run flash_kernel; run flash_devtree; run flash_rootfs;\0" \
++    "sfprobecommon=run select_bank;sf probe " __stringify(CONFIG_SC_BOOT_SPI_BUS) ":" \
++        __stringify(CONFIG_SC_BOOT_SPI_SSEL) ";\0"
+ 
+ 
+ /*
+@@ -255,12 +382,12 @@
+ #ifdef CONFIG_CMD_NET
+ # define CONFIG_NETMASK         255.255.255.0
+ # ifndef CONFIG_IPADDR
+-#  define CONFIG_IPADDR         192.168.0.15
+-#  define CONFIG_GATEWAYIP      192.168.0.1
+-#  define CONFIG_SERVERIP       192.168.0.2
++#  define CONFIG_IPADDR         192.168.240.254
++#  define CONFIG_GATEWAYIP      192.168.240.1
++#  define CONFIG_SERVERIP       192.168.240.1
+ # endif
+ # ifndef CONFIG_ROOTPATH
+-#  define CONFIG_ROOTPATH       "/romfs"
++#  define CONFIG_ROOTPATH       "/srv/nfs"
+ # endif
+ # ifdef CONFIG_CMD_DHCP
+ #  ifndef CONFIG_SYS_AUTOLOAD
+@@ -268,7 +395,8 @@
+ #  endif
+ # endif
+ # define CONFIG_IP_DEFRAG
+-# define CONFIG_NET_RETRY_COUNT 20
++# define CONFIG_BOOTP_MAY_FAIL
++# define CONFIG_NET_RETRY_COUNT 1
+ #endif
+ 
+ 
+@@ -309,7 +437,7 @@
+  * Env Storage Settings
+  */
+ #define CONFIG_ENV_OFFSET       0x10000
+-#define CONFIG_ENV_SIZE         0x2000
++#define CONFIG_ENV_SIZE         0x4000
+ #define CONFIG_ENV_SECT_SIZE    0x10000
+ /* We need envcrc to embed the env into LDRs */
+ #ifdef CONFIG_ENV_IS_EMBEDDED_IN_LDR
+-- 
+2.26.3
+

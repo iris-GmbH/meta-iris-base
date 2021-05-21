@@ -1,0 +1,33 @@
+From 5917d84eb09217dcc0adcd7e16aedc238d6df041 Mon Sep 17 00:00:00 2001
+From: michael glembotzki <michael.glembotzki@irisgmbh.de>
+Date: Sat, 13 Apr 2019 20:17:15 +0200
+Subject: [PATCH 07/20] remove warning when not using block dev
+
+Signed-off-by: Jasper Orschulko <jasper@fancydomain.eu>
+---
+ disk/part.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/disk/part.c b/disk/part.c
+index 43485c9148..82cf501685 100644
+--- a/disk/part.c
++++ b/disk/part.c
+@@ -19,6 +19,7 @@
+ #define PRINTF(fmt,args...)
+ #endif
+ 
++#ifdef HAVE_BLOCK_DEVICE
+ struct block_drvr {
+ 	char *name;
+ 	block_dev_desc_t* (*get_dev)(int dev);
+@@ -56,7 +57,6 @@ static const struct block_drvr block_drvr[] = {
+ 
+ DECLARE_GLOBAL_DATA_PTR;
+ 
+-#ifdef HAVE_BLOCK_DEVICE
+ static block_dev_desc_t *get_dev_hwpart(const char *ifname, int dev, int hwpart)
+ {
+ 	const struct block_drvr *drvr = block_drvr;
+-- 
+2.30.1
+

@@ -1,0 +1,150 @@
+From 6f3e86bbd98105b493d45c159eb3b0a4e4edaa8c Mon Sep 17 00:00:00 2001
+From: Jasper Orschulko <jasper@fancydomain.eu>
+Date: Wed, 24 Feb 2021 15:18:47 +0100
+Subject: [PATCH 15/20] sf: bar: Clean BA24 Bank Address Register bit after
+ read/write/erase operation
+
+change also exists in a similar way in upstream u-boot commit
+https://github.com/u-boot/u-boot/commit/ca1ac16da097bf0ab176b1a201653553160dc042
+however keep this for now
+
+Signed-off-by: Jasper Orschulko <jasper@fancydomain.eu>
+---
+ drivers/mtd/spi/sf_ops.c | 64 +++++++++++++++++++++++++---------------
+ 1 file changed, 41 insertions(+), 23 deletions(-)
+
+diff --git a/drivers/mtd/spi/sf_ops.c b/drivers/mtd/spi/sf_ops.c
+index 34bc54e7..ac802568 100644
+--- a/drivers/mtd/spi/sf_ops.c
++++ b/drivers/mtd/spi/sf_ops.c
+@@ -94,41 +94,47 @@ int spi_flash_cmd_write_config(struct spi_flash *flash, u8 wc)
+ #endif
+ 
+ #ifdef CONFIG_SPI_FLASH_BAR
+-static int spi_flash_cmd_bankaddr_write(struct spi_flash *flash, u8 bank_sel)
++/*
++ * This "clean_bar" is necessary in a situation when one was accessing
++ * spi flash memory > 16 MiB by using Bank Address Register's BA24 bit.
++ *
++ * After it the BA24 bit shall be cleared to allow access to correct
++ * memory region after SW reset (by calling "reset" command).
++ *
++ * Otherwise, the BA24 bit may be left set and then after reset, the
++ * ROM would read/write/erase SPL from 16 MiB * bank_sel address.
++ */
++static int clean_bar(struct spi_flash *flash)
+ {
+-	u8 cmd;
+-	int ret;
++	u8 cmd, bank_sel = 0;
+ 
+-	if (flash->bank_curr == bank_sel) {
+-		debug("SF: not require to enable bank%d\n", bank_sel);
++	if (flash->bank_curr == 0)
+ 		return 0;
+-	}
+-
+ 	cmd = flash->bank_write_cmd;
+-	ret = spi_flash_write_common(flash, &cmd, 1, &bank_sel, 1);
+-	if (ret < 0) {
+-		debug("SF: fail to write bank register\n");
+-		return ret;
+-	}
+-	flash->bank_curr = bank_sel;
++	flash->bank_curr = 0;
+ 
+-	return 0;
++	return spi_flash_write_common(flash, &cmd, 1, &bank_sel, 1);
+ }
+ 
+-static int spi_flash_bank(struct spi_flash *flash, u32 offset)
++static int write_bar(struct spi_flash *flash, u32 offset)
+ {
+-	u8 bank_sel;
++	u8 cmd, bank_sel;
+ 	int ret;
+ 
+ 	bank_sel = offset / (SPI_FLASH_16MB_BOUN << flash->shift);
++	if (bank_sel == flash->bank_curr)
++		goto bar_end;
+ 
+-	ret = spi_flash_cmd_bankaddr_write(flash, bank_sel);
+-	if (ret) {
+-		debug("SF: fail to set bank%d\n", bank_sel);
++	cmd = flash->bank_write_cmd;
++	ret = spi_flash_write_common(flash, &cmd, 1, &bank_sel, 1);
++	if (ret < 0) {
++		debug("SF: fail to write bank register\n");
+ 		return ret;
+ 	}
+ 
+-	return bank_sel;
++bar_end:
++	flash->bank_curr = bank_sel;
++	return flash->bank_curr;
+ }
+ #endif
+ 
+@@ -266,7 +272,7 @@ int spi_flash_cmd_erase_ops(struct spi_flash *flash, u32 offset, size_t len)
+ 			spi_flash_dual_flash(flash, &erase_addr);
+ #endif
+ #ifdef CONFIG_SPI_FLASH_BAR
+-		ret = spi_flash_bank(flash, erase_addr);
++		ret = write_bar(flash, erase_addr);
+ 		if (ret < 0)
+ 			return ret;
+ #endif
+@@ -285,6 +291,10 @@ int spi_flash_cmd_erase_ops(struct spi_flash *flash, u32 offset, size_t len)
+ 		len -= erase_size;
+ 	}
+ 
++#ifdef CONFIG_SPI_FLASH_BAR
++	ret = clean_bar(flash);
++#endif
++
+ 	return ret;
+ }
+ 
+@@ -308,7 +318,7 @@ int spi_flash_cmd_write_ops(struct spi_flash *flash, u32 offset,
+ 			spi_flash_dual_flash(flash, &write_addr);
+ #endif
+ #ifdef CONFIG_SPI_FLASH_BAR
+-		ret = spi_flash_bank(flash, write_addr);
++		ret = write_bar(flash, write_addr);
+ 		if (ret < 0)
+ 			return ret;
+ #endif
+@@ -334,6 +344,10 @@ int spi_flash_cmd_write_ops(struct spi_flash *flash, u32 offset,
+ 		offset += chunk_len;
+ 	}
+ 
++#ifdef CONFIG_SPI_FLASH_BAR
++	ret = clean_bar(flash);
++#endif
++
+ 	return ret;
+ }
+ 
+@@ -398,7 +412,7 @@ int spi_flash_cmd_read_ops(struct spi_flash *flash, u32 offset,
+ 			spi_flash_dual_flash(flash, &read_addr);
+ #endif
+ #ifdef CONFIG_SPI_FLASH_BAR
+-		bank_sel = spi_flash_bank(flash, read_addr);
++		bank_sel = write_bar(flash, read_addr);
+ 		if (bank_sel < 0)
+ 			return ret;
+ #endif
+@@ -422,6 +436,10 @@ int spi_flash_cmd_read_ops(struct spi_flash *flash, u32 offset,
+ 		data += read_len;
+ 	}
+ 
++#ifdef CONFIG_SPI_FLASH_BAR
++	ret = clean_bar(flash);
++#endif
++
+ 	free(cmd);
+ 	return ret;
+ }
+-- 
+2.26.3
+

@@ -1,0 +1,43 @@
+From 10555feb84a75790e2bcae69bd9440a28a4fb9ad Mon Sep 17 00:00:00 2001
+From: Jasper Orschulko <jasper@fancydomain.eu>
+Date: Tue, 23 Feb 2021 16:56:00 +0100
+Subject: [PATCH 12/20] prettier u-boot version string
+
+this change removes spaces from the u-boot version string and
+therefore can be used as kernel parameter
+
+Signed-off-by: Jasper Orschulko <jasper@fancydomain.eu>
+---
+ common/main.c | 16 +++++++++++++++-
+ 1 file changed, 15 insertions(+), 1 deletion(-)
+
+diff --git a/common/main.c b/common/main.c
+index 2979fbed..e0933a6a 100644
+--- a/common/main.c
++++ b/common/main.c
+@@ -67,7 +67,21 @@ void main_loop(void)
+ 
+ 	modem_init();
+ #ifdef CONFIG_VERSION_VARIABLE
+-	setenv("ver", version_string);  /* set version variable */
++#define MAX_VERSION_SIZE 100
++    char version [MAX_VERSION_SIZE];
++    char *pos = strchr(version_string, ' ') + 1;
++    char *end = strchr(pos, ' ');
++    int length = 0;
++
++    if (pos && end) {
++        length = end-pos;
++    }
++
++    if (length == 0 || 0 > snprintf(version, MAX_VERSION_SIZE, "%.*s", length, pos)) {
++        snprintf(version, MAX_VERSION_SIZE, "Not found.");
++    }
++
++	setenv("ver", version);  /* set version variable */
+ #endif /* CONFIG_VERSION_VARIABLE */
+ 
+ 	cli_init();
+-- 
+2.26.3
+

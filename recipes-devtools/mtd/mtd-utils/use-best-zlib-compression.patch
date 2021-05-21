@@ -1,0 +1,13 @@
+diff --git a/jffsX-utils/compr_zlib.c b/jffsX-utils/compr_zlib.c
+index 1f94628..d73fc9e 100644
+--- a/jffsX-utils/compr_zlib.c
++++ b/jffsX-utils/compr_zlib.c
+@@ -65,7 +65,7 @@ static int jffs2_zlib_compress(unsigned char *data_in, unsigned char *cpage_out,
+ 	strm.zalloc = (void *)0;
+ 	strm.zfree = (void *)0;
+ 
+-	if (Z_OK != deflateInit(&strm, 3)) {
++	if (Z_OK != deflateInit(&strm, Z_BEST_COMPRESSION)) {
+ 		return -1;
+ 	}
+ 	strm.next_in = data_in;

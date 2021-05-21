@@ -1,0 +1,143 @@
+From aada1d6051bd92a348285b1a488505ff6d5238d8 Mon Sep 17 00:00:00 2001
+From: Jasper Orschulko <jasper@fancydomain.eu>
+Date: Tue, 23 Feb 2021 15:28:36 +0100
+Subject: [PATCH 19/20] add support for micrel phy ksz8001 and ksz8081
+
+support for this exists in current upstream u-boot,
+however keep this for now
+
+Signed-off-by: Jasper Orschulko <jasper@fancydomain.eu>
+---
+ drivers/net/phy/micrel.c | 68 ++++++++++++++++++++++++++++++++++++++++
+ include/micrel.h         | 16 ++++++++++
+ 2 files changed, 84 insertions(+)
+
+diff --git a/drivers/net/phy/micrel.c b/drivers/net/phy/micrel.c
+index 507b9a36..595c0a41 100644
+--- a/drivers/net/phy/micrel.c
++++ b/drivers/net/phy/micrel.c
+@@ -12,6 +12,7 @@
+ #include <micrel.h>
+ #include <phy.h>
+ 
++
+ static struct phy_driver KSZ804_driver = {
+ 	.name = "Micrel KSZ804",
+ 	.uid = 0x221510,
+@@ -22,6 +23,65 @@ static struct phy_driver KSZ804_driver = {
+ 	.shutdown = &genphy_shutdown,
+ };
+ 
++/**
++ * Micrel KSZ8001 or KSZ8721
++ */
++static int ksz8001_config(struct phy_device *phydev)
++{
++	/* KSZ8721BLI MII, 10/100MBit, */
++
++	/*set phy*/
++	phy_write(phydev, phydev->addr, MII_ADVERTISE, 0x05E1);
++
++	/* turn on auto-negotiation */
++	phy_write(phydev, phydev->addr, MII_BMCR, BMCR_ANENABLE);
++
++	return 0;
++}
++
++static struct phy_driver KSZ8001_driver = {
++	.name = "Micrel KSZ8001 or KS8721",
++	.uid = PHY_ID_KSZ8001,
++	.mask = MICREL_PHY_ID_MASK,
++	.features = PHY_BASIC_FEATURES,
++	.config = &ksz8001_config,
++	.startup = &genphy_startup,
++	.shutdown = &genphy_shutdown,
++};
++
++
++/**
++ * Micrel KSZ8081 PHY
++ */
++static int ksz8081_config(struct phy_device *phydev)
++{
++	/* KSZ8081RNBIA RMII, 50MHz, 100MBit only,*/
++
++	/*set phy rmii 50MHz*/
++	phy_write(phydev, phydev->addr, 
++		  MII_KSZ8081_REG_OP_MODE_OVERRIDE,
++		  MII_KSZ8081_OP_MODE_RMII
++ 		);
++
++	/*set phy 100MBit only*/
++	phy_write(phydev, phydev->addr, MII_ADVERTISE, 0x8581);
++
++	/* turn on auto-negotiation */
++	phy_write(phydev, phydev->addr, MII_BMCR, BMCR_ANENABLE);
++
++	return 0;
++}
++
++static struct phy_driver KSZ8081_driver = {
++	.name = "Micrel KSZ8081",
++	.uid = PHY_ID_KSZ8081,
++	.mask = MICREL_PHY_ID_MASK,
++	.features = PHY_BASIC_FEATURES,
++	.config = &ksz8081_config,
++	.startup = &genphy_startup,
++	.shutdown = &genphy_shutdown,
++};
++
+ #ifndef CONFIG_PHY_MICREL_KSZ9021
+ /*
+  * I can't believe Micrel used the exact same part number
+@@ -29,6 +89,12 @@ static struct phy_driver KSZ804_driver = {
+  */
+ static struct phy_driver KS8721_driver = {
+ 	.name = "Micrel KS8721BL",
++	/*
++	 * According to the kernel driver, this UID is
++	 * 0x22161A, which, however, would be masked here.
++	 *
++	 * TODO Check and adapt UID and Mask!
++	 * */
+ 	.uid = 0x221610,
+ 	.mask = 0xfffff0,
+ 	.features = PHY_BASIC_FEATURES,
+@@ -215,6 +281,8 @@ static struct phy_driver ksz9031_driver = {
+ int phy_micrel_init(void)
+ {
+ 	phy_register(&KSZ804_driver);
++	phy_register(&KSZ8001_driver);	
++	phy_register(&KSZ8081_driver);
+ #ifdef CONFIG_PHY_MICREL_KSZ9021
+ 	phy_register(&ksz9021_driver);
+ #else
+diff --git a/include/micrel.h b/include/micrel.h
+index 04c9ecf3..c13d6ad2 100644
+--- a/include/micrel.h
++++ b/include/micrel.h
+@@ -1,5 +1,21 @@
+ #ifndef _MICREL_H
+ 
++#define MICREL_PHY_ID_MASK	0x00fffff0
++
++/* same id: ks8001 Rev. A/B, and ks8721 Rev 3. */
++#define PHY_ID_KSZ8001		0x0022161A
++#define PHY_ID_KSZ8081		0x00221560
++
++
++/* struct phy_device dev_flags definitions */
++#define MICREL_PHY_50MHZ_CLK	0x00000001
++
++
++/* KSZ8081 */
++#define MII_KSZ8081_REG_OP_MODE_OVERRIDE	0x16
++#define MII_KSZ8081_OP_MODE_RMII		0x02
++
++/* KSZ9021 */
+ #define MII_KSZ9021_EXT_COMMON_CTRL		0x100
+ #define MII_KSZ9021_EXT_STRAP_STATUS		0x101
+ #define MII_KSZ9021_EXT_OP_STRAP_OVERRIDE	0x102
+-- 
+2.26.3
+
