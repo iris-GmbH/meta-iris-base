@@ -44,7 +44,7 @@ python do_createfirmwarezip() {
 
     def create_meta_and_zip(deployfiles, metatype, file_list):
         version_string_full = "{:s}-{:s}-{:s}".format(metatype, d.getVar('PV', True), d.getVar('IMAGE_NAME', True))
-        version_string_short = "{:s}-{:s}".format(metatype, d.getVar('PN', True))
+        version_string_short = "{:s}-{:s}-{:s}".format(metatype, d.getVar('PN', True), d.getVar('PV', True))
 
         # Create meta.yaml
         meta = {}
