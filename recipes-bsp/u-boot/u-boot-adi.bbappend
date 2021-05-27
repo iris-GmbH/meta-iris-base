@@ -3,6 +3,9 @@
 
 FILESEXTRAPATHS_prepend := "${THISDIR}/${BPN}:"
 
+# set fixed srcrev for offline builds
+SRCREV = "c372d6caddd5945952822e5a619493fdb74a6410"
+
 UBOOT_BRANCH = "release/yocto-1.0.0"
 INIT_PATH = "arch/arm/cpu/armv7/sc57x"
 

@@ -33,13 +33,13 @@
 inherit kernel
 require recipes-kernel/linux/linux-yocto.inc
 
-BRANCH = "master"
+BRANCH = "develop"
 TAG    = "gen6-1.2.7"
 LINUX_VERSION ?= "4.14.87"
 LINUX_VERSION_EXTENSION ?= "-${TAG}"
-SRCREV="${TAG}"
+SRCREV="f6fca2abc69f8eaf3e025c723d20ef5214a063f5"
 
-SRC_URI = "git://github.com/iris-GmbH/linux-gen6.git;protocol=https;bareclone=1;tag=${TAG};branch=${BRANCH};depth=1"
+SRC_URI = "git://github.com/iris-GmbH/linux-gen6.git;protocol=https;bareclone=1;branch=${BRANCH};depth=1"
 
 SRC_URI += "file://gen6.scc \
             file://gen6.cfg \
