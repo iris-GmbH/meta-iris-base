@@ -1,4 +1,7 @@
-SUMMARY = "A small image just capable of allowing a device to boot."
+# SPDX-License-Identifier: MIT
+# Copyright (C) 2021 iris GmbH infrared & intelligent sensors
+
+SUMMARY = "The iris custom Linux distribution, minus our proprietary platform application."
 IMAGE_LINGUAS = " "
 LICENSE = "MIT"
 inherit irma-six-core-image
@@ -8,5 +11,8 @@ TOOLCHAIN_HOST_TASK += "nativesdk-cmake nativesdk-protobuf-lite nativesdk-protob
 TOOLCHAIN_TARGET_TASK += "googletest"
 
 PV = "${DISTRO_VERSION}"
+
+# install any runtime dependencies of our platform application
+IMAGE_INSTALL_append = " libstdc++ libssl avahi-daemon libavahi-client libavahi-common libavahi-core libmosquitto1 libmosquittopp1 protobuf-lite zlib yaml-cpp libelf libxml2"
 
 inherit irma-6-firmware-zip
