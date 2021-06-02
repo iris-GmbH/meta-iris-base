@@ -45,6 +45,8 @@ SRC_URI += "file://gen6.scc \
             file://gen6-user-patches.scc \
            "
 
+SRC_URI += "file://0001-perf-tools-Add-Python-3-support.patch"
+
 PV = "${LINUX_VERSION}+git${SRCPV}"
 
 # KBUILD_DEFCONFIG does not natively work for now, because it does not expand all flags like make xy_defconfig
