@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (C) 2021 iris GmbH infrared & intelligent sensors
+# Copyright (C) 2021 iris-GmbH infrared & intelligent sensors
 
 # This file was derived from the linux-yocto-custom.bb recipe in
 # oe-core.
