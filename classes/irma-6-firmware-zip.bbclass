@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (C) 2021 iris GmbH infrared & intelligent sensors
+# Copyright (C) 2021 iris-GmbH infrared & intelligent sensors
 
 do_createfirmwarezip[depends] += "${PN}:do_image_complete"
 do_createfirmwarezip[depends] += "virtual/kernel:do_deploy"

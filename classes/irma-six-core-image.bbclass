@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: MIT
 # Copyright (C) 2007-2011 Linux Foundation
-# Copyright (C) 2021 iris GmbH infrared & intelligent sensors
+# Copyright (C) 2021 iris-GmbH infrared & intelligent sensors
 
 # Common code for generating core reference images
 
