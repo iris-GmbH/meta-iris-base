@@ -43,11 +43,15 @@ python do_createfirmwarezip() {
         return deployfiles
 
     def create_meta_and_zip(deployfiles, metatype, file_list):
+        version_string_full = "{:s}-{:s}-{:s}".format(metatype, d.getVar('PV', True), d.getVar('IMAGE_NAME', True))
+        version_string_short = "{:s}-{:s}-{:s}".format(metatype, d.getVar('PN', True), d.getVar('PV', True))
+
         # Create meta.yaml
         meta = {}
         meta[metatype] = {}
         for f in file_list:
             meta[metatype][f] = { 'file': os.path.basename(deployfiles[f]) }
+        meta["version"] = version_string_full
 
         # Write meta.yaml to /tmp
         meta_temp = tempfile.NamedTemporaryFile(mode = "w")
@@ -57,8 +61,8 @@ python do_createfirmwarezip() {
         update_file_dir = os.path.join(deploy_dir, 'update_files')
         os.makedirs(update_file_dir, exist_ok=True)
 
-        zip_full_name = "{:s}-{:s}-{:s}-{:s}.zip".format(metatype, d.getVar('PN', True), d.getVar('PV', True), d.getVar('IMAGE_NAME', True))
-        zip_link_name = "{:s}-{:s}.zip".format(metatype, d.getVar('PN', True))
+        zip_full_name = "{:s}.zip".format(version_string_full)
+        zip_link_name = "{:s}.zip".format(version_string_short)
         zip_path = os.path.join(update_file_dir, zip_full_name)
         zip_link = os.path.join(update_file_dir, zip_link_name)
 
