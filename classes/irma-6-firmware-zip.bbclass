@@ -1,5 +1,18 @@
 # SPDX-License-Identifier: MIT
 # Copyright (C) 2021 iris-GmbH infrared & intelligent sensors
+#
+#
+# This class archives all necessary components into a release zip file
+#
+# The following variables must be defined in machine- / local- / multiconfig:
+# - FLASH_FSTYPE
+# - FIRMWARE_ZIP_KERNEL_NAME
+# - FIRMWARE_ZIP_DEVTREE_NAME
+# - FIRMWARE_ZIP_BOOTLOADER_NAME
+# - IMAGE_LINK_NAME
+#
+# For some targets it can be useful to skip this class (e.g. qemu).
+# In this case set the variable SKIP_FIRMWARE_ZIP to "1" in the multiconfig
 
 do_createfirmwarezip[depends] += "${PN}:do_image_complete"
 do_createfirmwarezip[depends] += "virtual/kernel:do_deploy"
@@ -13,6 +26,9 @@ python do_createfirmwarezip() {
     import yaml
     import errno
     import tempfile
+
+    if d.getVar('SKIP_FIRMWARE_ZIP', True) == "1":
+        return
 
     pn = d.getVar('PN', True)
     deploy_dir = d.getVar('DEPLOY_DIR_IMAGE', True)
