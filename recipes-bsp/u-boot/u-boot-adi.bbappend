@@ -32,3 +32,11 @@ SRC_URI += " \
     file://0020-add-localversion-iris.patch \
     file://0021-remove-space-from-localversion-adi.patch \
 "
+
+# add the file containing the u-boot version string to the sysroot,
+# so that we can consume it within other recipes.
+FILES_${PN}-dev += "${datadir}/uboot.release"
+do_install_append() {
+    install -d ${D}/${datadir}
+    install ${B}/include/config/uboot.release ${D}${datadir}/uboot.release
+}
