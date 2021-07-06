@@ -25,4 +25,16 @@ add_image_name_to_os_release(){
 
 ROOTFS_POSTPROCESS_COMMAND += "add_image_name_to_os_release; "
 
+# save the firmware version at /etc/version.
+# Although this probably is not a good idea (modifies file from deep within the yocto build system), this is done for backwards compatibility reasons
+replace_etc_version () {
+	echo "${FIRMWARE_VERSION}" > ${IMAGE_ROOTFS}${sysconfdir}/version
+}
+
+# simply appending to ROOTFS_POSTPROCESS_COMMAND is not enough, as we need to run this after
+# https://git.yoctoproject.org/cgit/cgit.cgi/poky/tree/meta/classes/rootfs-postcommands.bbclass?h=dunfell&id=43060f59ba60a0257864f1f7b25b51fac3f2d2cf#n57
+python () {
+    d.appendVar('ROOTFS_POSTPROCESS_COMMAND', 'replace_etc_version;')
+}
+
 inherit irma6-firmware-zip
