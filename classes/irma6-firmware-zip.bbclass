@@ -17,6 +17,8 @@
 do_createfirmwarezip[depends] += "${PN}:do_image_complete"
 do_createfirmwarezip[depends] += "virtual/kernel:do_deploy"
 do_createfirmwarezip[depends] += "virtual/bootloader:do_deploy"
+# we need the sysroot to access u-boot versioning file
+do_createfirmwarezip[deptask] += "do_populate_sysroot"
 do_createfirmwarezip[nostamp] = "1"
 
 DEPENDS += "python3-pyyaml-native"
@@ -67,6 +69,11 @@ python do_createfirmwarezip() {
         for f in file_list:
             meta[metatype][f] = { 'file': os.path.basename(deployfiles[f]) }
         meta["version"] = version_string
+        # additionally, add the bootloader versioning to the meta.yml file
+        if metatype == "bootloader":
+            with open(d.getVar('STAGING_DIR_HOST', True) + d.getVar('datadir', True) + '/uboot.release','r') as f:
+                bootloader_version = f.readline().rstrip()
+            meta["bootloader-version"] = bootloader_version
 
         # Write meta.yaml to /tmp
         meta_temp = tempfile.NamedTemporaryFile(mode = "w")
