@@ -6,6 +6,4 @@ iface lo inet loopback
 
 # Wired or wireless interfaces
 auto eth0
-iface eth0 inet static
-  address 192.168.240.254
-  netmask 255.255.254.0
+iface eth0 inet manual
