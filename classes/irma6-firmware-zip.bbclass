@@ -1,9 +1,24 @@
 # SPDX-License-Identifier: MIT
-# Copyright (C) 2021 iris GmbH infrared & intelligent sensors
+# Copyright (C) 2021 iris-GmbH infrared & intelligent sensors
+#
+#
+# This class archives all necessary components into a release zip file
+#
+# The following variables must be defined in machine- / local- / multiconfig:
+# - FLASH_FSTYPE
+# - FIRMWARE_ZIP_KERNEL_NAME
+# - FIRMWARE_ZIP_DEVTREE_NAME
+# - FIRMWARE_ZIP_BOOTLOADER_NAME
+# - IMAGE_LINK_NAME
+#
+# For some targets it can be useful to skip this class (e.g. qemu).
+# In this case set the variable SKIP_FIRMWARE_ZIP to "1" in the multiconfig
 
 do_createfirmwarezip[depends] += "${PN}:do_image_complete"
 do_createfirmwarezip[depends] += "virtual/kernel:do_deploy"
 do_createfirmwarezip[depends] += "virtual/bootloader:do_deploy"
+# we need the sysroot to access u-boot versioning file
+do_createfirmwarezip[deptask] += "do_populate_sysroot"
 do_createfirmwarezip[nostamp] = "1"
 
 DEPENDS += "python3-pyyaml-native"
@@ -13,6 +28,9 @@ python do_createfirmwarezip() {
     import yaml
     import errno
     import tempfile
+
+    if d.getVar('SKIP_FIRMWARE_ZIP', True) == "1":
+        return
 
     pn = d.getVar('PN', True)
     deploy_dir = d.getVar('DEPLOY_DIR_IMAGE', True)
@@ -43,11 +61,19 @@ python do_createfirmwarezip() {
         return deployfiles
 
     def create_meta_and_zip(deployfiles, metatype, file_list):
+        version_string = d.getVar('FIRMWARE_VERSION', True)
+
         # Create meta.yaml
         meta = {}
         meta[metatype] = {}
         for f in file_list:
             meta[metatype][f] = { 'file': os.path.basename(deployfiles[f]) }
+        meta["version"] = version_string
+        # additionally, add the bootloader versioning to the meta.yml file
+        if metatype == "bootloader":
+            with open(d.getVar('STAGING_DIR_HOST', True) + d.getVar('datadir', True) + '/uboot.release','r') as f:
+                bootloader_version = f.readline().rstrip()
+            meta["bootloader-version"] = bootloader_version
 
         # Write meta.yaml to /tmp
         meta_temp = tempfile.NamedTemporaryFile(mode = "w")
@@ -57,7 +83,8 @@ python do_createfirmwarezip() {
         update_file_dir = os.path.join(deploy_dir, 'update_files')
         os.makedirs(update_file_dir, exist_ok=True)
 
-        zip_full_name = "{:s}-{:s}-{:s}-{:s}.zip".format(metatype, d.getVar('PN', True), d.getVar('PV', True), d.getVar('IMAGE_NAME', True))
+        zip_full_name = "{:s}-{:s}.zip".format(metatype, version_string)
+        # link is necessary, so that we can identify and delete old build artifacts
         zip_link_name = "{:s}-{:s}.zip".format(metatype, d.getVar('PN', True))
         zip_path = os.path.join(update_file_dir, zip_full_name)
         zip_link = os.path.join(update_file_dir, zip_link_name)

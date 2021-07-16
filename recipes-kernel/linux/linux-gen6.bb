@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (C) 2021 iris GmbH infrared & intelligent sensors
+# Copyright (C) 2021 iris-GmbH infrared & intelligent sensors
 
 # This file was derived from the linux-yocto-custom.bb recipe in
 # oe-core.
@@ -34,10 +34,8 @@ inherit kernel
 require recipes-kernel/linux/linux-yocto.inc
 
 BRANCH = "develop"
-TAG    = "gen6-1.2.7"
-LINUX_VERSION ?= "4.14.87"
-LINUX_VERSION_EXTENSION ?= "-${TAG}"
-SRCREV="f6fca2abc69f8eaf3e025c723d20ef5214a063f5"
+LINUX_VERSION ?= "4.14.233"
+SRCREV="cbb7584ce386039a04054c33561856495fa1b9ca"
 
 SRC_URI = "git://github.com/iris-GmbH/linux-gen6.git;protocol=https;bareclone=1;branch=${BRANCH};depth=1"
 
@@ -47,10 +45,7 @@ SRC_URI += "file://gen6.scc \
             file://gen6-user-patches.scc \
            "
 
-SRC_URI += "file://0001-dev-util-perf-make-perf-build.patch \
-	    file://0002-perf-tools-Add-Python-3-support.patch \
-	    file://0003-Fixed-multiple-definitions-of-YYLTYPE-yylloc.patch \
-           "
+SRC_URI += "file://0001-perf-tools-Add-Python-3-support.patch"
 
 PV = "${LINUX_VERSION}+git${SRCPV}"
 

@@ -115,7 +115,7 @@ index 0000000000..9b7e03f91c
 +#
 +# U-boot - Makefile
 +#
-+# Copyright (c) 2021 iris GmbH
++# Copyright (c) 2021 iris-GmbH
 +#
 +# Copyright (c) 2013 Analog Device Inc.
 +#
@@ -135,7 +135,7 @@ index 0000000000..b70d3e1688
 +/*
 + * U-boot - main board file
 + *
-+ * Copyright (c) 2021 iris GmbH
++ * Copyright (c) 2021 iris-GmbH
 + *
 + * Copyright (c) 2013-2014 Analog Devices Inc.
 + *
@@ -334,7 +334,7 @@ index 0000000000..9b7e03f91c
 +#
 +# U-boot - Makefile
 +#
-+# Copyright (c) 2021 iris GmbH
++# Copyright (c) 2021 iris-GmbH
 +#
 +# Copyright (c) 2013 Analog Device Inc.
 +#
@@ -354,7 +354,7 @@ index 0000000000..375529844a
 +/*
 + * U-boot - main board file
 + *
-+ * Copyright (c) 2021 iris GmbH
++ * Copyright (c) 2021 iris-GmbH
 + *
 + * Copyright (c) 2013-2014 Analog Devices Inc.
 + *
@@ -539,9 +539,9 @@ index 0000000000..77bb2161c3
 +++ b/include/configs/sc572-gen6.h
 @@ -0,0 +1,171 @@
 +/*
-+ * Copyright (c) 2021 iris GmbH
++ * Copyright (c) 2021 iris-GmbH
 + *
-+ * U-boot - Configuration file for sc572 gen6 board by iris GmbH
++ * U-boot - Configuration file for sc572 gen6 board by iris-GmbH
 + */
 +
 +#ifndef __CONFIG_SC572_GEN6_H
@@ -716,9 +716,9 @@ index 0000000000..5edce04223
 +++ b/include/configs/sc573-gen6.h
 @@ -0,0 +1,171 @@
 +/*
-+ * Copyright (c) 2021 iris GmbH
++ * Copyright (c) 2021 iris-GmbH
 + *
-+ * U-boot - Configuration file for sc573 gen6 board by iris GmbH
++ * U-boot - Configuration file for sc573 gen6 board by iris-GmbH
 + */
 +
 +#ifndef __CONFIG_SC573_GEN6_H
