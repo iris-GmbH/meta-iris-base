@@ -6,27 +6,15 @@ and this project adheres to [APR's Version Numbering](https://apr.apache.org/ver
 
 ## [2.0.1]-dev (HEAD) - n/a
 ### Added
+- add multiconfigs for QEMU images
 
 
 ### Changed
-
-
-### Deprecated
-
-
-### Removed
+- prepare layer for upcoming CI
 
 
 ### Fixed
-
-
-### Simulation only
-
-
-### Maintenance only
-
-
-### Known issues
+- gcc: Backport bugfix for bug 101510: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=101510
 
 
 
