@@ -1,0 +1,227 @@
+From a13753e091e57502aa3c8d472e3de59e1f7a47de Mon Sep 17 00:00:00 2001
+From: Jonathan Wakely <jwakely@redhat.com>
+Date: Tue, 20 Jul 2021 18:15:48 +0100
+Subject: [PATCH] libstdc++: Fix create_directories to resolve symlinks
+ [PR101510]
+
+When filesystem__create_directories checks to see if the path already
+exists and resovles to a directory, it uses filesystem::symlink_status,
+which means it reports an error if the path is a symlink. It should use
+filesystem::status, so that the target directory is detected, and no
+error is reported.
+
+Signed-off-by: Jonathan Wakely <jwakely@redhat.com>
+
+libstdc++-v3/ChangeLog:
+
+	PR libstdc++/101510
+	* src/c++17/fs_ops.cc (fs::create_directories): Use status
+	instead of symlink_status.
+	* src/filesystem/ops.cc (fs::create_directories): Likewise.
+	* testsuite/27_io/filesystem/operations/create_directories.cc:
+	* testsuite/27_io/filesystem/operations/create_directory.cc: Do
+	not test with symlinks on Windows.
+	* testsuite/experimental/filesystem/operations/create_directories.cc:
+	* testsuite/experimental/filesystem/operations/create_directory.cc:
+	Do not test with symlinks on Windows.
+
+cherry-picked from commit 124eaa50e0a34f5f89572c1aa812c50979da58fc for gcc 9.3.0
+Signed-off-by: Jasper Orschulko <Jasper.Orschulko@iris-sensing.com>
+---
+ libstdc++-v3/src/c++17/fs_ops.cc              |  2 +-
+ libstdc++-v3/src/filesystem/ops.cc            |  2 +-
+ .../operations/create_directories.cc          | 23 ++++++++++++++
+ .../filesystem/operations/create_directory.cc | 31 +++++++++++++++++++
+ .../operations/create_directories.cc          | 23 ++++++++++++++
+ .../filesystem/operations/create_directory.cc | 31 +++++++++++++++++++
+ 6 files changed, 110 insertions(+), 2 deletions(-)
+
+diff --git a/libstdc++-v3/src/c++17/fs_ops.cc b/libstdc++-v3/src/c++17/fs_ops.cc
+index 5f1f47b9fb7..025be88eb82 100644
+--- a/libstdc++-v3/src/c++17/fs_ops.cc
++++ b/libstdc++-v3/src/c++17/fs_ops.cc
+@@ -496,7 +496,7 @@ fs::create_directories(const path& p, error_code& ec)
+       return false;
+     }
+ 
+-  file_status st = symlink_status(p, ec);
++  file_status st = status(p, ec);
+   if (is_directory(st))
+     return false;
+   else if (ec && !status_known(st))
+diff --git a/libstdc++-v3/src/filesystem/ops.cc b/libstdc++-v3/src/filesystem/ops.cc
+index 5c5d6b9ef26..60325f151a4 100644
+--- a/libstdc++-v3/src/filesystem/ops.cc
++++ b/libstdc++-v3/src/filesystem/ops.cc
+@@ -426,7 +426,7 @@ fs::create_directories(const path& p, error_code& ec) noexcept
+       return false;
+     }
+ 
+-  file_status st = symlink_status(p, ec);
++  file_status st = status(p, ec);
+   if (is_directory(st))
+     return false;
+   else if (ec && !status_known(st))
+diff --git a/libstdc++-v3/testsuite/27_io/filesystem/operations/create_directories.cc b/libstdc++-v3/testsuite/27_io/filesystem/operations/create_directories.cc
+index c4411dfc1e7..7dd9c209b40 100644
+--- a/libstdc++-v3/testsuite/27_io/filesystem/operations/create_directories.cc
++++ b/libstdc++-v3/testsuite/27_io/filesystem/operations/create_directories.cc
+@@ -146,10 +146,33 @@ test03()
+   remove_all(p);
+ }
+ 
++void
++test04()
++{
++#if defined(__MINGW32__) || defined(__MINGW64__)
++  // no symlinks
++#else
++  // PR libstdc++/101510
++  // create_directories reports an error if the path is a symlink to a dir
++  std::error_code ec = make_error_code(std::errc::invalid_argument);
++  const auto p = __gnu_test::nonexistent_path() / "";
++  fs::create_directories(p/"dir");
++  auto link = p/"link";
++  fs::create_directory_symlink("dir", link);
++  bool created = fs::create_directories(link, ec);
++  VERIFY( !created );
++  VERIFY( !ec );
++  created = fs::create_directories(link);
++  VERIFY( !created );
++  remove_all(p);
++#endif
++}
++
+ int
+ main()
+ {
+   test01();
+   test02();
+   test03();
++  test04();
+ }
+diff --git a/libstdc++-v3/testsuite/27_io/filesystem/operations/create_directory.cc b/libstdc++-v3/testsuite/27_io/filesystem/operations/create_directory.cc
+index da78fb2de87..9555280e8c6 100644
+--- a/libstdc++-v3/testsuite/27_io/filesystem/operations/create_directory.cc
++++ b/libstdc++-v3/testsuite/27_io/filesystem/operations/create_directory.cc
+@@ -55,6 +55,37 @@ test01()
+   b = create_directory(p);
+   VERIFY( !b );
+ 
++  auto f = p/"file";
++  std::ofstream{f} << "create file";
++  b = create_directory(f, ec);
++  VERIFY( ec == std::errc::file_exists );
++  VERIFY( !b );
++  try
++  {
++    create_directory(f);
++    VERIFY( false );
++  }
++  catch (const fs::filesystem_error& e)
++  {
++    VERIFY( e.code() == std::errc::file_exists );
++    VERIFY( e.path1() == f );
++  }
++
++#if defined(__MINGW32__) || defined(__MINGW64__)
++  // no symlinks
++#else
++  // PR libstdc++/101510 create_directory on an existing symlink to a directory
++  fs::create_directory(p/"dir");
++  auto link = p/"link";
++  fs::create_directory_symlink("dir", link);
++  ec = bad_ec;
++  b = fs::create_directory(link, ec);
++  VERIFY( !b );
++  VERIFY( !ec );
++  b = fs::create_directory(link);
++  VERIFY( !b );
++#endif
++
+   remove_all(p, ec);
+ }
+ 
+diff --git a/libstdc++-v3/testsuite/experimental/filesystem/operations/create_directories.cc b/libstdc++-v3/testsuite/experimental/filesystem/operations/create_directories.cc
+index b6909b630d4..6cfa7800860 100644
+--- a/libstdc++-v3/testsuite/experimental/filesystem/operations/create_directories.cc
++++ b/libstdc++-v3/testsuite/experimental/filesystem/operations/create_directories.cc
+@@ -129,10 +129,33 @@ test03()
+   remove_all(p);
+ }
+ 
++void
++test04()
++{
++#if defined(__MINGW32__) || defined(__MINGW64__)
++  // no symlinks
++#else
++  // PR libstdc++/101510
++  // create_directories reports an error if the path is a symlink to a dir
++  std::error_code ec = make_error_code(std::errc::invalid_argument);
++  const auto p = __gnu_test::nonexistent_path() / "";
++  fs::create_directories(p/"dir");
++  auto link = p/"link";
++  fs::create_directory_symlink("dir", link);
++  bool created = fs::create_directories(link, ec);
++  VERIFY( !created );
++  VERIFY( !ec );
++  created = fs::create_directories(link);
++  VERIFY( !created );
++  remove_all(p);
++#endif
++}
++
+ int
+ main()
+ {
+   test01();
+   test02();
+   test03();
++  test04();
+ }
+diff --git a/libstdc++-v3/testsuite/experimental/filesystem/operations/create_directory.cc b/libstdc++-v3/testsuite/experimental/filesystem/operations/create_directory.cc
+index 3a79d6622b9..1edd2b33a69 100644
+--- a/libstdc++-v3/testsuite/experimental/filesystem/operations/create_directory.cc
++++ b/libstdc++-v3/testsuite/experimental/filesystem/operations/create_directory.cc
+@@ -52,6 +52,37 @@ test01()
+   b = create_directory(p);
+   VERIFY( !b );
+ 
++  auto f = p/"file";
++  std::ofstream{f} << "create file";
++  b = create_directory(f, ec);
++  VERIFY( ec == std::errc::file_exists );
++  VERIFY( !b );
++  try
++  {
++    create_directory(f);
++    VERIFY( false );
++  }
++  catch (const fs::filesystem_error& e)
++  {
++    VERIFY( e.code() == std::errc::file_exists );
++    VERIFY( e.path1() == f );
++  }
++
++#if defined(__MINGW32__) || defined(__MINGW64__)
++  // no symlinks
++#else
++  // PR libstdc++/101510 create_directory on an existing symlink to a directory
++  fs::create_directory(p/"dir");
++  auto link = p/"link";
++  fs::create_directory_symlink("dir", link);
++  ec = make_error_code(std::errc::invalid_argument);
++  b = fs::create_directory(link, ec);
++  VERIFY( !b );
++  VERIFY( !ec );
++  b = fs::create_directory(link);
++  VERIFY( !b );
++#endif
++
+   remove_all(p, ec);
+ }
+ 
+-- 
+2.33.0
+
