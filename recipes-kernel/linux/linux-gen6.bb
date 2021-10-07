@@ -40,10 +40,10 @@ LINUX_VERSION ?= "4.14.239"
 BRANCH = "feature/jam/WIP/RDPHOEN-704_compare_epc660_sequencer_versions_07_11"
 
 # [RDPHOEN-704] added sequencer code v11 (but inactive)
-SRCREV="42aaaa0bf97aa287edf4612f985e5c2543a486dc"
+# SRCREV="42aaaa0bf97aa287edf4612f985e5c2543a486dc"
 
 # [RDPHOEN-704] activated sequencer code v11 (but left the ending unchanged)
-# SRCREV="f12785fcd99dc82504249db9ca6a00a7e5d9eff1"
+SRCREV="f12785fcd99dc82504249db9ca6a00a7e5d9eff1"
 
 # [RDPHOEN-704] activated sequencer code v11 (with the end as provided by manufacturer)
 # SRCREV="21ec676ea7ff8343675a444548a6fb4b3e083bcb"
