@@ -15,7 +15,7 @@ and this project adheres to [APR's Version Numbering](https://apr.apache.org/ver
 
 
 ### Removed
-
+- [APC-3693][APC-3971] libmosquitto and libmosquittopp removed
 
 ### Fixed
 
