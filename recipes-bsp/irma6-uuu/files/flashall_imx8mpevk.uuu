@@ -1,0 +1,69 @@
+uuu_version 1.4.165
+
+# Boot flash.bin
+SDPS: boot -f flash.bin
+
+# Configure boot mode of emmc (boot0 active, x8 buswidth)
+FB: ucmd if env exists emmc_ack; then ; else setenv emmc_ack 0; fi;
+FB: ucmd setenv emmc_cmd mmc partconf ${emmc_dev} ${emmc_ack} 1 0
+FB: ucmd if test "${emmc_skip_fb}" != "yes"; then run emmc_cmd; fi
+FB: ucmd setenv emmc_cmd mmc bootbus ${emmc_dev} 2 2 1;
+FB: ucmd if test "${emmc_skip_fb}" != "yes"; then run emmc_cmd; fi
+
+# Load kernel and boot from initramfs
+FB: ucmd setenv fastboot_buffer ${loadaddr}
+FB: download -f Image
+FB: ucmd setenv fastboot_buffer ${fdt_addr}
+FB: download -f devicetree.dtb
+FB: ucmd setenv fastboot_buffer ${initrd_addr}
+FB: download -f rootfs.cpio.gz.u-boot
+FB: acmd ${kboot} ${loadaddr} ${initrd_addr} ${fdt_addr}
+
+# Wait for emmc and save mmc device path
+FBK: ucmd while [ ! -e /dev/mmcblk*boot0 ]; do sleep 1; echo "wait for /dev/mmcblk*boot* appear"; done;
+FBK: ucmd dev=`ls /dev/mmcblk*boot*`; dev=($dev); dev=${dev[0]}; dev=${dev#/dev/mmcblk}; dev=${dev%boot*}; echo $dev > /tmp/mmcdev;
+
+# load and write partition table
+FBK: ucp partitions t:/tmp
+FBK: ucmd mmc=`cat /tmp/mmcdev`; dd if=/dev/zero of=/dev/mmcblk${mmc} bs=1M count=10
+FBK: ucmd mmc=`cat /tmp/mmcdev`; cat /tmp/partitions | sfdisk --force /dev/mmcblk${mmc}
+FBK: ucmd sync
+
+# load bootloader container (flash.bin) and flash it to both hardware boot partitions
+FBK: ucp  flash.bin t:/tmp
+FBK: ucmd mmc=`cat /tmp/mmcdev`; echo 0 | tee /sys/block/mmcblk${mmc}boot0/force_ro /sys/block/mmcblk${mmc}boot1/force_ro
+FBK: ucmd mmc=`cat /tmp/mmcdev`; dd if=/tmp/flash.bin of=/dev/mmc${mmc}boot0
+FBK: ucmd mmc=`cat /tmp/mmcdev`; dd if=/tmp/flash.bin of=/dev/mmc${mmc}boot1
+FBK: ucmd mmc=`cat /tmp/mmcdev`; echo 1 | tee /sys/block/mmcblk${mmc}boot0/force_ro /sys/block/mmcblk${mmc}boot1/force_ro
+FBK: ucmd sync
+
+# load kernel and devicetree and flash them to both linuxboot partitions
+FBK: ucmd mmc=`cat /tmp/mmcdev`; while [ ! -e /dev/mmcblk${mmc}p2 ]; do sleep 1; done
+FBK: ucmd mmc=`cat /tmp/mmcdev`; mkfs.vfat /dev/mmcblk${mmc}p2
+FBK: ucmd mkdir -p /mnt/fat
+FBK: ucmd mmc=`cat /tmp/mmcdev`; mount -t vfat /dev/mmcblk${mmc}p2 /mnt/fat
+FBK: ucp  Image t:/mnt/fat
+FBK: ucp  devicetree.dtb t:/mnt/fat
+FBK: ucmd umount /mnt/fat
+
+FBK: ucmd mmc=`cat /tmp/mmcdev`; mkfs.vfat /dev/mmcblk${mmc}p3
+FBK: ucmd mmc=`cat /tmp/mmcdev`; mount -t vfat /dev/mmcblk${mmc}p3 /mnt/fat
+FBK: ucp  Image t:/mnt/fat
+FBK: ucp  devicetree.dtb t:/mnt/fat
+FBK: ucmd umount /mnt/fat
+FBK: ucmd sync
+
+# Flash rootfs to both rootfs partitions
+FBK: acmd mmc=`cat /tmp/mmcdev`; zcat | dd of=/dev/mmcblk${mmc}p4
+FBK: ucp rootfs.ext4.gz t:-
+FBK: ucmd sync
+
+FBK: acmd mmc=`cat /tmp/mmcdev`; zcat | dd of=/dev/mmcblk${mmc}p6
+FBK: ucp rootfs.ext4.gz t:-
+FBK: ucmd sync
+
+# Create ext4 data partition (userdata)
+FBK: ucmd mmc=`cat /tmp/mmcdev`; mkfs.ext4 -F -E nodiscard /dev/mmcblk${mmc}p5
+FBK: ucmd sync
+
+FBK: DONE
