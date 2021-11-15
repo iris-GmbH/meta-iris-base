@@ -33,7 +33,7 @@
 inherit kernel
 require recipes-kernel/linux/linux-yocto.inc
 
-BRANCH = "develop"
+BRANCH = "feature/phsc/APC-3303"
 LINUX_VERSION ?= "4.14.239"
 SRCREV="15914084eee46b5f90e250d45fa8d1bcc6aa191e"
 
