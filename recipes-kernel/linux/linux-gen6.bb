@@ -35,7 +35,7 @@ require recipes-kernel/linux/linux-yocto.inc
 
 BRANCH = "feature/phsc/APC-3303"
 LINUX_VERSION ?= "4.14.239"
-SRCREV="15914084eee46b5f90e250d45fa8d1bcc6aa191e"
+SRCREV="a0873079107b49d67a2beb016c32f2f17dec32d8"
 
 SRC_URI = "git://github.com/iris-GmbH/linux-gen6.git;protocol=https;bareclone=1;branch=${BRANCH};depth=1"
 
