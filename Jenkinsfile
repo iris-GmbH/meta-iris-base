@@ -5,7 +5,6 @@ pipeline {
     agent any
     options {
         disableConcurrentBuilds()
-        parallelsAlwaysFailFast()
     }
     environment {
         // S3 bucket for saving release artifacts
