@@ -211,7 +211,7 @@ pipeline {
                                     artifactNamespaceOverride: 'NONE',
                                     artifactNameOverride: "${MULTI_CONF}-reports.zip",
                                     artifactPackagingOverride: 'ZIP',
-                                    downloadArtifacts: 'true',
+                                    downloadArtifacts: 'false',
                                     envVariables: """[
                                         { MULTI_CONF, $MULTI_CONF }
                                     ]"""
@@ -220,7 +220,11 @@ pipeline {
                         post {
                             always {
                                 // add test reports to pipeline run
-                                unzip zipFile: "${JOB_NAME}/${GIT_COMMIT}/${MULTI_CONF}-reports.zip", dir: "${MULTI_CONF}-reports"
+                                s3Download bucket: "${S3_TEMP_BUCKET}",
+                                    path: "${JOB_NAME}/${GIT_COMMIT}/${MULTI_CONF}-reports.zip",
+                                    file: "${MULTI_CONF}-reports.zip",
+                                    payloadSigningEnabled: true
+                                unzip zipFile: "${MULTI_CONF}-reports.zip", dir: "${MULTI_CONF}-reports"
                                 junit testResults: "${MULTI_CONF}-reports/**/*.xml", skipPublishingChecks: true
                             }
                         }
