@@ -3,5 +3,7 @@
 
 FILESEXTRAPATHS_prepend := "${THISDIR}/${BPN}:"
 SRC_URI += "\
-	file://0001-Backport-cmd-fs-Use-part_get_info_by_dev_and_name_or.patch"
-
+	file://0001-Backport-cmd-fs-Use-part_get_info_by_dev_and_name_or.patch\
+	file://0002-Backport-part-Give-several-functions-more-useful-ret.patch\
+	file://0003-Use-partition-labels-in-environment-and-auto-detect-.patch\
+"

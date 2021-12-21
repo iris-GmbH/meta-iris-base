@@ -1,10 +1,11 @@
-From 9e0afbd9a0507b397ed65ac77cc7b940f4b5419d Mon Sep 17 00:00:00 2001
+From 0abcdbbac744c5d9bf5546b8c5fbc3217a6def4f Mon Sep 17 00:00:00 2001
 From: Erik Schumacher <erik.schumacher@iris-sensing.com>
 Date: Fri, 8 Oct 2021 13:37:34 +0200
 Subject: [PATCH] Backport: cmd: fs: Use part_get_info_by_dev_and_name_or_num
  to parse partitions
 
 This allows using dev#partlabel syntax.
+
 ---
  fs/fs.c        |  4 ++--
  include/part.h | 10 +++++++++-
@@ -26,7 +27,7 @@ index 0c66d60477..88d23435fe 100644
  		return -1;
  
 diff --git a/include/part.h b/include/part.h
-index c65c1c22d7..4a033d5756 100644
+index 35c8fc45a4..9e311c7677 100644
 --- a/include/part.h
 +++ b/include/part.h
 @@ -216,7 +216,7 @@ int part_get_info_by_name(struct blk_desc *dev_desc,
@@ -53,6 +54,3 @@ index c65c1c22d7..4a033d5756 100644
  #endif
  
  /*
--- 
-2.31.1
-
