@@ -31,25 +31,27 @@ FBK: ucmd sync
 
 # load bootloader container (flash.bin) and flash it to both hardware boot partitions
 FBK: ucp  flash.bin t:/tmp
-FBK: ucmd mmc=`cat /tmp/mmcdev`; echo 0 | tee /sys/block/mmcblk${mmc}boot0/force_ro /sys/block/mmcblk${mmc}boot1/force_ro
-FBK: ucmd mmc=`cat /tmp/mmcdev`; dd if=/tmp/flash.bin of=/dev/mmc${mmc}boot0
-FBK: ucmd mmc=`cat /tmp/mmcdev`; dd if=/tmp/flash.bin of=/dev/mmc${mmc}boot1
-FBK: ucmd mmc=`cat /tmp/mmcdev`; echo 1 | tee /sys/block/mmcblk${mmc}boot0/force_ro /sys/block/mmcblk${mmc}boot1/force_ro
+FBK: ucmd mmc=`cat /tmp/mmcdev`; echo 0 > /sys/block/mmcblk${mmc}boot0/force_ro
+FBK: ucmd mmc=`cat /tmp/mmcdev`; echo 0 > /sys/block/mmcblk${mmc}boot1/force_ro
+FBK: ucmd mmc=`cat /tmp/mmcdev`; dd if=/tmp/flash.bin of=/dev/mmcblk${mmc}boot0
+FBK: ucmd mmc=`cat /tmp/mmcdev`; dd if=/tmp/flash.bin of=/dev/mmcblk${mmc}boot1
 FBK: ucmd sync
+FBK: ucmd mmc=`cat /tmp/mmcdev`; echo 1 > /sys/block/mmcblk${mmc}boot0/force_ro
+FBK: ucmd mmc=`cat /tmp/mmcdev`; echo 1 > /sys/block/mmcblk${mmc}boot1/force_ro
 
 # load kernel and devicetree and flash them to both linuxboot partitions
 FBK: ucmd mmc=`cat /tmp/mmcdev`; while [ ! -e /dev/mmcblk${mmc}p2 ]; do sleep 1; done
 FBK: ucmd mmc=`cat /tmp/mmcdev`; mkfs.vfat /dev/mmcblk${mmc}p2
 FBK: ucmd mkdir -p /mnt/fat
 FBK: ucmd mmc=`cat /tmp/mmcdev`; mount -t vfat /dev/mmcblk${mmc}p2 /mnt/fat
-FBK: ucp  Image t:/mnt/fat
-FBK: ucp  devicetree.dtb t:/mnt/fat
+FBK: ucp  Image t:/mnt/fat/Image
+FBK: ucp  devicetree.dtb t:/mnt/fat/imx8mp-evk.dtb
 FBK: ucmd umount /mnt/fat
 
 FBK: ucmd mmc=`cat /tmp/mmcdev`; mkfs.vfat /dev/mmcblk${mmc}p3
 FBK: ucmd mmc=`cat /tmp/mmcdev`; mount -t vfat /dev/mmcblk${mmc}p3 /mnt/fat
-FBK: ucp  Image t:/mnt/fat
-FBK: ucp  devicetree.dtb t:/mnt/fat
+FBK: ucp  Image t:/mnt/fat/Image
+FBK: ucp  devicetree.dtb t:/mnt/fat/imx8mp-evk.dtb
 FBK: ucmd umount /mnt/fat
 FBK: ucmd sync
 
