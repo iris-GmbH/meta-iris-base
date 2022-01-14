@@ -29,7 +29,7 @@ python do_createfirmwarezip() {
     import errno
     import tempfile
 
-    if "firmwarezip" not in d.getVar('UPDATE_PROCEDURE', ''):
+    if "firmwarezip" not in (d.getVar('UPDATE_PROCEDURE', '') or ""):
         return
 
     if d.getVar('SKIP_FIRMWARE_ZIP', True) == "1":
