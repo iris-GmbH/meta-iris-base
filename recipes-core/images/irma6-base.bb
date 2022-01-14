@@ -39,5 +39,3 @@ replace_etc_version () {
 python () {
     d.appendVar('ROOTFS_POSTPROCESS_COMMAND', 'replace_etc_version;')
 }
-
-inherit irma6-firmware-zip
