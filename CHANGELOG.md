@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [APR's Version Numbering](https://apr.apache.org/versioning.html).
 
-## [2.0.1]-dev (HEAD) - n/a
+## [2.0.2]-dev (HEAD) - n/a
 ### Added
 
 
@@ -27,6 +27,20 @@ and this project adheres to [APR's Version Numbering](https://apr.apache.org/ver
 
 
 ### Known issues
+
+
+
+## [2.0.1] - 2021-06-10
+### Added
+- add multiconfigs for QEMU images
+
+
+### Changed
+- prepare layer for upcoming CI
+
+
+### Fixed
+- gcc: Backport bugfix for bug 101510: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=101510
 
 
 
