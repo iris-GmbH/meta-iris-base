@@ -4,29 +4,9 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [APR's Version Numbering](https://apr.apache.org/versioning.html).
 
-## [2.0.2]-dev (HEAD) - n/a
-### Added
-
-
-### Changed
-
-
-### Deprecated
-
-
+## [2.0.2]- 2022-01-25
 ### Removed
 - [APC-3693][APC-3971] libmosquitto and libmosquittopp removed
-
-### Fixed
-
-
-### Simulation only
-
-
-### Maintenance only
-
-
-### Known issues
 
 
 
