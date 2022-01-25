@@ -1,4 +1,4 @@
-From 66dfdff03d196e51322c6a85c0d8db8bb2bdd655 Mon Sep 17 00:00:00 2001
+From 69940fcea3eba7c60e26b1b3b7fd9b3c826df433 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Jaroslav=20=C5=A0karvada?= <jskarvad@redhat.com>
 Date: Fri, 19 Jan 2018 21:56:41 +0100
 Subject: [PATCH] perf tools: Add Python 3 support
@@ -169,10 +169,10 @@ Signed-off-by: Arnaldo Carvalho de Melo <acme@redhat.com>
  6 files changed, 221 insertions(+), 88 deletions(-)
 
 diff --git a/tools/perf/Makefile.config b/tools/perf/Makefile.config
-index 577a5d2988fe..89cb2a36b8ff 100644
+index 63cf4b690043..44c0b4c91104 100644
 --- a/tools/perf/Makefile.config
 +++ b/tools/perf/Makefile.config
-@@ -668,25 +668,10 @@ else
+@@ -647,25 +647,10 @@ else
        ifneq ($(feature-libpython), 1)
          $(call disable-python,No 'Python.h' (for Python 2.x support) was found: disables Python support - please install python-devel/python-dev)
        else
@@ -203,10 +203,10 @@ index 577a5d2988fe..89cb2a36b8ff 100644
      endif
    endif
 diff --git a/tools/perf/Makefile.perf b/tools/perf/Makefile.perf
-index 9b0351d3ce34..126ef6e0475c 100644
+index 349ea5133d83..6879321c612d 100644
 --- a/tools/perf/Makefile.perf
 +++ b/tools/perf/Makefile.perf
-@@ -302,7 +302,7 @@ PYTHON_EXTBUILD_LIB := $(PYTHON_EXTBUILD)lib/
+@@ -294,7 +294,7 @@ PYTHON_EXTBUILD_LIB := $(PYTHON_EXTBUILD)lib/
  PYTHON_EXTBUILD_TMP := $(PYTHON_EXTBUILD)tmp/
  export PYTHON_EXTBUILD_LIB PYTHON_EXTBUILD_TMP
  
@@ -215,7 +215,7 @@ index 9b0351d3ce34..126ef6e0475c 100644
  
  PYTHON_EXT_SRCS := $(shell grep -v ^\# util/python-ext-sources)
  PYTHON_EXT_DEPS := util/python-ext-sources util/setup.py $(LIBTRACEEVENT) $(LIBAPI)
-@@ -479,7 +479,7 @@ $(OUTPUT)python/perf.so: $(PYTHON_EXT_SRCS) $(PYTHON_EXT_DEPS) $(LIBTRACEEVENT_D
+@@ -444,7 +444,7 @@ $(OUTPUT)python/perf.so: $(PYTHON_EXT_SRCS) $(PYTHON_EXT_DEPS) $(LIBTRACEEVENT_D
  	  $(PYTHON_WORD) util/setup.py \
  	  --quiet build_ext; \
  	mkdir -p $(OUTPUT)python && \
@@ -300,7 +300,7 @@ index fcd1dd667906..1a0d27757eec 100644
 +}
 +#endif
 diff --git a/tools/perf/util/python.c b/tools/perf/util/python.c
-index b1e999bd21ef..2918cac7a142 100644
+index 8e49d9cafcfc..16620c37fd8c 100644
 --- a/tools/perf/util/python.c
 +++ b/tools/perf/util/python.c
 @@ -12,6 +12,30 @@
@@ -566,10 +566,10 @@ index b1e999bd21ef..2918cac7a142 100644
  
  /*
 diff --git a/tools/perf/util/scripting-engines/trace-event-python.c b/tools/perf/util/scripting-engines/trace-event-python.c
-index ea070883c593..10dd5fce082b 100644
+index f03fa7a835a1..8db28d4ff4b6 100644
 --- a/tools/perf/util/scripting-engines/trace-event-python.c
 +++ b/tools/perf/util/scripting-engines/trace-event-python.c
-@@ -49,7 +49,37 @@
+@@ -50,7 +50,37 @@
  #include "print_binary.h"
  #include "stat.h"
  
@@ -607,7 +607,7 @@ index ea070883c593..10dd5fce082b 100644
  
  #define TRACE_EVENT_TYPE_MAX				\
  	((1 << (sizeof(unsigned short) * 8)) - 1)
-@@ -135,7 +165,7 @@ static int get_argument_count(PyObject *handler)
+@@ -136,7 +166,7 @@ static int get_argument_count(PyObject *handler)
  		PyObject *arg_count_obj = PyObject_GetAttrString(code_obj,
  			"co_argcount");
  		if (arg_count_obj) {
@@ -616,7 +616,7 @@ index ea070883c593..10dd5fce082b 100644
  			Py_DECREF(arg_count_obj);
  		}
  		Py_DECREF(code_obj);
-@@ -182,10 +212,10 @@ static void define_value(enum print_arg_type field_type,
+@@ -183,10 +213,10 @@ static void define_value(enum print_arg_type field_type,
  
  	value = eval_flag(field_value);
  
@@ -631,7 +631,7 @@ index ea070883c593..10dd5fce082b 100644
  
  	try_call_object(handler_name, t);
  
-@@ -223,10 +253,10 @@ static void define_field(enum print_arg_type field_type,
+@@ -224,10 +254,10 @@ static void define_field(enum print_arg_type field_type,
  	if (!t)
  		Py_FatalError("couldn't create Python tuple");
  
@@ -645,7 +645,7 @@ index ea070883c593..10dd5fce082b 100644
  
  	try_call_object(handler_name, t);
  
-@@ -325,12 +355,12 @@ static PyObject *get_field_numeric_entry(struct event_format *event,
+@@ -326,12 +356,12 @@ static PyObject *get_field_numeric_entry(struct event_format *event,
  		if (field->flags & FIELD_IS_SIGNED) {
  			if ((long long)val >= LONG_MIN &&
  					(long long)val <= LONG_MAX)
@@ -660,7 +660,7 @@ index ea070883c593..10dd5fce082b 100644
  			else
  				obj = PyLong_FromUnsignedLongLong(val);
  		}
-@@ -389,9 +419,9 @@ static PyObject *python_process_callchain(struct perf_sample *sample,
+@@ -390,9 +420,9 @@ static PyObject *python_process_callchain(struct perf_sample *sample,
  			pydict_set_item_string_decref(pysym, "end",
  					PyLong_FromUnsignedLongLong(node->sym->end));
  			pydict_set_item_string_decref(pysym, "binding",
@@ -672,7 +672,7 @@ index ea070883c593..10dd5fce082b 100644
  							node->sym->namelen));
  			pydict_set_item_string_decref(pyelem, "sym", pysym);
  		}
-@@ -406,7 +436,7 @@ static PyObject *python_process_callchain(struct perf_sample *sample,
+@@ -407,7 +437,7 @@ static PyObject *python_process_callchain(struct perf_sample *sample,
  					dsoname = map->dso->name;
  			}
  			pydict_set_item_string_decref(pyelem, "dso",
@@ -681,7 +681,7 @@ index ea070883c593..10dd5fce082b 100644
  		}
  
  		callchain_cursor_advance(&callchain_cursor);
-@@ -483,16 +513,16 @@ static PyObject *get_perf_sample_dict(struct perf_sample *sample,
+@@ -484,16 +514,16 @@ static PyObject *get_perf_sample_dict(struct perf_sample *sample,
  	if (!dict_sample)
  		Py_FatalError("couldn't create Python dictionary");
  
@@ -703,7 +703,7 @@ index ea070883c593..10dd5fce082b 100644
  	pydict_set_item_string_decref(dict_sample, "ip",
  			PyLong_FromUnsignedLongLong(sample->ip));
  	pydict_set_item_string_decref(dict_sample, "time",
-@@ -504,17 +534,17 @@ static PyObject *get_perf_sample_dict(struct perf_sample *sample,
+@@ -503,17 +533,17 @@ static PyObject *get_perf_sample_dict(struct perf_sample *sample,
  	set_sample_read_in_dict(dict_sample, sample, evsel);
  	pydict_set_item_string_decref(dict, "sample", dict_sample);
  
@@ -725,7 +725,7 @@ index ea070883c593..10dd5fce082b 100644
  	}
  
  	pydict_set_item_string_decref(dict, "callchain", callchain);
-@@ -574,9 +604,9 @@ static void python_process_tracepoint(struct perf_sample *sample,
+@@ -573,9 +603,9 @@ static void python_process_tracepoint(struct perf_sample *sample,
  	scripting_context->event_data = data;
  	scripting_context->pevent = evsel->tp_format->pevent;
  
@@ -737,7 +737,7 @@ index ea070883c593..10dd5fce082b 100644
  	PyTuple_SetItem(t, n++, context);
  
  	/* ip unwinding */
-@@ -585,18 +615,18 @@ static void python_process_tracepoint(struct perf_sample *sample,
+@@ -584,18 +614,18 @@ static void python_process_tracepoint(struct perf_sample *sample,
  	Py_INCREF(callchain);
  
  	if (!dict) {
@@ -766,7 +766,7 @@ index ea070883c593..10dd5fce082b 100644
  		pydict_set_item_string_decref(dict, "common_callchain", callchain);
  	}
  	for (field = event->format.fields; field; field = field->next) {
-@@ -615,7 +645,7 @@ static void python_process_tracepoint(struct perf_sample *sample,
+@@ -614,7 +644,7 @@ static void python_process_tracepoint(struct perf_sample *sample,
  			}
  			if (field->flags & FIELD_IS_STRING &&
  			    is_printable_array(data + offset, len)) {
@@ -775,7 +775,7 @@ index ea070883c593..10dd5fce082b 100644
  			} else {
  				obj = PyByteArray_FromStringAndSize((const char *) data + offset, len);
  				field->flags &= ~FIELD_IS_STRING;
-@@ -668,7 +698,7 @@ static PyObject *tuple_new(unsigned int sz)
+@@ -664,7 +694,7 @@ static PyObject *tuple_new(unsigned int sz)
  static int tuple_set_u64(PyObject *t, unsigned int pos, u64 val)
  {
  #if BITS_PER_LONG == 64
@@ -784,7 +784,7 @@ index ea070883c593..10dd5fce082b 100644
  #endif
  #if BITS_PER_LONG == 32
  	return PyTuple_SetItem(t, pos, PyLong_FromLongLong(val));
-@@ -677,12 +707,12 @@ static int tuple_set_u64(PyObject *t, unsigned int pos, u64 val)
+@@ -673,12 +703,12 @@ static int tuple_set_u64(PyObject *t, unsigned int pos, u64 val)
  
  static int tuple_set_s32(PyObject *t, unsigned int pos, s32 val)
  {
@@ -799,7 +799,7 @@ index ea070883c593..10dd5fce082b 100644
  }
  
  static int python_export_evsel(struct db_export *dbe, struct perf_evsel *evsel)
-@@ -1029,8 +1059,8 @@ process_stat(struct perf_evsel *counter, int cpu, int thread, u64 tstamp,
+@@ -1024,8 +1054,8 @@ process_stat(struct perf_evsel *counter, int cpu, int thread, u64 tstamp,
  		return;
  	}
  
@@ -810,7 +810,7 @@ index ea070883c593..10dd5fce082b 100644
  
  	tuple_set_u64(t, n++, tstamp);
  	tuple_set_u64(t, n++, count->val);
-@@ -1212,27 +1242,58 @@ static void set_table_handlers(struct tables *tables)
+@@ -1207,27 +1237,58 @@ static void set_table_handlers(struct tables *tables)
  	SET_TABLE_HANDLER(call_return);
  }
  
@@ -870,7 +870,7 @@ index ea070883c593..10dd5fce082b 100644
  
  	fp = fopen(script, "r");
  	if (!fp) {
-@@ -1262,12 +1323,12 @@ static int python_start_script(const char *script, int argc, const char **argv)
+@@ -1257,12 +1318,12 @@ static int python_start_script(const char *script, int argc, const char **argv)
  			goto error;
  	}
  
@@ -886,16 +886,16 @@ index ea070883c593..10dd5fce082b 100644
  	return err;
  }
 diff --git a/tools/perf/util/setup.py b/tools/perf/util/setup.py
-index af415febbc46..6891635b50c3 100644
+index 393e7a1451f6..269af304583d 100644
 --- a/tools/perf/util/setup.py
 +++ b/tools/perf/util/setup.py
 @@ -1,4 +1,4 @@
--#!/usr/bin/python2
-+#!/usr/bin/python
+-#!/usr/bin/env python2
++#!/usr/bin/env python
  
  from os import getenv
  
-@@ -35,11 +35,11 @@ build_tmp = getenv('PYTHON_EXTBUILD_TMP')
+@@ -37,11 +37,11 @@ build_tmp = getenv('PYTHON_EXTBUILD_TMP')
  libtraceevent = getenv('LIBTRACEEVENT')
  libapikfs = getenv('LIBAPI')
  
@@ -910,5 +910,5 @@ index af415febbc46..6891635b50c3 100644
  perf = Extension('perf',
  		  sources = ext_sources,
 -- 
-2.30.2
+2.33.0
 
