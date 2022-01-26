@@ -1,0 +1,42 @@
+software =
+{
+        version = "0.1.0";
+        description = "Firmware update for IRMA6 image";
+
+        hardware-compatibility: [ "@@SWU_HW_VERSION@@" ];
+
+                files: (
+                                {
+                                                filename = "@@SWU_KERNEL@@";
+                                                path = "/@@SWU_TARGET_KERNEL@@";
+                                                device = "/dev/swu_kernel";
+                                                filesystem = "vfat";
+                                                version = "@SWU_AUTO_VERSION:kernel";
+                                                properties = {create-destination = "true";}
+                                },
+                                {
+                                                filename = "@@SWU_DEVTREE@@";
+                                                path = "/@@SWU_TARGET_DEVTREE@@";
+                                                device = "/dev/swu_kernel";
+                                                filesystem = "vfat";
+                                                version = "@SWU_AUTO_VERSION:kernel-devicetree";
+                                                properties = {create-destination = "true";}
+                                },
+                );
+
+                images: (
+                                {
+                                                filename = "@@SWU_ROOTFS@@";
+                                                device = "/dev/swu_rootfs";
+                                                version = "@@SWU_VERSION_ROOTFS@@";
+                                                compressed = "zlib";
+                                },
+                );
+
+                scripts: (
+                                {
+                                                filename = "update_firmware.sh";
+                                                type = "shellscript";
+                                },
+                );
+}
