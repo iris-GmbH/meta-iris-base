@@ -1,0 +1,292 @@
+From 7b92207c86d17976a538ac9cbf79eb3fd323809f Mon Sep 17 00:00:00 2001
+From: Erik Schumacher <erik.schumacher@iris-sensing.com>
+Date: Mon, 12 Jul 2021 08:23:19 +0200
+Subject: [PATCH 09/25] WIP
+
+Signed-off-by: ian.dannapel <ian.dannapel@iris-sensing.com>
+---
+ arch/arm64/boot/dts/freescale/imx8mp-evk.dts | 75 ++++++++++++++------
+ drivers/media/i2c/epc660.c                   | 28 ++++++++
+ drivers/media/i2c/tc358746.c                 | 21 ++++++
+ drivers/media/v4l2-core/v4l2-fwnode.c        | 12 ++--
+ 4 files changed, 110 insertions(+), 26 deletions(-)
+
+diff --git a/arch/arm64/boot/dts/freescale/imx8mp-evk.dts b/arch/arm64/boot/dts/freescale/imx8mp-evk.dts
+index f86cf0c57244..aeabc7cbb345 100644
+--- a/arch/arm64/boot/dts/freescale/imx8mp-evk.dts
++++ b/arch/arm64/boot/dts/freescale/imx8mp-evk.dts
+@@ -179,6 +179,13 @@
+ 				    100>;
+ 		default-brightness-level = <80>;
+ 	};
++	
++	clk_serialize: clock_serialize {
++		compatible = "fixed-clock";
++		#clock-cells = <0>;
++		clock-frequency = <24000000>;
++		clock-output-names = "24m_serialize";
++	};
+ };
+ 
+ &aud2htx {
+@@ -485,23 +492,69 @@
+ 		};
+ 	};
+ */
+-	epc660_mipi: epc660_mipi@20 {
++	epc660_mipi: epc660_mipi@22 {
+ 		compatible = "epc660";
+-		reg = <0x20>;
++		reg = <0x22>;
+ 		status = "okay";
+ 		pinctrl-names = "default";
+ 		pinctrl-0 = <&pinctrl_csi0_rst>;
+ 		reset-gpios = <&gpio1 6 GPIO_ACTIVE_LOW>;
+ 		port {
+ 			epc660_mipi1_ep: endpoint {
++				bus-type = <1>;
++				remote-endpoint = <&tc358748_ep0>;
++			};
++		};
++	};
++	tc358748_adapter: tc358748_adapter@e {
++		compatible = "toshiba,tc358746";
++		reg = <0xE>;
++		status = "okay";
++		
++		clocks = <&clk_serialize>;
++		default-input = <0>;
++		
++		#address-cells = <1>;
++		#size-cells = <0>;
++		
++		port@0 {
++			reg = <0>;
++			tc358748_ep0: endpoint {
++				bus-type = <5>;
++				bus-width = <12>;
++				remote-endpoint = <&epc660_mipi1_ep>;
++			};
++		};
++		port@1 {
++			reg = <1>;
++			tc358748_ep1: endpoint {
+ 				data-lanes = <2>;
+ 				clock-lanes = <1>;
++				link-frequencies = /bits/ 64 <216000000>;
+ 				remote-endpoint = <&mipi1_sensor_ep>;
+ 			};
+ 		};
+ 	};
+ };
+ 
++&mipi_csi_0 {
++	#address-cells = <1>;
++	#size-cells = <0>;
++	status = "okay";
++
++	port@0 {
++		reg = <0>;
++		mipi1_sensor_ep: endpoint {
++			data-lanes = <2>;
++			clock-lanes = <1>;
++			remote-endpoint = <&tc358748_ep1>;
++			csis-hs-settle = <3>;
++			csis-clk-settle = <0>;
++			csis-wclk;
++		};
++	};
++};
++
+ &i2c3 {
+ 	clock-frequency = <100000>;
+ 	pinctrl-names = "default";
+@@ -1214,24 +1267,6 @@
+ 	status = "okay";
+ };
+ 
+-&mipi_csi_0 {
+-	#address-cells = <1>;
+-	#size-cells = <0>;
+-	status = "okay";
+-
+-	port@0 {
+-		reg = <0>;
+-		mipi1_sensor_ep: endpoint {
+-			data-lanes = <2>;
+-			clock-lanes = <1>;
+-			remote-endpoint = <&epc660_mipi1_ep>;
+-			csis-hs-settle = <3>;
+-			csis-clk-settle = <0>;
+-			csis-wclk;
+-		};
+-	};
+-};
+-
+ &mipi_csi_1 {
+ 	#address-cells = <1>;
+ 	#size-cells = <0>;
+diff --git a/drivers/media/i2c/epc660.c b/drivers/media/i2c/epc660.c
+index f8c2101aa089..2200e212d1d0 100755
+--- a/drivers/media/i2c/epc660.c
++++ b/drivers/media/i2c/epc660.c
+@@ -70,6 +70,8 @@ static const struct epc660_datafmt epc660_monochrome_fmts[] = {
+ struct epc660 {
+ 	struct v4l2_subdev subdev;
+ 	struct v4l2_ctrl_handler hdl;
++	struct v4l2_ctrl *pixel_rate;
++	struct v4l2_ctrl *hblank;
+ 	struct v4l2_rect rect;	/* Sensor window */
+ 	struct v4l2_clk *clk;
+ 	const struct epc660_datafmt *fmt;
+@@ -468,6 +470,15 @@ static int epc660_load_fw(struct v4l2_subdev *sd) {
+ 	return 0;
+ }
+ 
++static int epc660_set_ctrl(struct v4l2_ctrl *ctrl)
++{
++	return 0;
++}
++
++static const struct v4l2_ctrl_ops epc660_ctrl_ops = {
++	.s_ctrl = epc660_set_ctrl,
++};
++
+ 
+ /*
+  * Interface active, can use i2c. If it fails, it can indeed mean, that
+@@ -608,6 +619,9 @@ static int epc660_probe(struct i2c_client *client,
+ {
+ 	struct epc660 *epc660;
+ 	struct i2c_adapter *adapter = to_i2c_adapter(client->dev.parent);
++	s64 hblank;
++	s64 pixel_rate_min;
++	s64 pixel_rate_max;
+ 	int ret;
+ 
+ 	if (!i2c_check_functionality(adapter, I2C_FUNC_SMBUS_WORD_DATA)) {
+@@ -622,6 +636,20 @@ static int epc660_probe(struct i2c_client *client,
+ 
+ 	v4l2_i2c_subdev_init(&epc660->subdev, client, &epc660_subdev_ops);
+ 	v4l2_ctrl_handler_init(&epc660->hdl, 6);
++	
++	pixel_rate_max = 24000000;
++	pixel_rate_min = 24000000;
++	/* By default, PIXEL_RATE is read only */
++	epc660->pixel_rate = v4l2_ctrl_new_std(&epc660->hdl, &epc660_ctrl_ops,
++						V4L2_CID_PIXEL_RATE,
++						pixel_rate_min, pixel_rate_max,
++						1, pixel_rate_max);
++	hblank = 2;
++	epc660->hblank = v4l2_ctrl_new_std(
++				&epc660->hdl, &epc660_ctrl_ops, V4L2_CID_HBLANK,
++				hblank, hblank, 1, hblank);
++	if (epc660->hblank)
++		epc660->hblank->flags |= V4L2_CTRL_FLAG_READ_ONLY;
+ 
+ 
+ 	epc660->subdev.ctrl_handler = &epc660->hdl;
+diff --git a/drivers/media/i2c/tc358746.c b/drivers/media/i2c/tc358746.c
+index 58612824b267..8a871c002d50 100644
+--- a/drivers/media/i2c/tc358746.c
++++ b/drivers/media/i2c/tc358746.c
+@@ -1352,6 +1352,17 @@ static int tc358746_link_setup(struct media_entity *entity,
+ 	struct v4l2_subdev *ps_sd = media_entity_to_v4l2_subdev(remote->entity);
+ 	struct tc358746_state *state = to_state(sd);
+ 	struct v4l2_ctrl *ctrl;
++	
++	printk("link setup '%s':%d->'%s':%d[%d]",
++		remote->entity->name, remote->index, local->entity->name,
++		local->index, flags & MEDIA_LNK_FL_ENABLED);
++	
++	printk("Local flags:  0x%08lx & 0x%08x\n", local->flags, MEDIA_PAD_FL_SOURCE);
++	printk("Remote flags: 0x%08lx\n", remote->flags);
++	printk("      flags:  0x%08x\n", flags);
++	
++	if (local->flags == remote->flags)
++		return 0;
+ 
+ 	/* no special requirements on source pads */
+ 	if (local->flags & MEDIA_PAD_FL_SOURCE)
+@@ -1577,6 +1588,8 @@ static int tc358746_probe_fw(struct tc358746_state *state)
+ 		ret = fwnode_graph_parse_endpoint(fw_node, &fw_ep);
+ 		if (ret)
+ 			return -EINVAL;
++		
++		v4l2_info(sd, "fwnode id: %d port: %d\n", fw_ep.id, fw_ep.port);
+ 
+ 		/* Get downstream endpoint */
+ 		if (fw_ep.port == 1)
+@@ -1655,6 +1668,14 @@ static int tc358746_parse_endpoint(struct device *dev,
+ 		v4l2_err(sd, "remote is not available\n");
+ 		return -ENOTCONN;
+ 	}
++	
++	v4l2_info(sd, "FW Node Port: %d\n", vep->base.port);
++	v4l2_info(sd, "FW Node ID: %d\n", vep->base.id);
++	v4l2_info(sd, "Bus type: %d\n", vep->bus_type);
++	v4l2_info(sd, "Link freqs: %d\n", vep->nr_of_link_frequencies);
++
++	v4l2_info(sd, "state->csi_dir(%d) == TC358746_CSI_TX(%d)\n", state->csi_dir, TC358746_CSI_TX);
++	v4l2_info(sd, "vep->bus_type(%d) =! V4L2_MBUS_PARALLEL(%d)\n", vep->bus_type, V4L2_MBUS_PARALLEL);
+ 
+ 	if (state->csi_dir == TC358746_CSI_TX &&
+ 	    vep->bus_type != V4L2_MBUS_PARALLEL) {
+diff --git a/drivers/media/v4l2-core/v4l2-fwnode.c b/drivers/media/v4l2-core/v4l2-fwnode.c
+index 48c3b9f72722..1c9b1d6893d4 100644
+--- a/drivers/media/v4l2-core/v4l2-fwnode.c
++++ b/drivers/media/v4l2-core/v4l2-fwnode.c
+@@ -422,7 +422,7 @@ static int __v4l2_fwnode_endpoint_parse(struct fwnode_handle *fwnode,
+ 		       sizeof(*vep) - offsetof(typeof(*vep), bus));
+ 	}
+ 
+-	pr_debug("===== begin V4L2 endpoint properties\n");
++	printk("===== begin V4L2 endpoint properties\n");
+ 
+ 	/*
+ 	 * Zero the fwnode graph endpoint memory in case we don't end up parsing
+@@ -431,20 +431,20 @@ static int __v4l2_fwnode_endpoint_parse(struct fwnode_handle *fwnode,
+ 	memset(&vep->base, 0, sizeof(vep->base));
+ 
+ 	fwnode_property_read_u32(fwnode, "bus-type", &bus_type);
+-	pr_debug("fwnode video bus type %s (%u), mbus type %s (%u)\n",
++	printk("fwnode video bus type %s (%u), mbus type %s (%u)\n",
+ 		 v4l2_fwnode_bus_type_to_string(bus_type), bus_type,
+ 		 v4l2_fwnode_mbus_type_to_string(vep->bus_type),
+ 		 vep->bus_type);
+ 	mbus_type = v4l2_fwnode_bus_type_to_mbus(bus_type);
+ 	if (mbus_type == V4L2_MBUS_INVALID) {
+-		pr_debug("unsupported bus type %u\n", bus_type);
++		printk("unsupported bus type %u\n", bus_type);
+ 		return -EINVAL;
+ 	}
+ 
+ 	if (vep->bus_type != V4L2_MBUS_UNKNOWN) {
+ 		if (mbus_type != V4L2_MBUS_UNKNOWN &&
+ 		    vep->bus_type != mbus_type) {
+-			pr_debug("expecting bus type %s\n",
++			printk("expecting bus type %s\n",
+ 				 v4l2_fwnode_mbus_type_to_string(vep->bus_type));
+ 			return -ENXIO;
+ 		}
+@@ -463,7 +463,7 @@ static int __v4l2_fwnode_endpoint_parse(struct fwnode_handle *fwnode,
+ 			v4l2_fwnode_endpoint_parse_parallel_bus(fwnode, vep,
+ 								V4L2_MBUS_UNKNOWN);
+ 
+-		pr_debug("assuming media bus type %s (%u)\n",
++		printk("assuming media bus type %s (%u)\n",
+ 			 v4l2_fwnode_mbus_type_to_string(vep->bus_type),
+ 			 vep->bus_type);
+ 
+@@ -488,7 +488,7 @@ static int __v4l2_fwnode_endpoint_parse(struct fwnode_handle *fwnode,
+ 
+ 		break;
+ 	default:
+-		pr_warn("unsupported bus type %u\n", mbus_type);
++		printk("unsupported bus type %u\n", mbus_type);
+ 		return -EINVAL;
+ 	}
+ 
+-- 
+2.25.1
+

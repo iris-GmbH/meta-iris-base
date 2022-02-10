@@ -1,0 +1,127 @@
+From 190e2b7972d825402075eea23b5b351aa93f1bd2 Mon Sep 17 00:00:00 2001
+From: "ian.dannapel" <ian.dannapel@iris-sensing.com>
+Date: Tue, 25 Jan 2022 10:46:51 +0100
+Subject: [PATCH 24/25] Enable 640x120 format for Pipeline
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+- The tc358746 expects one Line per HSYNC, but the Imager gives two Lines with one HSYNC. Doubling the width and dividing the high we get the right format.
+- Measuring hblank time we get 25.4µs in Grayscale acquisition. That gives a hblank ca. 610.
+- Load Imager Pixel Sequencer on Probing.
+---
+ drivers/media/i2c/epc660.c   | 21 ++++++++++++---------
+ drivers/media/i2c/tc358746.c | 16 ++++++----------
+ 2 files changed, 18 insertions(+), 19 deletions(-)
+
+diff --git a/drivers/media/i2c/epc660.c b/drivers/media/i2c/epc660.c
+index f229f9ba1c7d..fa783aafaffe 100755
+--- a/drivers/media/i2c/epc660.c
++++ b/drivers/media/i2c/epc660.c
+@@ -213,7 +213,6 @@ static int epc660_s_stream(struct v4l2_subdev *sd, int enable)
+ 	 * 0xA4 Shutter-Ctrl => bit[1]=multi_frame_en(0/1), bit[0]=shutter_en(0/1);
+ 	 * 0xA5 Power-Ctrl => bit[2:0] = 111b
+ 	 */
+-
+ 	if (enable) {
+ 		/* Enable power */
+ 		if (reg_write_byte(client, EPC660_REG_POWER_CTRL, 0x07) < 0)
+@@ -222,8 +221,8 @@ static int epc660_s_stream(struct v4l2_subdev *sd, int enable)
+ 		  return -EIO;
+ 		/* Switch to multi frame mode and enable shutter */
+ //		do not switch on the automatic shutter as the application shall have the possibilty to do that by hand
+-//		if (reg_write_byte(client, EPC660_REG_SHUTTER_CTRL, 0x03) < 0)
+-//		  return -EIO;
++		if (reg_write_byte(client, EPC660_REG_SHUTTER_CTRL, 0x03) < 0)
++		  return -EIO;
+ 	} else {
+ 		/* Switch off image acquisition */
+ 		if (reg_write_byte(client, EPC660_REG_SHUTTER_CTRL, 0x00) < 0)
+@@ -290,10 +289,11 @@ static int epc660_set_fmt(struct v4l2_subdev *sd,
+ 
+ 	lX = ((lX >> 8) & 0xff) | ((lX << 8) & 0xff00);
+ 	rX = ((rX >> 8) & 0xff) | ((rX << 8) & 0xff00);
+-	reg_write(client, EPC660_REG_ROI_TL_X_HI, lX);
+-	reg_write(client, EPC660_REG_ROI_BR_X_HI, rX);
+-	reg_write_byte(client, EPC660_REG_ROI_TL_Y, uY);
+-	reg_write_byte(client, EPC660_REG_ROI_BR_Y, bY);
++	//The PA sets these registers right
++	//reg_write(client, EPC660_REG_ROI_TL_X_HI, lX);
++	//reg_write(client, EPC660_REG_ROI_BR_X_HI, rX);
++	//reg_write_byte(client, EPC660_REG_ROI_TL_Y, uY);
++	//reg_write_byte(client, EPC660_REG_ROI_BR_Y, bY);
+ 
+ 	epc660->rect.width  = mf->width;
+ 	epc660->rect.height = mf->height;
+@@ -407,7 +407,7 @@ static long epc660_ioctl(struct v4l2_subdev *sd, unsigned int cmd, void* arg)
+ 			epc660_reset(sd, 0);
+ 			break;
+ 		default:
+-			break;
++			return -ENOIOCTLCMD;
+ 	}
+ 	return 0;
+ }
+@@ -564,6 +564,9 @@ static int epc660_video_probe(struct i2c_client *client)
+ 		return -EINVAL;
+ 	}
+ 
++	//load sequencer
++	ret = epc660_load_fw(&epc660->subdev);
++
+ ei2c:
+ 	return ret;
+ }
+@@ -651,7 +654,7 @@ static int epc660_probe(struct i2c_client *client,
+ 						V4L2_CID_PIXEL_RATE,
+ 						pixel_rate_min, pixel_rate_max,
+ 						1, pixel_rate_max);
+-	hblank = 1860;
++	hblank = 610;
+ 	epc660->hblank = v4l2_ctrl_new_std(
+ 				&epc660->hdl, &epc660_ctrl_ops, V4L2_CID_HBLANK,
+ 				hblank, hblank, 1, hblank);
+diff --git a/drivers/media/i2c/tc358746.c b/drivers/media/i2c/tc358746.c
+index 21ca4e7e80bc..00df0770a002 100644
+--- a/drivers/media/i2c/tc358746.c
++++ b/drivers/media/i2c/tc358746.c
+@@ -52,8 +52,8 @@ MODULE_LICENSE("GPL v2");
+ 
+ static const struct v4l2_mbus_framefmt tc358746_def_fmt = {
+ 	.width		= 640,
+-	.height		= 480,
+-	.code		= MEDIA_BUS_FMT_UYVY8_2X8,
++	.height		= 120,
++	.code		= MEDIA_BUS_FMT_Y12_1X12,
+ 	.field		= V4L2_FIELD_NONE,
+ 	.colorspace	= V4L2_COLORSPACE_DEFAULT,
+ 	.ycbcr_enc	= V4L2_YCBCR_ENC_DEFAULT,
+@@ -1374,13 +1374,9 @@ static int tc358746_link_setup(struct media_entity *entity,
+ 	struct tc358746_state *state = to_state(sd);
+ 	struct v4l2_ctrl *ctrl;
+ 	
+-	printk("link setup '%s':%d->'%s':%d[%d]",
+-		remote->entity->name, remote->index, local->entity->name,
+-		local->index, flags & MEDIA_LNK_FL_ENABLED);
+-	
+-	printk("Local flags:  0x%08lx & 0x%08x\n", local->flags, MEDIA_PAD_FL_SOURCE);
+-	printk("Remote flags: 0x%08lx\n", remote->flags);
+-	printk("      flags:  0x%08x\n", flags);
++	v4l2_dbg(1, debug, sd, "Local flags:  0x%08lx & 0x%08x\n", local->flags, MEDIA_PAD_FL_SOURCE);
++	v4l2_dbg(1, debug, sd, "Remote flags: 0x%08lx\n", remote->flags);
++	v4l2_dbg(1, debug, sd, "      flags:  0x%08x\n", flags);
+ 	
+ 	if (local->flags == remote->flags)
+ 		return 0;
+@@ -1389,7 +1385,7 @@ static int tc358746_link_setup(struct media_entity *entity,
+ 	if (local->flags & MEDIA_PAD_FL_SOURCE)
+ 		return 0;
+ 
+-	v4l2_dbg(1, debug, sd, "link setup '%s':%d->'%s':%d[%d]",
++	v4l2_info(sd, "link setup '%s':%d->'%s':%d[%d]",
+ 		remote->entity->name, remote->index, local->entity->name,
+ 		local->index, flags & MEDIA_LNK_FL_ENABLED);
+ 
+-- 
+2.25.1
+

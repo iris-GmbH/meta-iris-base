@@ -1,0 +1,149 @@
+From 49b31cfedea89c14847016ed226b7ffa2392c0f9 Mon Sep 17 00:00:00 2001
+From: "ian.dannapel" <ian.dannapel@iris-sensing.com>
+Date: Mon, 7 Feb 2022 16:25:07 +0100
+Subject: [PATCH 25/25] Set tc358746 buffers when setting format.
+
+-When tc358746 format is changed, we also need to set the buffer with the correct values. Previously it was only setted on power on/off.
+-epc660: Revert rolling shutter on stream on.The first frame is lost, but with a forced trigger on UserSpace the pipe starts to work.
+-epc660: add software reset (not tested)
+---
+ drivers/media/i2c/epc660.c   | 47 +++++++++++++++++++++++++-----------
+ drivers/media/i2c/tc358746.c |  1 +
+ 2 files changed, 34 insertions(+), 14 deletions(-)
+
+diff --git a/drivers/media/i2c/epc660.c b/drivers/media/i2c/epc660.c
+index fa783aafaffe..87e454649486 100755
+--- a/drivers/media/i2c/epc660.c
++++ b/drivers/media/i2c/epc660.c
+@@ -206,7 +206,7 @@ static int epc660_send_i2c_sequence(struct i2c_client *client,
+ static int epc660_s_stream(struct v4l2_subdev *sd, int enable)
+ {
+ 	struct i2c_client *client = v4l2_get_subdevdata(sd);
+-
++	v4l2_info(sd, "%sable\n", enable ? "en" : "dis");
+ 	/*
+ 	 * 8.7.15. Shutter_Control ("Datasheet_epc660-V1.03.pdf" page 99)
+ 	 * 0xA4/0xA5 (because 16bit access here)
+@@ -221,8 +221,8 @@ static int epc660_s_stream(struct v4l2_subdev *sd, int enable)
+ 		  return -EIO;
+ 		/* Switch to multi frame mode and enable shutter */
+ //		do not switch on the automatic shutter as the application shall have the possibilty to do that by hand
+-		if (reg_write_byte(client, EPC660_REG_SHUTTER_CTRL, 0x03) < 0)
+-		  return -EIO;
++//		if (reg_write_byte(client, EPC660_REG_SHUTTER_CTRL, 0x03) < 0)
++//		  return -EIO;
+ 	} else {
+ 		/* Switch off image acquisition */
+ 		if (reg_write_byte(client, EPC660_REG_SHUTTER_CTRL, 0x00) < 0)
+@@ -349,7 +349,8 @@ static int epc660_s_register(struct v4l2_subdev *sd,
+ #endif
+ 
+ static long epc660_ioctl(struct v4l2_subdev *sd, unsigned int cmd, void* arg);
+-static int epc660_reset(struct v4l2_subdev *sd, u32 val);
++static int epc660_reset_hw(struct v4l2_subdev *sd, u32 val);
++static int epc660_reset_sw(struct v4l2_subdev *sd);
+ static int epc660_load_fw(struct v4l2_subdev *sd);
+ 
+ #define EPC_660_IOCTL_CMD_SET_REGISTER 129
+@@ -403,8 +404,8 @@ static long epc660_ioctl(struct v4l2_subdev *sd, unsigned int cmd, void* arg)
+ 			}
+ 			break;
+ 		case EPC_660_IOCTL_CMD_RESET:
+-			epc660_reset(sd, 1);
+-			epc660_reset(sd, 0);
++			epc660_reset_hw(sd, 1);
++			epc660_reset_hw(sd, 0);
+ 			break;
+ 		default:
+ 			return -ENOIOCTLCMD;
+@@ -412,7 +413,7 @@ static long epc660_ioctl(struct v4l2_subdev *sd, unsigned int cmd, void* arg)
+ 	return 0;
+ }
+ 
+-static int epc660_reset(struct v4l2_subdev *sd, u32 val) {
++static int epc660_reset_hw(struct v4l2_subdev *sd, u32 val) {
+ 	struct i2c_client *client = v4l2_get_subdevdata(sd);
+ 	struct epc660 *epc660 = to_epc660(client);
+ 	
+@@ -423,7 +424,7 @@ static int epc660_reset(struct v4l2_subdev *sd, u32 val) {
+ 		dev_err(&client->dev, "EPC660: cannot set nrst_gpio to %d\n", val);
+ 	}
+ 
+-	dev_info(&client->dev, "EPC660 reset %d\n", val);
++	dev_info(&client->dev, "EPC660 Pin reset: %d\n", val);
+ 
+ 	if (val == 1) {
+ 		usleep_range(7000, 10000);
+@@ -432,6 +433,24 @@ static int epc660_reset(struct v4l2_subdev *sd, u32 val) {
+        return ret;
+ }
+ 
++//not tested!
++static int epc660_reset_sw(struct v4l2_subdev *sd) {
++	/*General I2C call (0x00, 0x06) issues a software reset*/
++	struct i2c_msg msg;
++	struct i2c_client *client = v4l2_get_subdevdata(sd);
++	char msg_buff = 0x06;
++	
++	msg.addr = 0x00;
++	msg.flags = I2C_M_NO_RD_ACK	| I2C_M_IGNORE_NAK;
++	msg.len = 1;
++	msg.buf = &msg_buff;
++
++	i2c_transfer(client->adapter, &msg, 1);
++	v4l2_info(sd, "General i2c call for Software reset\n");
++	usleep_range(10, 20);
++	return 0;
++}
++
+ static int epc660_load_fw(struct v4l2_subdev *sd) {
+ 	int ret;
+ 	struct i2c_client *client;
+@@ -442,8 +461,8 @@ static int epc660_load_fw(struct v4l2_subdev *sd) {
+ 	}
+ 
+ 	/* leave reset */
+-	ret = epc660_reset(sd, 1);
+-	ret = epc660_reset(sd, 0);
++	ret = epc660_reset_hw(sd, 1);
++	ret = epc660_reset_hw(sd, 0);
+ 	if (ret) {
+ 		return ret;
+ 	}
+@@ -595,7 +614,7 @@ static struct v4l2_subdev_core_ops epc660_subdev_core_ops = {
+ #endif
+ 	.ioctl        = epc660_ioctl,
+ 	.load_fw      = epc660_load_fw,
+-	.reset        = epc660_reset,
++	.reset        = epc660_reset_hw,
+ };
+ 
+ static struct v4l2_subdev_video_ops epc660_subdev_video_ops = {
+@@ -683,9 +702,9 @@ static int epc660_probe(struct i2c_client *client,
+ 	}
+ 
+ 	/* reset pin is defined as ACTIVE_LOW, 0 = high level, 1 = low level */
+-	ret = epc660_reset(&epc660->subdev, 0);
+-	ret = epc660_reset(&epc660->subdev, 1);
+-	ret = epc660_reset(&epc660->subdev, 0);
++	ret = epc660_reset_hw(&epc660->subdev, 0);
++	ret = epc660_reset_hw(&epc660->subdev, 1);
++	ret = epc660_reset_hw(&epc660->subdev, 0);
+ 	if (ret < 0) {
+ 		dev_err(&client->dev, "cannot reset the epc660 sensor%d\n", ret);
+ 		return ret;
+diff --git a/drivers/media/i2c/tc358746.c b/drivers/media/i2c/tc358746.c
+index 00df0770a002..3cc5877d7827 100644
+--- a/drivers/media/i2c/tc358746.c
++++ b/drivers/media/i2c/tc358746.c
+@@ -1291,6 +1291,7 @@ static int tc358746_set_fmt(struct v4l2_subdev *sd,
+ 			v4l2_ctrl_s_ctrl(state->link_freq, new_freq);
+ 	}
+ 
++	tc358746_set_buffers(sd);
+ 	return 0;
+ }
+ 
+-- 
+2.25.1
+

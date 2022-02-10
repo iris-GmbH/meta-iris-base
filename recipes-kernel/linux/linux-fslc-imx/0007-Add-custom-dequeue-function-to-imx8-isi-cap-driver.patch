@@ -1,0 +1,40 @@
+From e301ad52af0d33b7509bca182f789cd3038d61c7 Mon Sep 17 00:00:00 2001
+From: Erik Schumacher <erik.schumacher@iris-sensing.com>
+Date: Wed, 31 Mar 2021 09:42:19 +0200
+Subject: [PATCH 07/25] Add custom dequeue function to imx8-isi-cap driver
+
+Signed-off-by: ian.dannapel <ian.dannapel@iris-sensing.com>
+---
+ drivers/staging/media/imx/imx8-isi-cap.c | 9 ++++++++-
+ 1 file changed, 8 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/staging/media/imx/imx8-isi-cap.c b/drivers/staging/media/imx/imx8-isi-cap.c
+index 22f5ee0d5616..822791fe3a9c 100644
+--- a/drivers/staging/media/imx/imx8-isi-cap.c
++++ b/drivers/staging/media/imx/imx8-isi-cap.c
+@@ -1056,6 +1056,13 @@ static int mxc_isi_cap_s_parm(struct file *file, void *fh,
+ 	return v4l2_s_parm_cap(video_devdata(file), sd, a);
+ }
+ 
++static int mxc_isi_cap_dqbuf(struct file *file, void *priv,
++			     struct v4l2_buffer * buf)
++{
++	struct mxc_isi_dev *mxc_isi = video_drvdata(file);
++	return vb2_ioctl_dqbuf(file, priv, buf);
++}
++
+ 
+ static int mxc_isi_cap_streamon(struct file *file, void *priv,
+ 				enum v4l2_buf_type type)
+@@ -1289,7 +1296,7 @@ static const struct v4l2_ioctl_ops mxc_isi_capture_ioctl_ops = {
+ 	.vidioc_reqbufs			= vb2_ioctl_reqbufs,
+ 	.vidioc_querybuf		= vb2_ioctl_querybuf,
+ 	.vidioc_qbuf			= vb2_ioctl_qbuf,
+-	.vidioc_dqbuf			= vb2_ioctl_dqbuf,
++	.vidioc_dqbuf			= mxc_isi_cap_dqbuf,
+ 	.vidioc_expbuf			= vb2_ioctl_expbuf,
+ 	.vidioc_prepare_buf		= vb2_ioctl_prepare_buf,
+ 	.vidioc_create_bufs		= vb2_ioctl_create_bufs,
+-- 
+2.25.1
+

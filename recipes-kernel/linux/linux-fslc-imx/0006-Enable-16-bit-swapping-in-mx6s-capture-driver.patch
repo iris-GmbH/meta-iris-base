@@ -1,0 +1,25 @@
+From d31266ec4e4ee57d0fe12bd60230f27b932a2d0a Mon Sep 17 00:00:00 2001
+From: Erik Schumacher <erik.schumacher@iris-sensing.com>
+Date: Wed, 31 Mar 2021 09:41:58 +0200
+Subject: [PATCH 06/25] Enable 16 bit swapping in mx6s capture driver
+
+Signed-off-by: ian.dannapel <ian.dannapel@iris-sensing.com>
+---
+ drivers/media/platform/mxc/capture/mx6s_capture.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/drivers/media/platform/mxc/capture/mx6s_capture.c b/drivers/media/platform/mxc/capture/mx6s_capture.c
+index 76c028d9e43d..5fefd66b1478 100644
+--- a/drivers/media/platform/mxc/capture/mx6s_capture.c
++++ b/drivers/media/platform/mxc/capture/mx6s_capture.c
+@@ -476,6 +476,7 @@ static void csi_init_interface(struct mx6s_csi_dev *csi_dev)
+ 	val |= BIT_FCC;
+ 	val |= 1 << SHIFT_MCLKDIV;
+ 	val |= BIT_MCLKEN;
++	val |= BIT_SWAP16_EN;
+ 	__raw_writel(val, csi_dev->regbase + CSI_CSICR1);
+ 
+ 	imag_para = (640 << 16) | 960;
+-- 
+2.25.1
+

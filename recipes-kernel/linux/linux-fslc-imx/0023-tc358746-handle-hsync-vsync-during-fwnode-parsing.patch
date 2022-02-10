@@ -1,0 +1,78 @@
+From 553fbc51b27b98070470c656d47e3fcc7b23c8c8 Mon Sep 17 00:00:00 2001
+From: Rouven Czerwinski <r.czerwinski@pengutronix.de>
+Date: Mon, 6 Dec 2021 10:18:25 +0100
+Subject: [PATCH 23/25] tc358746: handle hsync/vsync during fwnode parsing
+
+Handle the DT hsync/vsync setting by correctly setting up the CONFCTL
+register for either active high or active low.
+
+Signed-off-by: Rouven Czerwinski <r.czerwinski@pengutronix.de>
+Signed-off-by: ian.dannapel <ian.dannapel@iris-sensing.com>
+---
+ drivers/media/i2c/tc358746.c | 22 +++++++++++++++++++---
+ 1 file changed, 19 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/media/i2c/tc358746.c b/drivers/media/i2c/tc358746.c
+index 9a46f66f24de..21ca4e7e80bc 100644
+--- a/drivers/media/i2c/tc358746.c
++++ b/drivers/media/i2c/tc358746.c
+@@ -1460,7 +1460,7 @@ static int tc358746_set_lane_settings(struct tc358746_state *state,
+ 				      struct v4l2_fwnode_endpoint *fw)
+ {
+ 	struct v4l2_subdev *sd = &state->sd;
+-	int i;
++	unsigned int i;
+ 
+ 	for (i = 0; i < fw->nr_of_link_frequencies; i++) {
+ 		struct tc358746_csi_param *s =
+@@ -1526,7 +1526,8 @@ static int tc358746_apply_fw(struct tc358746_state *state)
+ {
+ 	struct v4l2_subdev *sd = &state->sd;
+ 	struct tc358746_csi_param *csi_setting;
+-	int err, i;
++	unsigned int i;
++	int err;
+ 
+ 	for (i = 0; i < state->link_frequencies_num; i++) {
+ 		csi_setting = &state->link_freq_settings[i];
+@@ -1566,7 +1567,7 @@ static int tc358746_probe_fw(struct tc358746_state *state)
+ 	struct fwnode_handle *fw_node;
+ 	unsigned int refclk, pllinclk;
+ 	unsigned char pll_prediv;
+-	int ret = -EINVAL;
++	int ret;
+ 
+ 	/* Parse all clocks */
+ 	state->refclk = devm_clk_get(dev, NULL);
+@@ -1699,6 +1700,7 @@ static int tc358746_async_register(struct tc358746_state *state)
+ 	struct v4l2_async_subdev *asd = NULL;
+ 	struct fwnode_handle *ep;
+ 	struct v4l2_fwnode_bus_parallel *bus;
++	u16 confctl_mask, confctl_val;
+ 	int ret;
+ 
+ 	v4l2_async_notifier_init(&state->notifier);
+@@ -1721,6 +1723,20 @@ static int tc358746_async_register(struct tc358746_state *state)
+ 		goto err;
+ 	}
+ 
++	confctl_mask = CONFCTL_VVALIDP_MASK | CONFCTL_HVALIDP_MASK;
++	confctl_val = 0;
++
++	if (bus->flags & V4L2_MBUS_VSYNC_ACTIVE_LOW) {
++		confctl_val |= CONFCTL_VVALIDP_MASK;
++	}
++
++	if (bus->flags & V4L2_MBUS_HSYNC_ACTIVE_LOW) {
++		confctl_val |= CONFCTL_HVALIDP_MASK;
++	}
++
++	i2c_wr16_and_or(&state->sd, CONFCTL, confctl_mask, confctl_val);
++
++
+ 	asd = kzalloc(sizeof(*asd), GFP_KERNEL);
+ 	if (!asd) {
+ 		ret = -ENOMEM;
+-- 
+2.25.1
+

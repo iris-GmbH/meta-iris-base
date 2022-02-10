@@ -1,0 +1,47 @@
+From a0f0bf17c97418d6d584164b70bb781650dce780 Mon Sep 17 00:00:00 2001
+From: Erik Schumacher <erik.schumacher@iris-sensing.com>
+Date: Wed, 31 Mar 2021 09:37:42 +0200
+Subject: [PATCH 02/25] Add subdev notification to mxc_mipi_csi
+
+Signed-off-by: ian.dannapel <ian.dannapel@iris-sensing.com>
+---
+ .../media/platform/mxc/capture/mxc_mipi_csi.c    | 16 ++++++++++++++++
+ 1 file changed, 16 insertions(+)
+
+diff --git a/drivers/media/platform/mxc/capture/mxc_mipi_csi.c b/drivers/media/platform/mxc/capture/mxc_mipi_csi.c
+index 1656d17a9304..99ed4d4fcfdd 100644
+--- a/drivers/media/platform/mxc/capture/mxc_mipi_csi.c
++++ b/drivers/media/platform/mxc/capture/mxc_mipi_csi.c
+@@ -946,6 +946,21 @@ static int subdev_notifier_bound(struct v4l2_async_notifier *notifier,
+ 	return 0;
+ }
+ 
++static int subdev_notifier_complete(struct v4l2_async_notifier *notifier)
++{
++	struct csi_state *state = notifier_to_mipi_dev(notifier);
++	int ret;
++
++	ret = v4l2_device_register_subdev_nodes(&state->v4l2_dev);
++
++	if (ret < 0) {
++		v4l2_err(&state->v4l2_dev, "%s error exit\n", __func__);
++		return ret;
++	}
++
++	return 0;
++}
++
+ static int mipi_csis_parse_dt(struct platform_device *pdev,
+ 			    struct csi_state *state)
+ {
+@@ -986,6 +1001,7 @@ static const struct of_device_id mipi_csis_of_match[];
+ 
+ static const struct v4l2_async_notifier_operations mxc_mipi_csi_subdev_ops = {
+ 	.bound = subdev_notifier_bound,
++	.complete = subdev_notifier_complete,
+ };
+ 
+ /* register parent dev */
+-- 
+2.25.1
+

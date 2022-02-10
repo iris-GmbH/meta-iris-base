@@ -1,0 +1,27 @@
+From 46c37f725618556aa8799181846e0894e7f37568 Mon Sep 17 00:00:00 2001
+From: Erik Schumacher <erik.schumacher@iris-sensing.com>
+Date: Wed, 31 Mar 2021 09:38:43 +0200
+Subject: [PATCH 03/25] Fix: Save csis format to internal structure of
+ imx8-mipi-csi2-sam
+
+Signed-off-by: ian.dannapel <ian.dannapel@iris-sensing.com>
+---
+ drivers/staging/media/imx/imx8-mipi-csi2-sam.c | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/drivers/staging/media/imx/imx8-mipi-csi2-sam.c b/drivers/staging/media/imx/imx8-mipi-csi2-sam.c
+index 97894565ce31..29d8703be402 100644
+--- a/drivers/staging/media/imx/imx8-mipi-csi2-sam.c
++++ b/drivers/staging/media/imx/imx8-mipi-csi2-sam.c
+@@ -991,6 +991,8 @@ static int mipi_csis_set_fmt(struct v4l2_subdev *mipi_sd,
+ 		mf->code = csis_fmt->code;
+ 	}
+ 
++	state->csis_fmt = csis_fmt;
++
+ 	return 0;
+ }
+ 
+-- 
+2.25.1
+

@@ -1,0 +1,152 @@
+From dbda162b2ed9ea11260adbef466a2f2bf375dc3a Mon Sep 17 00:00:00 2001
+From: Erik Schumacher <erik.schumacher@iris-sensing.com>
+Date: Wed, 31 Mar 2021 08:46:43 +0200
+Subject: [PATCH 01/25] Add RAW12 to supported formats in imx mipi csi drivers
+
+Signed-off-by: ian.dannapel <ian.dannapel@iris-sensing.com>
+---
+ .../media/platform/mxc/capture/mx6s_capture.c | 11 +++++++++
+ .../media/platform/mxc/capture/mxc_mipi_csi.c |  4 ++++
+ drivers/staging/media/imx/imx8-isi-cap.c      | 23 ++++++++++++++++---
+ .../staging/media/imx/imx8-mipi-csi2-sam.c    |  7 ++++++
+ 4 files changed, 42 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/media/platform/mxc/capture/mx6s_capture.c b/drivers/media/platform/mxc/capture/mx6s_capture.c
+index d36a00b6ec75..76c028d9e43d 100644
+--- a/drivers/media/platform/mxc/capture/mx6s_capture.c
++++ b/drivers/media/platform/mxc/capture/mx6s_capture.c
+@@ -131,6 +131,7 @@
+ #define BIT_CSI_ENABLE			(0x1 << 31)
+ #define BIT_MIPI_DATA_FORMAT_RAW8		(0x2a << 25)
+ #define BIT_MIPI_DATA_FORMAT_RAW10		(0x2b << 25)
++#define BIT_MIPI_DATA_FORMAT_RAW12		(0x2c << 25)
+ #define BIT_MIPI_DATA_FORMAT_YUV422_8B	(0x1e << 25)
+ #define BIT_MIPI_DATA_FORMAT_MASK	(0x3F << 25)
+ #define BIT_MIPI_DATA_FORMAT_OFFSET	25
+@@ -266,6 +267,12 @@ static struct mx6s_fmt formats[] = {
+ 		.pixelformat	= V4L2_PIX_FMT_SBGGR8,
+ 		.mbus_code	= MEDIA_BUS_FMT_SBGGR8_1X8,
+ 		.bpp		= 1,
++	}, {
++		.name		= "RAW12 (SBGGR12)",
++		.fourcc		= V4L2_PIX_FMT_SBGGR12,
++		.pixelformat	= V4L2_PIX_FMT_SBGGR12,
++		.mbus_code	= MEDIA_BUS_FMT_SBGGR12_1X12,
++		.bpp		= 2,
+ 	}
+ };
+ 
+@@ -838,6 +845,7 @@ static int mx6s_configure_csi(struct mx6s_csi_dev *csi_dev)
+ 	switch (csi_dev->fmt->pixelformat) {
+ 	case V4L2_PIX_FMT_YUV32:
+ 	case V4L2_PIX_FMT_SBGGR8:
++	case V4L2_PIX_FMT_SBGGR12:
+ 		width = pix->width;
+ 		break;
+ 	case V4L2_PIX_FMT_UYVY:
+@@ -871,6 +879,9 @@ static int mx6s_configure_csi(struct mx6s_csi_dev *csi_dev)
+ 		case V4L2_PIX_FMT_SBGGR8:
+ 			cr18 |= BIT_MIPI_DATA_FORMAT_RAW8;
+ 			break;
++		case V4L2_PIX_FMT_SBGGR12:
++			cr18 |= BIT_MIPI_DATA_FORMAT_RAW12;
++			break;
+ 		default:
+ 			pr_debug("   fmt not supported\n");
+ 			return -EINVAL;
+diff --git a/drivers/media/platform/mxc/capture/mxc_mipi_csi.c b/drivers/media/platform/mxc/capture/mxc_mipi_csi.c
+index a35563cf5130..1656d17a9304 100644
+--- a/drivers/media/platform/mxc/capture/mxc_mipi_csi.c
++++ b/drivers/media/platform/mxc/capture/mxc_mipi_csi.c
+@@ -322,6 +322,10 @@ static const struct csis_pix_format mipi_csis_formats[] = {
+ 		.code = MEDIA_BUS_FMT_SBGGR8_1X8,
+ 		.fmt_reg = MIPI_CSIS_ISPCFG_FMT_RAW8,
+ 		.data_alignment = 8,
++	}, {
++		.code = MEDIA_BUS_FMT_SBGGR12_1X12,
++		.fmt_reg = MIPI_CSIS_ISPCFG_FMT_RAW12,
++		.data_alignment = 16,
+ 	}
+ };
+ 
+diff --git a/drivers/staging/media/imx/imx8-isi-cap.c b/drivers/staging/media/imx/imx8-isi-cap.c
+index 5ff28bfb32d3..22f5ee0d5616 100644
+--- a/drivers/staging/media/imx/imx8-isi-cap.c
++++ b/drivers/staging/media/imx/imx8-isi-cap.c
+@@ -105,6 +105,14 @@ struct mxc_isi_fmt mxc_isi_out_formats[] = {
+ 		.memplanes	= 1,
+ 		.colplanes	= 1,
+ 		.mbus_code	= MEDIA_BUS_FMT_RGB888_1X24,
++	}, {
++		.name		= "RAW12",
++		.fourcc		= V4L2_PIX_FMT_SBGGR12,
++		.depth		= { 16 },
++		.color		= MXC_ISI_OUT_FMT_RAW12,
++		.memplanes	= 1,
++		.colplanes	= 1,
++		.mbus_code	= MEDIA_BUS_FMT_SBGGR12_1X12,
+ 	}
+ };
+ 
+@@ -124,6 +132,12 @@ struct mxc_isi_fmt mxc_isi_src_formats[] = {
+ 		.depth		= { 32 },
+ 		.memplanes	= 1,
+ 		.colplanes	= 1,
++	}, {
++		.name		= "RAW12",
++		.fourcc		= V4L2_PIX_FMT_SBGGR12,
++		.depth		= { 16 },
++		.memplanes	= 1,
++		.colplanes	= 1,
+ 	}
+ };
+ 
+@@ -163,14 +177,17 @@ struct mxc_isi_fmt *mxc_isi_get_src_fmt(struct v4l2_subdev_format *sd_fmt)
+ 	u32 index;
+ 
+ 	/* two fmt RGB32 and YUV444 from pixellink */
+-	if (sd_fmt->format.code == MEDIA_BUS_FMT_YUYV8_1X16 ||
++	if (sd_fmt->format.code == MEDIA_BUS_FMT_SBGGR12_1X12) {
++		index = 2;
++	} else if (sd_fmt->format.code == MEDIA_BUS_FMT_YUYV8_1X16 ||
+ 	    sd_fmt->format.code == MEDIA_BUS_FMT_YVYU8_2X8 ||
+ 	    sd_fmt->format.code == MEDIA_BUS_FMT_AYUV8_1X32 ||
+ 	    sd_fmt->format.code == MEDIA_BUS_FMT_UYVY8_2X8 ||
+-	    sd_fmt->format.code == MEDIA_BUS_FMT_YUYV8_2X8)
++	    sd_fmt->format.code == MEDIA_BUS_FMT_YUYV8_2X8) {
+ 		index = 1;
+-	else
++	} else {
+ 		index = 0;
++	}
+ 	return &mxc_isi_src_formats[index];
+ }
+ 
+diff --git a/drivers/staging/media/imx/imx8-mipi-csi2-sam.c b/drivers/staging/media/imx/imx8-mipi-csi2-sam.c
+index 9c8b68d0d1ab..97894565ce31 100644
+--- a/drivers/staging/media/imx/imx8-mipi-csi2-sam.c
++++ b/drivers/staging/media/imx/imx8-mipi-csi2-sam.c
+@@ -404,6 +404,10 @@ static const struct csis_pix_format mipi_csis_formats[] = {
+ 		.code = MEDIA_BUS_FMT_SBGGR8_1X8,
+ 		.fmt_reg = MIPI_CSIS_ISPCFG_FMT_RAW8,
+ 		.data_alignment = 8,
++	}, {
++		.code = MEDIA_BUS_FMT_SBGGR12_1X12,
++		.fmt_reg = MIPI_CSIS_ISPCFG_FMT_RAW12,
++		.data_alignment = 16,
+ 	}
+ };
+ 
+@@ -813,6 +817,9 @@ static void disp_mix_gasket_config(struct csi_state *state)
+ 	case MEDIA_BUS_FMT_SBGGR8_1X8:
+ 		fmt_val = GASKET_0_CTRL_DATA_TYPE_RAW8;
+ 		break;
++	case MEDIA_BUS_FMT_SBGGR12_1X12:
++		fmt_val = GASKET_0_CTRL_DATA_TYPE_RAW12;
++		break;
+ 	default:
+ 		pr_err("gasket not support format %d\n", fmt->code);
+ 		return;
+-- 
+2.25.1
+

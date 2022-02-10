@@ -1,0 +1,48 @@
+From bf511928e693e00ff0b56a1369192a5580452230 Mon Sep 17 00:00:00 2001
+From: Rouven Czerwinski <r.czerwinski@pengutronix.de>
+Date: Fri, 19 Nov 2021 17:16:32 +0100
+Subject: [PATCH 18/25] tc358746: return error if width is zero
+
+If the calculated width is zero, the adjust_timings function was not
+able to determine a suitable FIFO size. Return an explanatory dmesg
+entry and -EINVAL in this case. This may happen if the linked sensor
+returns values which can't be supported by the toshiba bridge.
+
+Signed-off-by: Rouven Czerwinski <r.czerwinski@pengutronix.de>
+Signed-off-by: ian.dannapel <ian.dannapel@iris-sensing.com>
+---
+ drivers/media/i2c/tc358746.c | 10 +++++++++-
+ 1 file changed, 9 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/media/i2c/tc358746.c b/drivers/media/i2c/tc358746.c
+index 2d9d9ac9aba6..6bf519107f2a 100644
+--- a/drivers/media/i2c/tc358746.c
++++ b/drivers/media/i2c/tc358746.c
+@@ -1210,6 +1210,7 @@ static int tc358746_set_fmt(struct v4l2_subdev *sd,
+ 	struct media_pad *pad = &state->pads[format->pad];
+ 	struct v4l2_mbus_framefmt *mbusformat;
+ 	const struct tc358746_mbus_fmt *tc358746_mbusformat;
++	unsigned int width;
+ 	unsigned int pclk, hblank;
+ 	unsigned int new_freq, cur_freq = v4l2_ctrl_g_ctrl(state->link_freq);
+ 	u16 vb_fifo;
+@@ -1256,8 +1257,15 @@ static int tc358746_set_fmt(struct v4l2_subdev *sd,
+ 	 * fifo size. If this doesn't work we have to do this check again with a
+ 	 * other csi link frequency if it is possible.
+ 	 */
++	width = format->format.width;
+ 	new_freq = tc358746_adjust_timings(state, tc358746_mbusformat,
+-					   &format->format.width, &vb_fifo);
++					   &width, &vb_fifo);
++	if (new_freq == -EINVAL) {
++		v4l2_err(sd, "No suitable FIFO size found");
++		return new_freq;
++	}
++
++	format->format.width = width;
+ 
+ 	/* Currently only a few YUV based formats are supported */
+ 	if (tc358746_format_supported(format->format.code))
+-- 
+2.25.1
+

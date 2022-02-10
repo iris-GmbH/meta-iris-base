@@ -1,0 +1,39 @@
+From 57cf7956f6b6aec993476b8e8c987496c9e2abf9 Mon Sep 17 00:00:00 2001
+From: Rouven Czerwinski <r.czerwinski@pengutronix.de>
+Date: Fri, 19 Nov 2021 17:32:48 +0100
+Subject: [PATCH 16/25] epc660: setup sensible hblank value
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Looking at the datasheet, from the TMCI timing graph a hblank value of 2 can
+be inferred. However looking at the timing diagram, hblank is not 2, rather
+the following equation:
+
+2x t_CONV - t_HSYNC = 52,084µs - 13,33µs = 38,754µs
+
+which results in an hblank value around 1863. Fixing this in the epc driver
+lets the tc358746 bridge calculate a correct fifosize.
+
+Signed-off-by: Rouven Czerwinski <r.czerwinski@pengutronix.de>
+Signed-off-by: ian.dannapel <ian.dannapel@iris-sensing.com>
+---
+ drivers/media/i2c/epc660.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/drivers/media/i2c/epc660.c b/drivers/media/i2c/epc660.c
+index 8505b1e8a73f..f229f9ba1c7d 100755
+--- a/drivers/media/i2c/epc660.c
++++ b/drivers/media/i2c/epc660.c
+@@ -651,7 +651,7 @@ static int epc660_probe(struct i2c_client *client,
+ 						V4L2_CID_PIXEL_RATE,
+ 						pixel_rate_min, pixel_rate_max,
+ 						1, pixel_rate_max);
+-	hblank = 2;
++	hblank = 1860;
+ 	epc660->hblank = v4l2_ctrl_new_std(
+ 				&epc660->hdl, &epc660_ctrl_ops, V4L2_CID_HBLANK,
+ 				hblank, hblank, 1, hblank);
+-- 
+2.25.1
+

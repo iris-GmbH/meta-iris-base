@@ -1,0 +1,62 @@
+From 350bc9e8a9bae79597cca06002979b8f92c9b1f3 Mon Sep 17 00:00:00 2001
+From: Rouven Czerwinski <r.czerwinski@pengutronix.de>
+Date: Thu, 18 Nov 2021 12:16:24 +0100
+Subject: [PATCH 15/25] epc660: fix custom reset IOCTL
+
+Signed-off-by: Rouven Czerwinski <r.czerwinski@pengutronix.de>
+Signed-off-by: ian.dannapel <ian.dannapel@iris-sensing.com>
+---
+ drivers/media/i2c/epc660.c | 26 ++++++++------------------
+ 1 file changed, 8 insertions(+), 18 deletions(-)
+
+diff --git a/drivers/media/i2c/epc660.c b/drivers/media/i2c/epc660.c
+index 562ae090af05..8505b1e8a73f 100755
+--- a/drivers/media/i2c/epc660.c
++++ b/drivers/media/i2c/epc660.c
+@@ -404,6 +404,7 @@ static long epc660_ioctl(struct v4l2_subdev *sd, unsigned int cmd, void* arg)
+ 			break;
+ 		case EPC_660_IOCTL_CMD_RESET:
+ 			epc660_reset(sd, 1);
++			epc660_reset(sd, 0);
+ 			break;
+ 		default:
+ 			break;
+@@ -418,28 +419,17 @@ static int epc660_reset(struct v4l2_subdev *sd, u32 val) {
+ 	
+ 	int ret = gpiod_direction_output(epc660->nrst_gpio, val);
+ 
+-       if (ret < 0) {
+-            dev_err(&client->dev, "EPC660: cannot set nrst_gpio to %d\n", val);
+-       } else {
+-               dev_info(&client->dev, "EPC660 reset %d\n", val);
+-               if(val == 0) {
+-                       udelay(1);
+-               } else {
+-                       usleep_range(7000, 10000);
+-               }
+-       }
+-
+-/*	
+-	gpiod_set_value_cansleep(epc660->nrst_gpio, val);
++	if (ret < 0) {
++		dev_err(&client->dev, "EPC660: cannot set nrst_gpio to %d\n", val);
++	}
+ 
+ 	dev_info(&client->dev, "EPC660 reset %d\n", val);
+-	if (val) {
+-		udelay(1);
+-	} else {
++
++	if (val == 1) {
+ 		usleep_range(7000, 10000);
+ 	}
+-	*/
+-	return ret;
++
++       return ret;
+ }
+ 
+ static int epc660_load_fw(struct v4l2_subdev *sd) {
+-- 
+2.25.1
+

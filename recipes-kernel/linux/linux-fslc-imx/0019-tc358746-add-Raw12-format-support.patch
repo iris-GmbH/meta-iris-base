@@ -1,0 +1,32 @@
+From de3312450792c82aedca60b169f2f36217f630dc Mon Sep 17 00:00:00 2001
+From: Rouven Czerwinski <r.czerwinski@pengutronix.de>
+Date: Fri, 19 Nov 2021 17:25:30 +0100
+Subject: [PATCH 19/25] tc358746: add Raw12 format support
+
+Signed-off-by: Rouven Czerwinski <r.czerwinski@pengutronix.de>
+Signed-off-by: ian.dannapel <ian.dannapel@iris-sensing.com>
+---
+ drivers/media/i2c/tc358746.c | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/drivers/media/i2c/tc358746.c b/drivers/media/i2c/tc358746.c
+index 6bf519107f2a..dee5003482f1 100644
+--- a/drivers/media/i2c/tc358746.c
++++ b/drivers/media/i2c/tc358746.c
+@@ -188,6 +188,13 @@ static const struct tc358746_mbus_fmt tc358746_formats[] = {
+ 		.pdataf = CONFCTL_PDATAF_MODE0, /* don't care */
+ 		.ppp = 2,
+ 		.csitx_only = true,
++	}, {
++		.code = MEDIA_BUS_FMT_Y12_1X12,
++		.bus_width = 12,
++		.bpp = 12,
++		.pdformat = DATAFMT_PDFMT_RAW12,
++		.pdataf = CONFCTL_PDATAF_MODE0, /* don't care */
++		.ppp = 1,
+ 	},
+ };
+ 
+-- 
+2.25.1
+

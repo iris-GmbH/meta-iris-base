@@ -1,0 +1,74 @@
+From 1b6daf166ce42b6b1e0d7db69f974cf3dd6f35f4 Mon Sep 17 00:00:00 2001
+From: Erik Schumacher <erik.schumacher@iris-sensing.com>
+Date: Wed, 31 Mar 2021 09:43:29 +0200
+Subject: [PATCH 05/25] Change devicetree of imx8mp-evk to include addi90xx
+ camera at csi port 0
+
+Signed-off-by: ian.dannapel <ian.dannapel@iris-sensing.com>
+---
+ arch/arm64/boot/dts/freescale/imx8mp-evk.dts | 38 ++++++++------------
+ 1 file changed, 14 insertions(+), 24 deletions(-)
+
+diff --git a/arch/arm64/boot/dts/freescale/imx8mp-evk.dts b/arch/arm64/boot/dts/freescale/imx8mp-evk.dts
+index 062d7ca9f358..a9d4e6784cf0 100644
+--- a/arch/arm64/boot/dts/freescale/imx8mp-evk.dts
++++ b/arch/arm64/boot/dts/freescale/imx8mp-evk.dts
+@@ -469,29 +469,18 @@
+ 		};
+ 	};
+ 
+-	ov5640_0: ov5640_mipi@3c {
+-		compatible = "ovti,ov5640";
+-		reg = <0x3c>;
++	addi90xx_mipi: addi90xx_mipi@64 {
++		compatible = "adi,addi9036";
++		reg = <0x64>;
++		status = "okay";
+ 		pinctrl-names = "default";
+-		pinctrl-0 = <&pinctrl_csi0_pwn>, <&pinctrl_csi0_rst>;
+-		clocks = <&clk IMX8MP_CLK_IPP_DO_CLKO2>;
+-		clock-names = "xclk";
+-		assigned-clocks = <&clk IMX8MP_CLK_IPP_DO_CLKO2>;
+-		assigned-clock-parents = <&clk IMX8MP_CLK_24M>;
+-		assigned-clock-rates = <24000000>;
+-		csi_id = <0>;
+-		powerdown-gpios = <&gpio2 11 GPIO_ACTIVE_HIGH>;
++		pinctrl-0 = <&pinctrl_csi0_rst>;
+ 		reset-gpios = <&gpio1 6 GPIO_ACTIVE_LOW>;
+-		mclk = <24000000>;
+-		mclk_source = <0>;
+-		mipi_csi;
+-		status = "okay";
+-
+ 		port {
+-			ov5640_mipi_0_ep: endpoint {
+-				remote-endpoint = <&mipi_csi0_ep>;
+-				data-lanes = <1 2>;
+-				clock-lanes = <0>;
++			addi90xx_mipi1_ep: endpoint {
++				data-lanes = <2>;
++				clock-lanes = <1>;
++				remote-endpoint = <&mipi1_sensor_ep>;
+ 			};
+ 		};
+ 	};
+@@ -1216,11 +1205,12 @@
+ 
+ 	port@0 {
+ 		reg = <0>;
+-		mipi_csi0_ep: endpoint {
+-			remote-endpoint = <&ov5640_mipi_0_ep>;
++		mipi1_sensor_ep: endpoint {
+ 			data-lanes = <2>;
+-			csis-hs-settle = <13>;
+-			csis-clk-settle = <2>;
++			clock-lanes = <1>;
++			remote-endpoint = <&addi90xx_mipi1_ep>;
++			csis-hs-settle = <3>;
++			csis-clk-settle = <0>;
+ 			csis-wclk;
+ 		};
+ 	};
+-- 
+2.25.1
+

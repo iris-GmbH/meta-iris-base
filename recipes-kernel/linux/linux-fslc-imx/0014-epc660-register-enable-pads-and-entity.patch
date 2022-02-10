@@ -1,0 +1,114 @@
+From 0f58892bdcca92ae0b35c54e299dc17dbf20898b Mon Sep 17 00:00:00 2001
+From: Rouven Czerwinski <r.czerwinski@pengutronix.de>
+Date: Wed, 17 Nov 2021 15:41:25 +0100
+Subject: [PATCH 14/25] epc660: register, enable pads and entity
+
+Actually register the epc660, create a source pad and tell v4l2 we are a
+SENSOR entity. This allows us to actually create links within the media
+framework.
+
+Signed-off-by: Rouven Czerwinski <r.czerwinski@pengutronix.de>
+Signed-off-by: ian.dannapel <ian.dannapel@iris-sensing.com>
+---
+ drivers/media/i2c/epc660.c | 40 ++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 40 insertions(+)
+
+diff --git a/drivers/media/i2c/epc660.c b/drivers/media/i2c/epc660.c
+index 2200e212d1d0..562ae090af05 100755
+--- a/drivers/media/i2c/epc660.c
++++ b/drivers/media/i2c/epc660.c
+@@ -14,12 +14,15 @@
+ #include <linux/delay.h>
+ #include <linux/log2.h>
+ #include <linux/module.h>
++#include <linux/of.h>
++#include <linux/of_graph.h>
+ 
+ #include <media/soc_camera.h>
+ #include <media/drv-intf/soc_mediabus.h>
+ #include <media/v4l2-subdev.h>
+ #include <media/v4l2-clk.h>
+ #include <media/v4l2-ctrls.h>
++#include <media/v4l2-fwnode.h>
+ 
+ #include <media/i2c/epc660_sequence.h>
+ 
+@@ -76,6 +79,7 @@ struct epc660 {
+ 	struct v4l2_clk *clk;
+ 	const struct epc660_datafmt *fmt;
+ 	const struct epc660_datafmt *fmts;
++	struct media_pad pad;
+ 	struct gpio_desc* nrst_gpio;
+ 	int num_fmts;
+ 	u8  ic_version;
+@@ -487,6 +491,7 @@ static const struct v4l2_ctrl_ops epc660_ctrl_ops = {
+ static int epc660_video_probe(struct i2c_client *client)
+ {
+ 	struct epc660 *epc660 = to_epc660(client);
++	struct device *dev = &client->dev;
+ 	int ret;
+ 	
+ 	/* dummy read */
+@@ -558,6 +563,16 @@ static int epc660_video_probe(struct i2c_client *client)
+ 	epc660->fmt = &epc660->fmts[0];
+ 
+ 	epc660->subdev.flags |= V4L2_SUBDEV_FL_HAS_DEVNODE;
++	epc660->subdev.entity.function = MEDIA_ENT_F_CAM_SENSOR;
++	epc660->subdev.dev = &client->dev;
++
++	epc660->pad.flags = MEDIA_PAD_FL_SOURCE;
++
++	ret = media_entity_pads_init(&epc660->subdev.entity, 1, &epc660->pad);
++	if (ret < 0) {
++		dev_err(dev, "could not register media entity\n");
++		return -EINVAL;
++	}
+ 
+ ei2c:
+ 	return ret;
+@@ -619,6 +634,8 @@ static int epc660_probe(struct i2c_client *client,
+ {
+ 	struct epc660 *epc660;
+ 	struct i2c_adapter *adapter = to_i2c_adapter(client->dev.parent);
++	struct v4l2_fwnode_endpoint endpoint = { .bus_type = 0 };
++	struct device_node *np;
+ 	s64 hblank;
+ 	s64 pixel_rate_min;
+ 	s64 pixel_rate_max;
+@@ -681,10 +698,33 @@ static int epc660_probe(struct i2c_client *client,
+ 		return ret;
+ 	}
+ 
++	np = of_graph_get_next_endpoint(client->dev.of_node, NULL);
++	if (!np) {
++		dev_err(&client->dev, "No endpoint defined");
++		v4l2_ctrl_handler_free(&epc660->hdl);
++		return -EINVAL;
++	}
++
++
++	if (v4l2_fwnode_endpoint_parse(of_fwnode_handle(np), &endpoint) < 0) {
++		dev_err(&client->dev, "couldn't parse endpoint");
++		v4l2_ctrl_handler_free(&epc660->hdl);
++		return -EINVAL;
++	}
++
+ 	ret = epc660_video_probe(client);
+ 	if (ret)
+ 		v4l2_ctrl_handler_free(&epc660->hdl);
+ 
++	ret = v4l2_async_register_subdev_sensor_common(&epc660->subdev);
++	if (ret) {
++		dev_err(&client->dev, "error registering subdev");
++		v4l2_ctrl_handler_free(&epc660->hdl);
++		return -EINVAL;
++	}
++
++	dev_info(&client->dev, "succesfully registered epc660 driver");
++
+ 	return ret;
+ }
+ 
+-- 
+2.25.1
+

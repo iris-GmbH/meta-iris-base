@@ -1,0 +1,39 @@
+From 1190b173aff57f0484babcea54d9906fcbcb46ea Mon Sep 17 00:00:00 2001
+From: Rouven Czerwinski <r.czerwinski@pengutronix.de>
+Date: Thu, 25 Nov 2021 16:53:45 +0100
+Subject: [PATCH 20/25] imx8-mipi-csi2-sam: add Y12_1X12
+
+This just maps to RAW12 on the CSI receive side.
+
+Signed-off-by: Rouven Czerwinski <r.czerwinski@pengutronix.de>
+Signed-off-by: ian.dannapel <ian.dannapel@iris-sensing.com>
+---
+ drivers/staging/media/imx/imx8-mipi-csi2-sam.c | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/drivers/staging/media/imx/imx8-mipi-csi2-sam.c b/drivers/staging/media/imx/imx8-mipi-csi2-sam.c
+index 29d8703be402..fde601714ace 100644
+--- a/drivers/staging/media/imx/imx8-mipi-csi2-sam.c
++++ b/drivers/staging/media/imx/imx8-mipi-csi2-sam.c
+@@ -408,6 +408,10 @@ static const struct csis_pix_format mipi_csis_formats[] = {
+ 		.code = MEDIA_BUS_FMT_SBGGR12_1X12,
+ 		.fmt_reg = MIPI_CSIS_ISPCFG_FMT_RAW12,
+ 		.data_alignment = 16,
++	}, {
++		.code = MEDIA_BUS_FMT_Y12_1X12,
++		.fmt_reg = MIPI_CSIS_ISPCFG_FMT_RAW12,
++		.data_alignment = 16,
+ 	}
+ };
+ 
+@@ -818,6 +822,7 @@ static void disp_mix_gasket_config(struct csi_state *state)
+ 		fmt_val = GASKET_0_CTRL_DATA_TYPE_RAW8;
+ 		break;
+ 	case MEDIA_BUS_FMT_SBGGR12_1X12:
++	case MEDIA_BUS_FMT_Y12_1X12:
+ 		fmt_val = GASKET_0_CTRL_DATA_TYPE_RAW12;
+ 		break;
+ 	default:
+-- 
+2.25.1
+

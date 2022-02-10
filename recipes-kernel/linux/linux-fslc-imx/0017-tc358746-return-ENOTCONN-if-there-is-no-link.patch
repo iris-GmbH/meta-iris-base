@@ -1,0 +1,33 @@
+From 67941bd99579f8ea6ca251192fdbd724fe6fb8dd Mon Sep 17 00:00:00 2001
+From: Rouven Czerwinski <r.czerwinski@pengutronix.de>
+Date: Fri, 19 Nov 2021 17:15:01 +0100
+Subject: [PATCH 17/25] tc358746: return -ENOTCONN if there is no link
+
+In case the link to the sensor has not been set up yet, we can't request
+hblank and pixelclock from the sensor. Return -ENOTCONN to indicate that
+a sensor needs to be connected to set the format.
+
+Signed-off-by: Rouven Czerwinski <r.czerwinski@pengutronix.de>
+Signed-off-by: ian.dannapel <ian.dannapel@iris-sensing.com>
+---
+ drivers/media/i2c/tc358746.c | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/drivers/media/i2c/tc358746.c b/drivers/media/i2c/tc358746.c
+index 351a079cc7ed..2d9d9ac9aba6 100644
+--- a/drivers/media/i2c/tc358746.c
++++ b/drivers/media/i2c/tc358746.c
+@@ -1214,6 +1214,10 @@ static int tc358746_set_fmt(struct v4l2_subdev *sd,
+ 	unsigned int new_freq, cur_freq = v4l2_ctrl_g_ctrl(state->link_freq);
+ 	u16 vb_fifo;
+ 
++	/* link has not been set up, we can't retrieve ctrls from the sensor */
++	if (!state->sensor_pclk_ctrl || !state->sensor_hblank_ctrl)
++		return -ENOTCONN;
++
+ 	if (pad->flags == MEDIA_PAD_FL_SOURCE)
+ 		return tc358746_get_fmt(sd, cfg, format);
+ 
+-- 
+2.25.1
+
