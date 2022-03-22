@@ -6,6 +6,7 @@ and this project adheres to [APR's Version Numbering](https://apr.apache.org/ver
 
 ## [2.0.3]-dev (HEAD) - n/a
 ### Added
+- [RDPHOEN-957]: Add script for IP configuration (eth:0.0 .. DHCP or static customer IP retrieved from customer configuration; eth:0.1 service IP 172.16.x.y calculated from MAC address)
 
 
 ### Changed
