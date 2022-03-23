@@ -4,33 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [APR's Version Numbering](https://apr.apache.org/versioning.html).
 
-## [2.0.3]-dev (HEAD) - n/a
+## [2.0.3] - 2022-03-23
 ### Added
-- [RDPHOEN-957]: Add script for IP configuration (eth:0.0 .. DHCP or static customer IP retrieved from customer configuration; eth:0.1 service IP 172.16.x.y calculated from MAC address)
+- Add swupdate image creation recipe
 
 
-### Changed
 
-
-### Deprecated
-
-
-### Removed
-
-
-### Fixed
-
-
-### Simulation only
-
-
-### Maintenance only
-
-
-### Known issues
-
-
-## [2.0.2]- 2022-01-25
+## [2.0.2] - 2022-01-25
 ### Removed
 - [APC-3693][APC-3971] libmosquitto and libmosquittopp removed
 
