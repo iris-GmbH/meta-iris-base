@@ -1,8 +1,8 @@
 # SPDX-License-Identifier: MIT
-# Copyright (C) 2021 iris-GmbH infrared & intelligent sensors
+# Copyright (C) 2021-2022 iris-GmbH infrared & intelligent sensors
 
-FILESEXTRAPATHS_prepend := "${THISDIR}/${BPN}:"
-SRC_URI += "\
+FILESEXTRAPATHS_prepend_imx8mpevk := "${THISDIR}/${BPN}/imx8mpevk:"
+SRC_URI_append_imx8mpevk = "\
 	file://0001-Backport-cmd-fs-Use-part_get_info_by_dev_and_name_or.patch\
 	file://0002-Backport-part-Give-several-functions-more-useful-ret.patch\
 	file://0003-Use-partition-labels-in-environment-and-auto-detect-.patch\
