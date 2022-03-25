@@ -1,4 +1,8 @@
 #!/bin/sh
+
+# SPDX-License-Identifier: MIT
+# Copyright (C) 2022 iris-GmbH infrared & intelligent sensors
+
 # filename: eth0-pre-up
 # This script configures the eth0 Linux network interface as follows
 #
