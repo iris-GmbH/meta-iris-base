@@ -1,0 +1,35 @@
+From 5baf07046d93f8fc020abcf580dc81bf6e28eeda Mon Sep 17 00:00:00 2001
+From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+Date: Fri, 11 Mar 2022 09:32:10 +0100
+Subject: [PATCH 04/13] Set model and license
+
+Customize base configurations like model name and license.
+
+Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+---
+ arch/arm/dts/imx8mp-irma6r2.dts | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/arch/arm/dts/imx8mp-irma6r2.dts b/arch/arm/dts/imx8mp-irma6r2.dts
+index 05bee3ad81..b7b25943cf 100644
+--- a/arch/arm/dts/imx8mp-irma6r2.dts
++++ b/arch/arm/dts/imx8mp-irma6r2.dts
+@@ -1,5 +1,6 @@
+ // SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+ /*
++ * Copyright (C) 2022 iris-GmbH infrared & intelligent sensors
+  * Copyright 2019 NXP
+  */
+ 
+@@ -9,7 +10,7 @@
+ #include "imx8mp.dtsi"
+ 
+ / {
+-	model = "NXP i.MX8MPlus LPDDR4 EVK board";
++	model = "IRMA6 Release2 i.MX8MPlus DDR4 board";
+ 	compatible = "fsl,imx8mp-evk", "fsl,imx8mp";
+ 
+ 	chosen {
+-- 
+2.35.1
+

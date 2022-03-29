@@ -1,0 +1,67 @@
+From ad73902b3ba2b871db548982059e422b41f46300 Mon Sep 17 00:00:00 2001
+From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+Date: Mon, 7 Mar 2022 21:35:39 +0100
+Subject: [PATCH 06/13] Customize imx8mp_irma6r2_defconfig
+
+- Customize the irma6r2 defconfig file for our board
+- Enable generic Eth-Phy driver
+- Enable random eth addr
+- Remove TCPC USB-C driver from irma6r2 defconfig
+
+Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+---
+ configs/imx8mp_irma6r2_defconfig | 10 ++++++----
+ 1 file changed, 6 insertions(+), 4 deletions(-)
+
+diff --git a/configs/imx8mp_irma6r2_defconfig b/configs/imx8mp_irma6r2_defconfig
+index 47319263be..e4333589b4 100644
+--- a/configs/imx8mp_irma6r2_defconfig
++++ b/configs/imx8mp_irma6r2_defconfig
+@@ -10,10 +10,10 @@ CONFIG_SYS_I2C_MXC_I2C1=y
+ CONFIG_SYS_I2C_MXC_I2C2=y
+ CONFIG_SYS_I2C_MXC_I2C3=y
+ CONFIG_ENV_SIZE=0x1000
++CONFIG_ENV_SECT_SIZE=0x10000
+ CONFIG_ENV_OFFSET=0x400000
+ CONFIG_DM_GPIO=y
+-CONFIG_USB_TCPC=y
+-CONFIG_TARGET_IMX8MP_DDR4_EVK=y
++CONFIG_TARGET_IMX8MP_IRMA6R2=y
+ CONFIG_SPL_SERIAL_SUPPORT=y
+ CONFIG_SPL_DRIVERS_MISC_SUPPORT=y
+ CONFIG_NR_DRAM_BANKS=3
+@@ -28,7 +28,7 @@ CONFIG_SPL_FIT_GENERATOR="arch/arm/mach-imx/mkimage_fit_atf.sh"
+ CONFIG_OF_BOARD_SETUP=y
+ CONFIG_OF_SYSTEM_SETUP=y
+ CONFIG_SYS_EXTRA_OPTIONS="IMX_CONFIG=arch/arm/mach-imx/imx8m/imximage-8mp-ddr4.cfg"
+-CONFIG_DEFAULT_FDT_FILE="imx8mp-ddr4-evk.dtb"
++CONFIG_DEFAULT_FDT_FILE="imx8mp-irma6r2.dtb"
+ CONFIG_BOARD_LATE_INIT=y
+ CONFIG_ARCH_MISC_INIT=y
+ CONFIG_BOARD_EARLY_INIT_F=y
+@@ -64,12 +64,13 @@ CONFIG_MTDIDS_DEFAULT="nand0=gpmi-nand"
+ CONFIG_MTDPARTS_SKIP_INVALID=y
+ CONFIG_CMD_UBI=y
+ CONFIG_OF_CONTROL=y
+-CONFIG_DEFAULT_DEVICE_TREE="imx8mp-ddr4-evk"
++CONFIG_DEFAULT_DEVICE_TREE="imx8mp-irma6r2"
+ CONFIG_ENV_IS_NOWHERE=y
+ CONFIG_ENV_IS_IN_MMC=y
+ CONFIG_ENV_IS_IN_NAND=y
+ CONFIG_SYS_RELOC_GD_ENV_ADDR=y
+ CONFIG_ENV_VARS_UBOOT_RUNTIME_CONFIG=y
++CONFIG_NET_RANDOM_ETHADDR=y
+ CONFIG_REGMAP=y
+ CONFIG_SYSCON=y
+ CONFIG_CLK_COMPOSITE_CCF=y
+@@ -98,6 +99,7 @@ CONFIG_NAND_MXS=y
+ CONFIG_NAND_MXS_DT=y
+ CONFIG_PHY_REALTEK=y
+ CONFIG_DM_ETH=y
++CONFIG_DM_ETH_PHY=y
+ CONFIG_PHY_GIGE=y
+ CONFIG_DWC_ETH_QOS=y
+ CONFIG_FEC_MXC=y
+-- 
+2.35.1
+

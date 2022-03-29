@@ -1,0 +1,162 @@
+From 568e0dacd0b5874cafa66402249dc11edb240b7b Mon Sep 17 00:00:00 2001
+From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+Date: Thu, 3 Mar 2022 09:13:34 +0100
+Subject: [PATCH 08/13] Move pmic from i2c1 to i2c3
+
+The pmic is connected to i2c3 on irma6r2. So delete the pmic on i2c1 and create
+a new node on i2c3.
+
+Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+---
+ arch/arm/dts/imx8mp-irma6r2.dts      | 82 ++++++++++++++--------------
+ board/freescale/imx8mp_irma6r2/spl.c | 18 +++---
+ 2 files changed, 50 insertions(+), 50 deletions(-)
+
+diff --git a/arch/arm/dts/imx8mp-irma6r2.dts b/arch/arm/dts/imx8mp-irma6r2.dts
+index b7b25943cf..810bbcb7a9 100644
+--- a/arch/arm/dts/imx8mp-irma6r2.dts
++++ b/arch/arm/dts/imx8mp-irma6r2.dts
+@@ -152,6 +152,47 @@
+ 	scl-gpios = <&gpio5 14 GPIO_ACTIVE_HIGH>;
+ 	sda-gpios = <&gpio5 15 GPIO_ACTIVE_HIGH>;
+ 	status = "okay";
++};
++
++&i2c2 {
++	clock-frequency = <400000>;
++	pinctrl-names = "default", "gpio";
++	pinctrl-0 = <&pinctrl_i2c2>;
++	pinctrl-1 = <&pinctrl_i2c2_gpio>;
++	scl-gpios = <&gpio5 16 GPIO_ACTIVE_HIGH>;
++	sda-gpios = <&gpio5 17 GPIO_ACTIVE_HIGH>;
++	status = "okay";
++
++	adv_bridge: adv7535@3d {
++		compatible = "adi,adv7533";
++		reg = <0x3d>;
++		adi,addr-cec = <0x3c>;
++		adi,dsi-lanes = <4>;
++		status = "okay";
++
++		port {
++			adv7535_from_dsim: endpoint {
++				remote-endpoint = <&dsim_to_adv7535>;
++			};
++		};
++	};
++};
++
++&i2c3 {
++	clock-frequency = <100000>;
++	pinctrl-names = "default", "gpio";
++	pinctrl-0 = <&pinctrl_i2c3>;
++	pinctrl-1 = <&pinctrl_i2c3_gpio>;
++	scl-gpios = <&gpio5 18 GPIO_ACTIVE_HIGH>;
++	sda-gpios = <&gpio5 19 GPIO_ACTIVE_HIGH>;
++	status = "okay";
++
++	pca6416: gpio@20 {
++		compatible = "ti,tca6416";
++		reg = <0x20>;
++		gpio-controller;
++		#gpio-cells = <2>;
++	};
+ 
+ 	pmic: pca9450@25 {
+ 		reg = <0x25>;
+@@ -261,47 +302,6 @@
+ 	};
+ };
+ 
+-&i2c2 {
+-	clock-frequency = <400000>;
+-	pinctrl-names = "default", "gpio";
+-	pinctrl-0 = <&pinctrl_i2c2>;
+-	pinctrl-1 = <&pinctrl_i2c2_gpio>;
+-	scl-gpios = <&gpio5 16 GPIO_ACTIVE_HIGH>;
+-	sda-gpios = <&gpio5 17 GPIO_ACTIVE_HIGH>;
+-	status = "okay";
+-
+-	adv_bridge: adv7535@3d {
+-		compatible = "adi,adv7533";
+-		reg = <0x3d>;
+-		adi,addr-cec = <0x3c>;
+-		adi,dsi-lanes = <4>;
+-		status = "okay";
+-
+-		port {
+-			adv7535_from_dsim: endpoint {
+-				remote-endpoint = <&dsim_to_adv7535>;
+-			};
+-		};
+-	};
+-};
+-
+-&i2c3 {
+-	clock-frequency = <100000>;
+-	pinctrl-names = "default", "gpio";
+-	pinctrl-0 = <&pinctrl_i2c3>;
+-	pinctrl-1 = <&pinctrl_i2c3_gpio>;
+-	scl-gpios = <&gpio5 18 GPIO_ACTIVE_HIGH>;
+-	sda-gpios = <&gpio5 19 GPIO_ACTIVE_HIGH>;
+-	status = "okay";
+-
+-	pca6416: gpio@20 {
+-		compatible = "ti,tca6416";
+-		reg = <0x20>;
+-		gpio-controller;
+-		#gpio-cells = <2>;
+-	};
+-};
+-
+ &lcdif1 {
+ 	status = "okay";
+ };
+diff --git a/board/freescale/imx8mp_irma6r2/spl.c b/board/freescale/imx8mp_irma6r2/spl.c
+index 931c370571..7045ba7afc 100644
+--- a/board/freescale/imx8mp_irma6r2/spl.c
++++ b/board/freescale/imx8mp_irma6r2/spl.c
+@@ -63,15 +63,15 @@ void spl_dram_init(void)
+ #define PC MUX_PAD_CTRL(I2C_PAD_CTRL)
+ struct i2c_pads_info i2c_pad_info1 = {
+ 	.scl = {
+-		.i2c_mode = MX8MP_PAD_I2C1_SCL__I2C1_SCL | PC,
+-		.gpio_mode = MX8MP_PAD_I2C1_SCL__GPIO5_IO14 | PC,
+-		.gp = IMX_GPIO_NR(5, 14),
++		.i2c_mode = MX8MP_PAD_I2C3_SCL__I2C3_SCL | PC,
++		.gpio_mode = MX8MP_PAD_I2C3_SCL__GPIO5_IO18 | PC,
++		.gp = IMX_GPIO_NR(5, 18),
+ 	},
+ 	.sda = {
+-		.i2c_mode = MX8MP_PAD_I2C1_SDA__I2C1_SDA | PC,
+-		.gpio_mode = MX8MP_PAD_I2C1_SDA__GPIO5_IO15 | PC,
+-		.gp = IMX_GPIO_NR(5, 15),
+-	},
++		.i2c_mode = MX8MP_PAD_I2C3_SDA__I2C3_SDA | PC,
++		.gpio_mode = MX8MP_PAD_I2C3_SDA__GPIO5_IO19 | PC,
++		.gp = IMX_GPIO_NR(5, 19),
++	},	
+ };
+ 
+ #define USDHC2_CD_GPIO	IMX_GPIO_NR(2, 12)
+@@ -173,7 +173,7 @@ int board_mmc_getcd(struct mmc *mmc)
+ }
+ 
+ #ifdef CONFIG_POWER
+-#define I2C_PMIC	0
++#define I2C_PMIC	2
+ int power_init_board(void)
+ {
+ 	struct pmic *p;
+@@ -271,7 +271,7 @@ void board_init_f(ulong dummy)
+ 	enable_tzc380();
+ 
+ 	/* Adjust pmic voltage to 1.0V for 800M */
+-	setup_i2c(0, CONFIG_SYS_I2C_SPEED, 0x7f, &i2c_pad_info1);
++	setup_i2c(I2C_PMIC, CONFIG_SYS_I2C_SPEED, 0x7f, &i2c_pad_info1);
+ 
+ 	power_init_board();
+ 
+-- 
+2.35.1
+
