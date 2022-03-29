@@ -1,16 +1,17 @@
-From f86c9485680d70f4213e3f7b57e0506da3a6ae15 Mon Sep 17 00:00:00 2001
+From 855c37b3ba8dfa757f389c168d166bc6f607bc77 Mon Sep 17 00:00:00 2001
 From: Erik Schumacher <erik.schumacher@iris-sensing.com>
 Date: Tue, 14 Dec 2021 11:53:31 +0100
 Subject: [PATCH] Use partition labels in environment and auto detect mmc
- partions
+ partitions
 
+Signed-off-by: Erik Schumacher <Erik.Schumacher@iris-sensing.com>
 ---
  board/freescale/imx8mp_evk/imx8mp_evk.c | 47 +++++++++++++++++++++++++
  include/configs/imx8mp_evk.h            |  9 ++---
  2 files changed, 50 insertions(+), 6 deletions(-)
 
 diff --git a/board/freescale/imx8mp_evk/imx8mp_evk.c b/board/freescale/imx8mp_evk/imx8mp_evk.c
-index 1569c398e9..4c288f60c1 100644
+index 1569c398e9..c274577311 100644
 --- a/board/freescale/imx8mp_evk/imx8mp_evk.c
 +++ b/board/freescale/imx8mp_evk/imx8mp_evk.c
 @@ -499,6 +499,52 @@ int board_init(void)
@@ -19,7 +20,7 @@ index 1569c398e9..4c288f60c1 100644
  
 +void board_autolocate_boot_partitions(void)
 +{
-+	/* TODO:
++	/* TODO (RDPHOEN-1080, ERSC):
 +	   - read bootable flag in GPT, what if no partition is bootable?
 +	   - what to do with the changed (and maybe saved) env values?
 +	   - what to do, if boot/rootfs not found?
@@ -106,3 +107,6 @@ index 933dbde5cd..c9872cae75 100644
  #ifdef CONFIG_FSL_FSPI
  #define FSL_FSPI_FLASH_SIZE		SZ_32M
  #define FSL_FSPI_FLASH_NUM		1
+-- 
+2.35.1
+
