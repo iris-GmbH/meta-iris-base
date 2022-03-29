@@ -1,0 +1,29 @@
+From 7ebf4ab57712b0598ba520d6f952f17df942a9a0 Mon Sep 17 00:00:00 2001
+From: Erik Schumacher <Erik.Schumacher@iris-sensing.com>
+Date: Fri, 11 Mar 2022 15:07:54 +0100
+Subject: [PATCH 26/29] imx8mp-irma6r2.dts: Add lm75 sensor to i2c2
+
+Signed-off-by: Erik Schumacher <Erik.Schumacher@iris-sensing.com>
+---
+ arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts b/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
+index 6ffbbacd1685..a343828c19f5 100644
+--- a/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
++++ b/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
+@@ -226,6 +226,11 @@
+ 			};
+ 		};
+ 	};
++
++	lm75_thermal: sensor@48 {
++		compatible = "st,stlm75";
++		reg = <0x48>;
++	};
+ };
+ 
+ &mipi_csi_0 {
+-- 
+2.25.1
+
