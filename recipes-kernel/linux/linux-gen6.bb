@@ -33,9 +33,9 @@
 inherit kernel
 require recipes-kernel/linux/linux-yocto.inc
 
-BRANCH = "develop"
+BRANCH = "feature/phsc/l2"
 LINUX_VERSION ?= "4.14.239"
-SRCREV="15914084eee46b5f90e250d45fa8d1bcc6aa191e"
+SRCREV="f8bb674683c021d1c45780c31f6dbe3952a0d9f9"
 
 SRC_URI = "git://github.com/iris-GmbH/linux-gen6.git;protocol=https;bareclone=1;branch=${BRANCH};depth=1"
 
