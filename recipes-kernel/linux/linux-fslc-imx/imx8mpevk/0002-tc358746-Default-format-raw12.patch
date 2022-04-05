@@ -1,0 +1,25 @@
+From 3c7b09f54f671147540b302a9bed61748faf0ff1 Mon Sep 17 00:00:00 2001
+From: Ian Dannapel <ian.dannapel@iris-sensing.com>
+Date: Thu, 31 Mar 2022 09:57:03 +0200
+Subject: [PATCH] tc358746: Default format raw12
+
+---
+ drivers/media/i2c/tc358746.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/drivers/media/i2c/tc358746.c b/drivers/media/i2c/tc358746.c
+index 2bbfacf16dbd..b272c0572226 100644
+--- a/drivers/media/i2c/tc358746.c
++++ b/drivers/media/i2c/tc358746.c
+@@ -53,7 +53,7 @@ MODULE_LICENSE("GPL v2");
+ static const struct v4l2_mbus_framefmt tc358746_def_fmt = {
+ 	.width		= 320,
+ 	.height		= 120,
+-	.code		= MEDIA_BUS_FMT_SBGGR14_1X14,
++	.code		= MEDIA_BUS_FMT_Y12_1X12,
+ 	.field		= V4L2_FIELD_NONE,
+ 	.colorspace	= V4L2_COLORSPACE_DEFAULT,
+ 	.ycbcr_enc	= V4L2_YCBCR_ENC_DEFAULT,
+-- 
+2.20.1
+
