@@ -7,6 +7,7 @@ and this project adheres to [APR's Version Numbering](https://apr.apache.org/ver
 ## [2.0.4] -dev (HEAD) - n/a
 ### Added
 - [RDPHOEN-957]: Add script for IP configuration (eth:0.0 .. DHCP or static customer IP retrieved from customer configuration; eth:0.1 service IP 172.16.x.y calculated from MAC address)
+- [RDPHOEN-1034/1035/1036]: Add support for irma6-r2 machine, including patches for bootloader, boot image creation and kernel
 
 
 ### Changed
