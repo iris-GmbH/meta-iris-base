@@ -1,0 +1,57 @@
+# SPDX-License-Identifier: MIT
+# Copyright (C) 2022 iris-GmbH infrared & intelligent sensors
+
+variables:
+  SKIP_SDK_BUILD:
+    value: "false"
+    description: 'Set to "true" to skip the SDK build.'
+  SKIP_TARGET_BUILD:
+    value: "false"
+    description: 'Set to "true" to skip the firmware build for the sensor targets.'
+  SKIP_QEMU_BUILD:
+    value: "false"
+    description: 'Set to "true" to skip the firmware build for the QEMU targets. Will be ignored if SKIP_QEMU_TESTS is set to false.'
+  SKIP_QEMU_TESTS:
+    value: "false"
+    description: 'Set to "true" to skip the QEMU tests.'
+  BUILD_FROM_SCRATCH:
+    value: "false"
+    description: 'Set to "true" to build from scratch.'
+  IRIS_KAS_BRANCH:
+    value: "develop"
+    description: "Optionally override of the iris-kas branch (only use on relevant changes to the .gitlab.ci.yml in iris-kas)"
+
+stages:
+  - iris-kas
+
+.trigger-kas-pipeline_template:
+  stage: iris-kas
+  trigger:
+    project: mirror/iris-kas
+    branch: $IRIS_KAS_BRANCH
+    strategy: depend
+
+web-trigger-kas-pipeline:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+  inherit:
+    variables: false
+  variables:
+    BRANCH_NAME: $CI_COMMIT_BRANCH
+    SKIP_SDK_BUILD: $SKIP_SDK_BUILD
+    SKIP_TARGET_BUILD: $SKIP_TARGET_BUILD
+    SKIP_QEMU_BUILD: $SKIP_QEMU_BUILD
+    SKIP_QEMU_TESTS: $SKIP_QEMU_TESTS
+    SKIP_CONTAINER_BUILD: "true"
+    BUILD_FROM_SCRATCH: $BUILD_FROM_SCRATCH
+  stage: !reference [.trigger-kas-pipeline_template, stage]
+  trigger: !reference [.trigger-kas-pipeline_template, trigger]
+
+
+merge-trigger-kas-pipeline:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $CI_DEFAULT_BRANCH'
+  variables:
+    BRANCH_NAME: $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME
+  stage: !reference [.trigger-kas-pipeline_template, stage]
+  trigger: !reference [.trigger-kas-pipeline_template, trigger]
