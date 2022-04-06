@@ -22,7 +22,7 @@ SRC_URI_append_imx8mp-irma6r2 = "\
 	file://0006-Customize-imx8mp_irma6r2_defconfig.patch \
 	file://0007-mmc-MMC-is-connected-to-slot-2.patch \
 	file://0008-Move-pmic-from-i2c1-to-i2c3.patch \
-	file://0009-Set-DRAM-size-to-1x1GiB.patch \
+	file://0009-Set-DRAM-size-to-1x512MiB.patch \
 	file://0010-Enable-UART3-and-UART4.patch \
 	file://0011-Disable-fec-node-for-irma6r2.patch \
 	file://0012-Setup-eqos-for-RMII.patch \
