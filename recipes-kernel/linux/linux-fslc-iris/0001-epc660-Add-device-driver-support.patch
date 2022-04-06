@@ -1,0 +1,1045 @@
+From d4de2a595e1afec5c97727444bbc783d6f562537 Mon Sep 17 00:00:00 2001
+From: Ian Dannapel <ian.dannapel@iris-sensing.com>
+Date: Fri, 1 Apr 2022 09:05:57 +0200
+Subject: [PATCH 01/29] epc660: Add device driver support
+
+- copied & adapted from https://github.com/iris-GmbH/linux-gen6/commit/cd9b44db816f06c20501a830c5ed589f55f6170a
+
+Signed-off-by: Erik Schumacher <Erik.Schumacher@iris-sensing.com>
+Signed-off-by: Ian Dannapel <ian.dannapel@iris-sensing.com>
+---
+ drivers/media/i2c/Kconfig           |   6 +
+ drivers/media/i2c/Makefile          |   1 +
+ drivers/media/i2c/epc660.c          | 725 ++++++++++++++++++++++++++++
+ include/media/i2c/epc660_sequence.h | 258 ++++++++++
+ 4 files changed, 990 insertions(+)
+ create mode 100644 drivers/media/i2c/epc660.c
+ create mode 100644 include/media/i2c/epc660_sequence.h
+
+diff --git a/drivers/media/i2c/Kconfig b/drivers/media/i2c/Kconfig
+index fcffcc31d168..6a29bf41231b 100644
+--- a/drivers/media/i2c/Kconfig
++++ b/drivers/media/i2c/Kconfig
+@@ -566,6 +566,12 @@ config VIDEO_APTINA_PLL
+ config VIDEO_SMIAPP_PLL
+ 	tristate
+ 
++config VIDEO_EPC660
++	tristate "epc660 support"
++	depends on I2C && VIDEO_V4L2 && VIDEO_V4L2_SUBDEV_API
++	help
++	  This driver supports EPC660 cameras from Espros
++
+ config VIDEO_IMX214
+ 	tristate "Sony IMX214 sensor support"
+ 	depends on GPIOLIB && I2C && VIDEO_V4L2 && VIDEO_V4L2_SUBDEV_API
+diff --git a/drivers/media/i2c/Makefile b/drivers/media/i2c/Makefile
+index beb170b002dc..6bd37fd81c82 100644
+--- a/drivers/media/i2c/Makefile
++++ b/drivers/media/i2c/Makefile
+@@ -7,6 +7,7 @@ obj-$(CONFIG_VIDEO_ET8EK8)	+= et8ek8/
+ obj-$(CONFIG_VIDEO_CX25840) += cx25840/
+ obj-$(CONFIG_VIDEO_M5MOLS)	+= m5mols/
+ 
++obj-$(CONFIG_VIDEO_EPC660)  += epc660.o
+ obj-$(CONFIG_VIDEO_APTINA_PLL) += aptina-pll.o
+ obj-$(CONFIG_VIDEO_TVAUDIO) += tvaudio.o
+ obj-$(CONFIG_VIDEO_TDA7432) += tda7432.o
+diff --git a/drivers/media/i2c/epc660.c b/drivers/media/i2c/epc660.c
+new file mode 100644
+index 000000000000..1ffe6f37a448
+--- /dev/null
++++ b/drivers/media/i2c/epc660.c
+@@ -0,0 +1,725 @@
++/*
++ * Driver for EPC660 ToF image sensor from Espros
++ *
++ * Copyright (C) 2022, iris-GmbH intelligent sensors <mail@iris-sensing.com>
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ */
++
++#include <linux/videodev2.h>
++#include <linux/slab.h>
++#include <linux/i2c.h>
++#include <linux/delay.h>
++#include <linux/log2.h>
++#include <linux/module.h>
++#include <linux/of.h>
++#include <linux/of_graph.h>
++#include <linux/gpio/consumer.h>
++#include <media/soc_camera.h>
++#include <media/drv-intf/soc_mediabus.h>
++#include <media/v4l2-subdev.h>
++#include <media/v4l2-clk.h>
++#include <media/v4l2-ctrls.h>
++#include <media/v4l2-fwnode.h>
++#include <asm/uaccess.h>
++#include <media/i2c/epc660_sequence.h>
++
++/*
++ * epc660 i2c address 0x20
++ * The platform has to define struct i2c_board_info objects and link to them
++ * from struct soc_camera_host_desc
++ */
++
++#define EPC660_MAX_WIDTH 320
++#define EPC660_MAX_HEIGHT 240
++#define EPC660_MIN_WIDTH 6
++#define EPC660_MIN_HEIGHT 4
++
++/* EPC660 has only one fixed colorspace per pixelcode */
++struct epc660_datafmt {
++	u32 code;
++	enum v4l2_colorspace colorspace;
++};
++
++/* Find a data format by a pixel code in an array */
++static const struct epc660_datafmt *
++epc660_find_datafmt(u32 code, const struct epc660_datafmt *fmt, int n)
++{
++	int i;
++	for (i = 0; i < n; i++)
++		if (fmt[i].code == code)
++			return fmt + i;
++
++	return NULL;
++}
++
++static const struct epc660_datafmt epc660_monochrome_fmts[] = {
++	/* Order important - see above */
++	{ MEDIA_BUS_FMT_SBGGR14_1X14, V4L2_COLORSPACE_JPEG },
++	{ MEDIA_BUS_FMT_Y12_1X12, V4L2_COLORSPACE_JPEG },
++};
++
++struct epc660 {
++	struct v4l2_subdev subdev;
++	struct v4l2_ctrl_handler hdl;
++	struct v4l2_ctrl *pixel_rate;
++	struct v4l2_ctrl *hblank;
++	struct v4l2_rect rect; /* Sensor window */
++	struct v4l2_clk *clk;
++	const struct epc660_datafmt *fmt;
++	const struct epc660_datafmt *fmts;
++	struct media_pad pad;
++	struct gpio_desc *nrst_gpio;
++	int num_fmts;
++	u8 ic_version;
++	u8 customer_id;
++	u16 wafer_id;
++	u16 chip_id;
++	u8 part_type;
++	u8 part_version;
++};
++
++static struct epc660 *to_epc660(const struct i2c_client *client)
++{
++	return container_of(i2c_get_clientdata(client), struct epc660, subdev);
++}
++
++static int reg_read_byte(struct i2c_client *client, const u8 reg)
++{
++	return i2c_smbus_read_byte_data(client, reg);
++}
++
++static int reg_read(struct i2c_client *client, const u8 reg)
++{
++	return i2c_smbus_read_word_data(client, reg);
++}
++
++static int reg_write_byte(struct i2c_client *client, const u8 reg,
++			  const u8 data)
++{
++	return i2c_smbus_write_byte_data(client, reg, data);
++}
++
++static int reg_write(struct i2c_client *client, const u8 reg, const u16 data)
++{
++	return i2c_smbus_write_word_data(client, reg, data);
++}
++
++static int epc660_eeprom_read_byte(struct i2c_client *client, u8 address,
++				   u8 *data)
++{
++	int ret;
++
++	/* Write address to I2C */
++	ret = reg_write_byte(client, EPC660_EEPROM_ADDRESS, address);
++	if (ret < 0) {
++		goto fail;
++	}
++
++	/* Read result from I2C */
++	ret = reg_read_byte(client, EPC660_EEPROM_DATA);
++	if (ret < 0) {
++		goto fail;
++	}
++
++	*data = (u8)ret;
++
++	return 0;
++
++fail:
++	dev_err(&client->dev, "%s: Failed read EEPROM byte data from %02x!\n",
++		__func__, address);
++	return -1;
++}
++
++static int epc660_eeprom_read_word(struct i2c_client *client, u8 address,
++				   u16 *data)
++{
++	int ret;
++
++	/* Write address to I2C */
++	ret = reg_write_byte(client, EPC660_EEPROM_ADDRESS, address);
++	if (ret < 0) {
++		goto fail;
++	}
++
++	/* Read result from I2C */
++	ret = reg_read(client, EPC660_EEPROM_DATA);
++	if (ret < 0) {
++		goto fail;
++	}
++
++	*data = (u16)ret;
++
++	return 0;
++
++fail:
++	dev_err(&client->dev, "%s: Failed read EEPROM word data from %02x!\n",
++		__func__, address);
++	return -1;
++}
++
++/*
++ * Send an I2C sequence to the imager.
++ *
++ * Return 0 on success, otherwise the i2c return code.
++ */
++static int epc660_send_i2c_sequence(struct i2c_client *client, const u8 *seq)
++{
++	int ret;
++	int i;
++	u8 len;
++
++	i = 0;
++	while ((len = seq[i++]) != 0) {
++		ret = i2c_master_send(client, seq + i, len);
++		if (ret < 0) {
++			dev_err(&client->dev,
++				"Failed to send I2C sequence "
++				"with length 0x%02x at offset %04x\n",
++				len, i);
++			goto fail;
++		}
++		i += len;
++		// Frontend detection is faulty. The sensor goes into reset if SDA is low for too long.
++		usleep_range(1500, 2000);
++	}
++
++	return 0;
++fail:
++	return ret;
++}
++
++static int epc660_s_stream(struct v4l2_subdev *sd, int enable)
++{
++	struct i2c_client *client = v4l2_get_subdevdata(sd);
++	v4l2_info(sd, "%sable\n", enable ? "en" : "dis");
++	/*
++	 * 8.7.15. Shutter_Control ("Datasheet_epc660-V1.03.pdf" page 99)
++	 * 0xA4/0xA5 (because 16bit access here)
++	 * 0xA4 Shutter-Ctrl => bit[1]=multi_frame_en(0/1), bit[0]=shutter_en(0/1);
++	 * 0xA5 Power-Ctrl => bit[2:0] = 111b
++	 */
++	if (enable) {
++		/* Enable power */
++		if (reg_write_byte(client, EPC660_REG_POWER_CTRL, 0x07) < 0)
++			return -EIO;
++		if (reg_write_byte(client, EPC660_REG_LED_DRIVER, 0xe0) < 0)
++			return -EIO;
++		/* Switch to multi frame mode and enable shutter */
++		//		do not switch on the automatic shutter as the application shall have the possibilty to do that by hand
++		//		if (reg_write_byte(client, EPC660_REG_SHUTTER_CTRL, 0x03) < 0)
++		//		  return -EIO;
++	} else {
++		/* Switch off image acquisition */
++		if (reg_write_byte(client, EPC660_REG_SHUTTER_CTRL, 0x00) < 0)
++			return -EIO;
++		/* turn LEDs driver off */
++		if (reg_write_byte(client, EPC660_REG_LED_DRIVER, 0x00) < 0)
++			return -EIO;
++		/* Disable power */
++		if (reg_write_byte(client, EPC660_REG_POWER_CTRL, 0x00) < 0)
++			return -EIO;
++	}
++
++	return 0;
++}
++
++static int epc660_get_fmt(struct v4l2_subdev *sd,
++			  struct v4l2_subdev_pad_config *cfg,
++			  struct v4l2_subdev_format *format)
++{
++	struct v4l2_mbus_framefmt *mf = &format->format;
++	struct i2c_client *client = v4l2_get_subdevdata(sd);
++	struct epc660 *epc660 = to_epc660(client);
++
++	mf->width = epc660->rect.width;
++	mf->height = epc660->rect.height;
++	mf->code = epc660->fmt->code;
++	mf->colorspace = epc660->fmt->colorspace;
++	mf->field = V4L2_FIELD_NONE;
++
++	return 0;
++}
++
++static int epc660_set_fmt(struct v4l2_subdev *sd,
++			  struct v4l2_subdev_pad_config *cfg,
++			  struct v4l2_subdev_format *format)
++{
++	struct v4l2_mbus_framefmt *mf = &format->format;
++	struct i2c_client *client = v4l2_get_subdevdata(sd);
++	struct epc660 *epc660 = to_epc660(client);
++	const int centerX = (324 + 4) / 2;
++	const int centerY = (246 + 6) / 2;
++	const int bY = centerY - 1;
++	int lX;
++	int rX;
++	int uY;
++	int walign = 4;
++	int halign = 1;
++
++	if (format->pad)
++		return -EINVAL;
++
++	v4l_bound_align_image(&mf->width, EPC660_MIN_WIDTH, EPC660_MAX_WIDTH,
++			      walign, &mf->height, EPC660_MIN_HEIGHT,
++			      EPC660_MAX_HEIGHT, halign, 0);
++	epc660->fmt =
++		epc660_find_datafmt(mf->code, epc660->fmts, epc660->num_fmts);
++	mf->colorspace = epc660->fmt->colorspace;
++
++	// set the ROI on the EPC
++	lX = (centerX - mf->width / 2) &
++	     ~1; // the ROI has to start at an even offset
++	rX = lX + mf->width - 1;
++	uY = (centerY - mf->height / 2) &
++	     ~1; // the ROI has to start at an even offset
++
++	lX = ((lX >> 8) & 0xff) | ((lX << 8) & 0xff00);
++	rX = ((rX >> 8) & 0xff) | ((rX << 8) & 0xff00);
++	reg_write(client, EPC660_REG_ROI_TL_X_HI, lX);
++	reg_write(client, EPC660_REG_ROI_BR_X_HI, rX);
++	reg_write_byte(client, EPC660_REG_ROI_TL_Y, uY);
++	reg_write_byte(client, EPC660_REG_ROI_BR_Y, bY);
++
++	epc660->rect.width = mf->width;
++	epc660->rect.height = mf->height;
++
++	return 0;
++}
++
++static int epc660_enum_mbus_code(struct v4l2_subdev *sd,
++				 struct v4l2_subdev_pad_config *cfg,
++				 struct v4l2_subdev_mbus_code_enum *code)
++{
++	struct i2c_client *client = v4l2_get_subdevdata(sd);
++	struct epc660 *epc660 = to_epc660(client);
++
++	if (code->pad || code->index >= epc660->num_fmts)
++		return -EINVAL;
++
++	code->code = epc660->fmts[code->index].code;
++	return 0;
++}
++
++#ifdef CONFIG_VIDEO_ADV_DEBUG
++static int epc660_g_register(struct v4l2_subdev *sd,
++			     struct v4l2_dbg_register *reg)
++{
++	struct i2c_client *client = v4l2_get_subdevdata(sd);
++
++	if (reg->reg > 0xff)
++		return -EINVAL;
++
++	reg->size = 2;
++	reg->val = reg_read(client, reg->reg);
++
++	if (reg->val > 0xffff)
++		return -EIO;
++
++	return 0;
++}
++
++static int epc660_s_register(struct v4l2_subdev *sd,
++			     const struct v4l2_dbg_register *reg)
++{
++	struct i2c_client *client = v4l2_get_subdevdata(sd);
++
++	if (reg->reg > 0xff)
++		return -EINVAL;
++
++	if (reg_write(client, reg->reg, reg->val) < 0)
++		return -EIO;
++
++	return 0;
++}
++#endif
++
++static long epc660_ioctl(struct v4l2_subdev *sd, unsigned int cmd, void *arg);
++static int epc660_reset_hw(struct v4l2_subdev *sd, u32 val);
++static int epc660_load_fw(struct v4l2_subdev *sd);
++
++#define EPC_660_IOCTL_CMD_SET_REGISTER 129
++#define EPC_660_IOCTL_CMD_GET_REGISTER 130
++#define EPC_660_IOCTL_CMD_RESET 131
++struct epc_660_reg_params {
++	u32 regNo; /* the register (address) */
++	u32 content; /* what to write into the register */
++	u32 size; /* the size of the register in bytes */
++};
++
++static long epc660_ioctl(struct v4l2_subdev *sd, unsigned int cmd, void *arg)
++{
++	struct i2c_client *client;
++	struct epc_660_reg_params params;
++	client = v4l2_get_subdevdata(sd);
++	switch (cmd) {
++	case EPC_660_IOCTL_CMD_SET_REGISTER:
++		if (copy_from_user(&params, (struct epc_660_reg_params *)arg,
++				   sizeof(params))) {
++			return -EACCES;
++		}
++		if (params.regNo >= 0xfb || params.regNo < 0 ||
++		    params.size < 1 || params.size > 2) {
++			return -EINVAL;
++		}
++		if (1 == params.size) {
++			return reg_write_byte(client, params.regNo,
++					      params.content);
++		} else if (2 == params.size) {
++			return reg_write(client, params.regNo, params.content);
++		}
++		break;
++	case EPC_660_IOCTL_CMD_GET_REGISTER:
++		if (copy_from_user(&params, (struct epc_660_reg_params *)arg,
++				   sizeof(params))) {
++			return -EACCES;
++		}
++		if (params.regNo >= 0xfb || params.regNo < 0 ||
++		    params.size < 1 || params.size > 2) {
++			return -EINVAL;
++		}
++		if (1 == params.size) {
++			params.content = reg_read_byte(client, params.regNo);
++		} else if (2 == params.size) {
++			params.content = reg_read(client, params.regNo);
++		}
++		if (copy_to_user((struct epc_660_reg_params *)arg, &params,
++				 sizeof(params))) {
++			return -EACCES;
++		}
++		break;
++	case EPC_660_IOCTL_CMD_RESET:
++		epc660_reset_hw(sd, 1);
++		epc660_reset_hw(sd, 0);
++		break;
++	default:
++		return -ENOIOCTLCMD;
++	}
++	return 0;
++}
++
++static int epc660_reset_hw(struct v4l2_subdev *sd, u32 val)
++{
++	struct i2c_client *client = v4l2_get_subdevdata(sd);
++	struct epc660 *epc660 = to_epc660(client);
++
++	int ret = gpiod_direction_output(epc660->nrst_gpio, val);
++
++	if (ret < 0) {
++		dev_err(&client->dev, "cannot set nrst_gpio to %d\n",
++			val);
++	}
++
++	dev_info(&client->dev, "pin reset: %d\n", val);
++
++	if (val == 1) {
++		usleep_range(7000, 10000);
++	}
++
++	return ret;
++}
++
++static int epc660_load_fw(struct v4l2_subdev *sd)
++{
++	int ret;
++	struct i2c_client *client;
++
++	client = v4l2_get_subdevdata(sd);
++	if (!client) {
++		return -ERESTART;
++	}
++
++	/* leave reset */
++	ret = epc660_reset_hw(sd, 1);
++	ret = epc660_reset_hw(sd, 0);
++	if (ret) {
++		return ret;
++	}
++
++	dev_info(&client->dev, "initialization ");
++	ret = epc660_send_i2c_sequence(client, epc660_init_sequence);
++	if (ret < 0) {
++		return ret;
++	};
++	dev_info(&client->dev, "initialization done.\n");
++	dev_info(&client->dev, "sequencer programming");
++	ret = epc660_send_i2c_sequence(client,
++				       epc660_003_Seq_Prog_8MHz_Default_8);
++	if (ret < 0) {
++		return ret;
++	};
++	dev_info(&client->dev, "sequencer programming done.\n");
++
++	return 0;
++}
++
++static int epc660_set_ctrl(struct v4l2_ctrl *ctrl)
++{
++	return 0;
++}
++
++static const struct v4l2_ctrl_ops epc660_ctrl_ops = {
++	.s_ctrl = epc660_set_ctrl,
++};
++
++/*
++ * Interface active, can use i2c. If it fails, it can indeed mean, that
++ * this wasn't our capture interface, so, we wait for the right one
++ */
++static int epc660_video_probe(struct i2c_client *client)
++{
++	struct epc660 *epc660 = to_epc660(client);
++	struct device *dev = &client->dev;
++	int ret;
++
++	/* dummy read */
++	reg_read_byte(client, EPC660_IC_TYPE);
++
++	/* Read out the chip version register */
++	ret = reg_read_byte(client, EPC660_REG_IC_VERSION);
++	if (ret < 0) {
++		dev_err(&client->dev, "cannot read reg ic version\n");
++		goto ei2c;
++	};
++	epc660->ic_version = (u8)(ret & 0xff);
++
++	// We need at least chip revision 3
++	if (epc660->ic_version < 0x03) {
++		ret = -ENODEV;
++		dev_err(&client->dev,
++			"\n"
++			"\t\t************************************************\n"
++			"\t\t*                                              *\n"
++			"\t\t*  No viable EPC660 found, IC version is 0x%02x  *\n"
++			"\t\t*                                              *\n"
++			"\t\t************************************************\n",
++			epc660->ic_version);
++		dev_err(&client->dev, "Chip version must be at least 3.\n");
++		goto ei2c;
++	}
++
++	ret = reg_read_byte(client, EPC660_REG_CUSTOMER_ID);
++	if (ret < 0) {
++		dev_err(&client->dev, "cannot read reg customer id\n");
++		goto ei2c;
++	};
++	ret = 0;
++
++	ret |= epc660_eeprom_read_byte(client, EPC660_REG_CUSTOMER_ID,
++				       &epc660->customer_id);
++	ret |= epc660_eeprom_read_word(client, EPC660_REG_WAFER_ID_MSB,
++				       &epc660->wafer_id);
++	ret |= epc660_eeprom_read_word(client, EPC660_REG_CHIP_ID_MSB,
++				       &epc660->chip_id);
++	ret |= epc660_eeprom_read_byte(client, EPC660_REG_PART_TYPE,
++				       &epc660->part_type);
++	ret |= epc660_eeprom_read_byte(client, EPC660_REG_PART_VERSION,
++				       &epc660->part_version);
++	if (ret < 0) {
++		dev_err(&client->dev,
++			"Failed to read the manufacturer properties!\n");
++		goto ei2c;
++	};
++
++	dev_info(&client->dev,
++		 "Found EPC660 with:\n"
++		 "\tic version %02x\n"
++		 "\tcustomer id %02x\n"
++		 "\twafer id %04x\n"
++		 "\tchip id %02x\n"
++		 "\tpart type %02x\n"
++		 "\tpart version:%02x\n",
++		 (int)(epc660->ic_version), (int)(epc660->customer_id),
++		 (int)(epc660->wafer_id), (int)(epc660->chip_id),
++		 (int)(epc660->part_type), (int)(epc660->part_version));
++
++	/* Init the formats table */
++	epc660->fmts = epc660_monochrome_fmts;
++	epc660->num_fmts = ARRAY_SIZE(epc660_monochrome_fmts);
++	epc660->fmt = &epc660->fmts[0];
++
++	epc660->subdev.flags |= V4L2_SUBDEV_FL_HAS_DEVNODE;
++	epc660->subdev.entity.function = MEDIA_ENT_F_CAM_SENSOR;
++	epc660->subdev.dev = &client->dev;
++
++	epc660->pad.flags = MEDIA_PAD_FL_SOURCE;
++
++	ret = media_entity_pads_init(&epc660->subdev.entity, 1, &epc660->pad);
++	if (ret < 0) {
++		dev_err(dev, "could not register media entity\n");
++		return -EINVAL;
++	}
++
++	//load sequencer
++	ret = epc660_load_fw(&epc660->subdev);
++
++ei2c:
++	return ret;
++}
++
++static struct v4l2_subdev_core_ops epc660_subdev_core_ops = {
++#ifdef CONFIG_VIDEO_ADV_DEBUG
++	.g_register = epc660_g_register,
++	.s_register = epc660_s_register,
++#endif
++	.ioctl = epc660_ioctl,
++	.load_fw = epc660_load_fw,
++	.reset = epc660_reset_hw,
++};
++
++static struct v4l2_subdev_video_ops epc660_subdev_video_ops = {
++	.s_stream = epc660_s_stream,
++};
++
++static const struct v4l2_subdev_pad_ops epc660_subdev_pad_ops = {
++	.enum_mbus_code = epc660_enum_mbus_code,
++	.get_fmt = epc660_get_fmt,
++	.set_fmt = epc660_set_fmt,
++};
++
++static struct v4l2_subdev_ops epc660_subdev_ops = {
++	.core = &epc660_subdev_core_ops,
++	.video = &epc660_subdev_video_ops,
++	.pad = &epc660_subdev_pad_ops,
++};
++
++static int epc660_probe(struct i2c_client *client,
++			const struct i2c_device_id *did)
++{
++	struct epc660 *epc660;
++	struct i2c_adapter *adapter = to_i2c_adapter(client->dev.parent);
++	struct v4l2_fwnode_endpoint endpoint = { .bus_type = 0 };
++	struct device_node *np;
++	s64 hblank;
++	s64 pixel_rate_min;
++	s64 pixel_rate_max;
++	int ret;
++
++	if (!i2c_check_functionality(adapter, I2C_FUNC_SMBUS_WORD_DATA)) {
++		dev_warn(&adapter->dev,
++			 "I2C-Adapter doesn't support I2C_FUNC_SMBUS_WORD\n");
++		return -EIO;
++	}
++
++	epc660 = devm_kzalloc(&client->dev, sizeof(struct epc660), GFP_KERNEL);
++	if (!epc660)
++		return -ENOMEM;
++
++	v4l2_i2c_subdev_init(&epc660->subdev, client, &epc660_subdev_ops);
++	v4l2_ctrl_handler_init(&epc660->hdl, 6);
++
++	pixel_rate_max = 24000000;
++	pixel_rate_min = 24000000;
++	/* By default, PIXEL_RATE is read only */
++	epc660->pixel_rate =
++		v4l2_ctrl_new_std(&epc660->hdl, &epc660_ctrl_ops,
++				  V4L2_CID_PIXEL_RATE, pixel_rate_min,
++				  pixel_rate_max, 1, pixel_rate_max);
++
++	/*
++	hblank = inactive periods of hsync
++	hblank = (2 * t_CONV - t_HSYNC) * f_PCLK
++		where:
++		- t_HSYNC = line_width / f_PCLK
++		- line_width = 2*160 (considering a hbinned capture)
++	hblank = (2 * 26.042µs - 320 / 24Mhz) * 24Mhz = 930 
++	*/
++	hblank = 930;
++	epc660->hblank =
++		v4l2_ctrl_new_std(&epc660->hdl, &epc660_ctrl_ops,
++				  V4L2_CID_HBLANK, hblank, hblank, 1, hblank);
++	if (epc660->hblank)
++		epc660->hblank->flags |= V4L2_CTRL_FLAG_READ_ONLY;
++
++	epc660->subdev.ctrl_handler = &epc660->hdl;
++	if (epc660->hdl.error) {
++		int err = epc660->hdl.error;
++
++		dev_err(&client->dev, "control initialisation err %d\n", err);
++		return err;
++	}
++
++	epc660->rect.width = EPC660_MAX_WIDTH;
++	epc660->rect.height = EPC660_MAX_HEIGHT;
++
++	epc660->clk = 0;
++
++	epc660->nrst_gpio =
++		devm_gpiod_get_optional(&client->dev, "reset", GPIOD_OUT_HIGH);
++	if (IS_ERR(epc660->nrst_gpio)) {
++		dev_err(&client->dev, "need to specify an nrst gpio! %p %s\n",
++			epc660->nrst_gpio, client->dev.init_name);
++		return -EINVAL;
++	}
++
++	/* reset pin is defined as ACTIVE_LOW, 0 = high level, 1 = low level */
++	ret = epc660_reset_hw(&epc660->subdev, 0);
++	ret = epc660_reset_hw(&epc660->subdev, 1);
++	ret = epc660_reset_hw(&epc660->subdev, 0);
++	if (ret < 0) {
++		dev_err(&client->dev, "cannot reset the epc660 sensor%d\n",
++			ret);
++		return ret;
++	}
++
++	np = of_graph_get_next_endpoint(client->dev.of_node, NULL);
++	if (!np) {
++		dev_err(&client->dev, "No endpoint defined");
++		v4l2_ctrl_handler_free(&epc660->hdl);
++		return -EINVAL;
++	}
++
++	if (v4l2_fwnode_endpoint_parse(of_fwnode_handle(np), &endpoint) < 0) {
++		dev_err(&client->dev, "couldn't parse endpoint");
++		v4l2_ctrl_handler_free(&epc660->hdl);
++		return -EINVAL;
++	}
++
++	ret = epc660_video_probe(client);
++	if (ret) {
++		v4l2_ctrl_handler_free(&epc660->hdl);
++		return -EINVAL;
++	}
++
++	ret = v4l2_async_register_subdev_sensor_common(&epc660->subdev);
++	if (ret) {
++		dev_err(&client->dev, "error registering subdev");
++		v4l2_ctrl_handler_free(&epc660->hdl);
++		return -EINVAL;
++	}
++
++	dev_info(&client->dev, "succesfully registered epc660 driver");
++	return ret;
++}
++
++static int epc660_remove(struct i2c_client *client)
++{
++	struct epc660 *epc660 = to_epc660(client);
++
++	gpiod_put(epc660->nrst_gpio);
++
++	v4l2_device_unregister_subdev(&epc660->subdev);
++	v4l2_ctrl_handler_free(&epc660->hdl);
++
++	return 0;
++}
++static const struct i2c_device_id epc660_id[] = { { "epc660", 0 }, {} };
++MODULE_DEVICE_TABLE(i2c, epc660_id);
++
++static struct i2c_driver epc660_i2c_driver = {
++	.driver = {
++		.name = "epc660",
++	},
++	.probe		= epc660_probe,
++	.remove		= epc660_remove,
++	.id_table	= epc660_id,
++};
++
++module_i2c_driver(epc660_i2c_driver);
++
++MODULE_DESCRIPTION("Espros EPC660 camera driver");
++MODULE_AUTHOR("iris-GmbH intelligent sensors <mail@iris-sensing.com>");
++MODULE_LICENSE("GPL");
+diff --git a/include/media/i2c/epc660_sequence.h b/include/media/i2c/epc660_sequence.h
+new file mode 100644
+index 000000000000..e3434ade82fa
+--- /dev/null
++++ b/include/media/i2c/epc660_sequence.h
+@@ -0,0 +1,258 @@
++/*
++ * Init sequence EPC660 ToF image sensor from Espros
++ *
++ * Copyright (C) 2017, Stefan Haun <stefan.haun@irisgmbh.de>
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ */
++
++#ifndef _EPC660_SEQUENCE_H
++#define _EPC660_SEQUENCE_H
++
++#define EPC660_IC_TYPE				0x00
++
++/*
++ * Register definitions
++ */
++#define EPC660_REG_IC_VERSION		0x01
++
++#define EPC660_EEPROM_ADDRESS		0x11
++#define EPC660_EEPROM_DATA			0x12
++
++#define EPC660_REG_MT_0_HI			0x22
++#define EPC660_REG_MT_0_LO			0x24
++#define EPC660_REG_CFG_MODE_CTRL	0x7D
++#define EPC660_REG_CLK_ENABLE		0x80
++#define EPC660_REG_TCMI_CLK_DIVIDER	0x89
++#define EPC660_REG_LED_DRIVER		0x90
++#define EPC660_REG_SEQ_CONTROL		0x91
++#define EPC660_REG_MOD_CTRL			0x92
++#define EPC660_REG_READOUT_DIR		0x95
++#define EPC660_REG_ROI_TL_X_HI		0x96
++#define EPC660_REG_ROI_TL_X_LO		0x97
++#define EPC660_REG_ROI_TL_Y			0x9A
++#define EPC660_REG_ROI_BR_X_HI		0x98
++#define EPC660_REG_ROI_BR_X_LO		0x99
++#define EPC660_REG_ROI_BR_Y			0x9B
++#define EPC660_REG_INTM_HI			0xA0
++#define EPC660_REG_SHUTTER_CTRL		0xA4
++#define EPC660_REG_POWER_CTRL		0xA5
++#define EPC660_REG_TCMI_POLARITY	0xCC
++
++#define EPC660_REG_CUSTOMER_ID		0xF5
++#define EPC660_REG_WAFER_ID_MSB		0xF6
++#define EPC660_REG_CHIP_ID_MSB		0xF8
++#define EPC660_REG_PART_TYPE		0xFA
++#define EPC660_REG_PART_VERSION		0xFB
++
++
++/* Sequences are byte arrays (u8) consisting of sub-sequences.
++ *
++ * Each sub-sequence begins with the number of sequence bytes N,
++ * followed by N bytes to programm on the I2C bus.
++ *
++ * A squence is terminated by a zero length sub-sequence.
++ */
++#define EPC660_I2CSEQ_TERMINATE		0
++
++/*
++ * Initialization sequence.
++ */
++static const u8 epc660_init_sequence[] = {
++	2, EPC660_REG_CFG_MODE_CTRL,	0x9F,
++	// Switch off clocks
++	2, EPC660_REG_CLK_ENABLE,		0x00,
++	2, EPC660_REG_CFG_MODE_CTRL,	0x94,
++	2, EPC660_REG_CFG_MODE_CTRL,	0x84,
++	// Switch system clock to PLL
++	2, EPC660_REG_CFG_MODE_CTRL,	0x04,
++	// Switch on clocks
++	2, EPC660_REG_CLK_ENABLE,		0x3F,
++
++	2, EPC660_REG_TCMI_POLARITY,	0x01,
++	2, EPC660_REG_TCMI_CLK_DIVIDER,	0x03, /* TCMI Clock: 24 MHz */
++	/* These need to go to the respective places in V4L2 control */
++	2, EPC660_REG_MOD_CTRL,			0xC4, /* Grayscale mode 1 DCS */
++	2, EPC660_REG_READOUT_DIR,		0x03,
++	2, EPC660_REG_SEQ_CONTROL, 		0x43,
++	3, EPC660_REG_INTM_HI, 			0x00, 0x01,
++	EPC660_I2CSEQ_TERMINATE
++}; /* epc660_init_sequence */
++
++
++/* EPC660 Sequencer programm according to Operating_Instruction_epc660-XXX_V1.90
++ * page 8/9.
++ */
++static const u8 epc660_003_Seq_Prog_8MHz_Default_8[] = {
++	2, 0xa4, 0x00,
++	2, 0x91, 0x00,
++	2, 0x47, 0x01,
++	9, 0x40, 0x00, 0x43, 0x10, 0x00, 0xC0, 0x00, 0x00, 0x0D,
++	9, 0x40, 0x01, 0x43, 0x10, 0x00, 0x00, 0x01, 0x00, 0x0D,
++	9, 0x40, 0x02, 0x43, 0x10, 0x00, 0x40, 0x0A, 0x00, 0x0D,
++	9, 0x40, 0x03, 0x43, 0x10, 0x10, 0x02, 0x58, 0x00, 0x0D,
++	9, 0x40, 0x04, 0x43, 0x10, 0x20, 0x01, 0x80, 0x00, 0x0D,
++	9, 0x40, 0x05, 0x43, 0x10, 0xF0, 0x01, 0xB0, 0x00, 0x0D,
++	9, 0x40, 0x06, 0x43, 0x10, 0x00, 0x01, 0x60, 0x00, 0x0D,
++	9, 0x40, 0x07, 0x43, 0x10, 0xC0, 0x00, 0x78, 0x00, 0x0D,
++	9, 0x40, 0x08, 0x43, 0x00, 0x40, 0x00, 0x18, 0x00, 0x0D,
++	9, 0x40, 0x09, 0x43, 0x00, 0xD0, 0x02, 0x40, 0x00, 0x0D,
++	9, 0x40, 0x0A, 0x43, 0x00, 0x10, 0xC0, 0x1E, 0x00, 0x0D,
++	9, 0x40, 0x0B, 0x43, 0x10, 0x00, 0x00, 0x50, 0x00, 0x0D,
++	9, 0x40, 0x0C, 0x43, 0x00, 0x20, 0x00, 0x18, 0x00, 0x0D,
++	9, 0x40, 0x0D, 0x43, 0x00, 0xD0, 0x02, 0x40, 0x00, 0x0D,
++	9, 0x40, 0x0E, 0x43, 0x00, 0x10, 0xC0, 0x1E, 0x00, 0x0D,
++	9, 0x40, 0x0F, 0x43, 0x10, 0x00, 0x00, 0x50, 0x00, 0x0D,
++	9, 0x40, 0x10, 0x43, 0x00, 0xD0, 0x02, 0x40, 0x00, 0x0D,
++	9, 0x40, 0x11, 0x43, 0x10, 0x00, 0x00, 0x50, 0x00, 0x0D,
++	9, 0x40, 0x12, 0x43, 0x08, 0x40, 0x40, 0x02, 0x00, 0x0D,
++	9, 0x40, 0x13, 0x43, 0x08, 0x02, 0x00, 0x00, 0x00, 0x0D,
++	9, 0x40, 0x14, 0x43, 0x08, 0x00, 0x00, 0xA8, 0x00, 0x0D,
++	9, 0x40, 0x15, 0x43, 0x18, 0x80, 0x07, 0x0C, 0x00, 0x0D,
++	9, 0x40, 0x16, 0x43, 0x08, 0x00, 0x00, 0x00, 0x00, 0x0D,
++	9, 0x40, 0x17, 0x43, 0x08, 0x01, 0x00, 0x00, 0x00, 0x0D,
++	9, 0x40, 0x18, 0x43, 0x08, 0x00, 0x00, 0xA8, 0x00, 0x0D,
++	9, 0x40, 0x19, 0x03, 0x08, 0x40, 0x03, 0x40, 0x00, 0x0D,
++	9, 0x40, 0x1A, 0x03, 0x08, 0xE0, 0x01, 0x60, 0x00, 0x0D,
++	9, 0x40, 0x1B, 0x03, 0x08, 0x10, 0xC0, 0x02, 0x00, 0x0D,
++	9, 0x40, 0x1C, 0x03, 0x08, 0x40, 0x03, 0x40, 0x00, 0x0D,
++	9, 0x40, 0x1D, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0D,
++	9, 0x40, 0x1E, 0x03, 0x00, 0x00, 0x00, 0x50, 0x00, 0x0D,
++	9, 0x40, 0x1F, 0x43, 0x10, 0x80, 0x40, 0x02, 0x00, 0x0D,
++	9, 0x40, 0x20, 0x43, 0x10, 0x60, 0x00, 0x50, 0x00, 0x0D,
++	9, 0x40, 0x21, 0x43, 0x18, 0x60, 0x40, 0x02, 0x00, 0x0D,
++	9, 0x40, 0x22, 0x43, 0x18, 0x90, 0x07, 0x0C, 0x00, 0x0D,
++	9, 0x40, 0x23, 0x43, 0x08, 0x01, 0x00, 0x00, 0x00, 0x0D,
++	9, 0x40, 0x24, 0x43, 0x08, 0x00, 0x00, 0xA8, 0x00, 0x0D,
++	9, 0x40, 0x25, 0x03, 0x08, 0x40, 0x03, 0x40, 0x00, 0x0D,
++	9, 0x40, 0x26, 0x03, 0x00, 0x88, 0x00, 0x10, 0x00, 0x0D,
++	9, 0x40, 0x27, 0x03, 0x00, 0x88, 0x3E, 0x0C, 0x00, 0x0D,
++	9, 0x40, 0x28, 0x03, 0x00, 0x08, 0x00, 0x14, 0x00, 0x0D,
++	9, 0x40, 0x29, 0x03, 0x00, 0x80, 0x00, 0x10, 0x00, 0x0D,
++	9, 0x40, 0x2A, 0x03, 0x00, 0x80, 0x3E, 0x0C, 0x00, 0x0D,
++	9, 0x40, 0x2B, 0x03, 0x00, 0x00, 0x00, 0x14, 0x00, 0x0D,
++	9, 0x40, 0x2C, 0x03, 0x00, 0x00, 0x00, 0x50, 0x00, 0x0D,
++	9, 0x40, 0x2D, 0x43, 0x08, 0x02, 0x00, 0x00, 0x00, 0x0D,
++	9, 0x40, 0x2E, 0x43, 0x08, 0x00, 0x00, 0xA8, 0x00, 0x0D,
++	9, 0x40, 0x2F, 0x43, 0x18, 0x80, 0x07, 0x0C, 0x00, 0x0D,
++	9, 0x40, 0x30, 0x43, 0x08, 0x00, 0x00, 0x00, 0x00, 0x0D,
++	9, 0x40, 0x31, 0x43, 0x08, 0x01, 0x00, 0x3C, 0x00, 0x0D,
++	9, 0x40, 0x32, 0x43, 0x08, 0x00, 0x00, 0xA8, 0x00, 0x0D,
++	9, 0x40, 0x33, 0x43, 0x08, 0x00, 0x00, 0x14, 0x00, 0x0D,
++	9, 0x40, 0x34, 0x43, 0x08, 0x00, 0xC0, 0x00, 0x00, 0x0D,
++	9, 0x40, 0x35, 0x43, 0x08, 0x00, 0x00, 0x01, 0x00, 0x0D,
++	9, 0x40, 0x36, 0x43, 0x88, 0x00, 0x00, 0x00, 0x00, 0x0D,
++	9, 0x40, 0x37, 0x43, 0x08, 0x30, 0x0A, 0x0C, 0x00, 0x0D,
++	9, 0x40, 0x38, 0x43, 0x28, 0x00, 0x00, 0x00, 0x00, 0x0D,
++	9, 0x40, 0x39, 0x43, 0x08, 0x40, 0x00, 0x0C, 0x00, 0x0D,
++	9, 0x40, 0x3A, 0x43, 0x08, 0xD0, 0x03, 0x88, 0x00, 0x0D,
++	9, 0x40, 0x3B, 0x43, 0x08, 0x70, 0x09, 0x48, 0x00, 0x0D,
++	9, 0x40, 0x3C, 0x40, 0x08, 0x00, 0x00, 0x44, 0x00, 0x0D,
++	9, 0x40, 0x3D, 0x43, 0x08, 0x00, 0x04, 0x8C, 0x00, 0x0D,
++	9, 0x40, 0x3E, 0x43, 0x08, 0x60, 0x08, 0x48, 0x00, 0x0D,
++	9, 0x40, 0x3F, 0x40, 0x08, 0x00, 0x00, 0x44, 0x00, 0x0D,
++	9, 0x40, 0x40, 0x43, 0x08, 0x30, 0x04, 0x90, 0x00, 0x0D,
++	9, 0x40, 0x41, 0x41, 0x08, 0x70, 0x07, 0x48, 0x00, 0x0D,
++	9, 0x40, 0x42, 0x40, 0x08, 0x00, 0x00, 0x44, 0x00, 0x0D,
++	9, 0x40, 0x43, 0x41, 0x08, 0x50, 0x04, 0x48, 0x00, 0x0D,
++	9, 0x40, 0x44, 0x40, 0x08, 0x00, 0x00, 0x44, 0x00, 0x0D,
++	9, 0x40, 0x45, 0x05, 0x08, 0x00, 0x00, 0x34, 0x00, 0x0D,
++	9, 0x40, 0x46, 0x04, 0x08, 0x50, 0x00, 0x0C, 0x00, 0x0D,
++	9, 0x40, 0x47, 0x84, 0x0A, 0xF0, 0x00, 0x0C, 0x00, 0x0D,
++	9, 0x40, 0x48, 0x84, 0x0F, 0x00, 0x00, 0x54, 0x00, 0x0D,
++	9, 0x40, 0x49, 0x85, 0x0E, 0x10, 0x00, 0x0C, 0x00, 0x0D,
++	9, 0x40, 0x4A, 0x01, 0x0E, 0xD0, 0x00, 0x0C, 0x00, 0x0D,
++	9, 0x40, 0x4B, 0x00, 0x0E, 0x00, 0x00, 0xAC, 0x00, 0x0D,
++	9, 0x40, 0x4C, 0x40, 0x2E, 0x00, 0x00, 0x00, 0x00, 0x0D,
++	9, 0x40, 0x4D, 0x40, 0x08, 0x90, 0x05, 0x9C, 0x00, 0x0D,
++	9, 0x40, 0x4E, 0x40, 0x08, 0x60, 0x00, 0x0C, 0x00, 0x0D,
++	9, 0x40, 0x4F, 0x41, 0x08, 0x00, 0x00, 0x00, 0x00, 0x0D,
++	9, 0x40, 0x50, 0x09, 0x48, 0x00, 0x00, 0x00, 0x00, 0x0D,
++	9, 0x40, 0x51, 0x08, 0x08, 0x50, 0x00, 0x0C, 0x00, 0x0D,
++	9, 0x40, 0x52, 0x88, 0x0A, 0xF0, 0x00, 0x0C, 0x00, 0x0D,
++	9, 0x40, 0x53, 0x88, 0x0F, 0x00, 0x00, 0x54, 0x00, 0x0D,
++	9, 0x40, 0x54, 0x89, 0x0E, 0x10, 0x00, 0x0C, 0x00, 0x0D,
++	9, 0x40, 0x55, 0x01, 0x0E, 0xD0, 0x00, 0x0C, 0x00, 0x0D,
++	9, 0x40, 0x56, 0x00, 0x0E, 0x00, 0x00, 0xAC, 0x00, 0x0D,
++	9, 0x40, 0x57, 0x40, 0x2E, 0x00, 0x00, 0x00, 0x00, 0x0D,
++	9, 0x40, 0x58, 0x40, 0x08, 0x00, 0x07, 0x94, 0x00, 0x0D,
++	9, 0x40, 0x59, 0x40, 0x08, 0x00, 0x07, 0x94, 0x00, 0x0D,
++	9, 0x40, 0x5A, 0x40, 0x08, 0x50, 0x00, 0x0C, 0x00, 0x0D,
++	9, 0x40, 0x5B, 0x41, 0x08, 0x00, 0x00, 0x00, 0x00, 0x0D,
++	9, 0x40, 0x5C, 0x11, 0x48, 0x00, 0x00, 0x00, 0x00, 0x0D,
++	9, 0x40, 0x5D, 0x10, 0x08, 0x50, 0x00, 0x0C, 0x00, 0x0D,
++	9, 0x40, 0x5E, 0x90, 0x0A, 0xF0, 0x00, 0x0C, 0x00, 0x0D,
++	9, 0x40, 0x5F, 0x90, 0x0F, 0x00, 0x00, 0x54, 0x00, 0x0D,
++	9, 0x40, 0x60, 0x91, 0x0E, 0x10, 0x00, 0x0C, 0x00, 0x0D,
++	9, 0x40, 0x61, 0x01, 0x0E, 0xD0, 0x00, 0x0C, 0x00, 0x0D,
++	9, 0x40, 0x62, 0x00, 0x0E, 0x00, 0x00, 0xAC, 0x00, 0x0D,
++	9, 0x40, 0x63, 0x40, 0x2E, 0x00, 0x00, 0x00, 0x00, 0x0D,
++	9, 0x40, 0x64, 0x40, 0x08, 0x00, 0x07, 0x9C, 0x00, 0x0D,
++	9, 0x40, 0x65, 0x40, 0x08, 0x60, 0x00, 0x0C, 0x00, 0x0D,
++	9, 0x40, 0x66, 0x41, 0x08, 0x00, 0x00, 0x00, 0x00, 0x0D,
++	9, 0x40, 0x67, 0x21, 0x48, 0x00, 0x00, 0x00, 0x00, 0x0D,
++	9, 0x40, 0x68, 0x20, 0x08, 0x50, 0x00, 0x0C, 0x00, 0x0D,
++	9, 0x40, 0x69, 0xA0, 0x0A, 0xF0, 0x00, 0x0C, 0x00, 0x0D,
++	9, 0x40, 0x6A, 0xA0, 0x0F, 0x00, 0x00, 0x54, 0x00, 0x0D,
++	9, 0x40, 0x6B, 0xA1, 0x0E, 0x10, 0x00, 0x0C, 0x00, 0x0D,
++	9, 0x40, 0x6C, 0x01, 0x0E, 0xD0, 0x00, 0x0C, 0x00, 0x0D,
++	9, 0x40, 0x6D, 0x00, 0x0E, 0x00, 0x00, 0xAC, 0x00, 0x0D,
++	9, 0x40, 0x6E, 0x40, 0x2E, 0x00, 0x00, 0x00, 0x00, 0x0D,
++	9, 0x40, 0x6F, 0x40, 0x08, 0x00, 0x00, 0x00, 0x00, 0x0D,
++	9, 0x40, 0x70, 0x40, 0x08, 0x00, 0xC0, 0x03, 0x00, 0x0D,
++	9, 0x40, 0x71, 0x40, 0x08, 0x50, 0x00, 0x0C, 0x00, 0x0D,
++	9, 0x40, 0x72, 0x41, 0x48, 0x00, 0x00, 0x14, 0x00, 0x0D,
++	9, 0x40, 0x73, 0x00, 0x08, 0x00, 0x00, 0x54, 0x00, 0x0D,
++	9, 0x40, 0x74, 0x00, 0x08, 0xC0, 0x02, 0x0C, 0x00, 0x0D,
++	9, 0x40, 0x75, 0x00, 0x48, 0x00, 0x00, 0x00, 0x00, 0x0D,
++	9, 0x40, 0x76, 0x00, 0x08, 0x00, 0x00, 0x4C, 0x00, 0x0D,
++	9, 0x40, 0x77, 0x15, 0x08, 0x00, 0x00, 0x34, 0x00, 0x0D,
++	9, 0x40, 0x78, 0x14, 0x08, 0x50, 0x00, 0x0C, 0x00, 0x0D,
++	9, 0x40, 0x79, 0x94, 0x0A, 0xF0, 0x00, 0x0C, 0x00, 0x0D,
++	9, 0x40, 0x7A, 0x94, 0x0F, 0x00, 0x00, 0x54, 0x00, 0x0D,
++	9, 0x40, 0x7B, 0x95, 0x0E, 0x10, 0x00, 0x0C, 0x00, 0x0D,
++	9, 0x40, 0x7C, 0x01, 0x0E, 0xD0, 0x00, 0x0C, 0x00, 0x0D,
++	9, 0x40, 0x7D, 0x00, 0x0E, 0x00, 0x00, 0xAC, 0x00, 0x0D,
++	9, 0x40, 0x7E, 0x40, 0x2E, 0x00, 0x00, 0x00, 0x00, 0x0D,
++	9, 0x40, 0x7F, 0x40, 0x08, 0x70, 0x00, 0x0C, 0x00, 0x0D,
++	9, 0x40, 0x80, 0x41, 0x08, 0x00, 0x00, 0x00, 0x00, 0x0D,
++	9, 0x40, 0x81, 0x29, 0x48, 0x00, 0x00, 0x00, 0x00, 0x0D,
++	9, 0x40, 0x82, 0x28, 0x08, 0x50, 0x00, 0x0C, 0x00, 0x0D,
++	9, 0x40, 0x83, 0xA8, 0x0A, 0xF0, 0x00, 0x0C, 0x00, 0x0D,
++	9, 0x40, 0x84, 0xA8, 0x0F, 0x00, 0x00, 0x54, 0x00, 0x0D,
++	9, 0x40, 0x85, 0xA9, 0x0E, 0xC0, 0x06, 0x50, 0x00, 0x0D,
++	9, 0x40, 0x86, 0x41, 0x08, 0x00, 0x00, 0x00, 0x00, 0x0D,
++	9, 0x40, 0x87, 0x0D, 0x08, 0x00, 0x00, 0x34, 0x00, 0x0D,
++	9, 0x40, 0x88, 0x0C, 0x08, 0x50, 0x00, 0x0C, 0x00, 0x0D,
++	9, 0x40, 0x89, 0x8C, 0x0A, 0xF0, 0x00, 0x0C, 0x00, 0x0D,
++	9, 0x40, 0x8A, 0x8C, 0x0F, 0x00, 0x00, 0x54, 0x00, 0x0D,
++	9, 0x40, 0x8B, 0x8D, 0x0E, 0x10, 0x00, 0x0C, 0x00, 0x0D,
++	9, 0x40, 0x8C, 0x01, 0x0E, 0xD0, 0x00, 0x0C, 0x00, 0x0D,
++	9, 0x40, 0x8D, 0x00, 0x0E, 0x00, 0x00, 0xAC, 0x00, 0x0D,
++	9, 0x40, 0x8E, 0x40, 0x2E, 0x00, 0x00, 0x00, 0x00, 0x0D,
++	9, 0x40, 0x8F, 0x40, 0x08, 0x00, 0x07, 0x94, 0x00, 0x0D,
++	9, 0x40, 0x90, 0x40, 0x08, 0x60, 0x00, 0x0C, 0x00, 0x0D,
++	9, 0x40, 0x91, 0x41, 0x08, 0x00, 0x00, 0x00, 0x00, 0x0D,
++	9, 0x40, 0x92, 0x31, 0x48, 0x00, 0x00, 0x00, 0x00, 0x0D,
++	9, 0x40, 0x93, 0x30, 0x08, 0x50, 0x00, 0x0C, 0x00, 0x0D,
++	9, 0x40, 0x94, 0xB0, 0x0A, 0xF0, 0x00, 0x0C, 0x00, 0x0D,
++	9, 0x40, 0x95, 0xB0, 0x0F, 0x00, 0x00, 0x54, 0x00, 0x0D,
++	9, 0x40, 0x96, 0xB1, 0x0E, 0xC0, 0x06, 0x50, 0x00, 0x0D,
++	9, 0x40, 0x97, 0x43, 0x08, 0x00, 0x00, 0x00, 0x00, 0x0D,
++	9, 0x40, 0x98, 0x41, 0x08, 0x00, 0x00, 0x00, 0x00, 0x0D,
++	9, 0x40, 0x99, 0x3D, 0x08, 0x00, 0x00, 0x34, 0x00, 0x0D,
++	9, 0x40, 0x9A, 0x3C, 0x08, 0x50, 0x00, 0x0C, 0x00, 0x0D,
++	9, 0x40, 0x9B, 0xBC, 0x0A, 0xF0, 0x00, 0x0C, 0x00, 0x0D,
++	9, 0x40, 0x9C, 0xBC, 0x0F, 0x00, 0x00, 0x54, 0x00, 0x0D,
++	9, 0x40, 0x9D, 0xBD, 0x0E, 0xC0, 0x06, 0x50, 0x00, 0x0D,
++	2, 0x47, 0x00,
++	2, 0x91, 0x43,	// SEQ_Control: activate HSYNC stretch
++	2, 0x90, 0xEC,
++	2, 0xAB, 0x04,
++	2, 0xAE, 0x01,
++	EPC660_I2CSEQ_TERMINATE
++}; // epc660_003_Seq_Prog_8MHz_Default_8
++
++#endif 	/* _EPC660_SEQUENCE_H */
+-- 
+2.25.1
+

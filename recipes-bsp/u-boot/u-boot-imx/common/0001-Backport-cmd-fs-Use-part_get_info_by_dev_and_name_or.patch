@@ -1,11 +1,12 @@
-From 0abcdbbac744c5d9bf5546b8c5fbc3217a6def4f Mon Sep 17 00:00:00 2001
+From 6e68c0d50425612ff121fa67511d991001e746ec Mon Sep 17 00:00:00 2001
 From: Erik Schumacher <erik.schumacher@iris-sensing.com>
 Date: Fri, 8 Oct 2021 13:37:34 +0200
-Subject: [PATCH] Backport: cmd: fs: Use part_get_info_by_dev_and_name_or_num
- to parse partitions
+Subject: [PATCH 1/2] Backport: cmd: fs: Use
+ part_get_info_by_dev_and_name_or_num to parse partitions
 
 This allows using dev#partlabel syntax.
 
+Signed-off-by: Erik Schumacher <Erik.Schumacher@iris-sensing.com>
 ---
  fs/fs.c        |  4 ++--
  include/part.h | 10 +++++++++-
@@ -54,3 +55,6 @@ index 35c8fc45a4..9e311c7677 100644
  #endif
  
  /*
+-- 
+2.35.1
+

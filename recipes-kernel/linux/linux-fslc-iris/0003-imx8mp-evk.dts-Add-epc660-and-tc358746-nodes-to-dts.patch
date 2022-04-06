@@ -1,0 +1,201 @@
+From 9a2029154b794ae1b57b68968c6d0faf919b8c60 Mon Sep 17 00:00:00 2001
+From: Ian Dannapel <ian.dannapel@iris-sensing.com>
+Date: Fri, 1 Apr 2022 09:09:25 +0200
+Subject: [PATCH 03/29] imx8mp-evk.dts: Add epc660 and tc358746 nodes to dts
+
+Signed-off-by: Ian Dannapel <ian.dannapel@iris-sensing.com>
+---
+ arch/arm64/boot/dts/freescale/imx8mp-evk.dts | 139 ++++++++++---------
+ 1 file changed, 75 insertions(+), 64 deletions(-)
+
+diff --git a/arch/arm64/boot/dts/freescale/imx8mp-evk.dts b/arch/arm64/boot/dts/freescale/imx8mp-evk.dts
+index 062d7ca9f358..3b48d99a03c0 100644
+--- a/arch/arm64/boot/dts/freescale/imx8mp-evk.dts
++++ b/arch/arm64/boot/dts/freescale/imx8mp-evk.dts
+@@ -179,6 +179,13 @@
+ 				    100>;
+ 		default-brightness-level = <80>;
+ 	};
++	
++	clk_serialize: clock_serialize {
++		compatible = "fixed-clock";
++		#clock-cells = <0>;
++		clock-frequency = <32000000>;
++		clock-output-names = "32m_serialize";
++	};
+ };
+ 
+ &aud2htx {
+@@ -469,34 +476,83 @@
+ 		};
+ 	};
+ 
+-	ov5640_0: ov5640_mipi@3c {
+-		compatible = "ovti,ov5640";
+-		reg = <0x3c>;
++	epc660_mipi: epc660_mipi@22 {
++		compatible = "epc660";
++		reg = <0x22>;
++		status = "okay";
+ 		pinctrl-names = "default";
+-		pinctrl-0 = <&pinctrl_csi0_pwn>, <&pinctrl_csi0_rst>;
+-		clocks = <&clk IMX8MP_CLK_IPP_DO_CLKO2>;
+-		clock-names = "xclk";
+-		assigned-clocks = <&clk IMX8MP_CLK_IPP_DO_CLKO2>;
+-		assigned-clock-parents = <&clk IMX8MP_CLK_24M>;
+-		assigned-clock-rates = <24000000>;
+-		csi_id = <0>;
+-		powerdown-gpios = <&gpio2 11 GPIO_ACTIVE_HIGH>;
++		pinctrl-0 = <&pinctrl_csi0_rst>;
+ 		reset-gpios = <&gpio1 6 GPIO_ACTIVE_LOW>;
+-		mclk = <24000000>;
+-		mclk_source = <0>;
+-		mipi_csi;
++
++		#address-cells = <1>;
++		#size-cells = <0>;
++
++		port@0 {
++			reg = <0>;
++			epc660_parallel_out: endpoint {
++				bus-type = <5>;
++				bus-width = <12>;
++				hsync-active = <0>;
++				vsync-active = <0>;
++				field-even-active = <0>;
++				pclk-sample = <1>;
++				remote-endpoint = <&tc358748_parallel_in>;
++			};
++		};
++	};
++
++	tc358748_adapter: csi-bridge@e {
++		compatible = "toshiba,tc358746";
++		reg = <0x0e>;
+ 		status = "okay";
++		
++		clocks = <&clk_serialize>;
++		default-input = <0>;
++		
++		#address-cells = <1>;
++		#size-cells = <0>;
+ 
+-		port {
+-			ov5640_mipi_0_ep: endpoint {
+-				remote-endpoint = <&mipi_csi0_ep>;
++		port@0 {
++			reg = <0>;
++			tc358748_parallel_in: endpoint {
++				bus-type = <5>;
++				bus-width = <12>;
++				hsync-active = <0>;
++				vsync-active = <0>;
++				field-even-active = <0>;
++				remote-endpoint = <&epc660_parallel_out>;
++			};
++		};
++		port@1 {
++			reg = <1>;
++			tc358748_mipi_out: endpoint {
+ 				data-lanes = <1 2>;
+-				clock-lanes = <0>;
++				link-frequencies = /bits/ 64 <216000000>;
++				remote-endpoint = <&mipi1_csi_in>;
+ 			};
+ 		};
+ 	};
+ };
+ 
++&mipi_csi_0 {
++	#address-cells = <1>;
++	#size-cells = <0>;
++	status = "okay";
++
++	port@0 {
++		reg = <0>;
++		mipi1_csi_in: endpoint {
++			data-lanes = <2>;
++			clock-lanes = <1>;
++			remote-endpoint = <&tc358748_mipi_out>;
++			csis-hs-settle = <3>;
++			csis-clk-settle = <0>;
++			csis-wclk;
++			link-frequencies = /bits/ 64 <216000000>;
++		};
++	};
++};
++
+ &i2c3 {
+ 	clock-frequency = <100000>;
+ 	pinctrl-names = "default";
+@@ -510,33 +566,6 @@
+ 		#gpio-cells = <2>;
+ 	};
+ 
+-	ov5640_1: ov5640_mipi@3c {
+-		compatible = "ovti,ov5640";
+-		reg = <0x3c>;
+-		pinctrl-names = "default";
+-		pinctrl-0 = <&pinctrl_csi0_pwn>, <&pinctrl_csi0_rst>;
+-		clocks = <&clk IMX8MP_CLK_IPP_DO_CLKO2>;
+-		clock-names = "xclk";
+-		assigned-clocks = <&clk IMX8MP_CLK_IPP_DO_CLKO2>;
+-		assigned-clock-parents = <&clk IMX8MP_CLK_24M>;
+-		assigned-clock-rates = <24000000>;
+-		csi_id = <0>;
+-		powerdown-gpios = <&gpio4 1 GPIO_ACTIVE_HIGH>;
+-		reset-gpios = <&gpio4 0 GPIO_ACTIVE_LOW>;
+-		mclk = <24000000>;
+-		mclk_source = <0>;
+-		mipi_csi;
+-		status = "disabled";
+-
+-		port {
+-			ov5640_mipi_1_ep: endpoint {
+-				remote-endpoint = <&mipi_csi1_ep>;
+-				data-lanes = <1 2>;
+-				clock-lanes = <0>;
+-			};
+-		};
+-	};
+-
+ 	codec: wm8960@1a {
+ 		compatible = "wlf,wm8960";
+ 		reg = <0x1a>;
+@@ -1209,23 +1238,6 @@
+ 	status = "okay";
+ };
+ 
+-&mipi_csi_0 {
+-	#address-cells = <1>;
+-	#size-cells = <0>;
+-	status = "okay";
+-
+-	port@0 {
+-		reg = <0>;
+-		mipi_csi0_ep: endpoint {
+-			remote-endpoint = <&ov5640_mipi_0_ep>;
+-			data-lanes = <2>;
+-			csis-hs-settle = <13>;
+-			csis-clk-settle = <2>;
+-			csis-wclk;
+-		};
+-	};
+-};
+-
+ &mipi_csi_1 {
+ 	#address-cells = <1>;
+ 	#size-cells = <0>;
+@@ -1234,8 +1246,7 @@
+ 	port@1 {
+ 		reg = <1>;
+ 		mipi_csi1_ep: endpoint {
+-			remote-endpoint = <&ov5640_mipi_1_ep>;
+-			data-lanes = <2>;
++			data-lanes = <1 2>;
+ 			csis-hs-settle = <13>;
+ 			csis-clk-settle = <2>;
+ 			csis-wclk;
+-- 
+2.25.1
+

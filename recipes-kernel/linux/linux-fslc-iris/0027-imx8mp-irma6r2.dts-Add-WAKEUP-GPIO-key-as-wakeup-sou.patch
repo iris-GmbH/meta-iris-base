@@ -1,0 +1,51 @@
+From a4d52ab4a9fd7d6b902e0cd27d5422a33bc74a88 Mon Sep 17 00:00:00 2001
+From: Erik Schumacher <Erik.Schumacher@iris-sensing.com>
+Date: Fri, 11 Mar 2022 15:26:49 +0100
+Subject: [PATCH 27/29] imx8mp-irma6r2.dts: Add WAKEUP GPIO key as wakeup
+ source for the system
+
+Signed-off-by: Erik Schumacher <Erik.Schumacher@iris-sensing.com>
+---
+ .../boot/dts/freescale/imx8mp-irma6r2.dts     | 19 +++++++++++++++++++
+ 1 file changed, 19 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts b/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
+index a343828c19f5..ecfef3359e15 100644
+--- a/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
++++ b/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
+@@ -69,6 +69,19 @@
+ 		clock-output-names = "serializer_clk";
+ 		pwms = <&pwm2 0 42>; /* 42ns - 24 MHz */
+ 	};
++
++	gpio-keys {
++		compatible = "gpio-keys";
++		pinctrl-names = "default";
++		pinctrl-0 = <&pinctrl_gpio_keys>;
++
++		wakeup_btn {
++			label = "WAKEUP";
++			gpios = <&gpio4 16 GPIO_ACTIVE_LOW>;
++			wakeup-source;
++			linux,code = <KEY_POWER>;
++		};
++	};
+ };
+ 
+ &resmem {
+@@ -779,6 +792,12 @@
+ 			MX8MP_IOMUXC_SAI1_MCLK__GPIO4_IO20		0x19
+ 		>;
+ 	};
++
++	pinctrl_gpio_keys: gpio_keys_grp {
++		fsl,pins = <
++			MX8MP_IOMUXC_SAI1_TXD4__GPIO4_IO16	0x16
++		>;
++	};
+ };
+ 
+ &vpu_g1 {
+-- 
+2.25.1
+

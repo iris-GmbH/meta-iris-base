@@ -1,7 +1,7 @@
-From 55f3e4f169d3a84366cf45afa213a1751cb2629e Mon Sep 17 00:00:00 2001
+From 8fb5f6267702d332ba346b4dffe635803cbaa3f7 Mon Sep 17 00:00:00 2001
 From: Erik Schumacher <erik.schumacher@iris-sensing.com>
 Date: Fri, 17 Dec 2021 10:41:32 +0100
-Subject: [PATCH] Backport: part: Give several functions more useful return
+Subject: [PATCH 2/2] Backport: part: Give several functions more useful return
  values
 
 Several functions in disk/part.c just return -1 on error. This makes them
@@ -10,6 +10,7 @@ differentiate between failures, even if they cannot read stdout.
 
 https://source.denx.de/u-boot/u-boot/-/commit/59715754e1d1d9279f38d70df1c3c2949a5e5203
 
+Signed-off-by: Erik Schumacher <Erik.Schumacher@iris-sensing.com>
 ---
  disk/part.c | 50 ++++++++++++++++++++++++++++----------------------
  1 file changed, 28 insertions(+), 22 deletions(-)
@@ -183,3 +184,6 @@ index 4cc2fc19f7..7db5e3c78d 100644
  }
  
  void part_set_generic_name(const struct blk_desc *dev_desc,
+-- 
+2.35.1
+

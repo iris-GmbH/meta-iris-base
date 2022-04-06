@@ -1,0 +1,113 @@
+From 87a9ffedc851a7e8287bf0e4bd623dfe10b95a04 Mon Sep 17 00:00:00 2001
+From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+Date: Wed, 9 Mar 2022 10:03:00 +0100
+Subject: [PATCH 13/13] Use partition labels in environment and auto detect mmc
+ partitions
+
+Signed-off-by: Erik Schumacher <Erik.Schumacher@iris-sensing.com>
+---
+ .../freescale/imx8mp_irma6r2/imx8mp_irma6r2.c | 48 +++++++++++++++++++
+ include/configs/imx8mp_irma6r2.h              |  9 ++--
+ 2 files changed, 51 insertions(+), 6 deletions(-)
+
+diff --git a/board/freescale/imx8mp_irma6r2/imx8mp_irma6r2.c b/board/freescale/imx8mp_irma6r2/imx8mp_irma6r2.c
+index e03aba44fe..acd3b8aa21 100644
+--- a/board/freescale/imx8mp_irma6r2/imx8mp_irma6r2.c
++++ b/board/freescale/imx8mp_irma6r2/imx8mp_irma6r2.c
+@@ -515,6 +515,52 @@ int board_init(void)
+ 	return 0;
+ }
+ 
++void board_autolocate_boot_partitions(void)
++{
++	/* TODO (RDPHOEN-1080, ERSC):
++	   - read bootable flag in GPT, what if no partition is bootable?
++	   - what to do with the changed (and maybe saved) env values?
++	   - what to do, if boot/rootfs not found?
++	*/
++	u32 dev_no = env_get_ulong("emmc_dev", 10, 2);
++	char firmware = 'a'; // assume A for now
++	char mmcroot[32];
++	char partboot[32];
++	char partbootfull[32];
++	char partrootfull[32];
++	disk_partition_t part_info;
++
++	printf("Active firmware: %c - Locating partitions ...\n", firmware);
++
++	sprintf(partboot, "linuxboot_%c", firmware);
++	sprintf(partbootfull, "%d#%s", dev_no, partboot);
++	sprintf(partrootfull, "%d#rootfs_%c", dev_no, firmware);
++	int partnumboot = part_get_info_by_dev_and_name_or_num("mmc", partbootfull, 0, &part_info);
++
++	if (partnumboot < 0) {
++		printf(" !! Could not locate linux boot partition!\n");
++	} else if (!part_info.bootable) {
++		printf(" !! Found linux boot partition, but partition is not marked bootable!\n");
++	} else {
++		printf(" Found linux boot at %d\n", partnumboot);
++	}
++
++	int partnumroot = part_get_info_by_dev_and_name_or_num("mmc", partrootfull, 0, &part_info);
++	if (partnumroot < 0) {
++		printf(" !! Could not locate linux rootfs partition!\n");
++	} else {
++		printf(" Found linux rootfs at %d\n", partnumroot);
++	}
++
++	env_set("mmcpart", partboot);
++	env_set_ulong("mmcdev", dev_no);
++
++	/* Set mmcblk env */
++	sprintf(mmcroot, "/dev/mmcblk%dp%d rootwait rw",
++		mmc_map_to_kernel_blk(dev_no), partnumroot);
++	env_set("mmcroot", mmcroot);
++}
++
+ int board_late_init(void)
+ {
+ #ifdef CONFIG_ENV_IS_IN_MMC
+@@ -525,6 +571,8 @@ int board_late_init(void)
+ 	env_set("board_rev", "iMX8MP");
+ #endif
+ 
++	board_autolocate_boot_partitions();
++
+ 	return 0;
+ }
+ 
+diff --git a/include/configs/imx8mp_irma6r2.h b/include/configs/imx8mp_irma6r2.h
+index f0ae1ffcdc..5957df112a 100644
+--- a/include/configs/imx8mp_irma6r2.h
++++ b/include/configs/imx8mp_irma6r2.h
+@@ -115,15 +115,14 @@
+ 	"initrd_addr=0x43800000\0"		\
+ 	"initrd_high=0xffffffffffffffff\0" \
+ 	"mmcdev="__stringify(CONFIG_SYS_MMC_ENV_DEV)"\0" \
+-	"mmcpart=" __stringify(CONFIG_SYS_MMC_IMG_LOAD_PART) "\0" \
+ 	"mmcroot=" CONFIG_MMCROOT " rootwait rw\0" \
+ 	"mmcautodetect=yes\0" \
+ 	"mmcargs=setenv bootargs ${jh_clk} console=${console} root=${mmcroot}\0 " \
+-	"loadbootscript=fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${script};\0" \
++	"loadbootscript=fatload mmc ${mmcdev}#${mmcpart} ${loadaddr} ${script};\0" \
+ 	"bootscript=echo Running bootscript from mmc ...; " \
+ 		"source\0" \
+-	"loadimage=fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${image}\0" \
+-	"loadfdt=fatload mmc ${mmcdev}:${mmcpart} ${fdt_addr} ${fdt_file}\0" \
++	"loadimage=fatload mmc ${mmcdev}#${mmcpart} ${loadaddr} ${image}\0" \
++	"loadfdt=fatload mmc ${mmcdev}#${mmcpart} ${fdt_addr} ${fdt_file}\0" \
+ 	"mmcboot=echo Booting from mmc ...; " \
+ 		"run mmcargs; " \
+ 		"if test ${boot_fit} = yes || test ${boot_fit} = try; then " \
+@@ -217,8 +216,6 @@
+ #define CONFIG_SYS_FSL_USDHC_NUM	2
+ #define CONFIG_SYS_FSL_ESDHC_ADDR	0
+ 
+-#define CONFIG_SYS_MMC_IMG_LOAD_PART	1
+-
+ #ifdef CONFIG_FSL_FSPI
+ #define FSL_FSPI_FLASH_SIZE		SZ_32M
+ #define FSL_FSPI_FLASH_NUM		1
+-- 
+2.35.1
+
