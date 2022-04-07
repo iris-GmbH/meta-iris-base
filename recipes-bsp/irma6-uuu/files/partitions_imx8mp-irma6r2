@@ -1,0 +1,7 @@
+label: gpt
+start=1M,    size=   7M, type=3DE21764-95BD-54BD-A5C3-4ABE786F38A8, name=uboot_env 
+start=8M,    size= 128M, type=BC13C2FF-59E6-4262-A352-B275FD6F7172, name=linuxboot_a, attrs=LegacyBIOSBootable
+start=136M,  size= 128M, type=BC13C2FF-59E6-4262-A352-B275FD6F7172, name=linuxboot_b
+start=264M,  size= 892M, type=B921B045-1DF0-41C3-AF44-4C6F280D3FAE, name=rootfs_a 
+start=1668M, size=1024M, type=0FC63DAF-8483-4772-8E79-3D69D8477DE4, name=userdata 
+start=3204M, size= 892M, type=B921B045-1DF0-41C3-AF44-4C6F280D3FAE, name=rootfs_b 
