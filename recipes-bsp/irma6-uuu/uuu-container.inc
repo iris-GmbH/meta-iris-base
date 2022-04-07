@@ -25,6 +25,7 @@ KERNEL = "Image-${MACHINE}.bin"
 ROOTFS = "${IMAGENAME}-${MACHINE}-*.rootfs.ext4.gz"
 PARTITIONS = "partitions_${MACHINE}"
 UUUSCRIPT = "flashall_${MACHINE}.uuu"
+VERIFICATIONSCRIPT = "verification_${MACHINE}.sh"
 INITRAMFS = "${INITRAMFSNAME}-${MACHINE}-*.rootfs.cpio.gz.u-boot"
 
 # set output directory and file names
@@ -34,14 +35,16 @@ FLASHBINDEPLOY = "flash.bin"
 KERNELDEPLOY = "Image"
 DEVTREEDEPLOY = "devicetree.dtb"
 ROOTFSDEPLOY = "rootfs.ext4.gz"
+HASHSUMS = "hashsums"
 PARTITIONSDEPLOY = "partitions"
 UUUSCRIPTDEPLOY = "flashall.uuu"
+VERIFICATIONSCRIPTDEPLOY = "verification.sh"
 INITRAMFSDEPLOY = "rootfs.cpio.gz.u-boot"
 
 # The following line forces the usage of the "files" directory next to this .inc file even if it is required from another layer
 FILESEXTRAPATHS_prepend := "${@os.path.dirname(d.getVar('FILE'))}/files:"
 
-SRC_URI = "file://${PARTITIONS} file://${UUUSCRIPT}"
+SRC_URI = "file://${PARTITIONS} file://${UUUSCRIPT} file://${VERIFICATIONSCRIPT}"
 
 do_deploy () {
 	install -d ${UUU_DEPLOY_DIR}
@@ -54,6 +57,32 @@ do_deploy () {
 
 	install -m 0644 ${WORKDIR}/${PARTITIONS} ${UUU_DEPLOY_DIR}/${PARTITIONSDEPLOY}
 	install -m 0644 ${WORKDIR}/${UUUSCRIPT} ${UUU_DEPLOY_DIR}/${UUUSCRIPTDEPLOY}
+    install -m 0644 ${WORKDIR}/${VERIFICATIONSCRIPT} ${UUU_DEPLOY_DIR}/${VERIFICATIONSCRIPTDEPLOY}
+
+    # for hashsum check, calculate the hashsums of the original files and store them into one file
+    # If a file exists so far, delete it
+    rm -f ${UUU_DEPLOY_DIR}/${HASHSUMS}
+
+    # Read out the hashsum annd store it into variable hash_flashbin without the path output of sha256sum
+    hash_flashbin=$(sha256sum ${UUU_DEPLOY_DIR}/${FLASHBINDEPLOY} | cut -d' ' -f1)
+    # Write the formatted value together with a variable into hashsum file
+    echo "HASH_FLASHBIN=\"$hash_flashbin\"" >> ${UUU_DEPLOY_DIR}/${HASHSUMS}
+    # Calculate the size for partition check
+    size_flashbin="$(stat --printf=%s ${UUU_DEPLOY_DIR}/${FLASHBINDEPLOY})"
+    echo "SIZE_FLASHBIN=\"$size_flashbin\"" >> ${UUU_DEPLOY_DIR}/${HASHSUMS}
+
+    hash_kernel=$(sha256sum ${UUU_DEPLOY_DIR}/${KERNELDEPLOY} | cut -d' ' -f1)
+    echo "HASH_KERNEL=\"$hash_kernel\"" >> ${UUU_DEPLOY_DIR}/${HASHSUMS}
+
+    hash_devtree=$(sha256sum ${UUU_DEPLOY_DIR}/${DEVTREEDEPLOY} | cut -d' ' -f1)
+    echo "HASH_DEVTREE=\"$hash_devtree\"" >> ${UUU_DEPLOY_DIR}/${HASHSUMS}
+
+    hash_rootfs=$(zcat ${UUU_DEPLOY_DIR}/${ROOTFSDEPLOY} | sha256sum - | cut -d' ' -f1)
+    echo "HASH_ROOTFS=\"$hash_rootfs\"" >> ${UUU_DEPLOY_DIR}/${HASHSUMS}
+    # Calculate the size for partition check: Decompress rootfs.ext4.gz virtually and evaluate the size with wc
+    size_rootfs="$(zcat ${UUU_DEPLOY_DIR}/${ROOTFSDEPLOY} | wc -c)"
+    echo "SIZE_ROOTFS=\"$size_rootfs\"" >> ${UUU_DEPLOY_DIR}/${HASHSUMS}
+
 }
 
 addtask do_deploy after do_install
