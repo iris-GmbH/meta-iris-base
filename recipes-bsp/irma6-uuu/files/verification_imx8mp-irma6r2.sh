@@ -8,28 +8,28 @@ mmc=$(cat /tmp/mmcdev)
 # cut the 2nd part of the output of sha256sum
 
 echo "Verify hash for flash.bin on /dev/mmcblk"${mmc}"boot0"
-head -c "$SIZE_FLASHBIN" /dev/mmcblk"${mmc}"boot0 | sha256sum - | cut -d' ' -f1 | grep "$HASH_FLASHBIN" || (echo "Error: Failed to verify hash for flash.bin on /dev/mmcblk"${mmc}"boot0"; exit 1)
+head -c "$SIZE_FLASHBIN" /dev/mmcblk"${mmc}"boot0 | sha256sum - | cut -d' ' -f1 | grep "$HASH_FLASHBIN" || { echo "Error: Failed to verify hash for flash.bin on /dev/mmcblk"${mmc}"boot0"; exit 1; }
 echo "Verify hash for flash.bin on /dev/mmcblk"${mmc}"boot1"
-head -c "$SIZE_FLASHBIN" /dev/mmcblk"${mmc}"boot1 | sha256sum - | cut -d' ' -f1 | grep "$HASH_FLASHBIN" || (echo "Error: Failed to verify hash for flash.bin on /dev/mmcblk"${mmc}"boot1"; exit 1)
+head -c "$SIZE_FLASHBIN" /dev/mmcblk"${mmc}"boot1 | sha256sum - | cut -d' ' -f1 | grep "$HASH_FLASHBIN" || { echo "Error: Failed to verify hash for flash.bin on /dev/mmcblk"${mmc}"boot1"; exit 1; }
 
 mount   /dev/mmcblk${mmc}p2 /mnt/fat || exit 1
 echo "Verify hash for kernel Image on /dev/mmcblk"${mmc}"p2"
-sha256sum /mnt/fat/Image | cut -d' ' -f1 | grep "$HASH_KERNEL" || (echo "Error: Failed to verify hash for kernel Image on /dev/mmcblk"${mmc}"p2"; exit 1)
+sha256sum /mnt/fat/Image | cut -d' ' -f1 | grep "$HASH_KERNEL" || { echo "Error: Failed to verify hash for kernel Image on /dev/mmcblk"${mmc}"p2"; exit 1; }
 echo "Verify hash for *.dtb on /dev/mmcblk"${mmc}"p2"
-sha256sum /mnt/fat/imx8mp-irma6r2.dtb | cut -d' ' -f1 | grep $HASH_DEVTREE || (echo "Error: Failed to verify hash for *.dtb on /dev/mmcblk"${mmc}"p2"; exit 1)
+sha256sum /mnt/fat/imx8mp-irma6r2.dtb | cut -d' ' -f1 | grep $HASH_DEVTREE || { echo "Error: Failed to verify hash for *.dtb on /dev/mmcblk"${mmc}"p2"; exit 1; }
 umount /mnt/fat
 sync
 
 mount   /dev/mmcblk${mmc}p3 /mnt/fat || exit 1
 echo "Verify hash for kernel Image on /dev/mmcblk"${mmc}"p3"
-sha256sum /mnt/fat/Image | cut -d' ' -f1 | grep $HASH_KERNEL || (echo "Error: Failed to verify hash for kernel Image on /dev/mmcblk"${mmc}"p3"; exit 1)
+sha256sum /mnt/fat/Image | cut -d' ' -f1 | grep $HASH_KERNEL || { echo "Error: Failed to verify hash for kernel Image on /dev/mmcblk"${mmc}"p3"; exit 1; }
 echo "Verify hash for *.dtb on /dev/mmcblk"${mmc}"p3"
-sha256sum /mnt/fat/imx8mp-irma6r2.dtb | cut -d' ' -f1 | grep $HASH_DEVTREE || (echo "Error: Failed to verify hash for *.dtb on /dev/mmcblk"${mmc}"p3"; exit 1)
+sha256sum /mnt/fat/imx8mp-irma6r2.dtb | cut -d' ' -f1 | grep $HASH_DEVTREE || { echo "Error: Failed to verify hash for *.dtb on /dev/mmcblk"${mmc}"p3"; exit 1; }
 umount /mnt/fat
 sync
 
 echo "Verify hash for rootfs on /dev/mmcblk"${mmc}"p4"
-head -c "$SIZE_ROOTFS" /dev/mmcblk${mmc}p4 | sha256sum - | cut -d' ' -f1 | grep $HASH_ROOTFS || (echo "Error: Failed to verify hash for rootfs on /dev/mmcblk"${mmc}"p4"; exit 1)
+head -c "$SIZE_ROOTFS" /dev/mmcblk${mmc}p4 | sha256sum - | cut -d' ' -f1 | grep $HASH_ROOTFS || { echo "Error: Failed to verify hash for rootfs on /dev/mmcblk"${mmc}"p4"; exit 1; }
 echo "Verify hash for rootfs on /dev/mmcblk"${mmc}"p6"
-head -c "$SIZE_ROOTFS" /dev/mmcblk${mmc}p6 | sha256sum - | cut -d' ' -f1 | grep $HASH_ROOTFS || (echo "Error: Failed to verify hash for rootfs on /dev/mmcblk"${mmc}"p6"; exit 1)
+head -c "$SIZE_ROOTFS" /dev/mmcblk${mmc}p6 | sha256sum - | cut -d' ' -f1 | grep $HASH_ROOTFS || { echo "Error: Failed to verify hash for rootfs on /dev/mmcblk"${mmc}"p6"; exit 1; }
 
