@@ -23,7 +23,11 @@ do_deploy[nostamp] = "1"
 # set generic file names that should match for most images
 KERNEL = "Image-${MACHINE}.bin"
 ROOTFS = "${IMAGENAME}-${MACHINE}-*.rootfs.ext4.gz"
-PARTITIONS = "partitions_${MACHINE}"
+PARTITIONS ?= "partitions_${MACHINE}"
+# Although the flashall.uuu script as well as the verification.sh script only differ in the dtb-file name, 
+# they are created specifically for each of the available machines and stored and used as separate files:
+# First, a template doesn't leave much space for adaptations and would depend on the recipe being executed.
+# Second, the independence between Yocto and the content of the hashsum toolchain shall be guaranteed.
 UUUSCRIPT = "flashall_${MACHINE}.uuu"
 VERIFICATIONSCRIPT = "verification_${MACHINE}.sh"
 INITRAMFS = "${INITRAMFSNAME}-${MACHINE}-*.rootfs.cpio.gz.u-boot"
