@@ -57,7 +57,7 @@ pipeline {
                 axes {
                     axis {
                         name 'MULTI_CONF'
-                        values 'sc573-gen6', 'imx8mp-evk', 'qemux86-64-r1', 'qemux86-64-r2'
+                        values 'sc573-gen6', 'imx8mp-irma6r2', 'imx8mp-evk', 'qemux86-64-r1', 'qemux86-64-r2'
                     }
                     axis {
                         name 'IMAGES'
@@ -72,7 +72,7 @@ pipeline {
                     exclude {
                         axis {
                             name 'MULTI_CONF'
-                            values 'sc573-gen6', 'imx8mp-evk'
+                            values 'sc573-gen6', 'imx8mp-evk', 'imx8mp-irma6r2'
                         }
                         axis {
                             name 'IMAGES'
@@ -86,7 +86,7 @@ pipeline {
                     exclude {
                         axis {
                             name 'MULTI_CONF'
-                            values 'sc573-gen6', 'imx8mp-evk'
+                            values 'sc573-gen6', 'imx8mp-evk', 'imx8mp-irma6r2'
                         }
                         axis {
                             name 'IMAGES'
