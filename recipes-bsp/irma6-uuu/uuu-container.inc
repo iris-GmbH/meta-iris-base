@@ -63,7 +63,7 @@ do_deploy () {
     # If a file exists so far, delete it
     rm -f ${UUU_DEPLOY_DIR}/${HASHSUMS}
 
-    # Read out the hashsum annd store it into variable hash_flashbin without the path output of sha256sum
+    # Read out the hashsum and store it into variable hash_flashbin without the path output of sha256sum
     hash_flashbin=$(sha256sum ${UUU_DEPLOY_DIR}/${FLASHBINDEPLOY} | cut -d' ' -f1)
     # Write the formatted value together with a variable into hashsum file
     echo "HASH_FLASHBIN=\"$hash_flashbin\"" >> ${UUU_DEPLOY_DIR}/${HASHSUMS}
