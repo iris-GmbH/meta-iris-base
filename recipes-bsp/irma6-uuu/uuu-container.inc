@@ -23,7 +23,11 @@ do_deploy[nostamp] = "1"
 # set generic file names that should match for most images
 KERNEL = "Image-${MACHINE}.bin"
 ROOTFS = "${IMAGENAME}-${MACHINE}-*.rootfs.ext4.gz"
-PARTITIONS = "partitions_${MACHINE}"
+# Although the flashall.uuu script only differs in the dtb-file name, 
+# it is created specifically for each of the available machines and stored and used as separate files:
+# A template doesn't leave much space for adaptations and would depend on the recipe being executed.
+# That's why, only the partitions file is used for all machines with the adapted weak setting.
+PARTITIONS ?= "partitions_${MACHINE}"
 UUUSCRIPT = "flashall_${MACHINE}.uuu"
 INITRAMFS = "${INITRAMFSNAME}-${MACHINE}-*.rootfs.cpio.gz.u-boot"
 
