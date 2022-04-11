@@ -64,6 +64,13 @@ FBK: acmd mmc=`cat /tmp/mmcdev`; zcat | dd of=/dev/mmcblk${mmc}p6
 FBK: ucp rootfs.ext4.gz t:-
 FBK: ucmd sync
 
+# Hashsum check
+FBK: ucp verification.sh t:/tmp
+FBK: ucp hashsums t:/tmp
+FBK: ucmd /bin/sh /tmp/verification.sh
+# wait for end of operation as there are u/mount operations in the script
+FBK: ucmd sync
+
 # Create ext4 data partition (userdata)
 FBK: ucmd mmc=`cat /tmp/mmcdev`; mkfs.ext4 -F -E nodiscard /dev/mmcblk${mmc}p5
 FBK: ucmd sync
