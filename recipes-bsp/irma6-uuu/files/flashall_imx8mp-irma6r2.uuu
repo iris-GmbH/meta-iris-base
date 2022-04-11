@@ -45,13 +45,13 @@ FBK: ucmd mmc=`cat /tmp/mmcdev`; mkfs.vfat /dev/mmcblk${mmc}p2
 FBK: ucmd mkdir -p /mnt/fat
 FBK: ucmd mmc=`cat /tmp/mmcdev`; mount -t vfat /dev/mmcblk${mmc}p2 /mnt/fat
 FBK: ucp  Image t:/mnt/fat/Image
-FBK: ucp  devicetree.dtb t:/mnt/fat/imx8mp-evk.dtb
+FBK: ucp  devicetree.dtb t:/mnt/fat/imx8mp-irma6r2.dtb
 FBK: ucmd umount /mnt/fat
 
 FBK: ucmd mmc=`cat /tmp/mmcdev`; mkfs.vfat /dev/mmcblk${mmc}p3
 FBK: ucmd mmc=`cat /tmp/mmcdev`; mount -t vfat /dev/mmcblk${mmc}p3 /mnt/fat
 FBK: ucp  Image t:/mnt/fat/Image
-FBK: ucp  devicetree.dtb t:/mnt/fat/imx8mp-evk.dtb
+FBK: ucp  devicetree.dtb t:/mnt/fat/imx8mp-irma6r2.dtb
 FBK: ucmd umount /mnt/fat
 FBK: ucmd sync
 
