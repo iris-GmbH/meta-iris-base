@@ -1,0 +1,27 @@
+From aea6260fcd49494007e092c025cb0639913e00c5 Mon Sep 17 00:00:00 2001
+From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+Date: Tue, 12 Apr 2022 10:33:38 +0200
+Subject: [PATCH] Enable Secure Boot / HAB on imx8mp-irma6r2
+
+Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+---
+ configs/imx8mp_irma6r2_defconfig | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/configs/imx8mp_irma6r2_defconfig b/configs/imx8mp_irma6r2_defconfig
+index e4333589b4..15449accb6 100644
+--- a/configs/imx8mp_irma6r2_defconfig
++++ b/configs/imx8mp_irma6r2_defconfig
+@@ -18,7 +18,9 @@ CONFIG_SPL_SERIAL_SUPPORT=y
+ CONFIG_SPL_DRIVERS_MISC_SUPPORT=y
+ CONFIG_NR_DRAM_BANKS=3
+ CONFIG_SPL=y
++CONFIG_IMX_HAB=y
+ CONFIG_CSF_SIZE=0x2000
++# CONFIG_CMD_DEKBLOB is not set
+ CONFIG_SPL_IMX_ROMAPI_LOADADDR=0x48000000
+ CONFIG_SPL_TEXT_BASE=0x920000
+ CONFIG_FIT=y
+-- 
+2.35.1
+

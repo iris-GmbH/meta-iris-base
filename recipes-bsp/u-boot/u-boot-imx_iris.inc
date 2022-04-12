@@ -10,6 +10,7 @@ SRC_URI_append = "\
 FILESEXTRAPATHS_prepend_imx8mpevk := "${THISDIR}/u-boot-imx/imx8mpevk:"
 SRC_URI_append_imx8mpevk = "\
 	file://0001-Use-partition-labels-in-environment-and-auto-detect-.patch\
+	file://0002-Enable-Secure-Boot-HAB-on-imx8mp-evk.patch \
 "
 
 FILESEXTRAPATHS_prepend_imx8mp-irma6r2 := "${THISDIR}/u-boot-imx/imx8mp-irma6r2:"
@@ -27,4 +28,5 @@ SRC_URI_append_imx8mp-irma6r2 = "\
 	file://0011-Disable-fec-node-for-irma6r2.patch \
 	file://0012-Setup-eqos-for-RMII.patch \
 	file://0013-Use-partition-labels-in-environment-and-auto-detect-.patch \
+	file://0014-Enable-Secure-Boot-HAB-on-imx8mp-irma6r2.patch \
 "

@@ -1,0 +1,27 @@
+From 8ce9d9f9b06e2563e670f8a1d3f4fc91e05f57a8 Mon Sep 17 00:00:00 2001
+From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+Date: Tue, 12 Apr 2022 10:34:27 +0200
+Subject: [PATCH] Enable Secure Boot / HAB on imx8mp-evk
+
+Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+---
+ configs/imx8mp_evk_defconfig | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/configs/imx8mp_evk_defconfig b/configs/imx8mp_evk_defconfig
+index 82d1281f5b..e636b3a216 100644
+--- a/configs/imx8mp_evk_defconfig
++++ b/configs/imx8mp_evk_defconfig
+@@ -20,7 +20,9 @@ CONFIG_SPL_SERIAL_SUPPORT=y
+ CONFIG_SPL_DRIVERS_MISC_SUPPORT=y
+ CONFIG_SPL=y
+ CONFIG_SPL_IMX_ROMAPI_LOADADDR=0x48000000
++CONFIG_IMX_HAB=y
+ CONFIG_CSF_SIZE=0x2000
++# CONFIG_CMD_DEKBLOB is not set
+ CONFIG_SPL_TEXT_BASE=0x920000
+ CONFIG_FIT=y
+ CONFIG_FIT_EXTERNAL_OFFSET=0x3000
+-- 
+2.35.1
+
