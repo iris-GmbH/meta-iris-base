@@ -28,4 +28,5 @@ SRC_URI_append_imx8mp-irma6r2 = "\
 	file://0011-Disable-fec-node-for-irma6r2.patch \
 	file://0012-Setup-eqos-for-RMII.patch \
 	file://0013-Use-partition-labels-in-environment-and-auto-detect-.patch \
+	file://0014-Enable-Secure-Boot-HAB-on-imx8mp-irma6r2.patch \
 "
