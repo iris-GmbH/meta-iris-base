@@ -1,6 +1,8 @@
 # SPDX-License-Identifier: MIT
 # Copyright (C) 2021 iris-GmbH infrared & intelligent sensors
 
+MACHINEOVERRIDES =. "sc57x:"
+
 MACHINE_EXTRA_RRECOMMENDS = " kernel-modules kernel-devicetree"
 
 EXTRA_IMAGEDEPENDS += "u-boot"
