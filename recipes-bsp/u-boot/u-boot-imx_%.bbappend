@@ -8,3 +8,5 @@ do_install_append() {
     install -d ${D}/${datadir}
     install ${B}/.scmversion ${D}${datadir}/uboot.release
 }
+
+inherit uboot-hab-sign
