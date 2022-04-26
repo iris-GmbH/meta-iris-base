@@ -16,7 +16,7 @@
 			load = <ITS_KERNEL_LOAD_ADDR>;
 			entry = <ITS_KERNEL_ENTRY_ADDR>;
 			hash@1 {
-				algo = "sha1";
+				algo = "sha256";
 			};
 		};
 		fdt@1 {
@@ -28,7 +28,7 @@
 			load = <0x43000000>;
 			entry = <0x43000000>;
 			hash@1 {
-				algo = "sha1";
+				algo = "sha256";
 			};
 		};
 		ramdisk@1 {
@@ -40,7 +40,7 @@
 			compression = "none";
 
 			hash@1 {
-				algo = "sha1";
+				algo = "sha256";
 			};
 		};
 	};
@@ -54,7 +54,7 @@
 			ramdisk = "ramdisk@1";
 
 			hash@1 {
-				algo = "sha1";
+				algo = "sha256";
 			};
 		};
 	};
