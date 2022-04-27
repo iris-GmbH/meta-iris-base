@@ -78,3 +78,47 @@ do_assemble_fit() {
 	prepare_hab_image ${ITB_FNAME}
 	install ${ITB_FNAME}-ivt.${KERNEL_SIGN_SUFFIX} ${DEPLOY_DIR_IMAGE}/${ITB_FNAME}.${KERNEL_SIGN_SUFFIX}
 }
+
+#
+# Emit the CSF File
+#
+# $1 ... .csf filename
+# $2 ... SRK Table Binary
+# $3 ... CSF Key File
+# $4 ... Image Key File
+# $5 ... Blocks Parameter
+# $6 ... Image File
+# $7 ... Crypto engine
+csf_emit_file() {
+	cat << EOF > ${1}
+[Header]
+Version = 4.5
+Hash Algorithm = sha256
+Engine Configuration = 0
+Certificate Format = X509
+Signature Format = CMS
+Engine = ${7}
+
+[Install SRK]
+File = "${2}"
+Source index = 0
+
+[Install CSFK]
+File = "${3}"
+
+[Authenticate CSF]
+
+[Install Key]
+Verification index = 0
+Target Index = 2
+File= "${4}"
+
+[Authenticate Data]
+Verification index = 2
+Blocks = ${5} "${6}"
+
+[Unlock]
+Engine = ${7}
+Features = RNG
+EOF
+}
