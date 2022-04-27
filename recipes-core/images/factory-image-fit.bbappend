@@ -63,7 +63,7 @@ do_assemble_fit() {
 	sed -i "s|MACHINE|$MACHINE|g" rescue.its
 	sed -i "s|TARGET_ARCH|$TARGET_ARCH|g" rescue.its
 	sed -i "s|KERNEL_IMAGETYPE|$KERNEL_IMAGETYPE|g" rescue.its
-	sed -i "s|KERNEL_DEVICETREE|$KERNEL_DEVICETREE|g" rescue.its
+	sed -i "s|KERNEL_DEVICETREE|$(basename $KERNEL_DEVICETREE)|g" rescue.its
 	cat rescue.its
 	echo "======== create itb file ==========="
 	uboot-mkimage -D "-I dts -O dtb -p 0x1000" -f rescue.its ${ITB_FNAME}
