@@ -46,6 +46,11 @@ do_assemble_fit() {
 	export RESCUE_RUNNING_VERSION=${RESCUE_RUNNING_VERSION}
 	export MACHINE=${MACHINE}
 	export KERNEL_IMAGETYPE=${KERNEL_IMAGETYPE}
+	if [ "${KERNEL_IMAGETYPE}" = "Image.gz" ]; then
+		export KERNEL_COMPRESSION=gzip
+	else
+		export KERNEL_COMPRESSION=none
+	fi
 	if [ "${TARGET_ARCH}" = "aarch64" ]; then
 		export TARGET_ARCH=arm64
 	else
@@ -63,6 +68,7 @@ do_assemble_fit() {
 	sed -i "s|MACHINE|$MACHINE|g" rescue.its
 	sed -i "s|TARGET_ARCH|$TARGET_ARCH|g" rescue.its
 	sed -i "s|KERNEL_IMAGETYPE|$KERNEL_IMAGETYPE|g" rescue.its
+	sed -i "s|KERNEL_COMPRESSION|$KERNEL_COMPRESSION|g" rescue.its
 	sed -i "s|KERNEL_DEVICETREE|$(basename $KERNEL_DEVICETREE)|g" rescue.its
 	cat rescue.its
 	echo "======== create itb file ==========="
