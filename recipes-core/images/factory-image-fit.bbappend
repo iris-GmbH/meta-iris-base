@@ -1,3 +1,5 @@
+FILESEXTRAPATHS_prepend := "${THISDIR}/files:"
+
 do_assemble_fit_prepend() {
 	if [ -z "${FITLOADADDR}" ]; then
 		FITLOADADDR=0x48000000
