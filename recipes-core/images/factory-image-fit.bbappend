@@ -46,7 +46,11 @@ do_assemble_fit() {
 	export RESCUE_RUNNING_VERSION=${RESCUE_RUNNING_VERSION}
 	export MACHINE=${MACHINE}
 	export KERNEL_IMAGETYPE=${KERNEL_IMAGETYPE}
-	export TARGET_ARCH=${TARGET_ARCH}
+	if [ "${TARGET_ARCH}" = "aarch64" ]; then
+		export TARGET_ARCH=arm64
+	else
+		export TARGET_ARCH=${TARGET_ARCH}
+	fi
 	echo "B" ${B}
 	echo "S" ${S}
 	echo $DEPLOY_DIR_IMAGE
