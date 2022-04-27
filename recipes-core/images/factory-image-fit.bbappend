@@ -45,6 +45,7 @@ do_assemble_fit() {
 	export RESCUE_NAME_FULL=${RESCUE_NAME_FULL}
 	export RESCUE_RUNNING_VERSION=${RESCUE_RUNNING_VERSION}
 	export MACHINE=${MACHINE}
+	export KERNEL_IMAGETYPE=${KERNEL_IMAGETYPE}
 	export TARGET_ARCH=${TARGET_ARCH}
 	echo "B" ${B}
 	echo "S" ${S}
@@ -57,6 +58,7 @@ do_assemble_fit() {
 	sed -i "s|RESCUE_RUNNING_VERSION|$RESCUE_RUNNING_VERSION|g" rescue.its
 	sed -i "s|MACHINE|$MACHINE|g" rescue.its
 	sed -i "s|TARGET_ARCH|$TARGET_ARCH|g" rescue.its
+	sed -i "s|KERNEL_IMAGETYPE|$KERNEL_IMAGETYPE|g" rescue.its
 	sed -i "s|KERNEL_DEVICETREE|$KERNEL_DEVICETREE|g" rescue.its
 	cat rescue.its
 	echo "======== create itb file ==========="
