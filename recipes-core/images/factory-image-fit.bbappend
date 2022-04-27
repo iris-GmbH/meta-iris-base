@@ -32,3 +32,41 @@ do_assemble_fit_prepend() {
 	sed -i "s|ITS_KERNEL_LOAD_ADDR|0x40480000|g" ${B}/rescue.its.in
 	sed -i "s|ITS_KERNEL_ENTRY_ADDR|0x40480000|g" ${B}/rescue.its.in
 }
+
+# create fit Image
+do_assemble_fit() {
+	echo "STAGING_KERNEL_DIR" ${STAGING_KERNEL_DIR}
+	echo "STAGING_KERNEL_BUILDDIR" ${STAGING_KERNEL_BUILDDIR}
+	echo "KERNEL_SRC_PATH" ${KERNEL_SRC_PATH}
+	export DEPLOY_DIR_IMAGE=${DEPLOY_DIR_IMAGE}
+	export KERNEL_DEVICETREE=${KERNEL_DEVICETREE}
+	export RESCUE_NAME_FULL=${RESCUE_NAME_FULL}
+	export RESCUE_RUNNING_VERSION=${RESCUE_RUNNING_VERSION}
+	export MACHINE=${MACHINE}
+	export TARGET_ARCH=${TARGET_ARCH}
+	echo "B" ${B}
+	echo "S" ${S}
+	echo $DEPLOY_DIR_IMAGE
+	echo "FNAME " ${ITB_FNAME}
+	cd ${B}
+	cp ${B}/rescue.its.in ${B}/rescue.its
+	sed -i "s|DEPLOY_DIR_IMAGE|$DEPLOY_DIR_IMAGE|g" rescue.its
+	sed -i "s|RESCUE_NAME_FULL|$RESCUE_NAME_FULL|g" rescue.its
+	sed -i "s|RESCUE_RUNNING_VERSION|$RESCUE_RUNNING_VERSION|g" rescue.its
+	sed -i "s|MACHINE|$MACHINE|g" rescue.its
+	sed -i "s|TARGET_ARCH|$TARGET_ARCH|g" rescue.its
+	sed -i "s|KERNEL_DEVICETREE|$KERNEL_DEVICETREE|g" rescue.its
+	cat rescue.its
+	echo "======== create itb file ==========="
+	uboot-mkimage -D "-I dts -O dtb -p 0x1000" -f rescue.its ${ITB_FNAME}
+		if [ $? -ne 0 ]; then
+		echo create FIT image failed
+		exit 1
+	fi
+
+	install -d ${DEPLOY_DIR_IMAGE}
+	install -m 644 ${ITB_FNAME} ${DEPLOY_DIR_IMAGE}/${ITB_FNAME}
+
+	prepare_hab_image ${ITB_FNAME}
+	install ${ITB_FNAME}-ivt.${KERNEL_SIGN_SUFFIX} ${DEPLOY_DIR_IMAGE}/${ITB_FNAME}.${KERNEL_SIGN_SUFFIX}
+}
