@@ -3,6 +3,7 @@ INITRAMFS_COMMON_PACKAGES = " \
 			  base-files \
 			  udev \
 			  base-passwd \
+			  lvm2 \
 			  ${VIRTUAL-RUNTIME_base-utils} \
 			  ${ROOTFS_BOOTSTRAP_INSTALL} \
 "
