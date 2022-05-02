@@ -1,27 +1,118 @@
-From 8ce9d9f9b06e2563e670f8a1d3f4fc91e05f57a8 Mon Sep 17 00:00:00 2001
+From aea6260fcd49494007e092c025cb0639913e00c5 Mon Sep 17 00:00:00 2001
 From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
-Date: Tue, 12 Apr 2022 10:34:27 +0200
-Subject: [PATCH] Enable Secure Boot / HAB on imx8mp-evk
+Date: Tue, 12 Apr 2022 10:33:38 +0200
+Subject: [PATCH] Enable Secure Boot / HAB on imx8mp-irma6r2
 
 Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
 ---
- configs/imx8mp_evk_defconfig | 2 ++
+ configs/imx8mp_irma6r2_defconfig | 2 ++
  1 file changed, 2 insertions(+)
 
+diff --git a/cmd/bootm.c b/cmd/bootm.c
+index 03ea3b8998..1f90498358 100644
+--- a/cmd/bootm.c
++++ b/cmd/bootm.c
+@@ -161,8 +161,14 @@ int do_bootm(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
+ 	}
+ 
+ #else
++	ulong img_addr;
++	if(argc == 0) {
++		img_addr = image_load_addr;
++	} else {
++		img_addr = simple_strtoul(argv[0], NULL, 16);		
++	}
+ 
+-	switch (genimg_get_format((const void *)image_load_addr)) {
++	switch (genimg_get_format((void*) img_addr)) {
+ #if defined(CONFIG_LEGACY_IMAGE_FORMAT)
+ 	case IMAGE_FORMAT_LEGACY:
+ 		if (authenticate_image(image_load_addr,
+@@ -176,6 +182,15 @@ int do_bootm(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
+ 	case IMAGE_FORMAT_ANDROID:
+ 		/* Do this authentication in boota command */
+ 		break;
++#endif
++#ifdef CONFIG_FIT
++	case IMAGE_FORMAT_FIT:
++		if (authenticate_image(img_addr,
++			fit_get_size((void *)img_addr)) != 0) {
++			printf("Authenticate FIT image Fail, Please check\n");
++			return 1;
++		}
++		break;
+ #endif
+ 	default:
+ 		printf("Not valid image format for Authentication, Please check\n");
+diff --git a/common/image.c b/common/image.c
+index 94873cb6ed..896b97cb0b 100644
+--- a/common/image.c
++++ b/common/image.c
+@@ -1145,6 +1145,7 @@ int boot_get_ramdisk(int argc, char * const argv[], bootm_headers_t *images,
+ 		 * check image type, for FIT images get FIT node.
+ 		 */
+ 		buf = map_sysmem(rd_addr, 0);
++		printf("IMAGE FORMAT: %d\n", genimg_get_format(buf));
+ 		switch (genimg_get_format(buf)) {
+ #if CONFIG_IS_ENABLED(LEGACY_IMAGE_FORMAT)
+ 		case IMAGE_FORMAT_LEGACY:
 diff --git a/configs/imx8mp_evk_defconfig b/configs/imx8mp_evk_defconfig
-index 82d1281f5b..e636b3a216 100644
+index 82d1281f5b..8bb1c19684 100644
 --- a/configs/imx8mp_evk_defconfig
 +++ b/configs/imx8mp_evk_defconfig
-@@ -20,7 +20,9 @@ CONFIG_SPL_SERIAL_SUPPORT=y
+@@ -20,10 +20,13 @@ CONFIG_SPL_SERIAL_SUPPORT=y
  CONFIG_SPL_DRIVERS_MISC_SUPPORT=y
  CONFIG_SPL=y
  CONFIG_SPL_IMX_ROMAPI_LOADADDR=0x48000000
 +CONFIG_IMX_HAB=y
  CONFIG_CSF_SIZE=0x2000
-+# CONFIG_CMD_DEKBLOB is not set
  CONFIG_SPL_TEXT_BASE=0x920000
  CONFIG_FIT=y
  CONFIG_FIT_EXTERNAL_OFFSET=0x3000
++CONFIG_LEGACY_IMAGE_FORMAT=y
++CONFIG_FIT_SIGNATURE=y
+ CONFIG_SPL_LOAD_FIT=y
+ CONFIG_SPL_FIT_GENERATOR="arch/arm/mach-imx/mkimage_fit_atf.sh"
+ CONFIG_OF_SYSTEM_SETUP=y
+diff --git a/include/configs/imx8mp_evk.h b/include/configs/imx8mp_evk.h
+index 933dbde5cd..ebe8432a64 100644
+--- a/include/configs/imx8mp_evk.h
++++ b/include/configs/imx8mp_evk.h
+@@ -114,6 +114,9 @@
+ 		"source\0" \
+	"loadimage=fatload mmc ${mmcdev}#${mmcpart} ${loadaddr} ${image}\0" \
+	"loadfdt=fatload mmc ${mmcdev}#${mmcpart} ${fdt_addr} ${fdt_file}\0" \
++	"fit_img=fitImage.signed\0" \
++	"fit_addr=0x48000000\0" \
++	"fitboot=fatload mmc ${mmcdev}#${mmcpart} ${fit_addr} ${fit_img}; run mmcargs; bootm ${fit_addr}\0" \
+ 	"mmcboot=echo Booting from mmc ...; " \
+ 		"run mmcargs; " \
+ 		"if test ${boot_fit} = yes || test ${boot_fit} = try; then " \
+@@ -146,22 +149,13 @@
+ 			"fi; " \
+ 		"fi;\0"
+ 
+-#define CONFIG_BOOTCOMMAND \
+-	   "mmc dev ${mmcdev}; if mmc rescan; then " \
+-		   "if run loadbootscript; then " \
+-			   "run bootscript; " \
+-		   "else " \
+-			   "if run loadimage; then " \
+-				   "run mmcboot; " \
+-			   "else run netboot; " \
+-			   "fi; " \
+-		   "fi; " \
+-	   "fi;"
++#define CONFIG_BOOTCOMMAND "run fitboot;"
+ 
+ /* Link Definitions */
+ #define CONFIG_LOADADDR			0x40480000
+ 
+ #define CONFIG_SYS_LOAD_ADDR		CONFIG_LOADADDR
++#define CONFIG_SYS_BOOTM_LEN		0x2000000 /* 32MB */
+ 
+ #define CONFIG_SYS_INIT_RAM_ADDR	0x40000000
+ #define CONFIG_SYS_INIT_RAM_SIZE	0x80000
 -- 
 2.35.1
 
