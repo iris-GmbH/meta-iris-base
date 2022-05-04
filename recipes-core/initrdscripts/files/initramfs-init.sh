@@ -140,8 +140,15 @@ if [ "${ROOT_DEV}" == "" ] || [ "${ROOT_DEV}" == "/dev/nfs" ]; then
     error_exit
 fi
 
+mkdir /tmp/hashstore/
+mount /dev/mapper/irma6lvm-hashstore /tmp/hashstore/
+RH_A=$(cat /tmp/hashstore/rootfs_a_roothash)
+umount /tmp/hashstore
+
+veritysetup open /dev/mapper/irma6lvm-rootfs_a verity-rootfs_a /dev/mapper/irma6lvm-rootfs_a_hash ${RH_A}
+
 #encrypt_rootfs ${ROOT_DEV}
-mount /dev/mapper/irma6lvm-rootfs_a /mnt/
+mount /dev/mapper/verity-rootfs_a /mnt/
 
 #umount_pseudo_fs
 

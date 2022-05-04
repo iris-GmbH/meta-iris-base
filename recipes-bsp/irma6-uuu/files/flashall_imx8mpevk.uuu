@@ -52,8 +52,11 @@ FBK: ucmd sync
 FBK: ucmd mmc=`cat /tmp/mmcdev`; pvcreate -ff -y /dev/mmcblk${mmc}p3
 FBK: ucmd mmc=`cat /tmp/mmcdev`; vgcreate irma6lvm /dev/mmcblk${mmc}p3
 FBK: ucmd lvcreate --zero n -n rootfs_a -L 512MB irma6lvm
+FBK: ucmd lvcreate --zero n -n rootfs_a_hash -L 32MB irma6lvm
 FBK: ucmd lvcreate --zero n -n rootfs_b -L 512MB irma6lvm
+FBK: ucmd lvcreate --zero n -n rootfs_b_hash -L 32MB irma6lvm
 FBK: ucmd lvcreate --zero n -n userdata -L 1024MB irma6lvm
+FBK: ucmd lvcreate --zero n -n hashstore -L 32MB irma6lvm
 FBK: ucmd vgchange -a y
 FBK: ucmd vgmknodes
 FBK: ucmd ls -la /dev/mapper/
@@ -65,6 +68,21 @@ FBK: ucmd sync
 
 FBK: acmd zcat | dd of=/dev/mapper/irma6lvm-rootfs_b
 FBK: ucp rootfs.ext4.gz t:-
+FBK: ucmd sync
+
+FBK: ucmd sleep 4
+
+# Create fat data partition (hashstore)
+FBK: ucmd mkfs.vfat /dev/mapper/irma6lvm-hashstore
+FBK: ucmd sync
+FBK: ucmd mkdir -p /mnt/hashstore
+FBK: ucmd mount -t vfat /dev/mapper/irma6lvm-hashstore /mnt/hashstore
+
+FBK: ucmd veritysetup format /dev/mapper/irma6lvm-rootfs_a /dev/mapper/irma6lvm-rootfs_a_hash | grep "Root hash:" | grep -Eo "[0-9a-f]+$" > /mnt/hashstore/rootfs_a_roothash
+FBK: ucmd veritysetup format /dev/mapper/irma6lvm-rootfs_b /dev/mapper/irma6lvm-rootfs_b_hash | grep "Root hash:" | grep -Eo "[0-9a-f]+$" > /mnt/hashstore/rootfs_b_roothash
+
+FBK: ucmd cat /mnt/hashstore/*
+FBK: ucmd umount /mnt/hashstore
 FBK: ucmd sync
 
 # Create ext4 data partition (userdata)
