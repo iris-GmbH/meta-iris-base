@@ -36,6 +36,7 @@ SRC_URI += " \
     file://0028-imx8mp-irma6r2.dts-change-board-model-name.patch \
     file://0029-imx8mp-irma6r2.dts-Disable-eqos-and-fec-ethernet-nod.patch \
     file://0030-imx8mp-irma6r2.dts-Set-DRAM-size-to-1x512MiB.patch \
+    file://0031-tc358746.c-Reset-when-changing-format.patch \
 "
 
 KERNEL_DEFCONFIG_imx8mpevk = "imx8mp-evk-r2_defconfig"
