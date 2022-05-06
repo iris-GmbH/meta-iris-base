@@ -11,8 +11,11 @@ SRC_URI_append = "\
 FILESEXTRAPATHS_prepend_imx8mpevk := "${THISDIR}/u-boot-imx/imx8mpevk:"
 SRC_URI_append_imx8mpevk = "\
 	file://0001-Use-partition-labels-in-environment-and-auto-detect-.patch\
-	file://0002-Enable-Secure-Boot-HAB-on-imx8mp-evk.patch \
+	file://0002-imx8mp-evk-Enable-secure-boot-and-FIT-image-support.patch \
 	file://0003-RDPHOEN-958-Remove-CONFIG_CMD_BOOTEFI-for-imx8mp_evk.patch \
+	file://0004-imx8mp-evk-Add-cmd-for-booting-signed-fitImage.patch \
+	file://0005-imx8mp-evk-Change-bootcmd-to-fitboot.patch \
+	file://0006-imx8mp-evk-Increase-CONFIG_SYS_BOOTM_LEN-to-32MB.patch \
 "
 
 FILESEXTRAPATHS_prepend_imx8mp-irma6r2 := "${THISDIR}/u-boot-imx/imx8mp-irma6r2:"
