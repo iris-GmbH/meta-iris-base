@@ -10,6 +10,7 @@ and this project adheres to [APR's Version Numbering](https://apr.apache.org/ver
 - [RDPHOEN-1034/1035/1036]: Add support for irma6-r2 machine, including patches for bootloader, boot image creation and kernel
 - [RDPHOEN-1067] Added R2 support in cloud Jenkins 
 - [DEVOPS-491] CST tool mirror and correct licensing
+- [APC-4501] Added backport of chrony recipe for NTS support introduced with v4.0
 
 
 ### Changed
