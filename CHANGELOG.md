@@ -11,6 +11,7 @@ and this project adheres to [APR's Version Numbering](https://apr.apache.org/ver
 - [RDPHOEN-1067] Added R2 support in cloud Jenkins 
 - [DEVOPS-491] CST tool mirror and correct licensing
 - [APC-4501] Added backport of chrony recipe for NTS support introduced with v4.0
+- [APC-4244]: Add nginx and sqlite3 as required by the new password protection of the webinterface
 
 
 ### Changed
