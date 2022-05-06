@@ -33,6 +33,9 @@ SRC_URI_append_imx8mp-irma6r2 = "\
 	file://0011-Disable-fec-node-for-irma6r2.patch \
 	file://0012-Setup-eqos-for-RMII.patch \
 	file://0013-Use-partition-labels-in-environment-and-auto-detect-.patch \
-	file://0014-Enable-Secure-Boot-HAB-on-imx8mp-irma6r2.patch \
+	file://0014-imx8mp-irma6r2-Enable-Secure-Boot-and-FIT-Image-supp.patch \
 	file://0015-RDPHOEN-958-Remove-CONFIG_CMD_BOOTEFI-for-imx8mp_irm.patch \
+	file://0016-imx8mp-irma6r2-Add-cmd-for-booting-signed-fitImage.patch \
+	file://0017-imx8mp-irma6r2-Increase-CONFIG_SYS_BOOTM_LEN-to-32MB.patch \
+	file://0018-imx8mp-irma6r2-Change-bootcmd-to-fitboot.patch \
 "
