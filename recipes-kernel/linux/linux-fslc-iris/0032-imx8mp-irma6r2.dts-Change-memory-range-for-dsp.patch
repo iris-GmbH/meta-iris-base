@@ -1,0 +1,31 @@
+From c4dc9ddb461a920ad1c115e026652833fc94b830 Mon Sep 17 00:00:00 2001
+From: Erik Schumacher <erik.schumacher@iris-sensing.com>
+Date: Fri, 6 May 2022 10:39:56 +0200
+Subject: [PATCH] imx8mp-irma6r2.dts: Change memory range for dsp
+
+Move dsp reserved memory into RAM bounds
+Fixes kernel panic when booting a fit image
+
+Signed-off-by: Erik Schumacher <erik.schumacher@iris-sensing.com>
+---
+ arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts b/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
+index b16055d99eff..388a0a2c8469 100644
+--- a/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
++++ b/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
+@@ -96,6 +96,10 @@
+ 	};
+ };
+ 
++&dsp_reserved {
++	reg = <0 0x5C000000 0 0x2000000>;
++};
++
+ &clk {
+ 	init-on-array = <IMX8MP_CLK_HSIO_ROOT>;
+ };
+-- 
+2.34.1
+
