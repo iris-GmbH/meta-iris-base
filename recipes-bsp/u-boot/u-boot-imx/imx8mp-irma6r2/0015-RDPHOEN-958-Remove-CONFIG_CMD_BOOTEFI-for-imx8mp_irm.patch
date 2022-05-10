@@ -1,0 +1,27 @@
+From f38a23ed9025bc5c7041749cc79ecc3d721ae5e8 Mon Sep 17 00:00:00 2001
+From: "Jan.Hannig" <jan.hannig@irisgmbh.de>
+Date: Tue, 10 May 2022 13:32:01 +0200
+Subject: [PATCH 15/16] [RDPHOEN-958] Remove CONFIG_CMD_BOOTEFI for
+ imx8mp_irma6r2_defconfig
+
+As the function "efi_set_bootdev" called within this compiler switch
+causes the error msg "**Bad device specification mmc 2#linuxboot_a **".
+---
+ configs/imx8mp_irma6r2_defconfig | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/configs/imx8mp_irma6r2_defconfig b/configs/imx8mp_irma6r2_defconfig
+index e4333589b4..1dc7fa61b3 100644
+--- a/configs/imx8mp_irma6r2_defconfig
++++ b/configs/imx8mp_irma6r2_defconfig
+@@ -40,6 +40,7 @@ CONFIG_SPL_POWER_SUPPORT=y
+ CONFIG_HUSH_PARSER=y
+ CONFIG_SYS_PROMPT="u-boot=> "
+ # CONFIG_BOOTM_NETBSD is not set
++# CONFIG_CMD_BOOTEFI is not set
+ # CONFIG_CMD_EXPORTENV is not set
+ # CONFIG_CMD_IMPORTENV is not set
+ CONFIG_CMD_ERASEENV=y
+-- 
+2.20.1
+
