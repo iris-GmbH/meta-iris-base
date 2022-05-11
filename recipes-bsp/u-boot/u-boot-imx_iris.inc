@@ -11,7 +11,7 @@ FILESEXTRAPATHS_prepend_imx8mpevk := "${THISDIR}/u-boot-imx/imx8mpevk:"
 SRC_URI_append_imx8mpevk = "\
 	file://0001-Use-partition-labels-in-environment-and-auto-detect-.patch\
 	file://0002-Enable-Secure-Boot-HAB-on-imx8mp-evk.patch \
-    file://0003-RDPHOEN-958-Remove-CONFIG_CMD_BOOTEFI-for-imx8mp_evk.patch \
+	file://0003-RDPHOEN-958-Remove-CONFIG_CMD_BOOTEFI-for-imx8mp_evk.patch \
 "
 
 FILESEXTRAPATHS_prepend_imx8mp-irma6r2 := "${THISDIR}/u-boot-imx/imx8mp-irma6r2:"
