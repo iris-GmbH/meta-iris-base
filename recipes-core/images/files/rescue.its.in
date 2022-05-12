@@ -1,22 +1,22 @@
 /dts-v1/;
 
 / {
-	description = "Rescue Image for MACHINE board";
-	version = "RES_RESCUE_RUNNING_VERSION";
+	description = "FITIMAGE_DESCRIPTION for MACHINE board";
+	version = "FITIMAGE_RUNNING_VERSION";
 	#address-cells = <1>;
 
 	images {
 		kernel@1 {
 			description = "Linux kernel";
-			data = /incbin/("DEPLOY_DIR_IMAGE/fitImage-linux.bin-MACHINE");
+			data = /incbin/("DEPLOY_DIR_IMAGE/KERNEL_IMAGETYPE");
 			type = "kernel";
 			arch = "TARGET_ARCH";
 			os = "linux";
-			compression = "none";
+			compression = "KERNEL_COMPRESSION";
 			load = <ITS_KERNEL_LOAD_ADDR>;
 			entry = <ITS_KERNEL_ENTRY_ADDR>;
 			hash@1 {
-				algo = "sha1";
+				algo = "sha256";
 			};
 		};
 		fdt@1 {
@@ -25,8 +25,10 @@
 			type = "flat_dt";
 			arch = "TARGET_ARCH";
 			compression = "none";
+			load = <0x43000000>;
+			entry = <0x43000000>;
 			hash@1 {
-				algo = "sha1";
+				algo = "sha256";
 			};
 		};
 		ramdisk@1 {
@@ -38,7 +40,7 @@
 			compression = "none";
 
 			hash@1 {
-				algo = "sha1";
+				algo = "sha256";
 			};
 		};
 	};
@@ -52,7 +54,7 @@
 			ramdisk = "ramdisk@1";
 
 			hash@1 {
-				algo = "sha1";
+				algo = "sha256";
 			};
 		};
 	};
