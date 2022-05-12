@@ -59,9 +59,22 @@ do_assemble_fit() {
 	export DEPLOY_DIR_IMAGE=${DEPLOY_DIR_IMAGE}
 	export KERNEL_DEVICETREE=${KERNEL_DEVICETREE}
 	export RESCUE_NAME_FULL=${RESCUE_NAME_FULL}
-	export RESCUE_RUNNING_VERSION=${RESCUE_RUNNING_VERSION}
+	export FITIMAGE_DESCRIPTION="${FITIMAGE_DESCRIPTION}"
+	export FITIMAGE_RUNNING_VERSION=${FITIMAGE_RUNNING_VERSION}
 	export MACHINE=${MACHINE}
-	export TARGET_ARCH=${TARGET_ARCH}
+	export ITS_KERNEL_LOAD_ADDR=${ITS_KERNEL_LOAD_ADDR}
+	export ITS_KERNEL_ENTRY_ADDR=${ITS_KERNEL_ENTRY_ADDR}
+	export KERNEL_IMAGETYPE=${KERNEL_IMAGETYPE}
+	if [ "${KERNEL_IMAGETYPE}" = "Image.gz" ]; then
+		export KERNEL_COMPRESSION=gzip
+	else
+		export KERNEL_COMPRESSION=none
+	fi
+	if [ "${TARGET_ARCH}" = "aarch64" ]; then
+		export TARGET_ARCH=arm64
+	else
+		export TARGET_ARCH=${TARGET_ARCH}
+	fi
 	echo "B" ${B}
 	echo "S" ${S}
 	echo $DEPLOY_DIR_IMAGE
@@ -70,10 +83,15 @@ do_assemble_fit() {
 	cp ${B}/rescue.its.in ${B}/rescue.its
 	sed -i "s|DEPLOY_DIR_IMAGE|$DEPLOY_DIR_IMAGE|g" rescue.its
 	sed -i "s|RESCUE_NAME_FULL|$RESCUE_NAME_FULL|g" rescue.its
-	sed -i "s|RESCUE_RUNNING_VERSION|$RESCUE_RUNNING_VERSION|g" rescue.its
+	sed -i "s|FITIMAGE_DESCRIPTION|$FITIMAGE_DESCRIPTION|g" rescue.its
+	sed -i "s|FITIMAGE_RUNNING_VERSION|$FITIMAGE_RUNNING_VERSION|g" rescue.its
 	sed -i "s|MACHINE|$MACHINE|g" rescue.its
 	sed -i "s|TARGET_ARCH|$TARGET_ARCH|g" rescue.its
-	sed -i "s|KERNEL_DEVICETREE|$KERNEL_DEVICETREE|g" rescue.its
+	sed -i "s|KERNEL_IMAGETYPE|$KERNEL_IMAGETYPE|g" rescue.its
+	sed -i "s|KERNEL_COMPRESSION|$KERNEL_COMPRESSION|g" rescue.its
+	sed -i "s|KERNEL_DEVICETREE|$(basename $KERNEL_DEVICETREE)|g" rescue.its
+	sed -i "s|ITS_KERNEL_LOAD_ADDR|$ITS_KERNEL_LOAD_ADDR|g" rescue.its
+	sed -i "s|ITS_KERNEL_ENTRY_ADDR|$ITS_KERNEL_ENTRY_ADDR|g" rescue.its
 	cat rescue.its
 	echo "======== create itb file ==========="
 	uboot-mkimage -D "-I dts -O dtb -p 0x1000" -f rescue.its ${ITB_FNAME}
@@ -93,7 +111,7 @@ do_assemble_fit() {
 csf_emit_file() {
 	cat << EOF > ${1}
 [Header]
-Version = 4.1
+Version = 4.5
 Hash Algorithm = sha256
 Engine Configuration = 0
 Certificate Format = X509
