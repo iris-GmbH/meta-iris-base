@@ -13,6 +13,7 @@ and this project adheres to [APR's Version Numbering](https://apr.apache.org/ver
 - [APC-4501] Added backport of chrony recipe for NTS support introduced with v4.0
 - [APC-4244]: Add nginx and sqlite3 as required by the new password protection of the webinterface
 - [RDPHOEN-1083]: Add HAB support on imx8, enable and switch to fit image boot
+- [RDPHOEN-1083]: Sign bootable image: imx-boot.signed
 
 
 ### Changed
