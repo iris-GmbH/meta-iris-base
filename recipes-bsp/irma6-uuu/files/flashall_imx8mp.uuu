@@ -11,13 +11,9 @@ FB: ucmd setenv emmc_cmd mmc bootbus ${emmc_dev} 2 2 1;
 FB: ucmd if test "${emmc_skip_fb}" != "yes"; then run emmc_cmd; fi
 
 # Load kernel and boot from initramfs
-FB: ucmd setenv fastboot_buffer ${loadaddr}
-FB: download -f Image
-FB: ucmd setenv fastboot_buffer ${fdt_addr}
-FB: download -f devicetree.dtb
-FB: ucmd setenv fastboot_buffer ${initrd_addr}
-FB: download -f rootfs.cpio.gz.u-boot
-FB: acmd ${kboot} ${loadaddr} ${initrd_addr} ${fdt_addr}
+FB: ucmd setenv fastboot_buffer ${fit_addr}
+FB: download -f fitImage-uuu.signed
+FB: acmd bootm ${fit_addr}
 
 # Wait for emmc and save mmc device path
 FBK: ucmd while [ ! -e /dev/mmcblk*boot0 ]; do sleep 1; echo "wait for /dev/mmcblk*boot* appear"; done;
@@ -39,19 +35,17 @@ FBK: ucmd sync
 FBK: ucmd mmc=`cat /tmp/mmcdev`; echo 1 > /sys/block/mmcblk${mmc}boot0/force_ro
 FBK: ucmd mmc=`cat /tmp/mmcdev`; echo 1 > /sys/block/mmcblk${mmc}boot1/force_ro
 
-# load kernel and devicetree and flash them to both linuxboot partitions
+# flash fitimage to both linuxboot partitions
 FBK: ucmd mmc=`cat /tmp/mmcdev`; while [ ! -e /dev/mmcblk${mmc}p2 ]; do sleep 1; done
 FBK: ucmd mmc=`cat /tmp/mmcdev`; mkfs.vfat /dev/mmcblk${mmc}p2
 FBK: ucmd mkdir -p /mnt/fat
 FBK: ucmd mmc=`cat /tmp/mmcdev`; mount -t vfat /dev/mmcblk${mmc}p2 /mnt/fat
-FBK: ucp  Image t:/mnt/fat/Image
-FBK: ucp  devicetree.dtb t:/mnt/fat/imx8mp-irma6r2.dtb
+FBK: ucp  fitImage.signed t:/mnt/fat/fitImage.signed
 FBK: ucmd umount /mnt/fat
 
 FBK: ucmd mmc=`cat /tmp/mmcdev`; mkfs.vfat /dev/mmcblk${mmc}p3
 FBK: ucmd mmc=`cat /tmp/mmcdev`; mount -t vfat /dev/mmcblk${mmc}p3 /mnt/fat
-FBK: ucp  Image t:/mnt/fat/Image
-FBK: ucp  devicetree.dtb t:/mnt/fat/imx8mp-irma6r2.dtb
+FBK: ucp  fitImage.signed t:/mnt/fat/fitImage.signed
 FBK: ucmd umount /mnt/fat
 FBK: ucmd sync
 
