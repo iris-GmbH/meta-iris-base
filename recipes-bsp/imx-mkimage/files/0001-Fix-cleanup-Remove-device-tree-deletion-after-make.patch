@@ -1,0 +1,29 @@
+From f728de0bfee95f26ebf4a2e8164a69938a697ce8 Mon Sep 17 00:00:00 2001
+From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+Date: Thu, 12 May 2022 15:17:15 +0200
+Subject: [PATCH] Fix cleanup: Remove device tree deletion after make
+
+The device tree is deleted after processing. This is problematic because the
+temporary name is identical to the default name.
+
+Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+---
+ iMX8M/soc.mak | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/iMX8M/soc.mak b/iMX8M/soc.mak
+index 4e23da8..0df22dd 100644
+--- a/iMX8M/soc.mak
++++ b/iMX8M/soc.mak
+@@ -156,7 +156,7 @@ u-boot.itb: $(dtbs)
+ 	./$(PAD_IMAGE) u-boot-nodtb.bin $(dtbs)
+ 	DEK_BLOB_LOAD_ADDR=$(DEK_BLOB_LOAD_ADDR) TEE_LOAD_ADDR=$(TEE_LOAD_ADDR) ATF_LOAD_ADDR=$(ATF_LOAD_ADDR) ./mkimage_fit_atf.sh $(dtbs) > u-boot.its
+ 	./mkimage_uboot -E -p 0x3000 -f u-boot.its u-boot.itb
+-	@rm -f u-boot.its $(dtbs)
++	@rm -f u-boot.its
+ 
+ dtbs_ddr3l = valddr3l.dtb
+ $(dtbs_ddr3l):
+-- 
+2.35.1
+
