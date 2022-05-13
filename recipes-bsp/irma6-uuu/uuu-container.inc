@@ -29,8 +29,8 @@ ROOTFS = "${IMAGENAME}-${MACHINE}-*.rootfs.ext4.gz"
 # Second, the independence between Yocto and the content of the hashsum toolchain shall be guaranteed.
 # That's why, only the partitions file is used for all machines with the adapted weak setting.
 PARTITIONS ?= "partitions_${MACHINE}"
-UUUSCRIPT = "flashall_${MACHINE}.uuu"
-VERIFICATIONSCRIPT = "verification_${MACHINE}.sh"
+UUUSCRIPT ?= "flashall_${MACHINE}.uuu"
+VERIFICATIONSCRIPT ?= "verification_${MACHINE}.sh"
 INITRAMFS = "${INITRAMFSNAME}-${MACHINE}-*.rootfs.cpio.gz.u-boot"
 
 # set output directory and file names
