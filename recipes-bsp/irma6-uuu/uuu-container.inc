@@ -32,7 +32,7 @@ FITIMAGEUUU = "irma6-fitimage-uuu.itb.signed"
 # set output directory and file names
 UUU_DEPLOY_DIR = "${DEPLOYDIR}/${PN}"
 
-FLASHBINDEPLOY = "flash.bin"
+FLASHBINDEPLOY = "flash.bin.signed"
 HASHSUMS = "hashsums"
 ROOTFSDEPLOY = "rootfs.ext4.gz"
 PARTITIONSDEPLOY = "partitions"

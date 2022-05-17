@@ -1,7 +1,7 @@
 uuu_version 1.4.165
 
-# Boot flash.bin
-SDPS: boot -f flash.bin
+# Boot flash.bin.signed
+SDPS: boot -f flash.bin.signed
 
 # Configure boot mode of emmc (boot0 active, x8 buswidth)
 FB: ucmd if env exists emmc_ack; then ; else setenv emmc_ack 0; fi;
@@ -25,12 +25,12 @@ FBK: ucmd mmc=`cat /tmp/mmcdev`; dd if=/dev/zero of=/dev/mmcblk${mmc} bs=1M coun
 FBK: ucmd mmc=`cat /tmp/mmcdev`; cat /tmp/partitions | sfdisk --force /dev/mmcblk${mmc}
 FBK: ucmd sync
 
-# load bootloader container (flash.bin) and flash it to both hardware boot partitions
-FBK: ucp  flash.bin t:/tmp
+# load bootloader container (flash.bin.signed) and flash it to both hardware boot partitions
+FBK: ucp  flash.bin.signed t:/tmp
 FBK: ucmd mmc=`cat /tmp/mmcdev`; echo 0 > /sys/block/mmcblk${mmc}boot0/force_ro
 FBK: ucmd mmc=`cat /tmp/mmcdev`; echo 0 > /sys/block/mmcblk${mmc}boot1/force_ro
-FBK: ucmd mmc=`cat /tmp/mmcdev`; dd if=/tmp/flash.bin of=/dev/mmcblk${mmc}boot0
-FBK: ucmd mmc=`cat /tmp/mmcdev`; dd if=/tmp/flash.bin of=/dev/mmcblk${mmc}boot1
+FBK: ucmd mmc=`cat /tmp/mmcdev`; dd if=/tmp/flash.bin.signed of=/dev/mmcblk${mmc}boot0
+FBK: ucmd mmc=`cat /tmp/mmcdev`; dd if=/tmp/flash.bin.signed of=/dev/mmcblk${mmc}boot1
 FBK: ucmd sync
 FBK: ucmd mmc=`cat /tmp/mmcdev`; echo 1 > /sys/block/mmcblk${mmc}boot0/force_ro
 FBK: ucmd mmc=`cat /tmp/mmcdev`; echo 1 > /sys/block/mmcblk${mmc}boot1/force_ro
