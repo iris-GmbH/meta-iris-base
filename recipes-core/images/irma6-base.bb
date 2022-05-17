@@ -52,6 +52,8 @@ IMAGE_INSTALL_append = " \
 	${IRMA6_BASE_PACKAGES} \
 	${IRMA6_EXTRA_PACKAGES} \
 "
+# install any runtime dependencies of our platform application
+IMAGE_INSTALL_append = " libstdc++ libssl avahi-daemon libavahi-client libavahi-common libavahi-core protobuf-lite zlib yaml-cpp libelf libxml2 nginx sqlite3 rsyslog rsyslog-gnutls"
 
 # Include swupdate in image if swupdate is part of the update procedure
 IMAGE_INSTALL_append = " ${@bb.utils.contains('UPDATE_PROCEDURE', 'swupdate', 'swupdate swupdate-www', '', d)}"
