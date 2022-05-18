@@ -10,6 +10,5 @@ FITIMAGE_RUNNING_VERSION = "1.0"
 
 # name of the recipe, which creates the rescue rootfs
 RESCUE_NAME = "fsl-image-mfgtool-initramfs"
-RESCUE_NAME_FULL = "${RESCUE_NAME}-${MACHINE}.cpio.gz.u-boot"
 
 require irma6-fit.inc
