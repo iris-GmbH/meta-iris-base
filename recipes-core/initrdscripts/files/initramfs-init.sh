@@ -11,8 +11,17 @@ ROOT_MNT="/mnt"
 MOUNT="/bin/mount"
 UMOUNT="/bin/umount"
 
+MOUNT_OPT="-o ro"
+
 # TODO: Dynamically switch a/b. Could be done via a kernel parameter - see parse_cmdline()
 ROOT_DEV="/dev/mapper/irma6lvm-rootfs_a"
+ROOT_HASH="/dev/mapper/irma6lvm-rootfs_a_hash"
+
+VERITY_NAME="verity-rootfs_a"
+VERITY_DEV="/dev/mapper/${VERITY_NAME}"
+
+HASH_DEV="/dev/mapper/irma6lvm-keystore"
+HASH_MNT="/tmp/keystore"
 
 # init
 if [ -z ${INIT} ];then
@@ -105,12 +114,19 @@ fi
 # Check root device
 debug "Root mnt   : ${ROOT_MNT}"
 debug "Root device: ${ROOT_DEV}"
+debug "Verity device: ${VERITY_DEV}"
 
 if [ "${ROOT_DEV}" == "" ] || [ "${ROOT_DEV}" == "/dev/nfs" ]; then
     error_exit
 fi
 
-mount ${ROOT_DEV} ${ROOT_MNT}
+mkdir ${HASH_MNT}
+mount ${HASH_DEV} ${HASH_MNT}
+RH_A=$(cat ${HASH_MNT}/rootfs_a_roothash)
+umount ${HASH_MNT}
+
+veritysetup open ${ROOT_DEV} ${VERITY_NAME} ${ROOT_HASH} ${RH_A}
+mount ${VERITY_DEV} ${ROOT_MNT} ${MOUNT_OPT}
 
 #Switch to real root
 echo "Switch to root"
