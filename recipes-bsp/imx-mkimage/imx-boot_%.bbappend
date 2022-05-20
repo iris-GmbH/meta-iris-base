@@ -7,6 +7,7 @@ SRC_URI_append_imx8mp-irma6r2 = " \
 "
 SRC_URI_append = " \
     file://0001-Fix-cleanup-Remove-device-tree-deletion-after-make.patch \
+    file://0002-MLK-24913-iMX8MP-Update-the-atf-load-address-to-0x97.patch \
 "
 
 SOC_TARGET_imx8mp-irma6r2 = "iMX8MPI6R2"
