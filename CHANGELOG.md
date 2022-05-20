@@ -16,6 +16,7 @@ and this project adheres to [APR's Version Numbering](https://apr.apache.org/ver
 - [RDPHOEN-1083]: Sign bootable image: imx-boot.signed
 - [RDPHOEN-1142]: Add signing and fitimage configuration and recipes for irma6 fitimages
 - [RDPHOEN-1129]: LVM setup with R2 uuu images, switch to booting signed fitimages with initramfs
+- [RDPHOEN-1143]: Add dm-verity for rootfs volumes (in uuu and initramfs)
 
 
 ### Changed
