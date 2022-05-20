@@ -76,6 +76,19 @@ FBK: acmd zcat | dd of=/dev/mapper/irma6lvm-rootfs_b
 FBK: ucp rootfs.ext4.gz t:-
 FBK: ucmd sync
 
+# Create fat data partition (keystore)
+FBK: ucmd mkfs.vfat /dev/mapper/irma6lvm-keystore
+FBK: ucmd mkdir -p /mnt/keystore
+FBK: ucmd mount -t vfat /dev/mapper/irma6lvm-keystore /mnt/keystore
+
+# !! The root hashes for the dm-verity volumes are generated here !!
+# TODO: Unsafe! Store roothash in a secure manner!
+FBK: ucmd veritysetup format /dev/mapper/irma6lvm-rootfs_a /dev/mapper/irma6lvm-rootfs_a_hash | grep "Root hash:" | grep -Eo "[0-9a-f]+$" > /mnt/keystore/rootfs_a_roothash
+FBK: ucmd veritysetup format /dev/mapper/irma6lvm-rootfs_b /dev/mapper/irma6lvm-rootfs_b_hash | grep "Root hash:" | grep -Eo "[0-9a-f]+$" > /mnt/keystore/rootfs_b_roothash
+
+FBK: ucmd umount /mnt/keystore
+FBK: ucmd sync
+
 # Hashsum check
 FBK: ucp verification.sh t:/tmp
 FBK: ucp hashsums t:/tmp
