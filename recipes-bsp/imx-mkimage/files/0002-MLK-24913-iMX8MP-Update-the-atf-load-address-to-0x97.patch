@@ -1,0 +1,30 @@
+From b51cb3ccb382a3b4a93c8aab9d7f010af8ae3b22 Mon Sep 17 00:00:00 2001
+From: Jacky Bai <ping.bai@nxp.com>
+Date: Thu, 22 Oct 2020 17:46:44 +0800
+Subject: [PATCH] MLK-24913 iMX8MP: Update the atf load address to 0x970000
+
+Update the ATF load address to 0x970000 to provide a
+continuous OCRAM space for other purpose.
+
+Signed-off-by: Jacky Bai <ping.bai@nxp.com>
+Reviewed-by: Ye Li <ye.li@nxp.com>
+---
+ iMX8M/soc.mak | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/iMX8M/soc.mak b/iMX8M/soc.mak
+index b7b3986..161b035 100644
+--- a/iMX8M/soc.mak
++++ b/iMX8M/soc.mak
+@@ -55,7 +55,7 @@ HDMI = no
+ SPL_LOAD_ADDR = 0x920000
+ SPL_FSPI_LOAD_ADDR = 0x920000
+ TEE_LOAD_ADDR =  0x56000000
+-ATF_LOAD_ADDR = 0x00960000
++ATF_LOAD_ADDR = 0x00970000
+ VAL_BOARD = val
+ #define the F(Q)SPI header file
+ QSPI_HEADER = ../scripts/fspi_header
+-- 
+2.25.1
+
