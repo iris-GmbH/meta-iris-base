@@ -1,7 +1,7 @@
-From 617d850777700653632917493668c0a0add4a155 Mon Sep 17 00:00:00 2001
+From 3358c55d0e9fd06b2a8afd45431f23bc5087f89e Mon Sep 17 00:00:00 2001
 From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
 Date: Fri, 11 Mar 2022 11:59:52 +0100
-Subject: [PATCH 25/29] imx8mp-irma6r2.dts: Configure UART3 and UART4
+Subject: [PATCH 25/33] imx8mp-irma6r2.dts: Configure UART3 and UART4
 
 - Enable UART4 and also add pinctl
 - Remove CTS/RTS from UART3 (not connected on irma6r2)
@@ -13,7 +13,7 @@ Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
  1 file changed, 18 insertions(+), 8 deletions(-)
 
 diff --git a/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts b/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
-index 2d3b98189b85..6ffbbacd1685 100644
+index 1d1e62d5051a..6492bc63847e 100644
 --- a/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
 +++ b/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
 @@ -387,18 +387,23 @@

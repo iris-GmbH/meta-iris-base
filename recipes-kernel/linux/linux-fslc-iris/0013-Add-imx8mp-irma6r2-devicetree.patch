@@ -1,11 +1,13 @@
-From 446e457dfecd37379abf1dd9b89605f0cce32723 Mon Sep 17 00:00:00 2001
+From 141ceb647eeae2e6a5b778905d60a791f37380d1 Mon Sep 17 00:00:00 2001
 From: Ian Dannapel <ian.dannapel@iris-sensing.com>
-Date: Fri, 25 Mar 2022 17:55:30 +0100
-Subject: [PATCH 13/29] Add imx8mp-irma6r2 devicetree
+Date: Mon, 23 May 2022 17:00:17 +0200
+Subject: [PATCH 13/33] Add imx8mp-irma6r2 devicetree
 
 Copied from: ./arch/arm64/boot/dts/freescale/imx8mp-evk.dts
 Commit: babac008e5cf168abca1a85bda2e8071ca27a5c0
 Tag: rel_imx_5.4.24_2.1.0 (Linux-fscl)
+
+Plus HDMI Pin naming fix according to 5.4-2.3.x-imx
 
 Signed-off-by: Ian Dannapel <ian.dannapel@iris-sensing.com>
 ---
@@ -15,21 +17,21 @@ Signed-off-by: Ian Dannapel <ian.dannapel@iris-sensing.com>
  create mode 100644 arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
 
 diff --git a/arch/arm64/boot/dts/freescale/Makefile b/arch/arm64/boot/dts/freescale/Makefile
-index d5eb439fe4a6..abb4ab31d6ab 100644
+index 3e9642a8514f..dfe8e92c1a4f 100644
 --- a/arch/arm64/boot/dts/freescale/Makefile
 +++ b/arch/arm64/boot/dts/freescale/Makefile
-@@ -64,7 +64,7 @@ dtb-$(CONFIG_ARCH_MXC) += imx8mn-ab2.dtb imx8mn-ddr4-ab2.dtb
- dtb-$(CONFIG_ARCH_MXC) += imx8mp-evk.dtb imx8mp-evk-root.dtb imx8mp-evk-inmate.dtb imx8mp-evk-rpmsg.dtb \
- 			  imx8mp-evk-rm67191.dtb imx8mp-evk-flexcan2.dtb imx8mp-evk-it6263-lvds-dual-channel.dtb \
- 			  imx8mp-evk-jdi-wuxga-lvds-panel.dtb imx8mp-ab2.dtb imx8mp-evk-sof-wm8960.dtb \
--			  imx8mp-evk-dsp.dtb imx8mp-evk-ov2775.dtb imx8mp-evk-basler.dtb
-+			  imx8mp-evk-dsp.dtb imx8mp-evk-ov2775.dtb imx8mp-evk-basler.dtb imx8mp-irma6r2.dtb
+@@ -73,7 +73,7 @@ dtb-$(CONFIG_ARCH_MXC) += imx8mp-evk.dtb imx8mp-evk-root.dtb imx8mp-evk-inmate.d
+ 			  imx8mp-evk-dsp.dtb imx8mp-evk-ov2775.dtb imx8mp-evk-basler.dtb imx8mp-evk-pcie-ep.dtb \
+ 			  imx8mp-evk-spdif-lb.dtb imx8mp-evk-dsp-lpa.dtb imx8mp-evk-ov2775-ov5640.dtb \
+ 			  imx8mp-evk-basler-ov5640.dtb imx8mp-evk-dual-ov2775.dtb \
+-			  imx8mp-evk-basler-ov2775.dtb imx8mp-evk-dual-basler.dtb
++			  imx8mp-evk-basler-ov2775.dtb imx8mp-evk-dual-basler.dtb imx8mp-irma6r2.dtb
+ dtb-$(CONFIG_ARCH_MXC) += imx8mp-ddr4-evk.dtb
  dtb-$(CONFIG_ARCH_MXC) += imx8mq-evk.dtb imx8mq-evk-rpmsg.dtb imx8mq-evk-pcie1-m2.dtb imx8mq-evk-usd-wifi.dtb \
- 			  imx8mq-evk-usdhc2-m2.dtb
- dtb-$(CONFIG_ARCH_MXC) += imx8mq-evk-ak4497.dtb imx8mq-evk-audio-tdm.dtb imx8mq-evk-pdm.dtb
+ 			  imx8mq-evk-usdhc2-m2.dtb imx8mq-evk-pcie-ep.dtb
 diff --git a/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts b/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
 new file mode 100644
-index 000000000000..062d7ca9f358
+index 000000000000..2a670415bc3f
 --- /dev/null
 +++ b/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
 @@ -0,0 +1,1272 @@
@@ -838,10 +840,10 @@ index 000000000000..062d7ca9f358
 +
 +	pinctrl_hog: hoggrp {
 +		fsl,pins = <
-+			MX8MP_IOMUXC_HDMI_DDC_SCL__HDMIMIX_EARC_SCL	0x400001c3
-+			MX8MP_IOMUXC_HDMI_DDC_SDA__HDMIMIX_EARC_SDA	0x400001c3
-+			MX8MP_IOMUXC_HDMI_HPD__HDMIMIX_EARC_DC_HPD	0x40000019
-+			MX8MP_IOMUXC_HDMI_CEC__HDMIMIX_EARC_CEC		0x40000019
++			MX8MP_IOMUXC_HDMI_DDC_SCL__HDMIMIX_HDMI_SCL	0x400001c3
++			MX8MP_IOMUXC_HDMI_DDC_SDA__HDMIMIX_HDMI_SDA	0x400001c3
++			MX8MP_IOMUXC_HDMI_HPD__HDMIMIX_HDMI_HPD		0x40000019
++			MX8MP_IOMUXC_HDMI_CEC__HDMIMIX_HDMI_CEC		0x40000019
 +		>;
 +	};
 +

@@ -1,7 +1,7 @@
-From dac1edc67f7972af2e1d95ccbd3e3b1c0f29434a Mon Sep 17 00:00:00 2001
+From af15df30db21309c919bd82b94cef5131510ed16 Mon Sep 17 00:00:00 2001
 From: Ian Dannapel <ian.dannapel@iris-sensing.com>
 Date: Fri, 25 Mar 2022 17:25:28 +0100
-Subject: [PATCH 05/29] i2c-imx: remove unneeded sleep
+Subject: [PATCH 05/33] i2c-imx: remove unneeded sleep
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit

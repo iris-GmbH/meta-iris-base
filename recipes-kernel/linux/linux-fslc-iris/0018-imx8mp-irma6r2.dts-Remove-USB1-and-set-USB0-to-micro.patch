@@ -1,7 +1,7 @@
-From e199826a2ad6446acdba98a95b7674f6297663ed Mon Sep 17 00:00:00 2001
+From c02217791104a828591188bf1d264adebc2ecc7f Mon Sep 17 00:00:00 2001
 From: Erik Schumacher <Erik.Schumacher@iris-sensing.com>
 Date: Wed, 30 Mar 2022 15:08:48 +0200
-Subject: [PATCH 18/29] imx8mp-irma6r2.dts: Remove USB1 and set USB0 to
+Subject: [PATCH 18/33] imx8mp-irma6r2.dts: Remove USB1 and set USB0 to
  micro-usb-b
 
 Remove unused nodes from devicetree
@@ -12,7 +12,7 @@ Signed-off-by: Erik Schumacher <Erik.Schumacher@iris-sensing.com>
  1 file changed, 482 deletions(-)
 
 diff --git a/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts b/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
-index f6177db0dbd2..f8f6a5995eae 100644
+index da83333f79ae..3fedd69610ab 100644
 --- a/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
 +++ b/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
 @@ -39,28 +39,6 @@

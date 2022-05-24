@@ -1,7 +1,7 @@
-From 6446c9d0792d94c3e3277d890309fe1f148bb851 Mon Sep 17 00:00:00 2001
+From f229a9793d23ce7caf42d5ec760ab00adecbfef5 Mon Sep 17 00:00:00 2001
 From: Ian Dannapel <ian.dannapel@iris-sensing.com>
 Date: Mon, 4 Apr 2022 13:21:10 +0200
-Subject: [PATCH 28/29] imx8mp-irma6r2.dts: change board model name
+Subject: [PATCH 28/33] imx8mp-irma6r2.dts: change board model name
 
 Signed-off-by: Ian Dannapel <ian.dannapel@iris-sensing.com>
 ---
@@ -9,7 +9,7 @@ Signed-off-by: Ian Dannapel <ian.dannapel@iris-sensing.com>
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts b/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
-index ecfef3359e15..fe570d4ad956 100644
+index a701c1855016..a367c2679d32 100644
 --- a/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
 +++ b/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
 @@ -9,7 +9,7 @@

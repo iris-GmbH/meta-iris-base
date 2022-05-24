@@ -1,7 +1,7 @@
-From fec14fa5eb868cc88026f4ed77b980d13dca24c8 Mon Sep 17 00:00:00 2001
+From 33e3fb1a0e91e14cf4c92dc7be35e371e5cf2411 Mon Sep 17 00:00:00 2001
 From: Ian Dannapel <ian.dannapel@iris-sensing.com>
 Date: Fri, 1 Apr 2022 09:08:10 +0200
-Subject: [PATCH 02/29] tc358746: Add device driver support
+Subject: [PATCH 02/33] tc358746: Add device driver support
 
 - Adding support for the TC358746 bridge. The Bridge can receive images on
 the parallel input port and send it to the host using the CSI-TX unit.

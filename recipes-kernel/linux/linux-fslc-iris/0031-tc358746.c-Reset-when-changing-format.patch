@@ -1,7 +1,7 @@
-From 13c0ba765b5df6a82b11e72e342cf16e77f6c12f Mon Sep 17 00:00:00 2001
+From f3be70cd93eb219e825f38bac3d59a954d3cadd5 Mon Sep 17 00:00:00 2001
 From: Ian Dannapel <ian.dannapel@iris-sensing.com>
 Date: Tue, 3 May 2022 16:26:02 +0200
-Subject: [PATCH] tc358746.c: Reset when changing format
+Subject: [PATCH 31/33] tc358746.c: Reset when changing format
 
 To actually change the format, a software reset is needed.
 Since the capture driver does not do that, we force it.

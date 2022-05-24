@@ -1,7 +1,7 @@
-From 7ebf4ab57712b0598ba520d6f952f17df942a9a0 Mon Sep 17 00:00:00 2001
+From ac482d6ff5c3c73448d0f355cb82f03967ebb408 Mon Sep 17 00:00:00 2001
 From: Erik Schumacher <Erik.Schumacher@iris-sensing.com>
 Date: Fri, 11 Mar 2022 15:07:54 +0100
-Subject: [PATCH 26/29] imx8mp-irma6r2.dts: Add lm75 sensor to i2c2
+Subject: [PATCH 26/33] imx8mp-irma6r2.dts: Add lm75 sensor to i2c2
 
 Signed-off-by: Erik Schumacher <Erik.Schumacher@iris-sensing.com>
 ---
@@ -9,7 +9,7 @@ Signed-off-by: Erik Schumacher <Erik.Schumacher@iris-sensing.com>
  1 file changed, 5 insertions(+)
 
 diff --git a/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts b/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
-index 6ffbbacd1685..a343828c19f5 100644
+index 6492bc63847e..b8975377482d 100644
 --- a/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
 +++ b/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
 @@ -226,6 +226,11 @@

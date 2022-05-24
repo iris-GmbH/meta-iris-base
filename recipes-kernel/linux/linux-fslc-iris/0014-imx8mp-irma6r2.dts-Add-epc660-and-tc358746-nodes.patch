@@ -1,7 +1,7 @@
-From f3a35d2434d7f74bab9f28eba7af2a461f83aa97 Mon Sep 17 00:00:00 2001
+From cc4896d45668a42cf3fe9193698bbca43804b000 Mon Sep 17 00:00:00 2001
 From: Ian Dannapel <ian.dannapel@iris-sensing.com>
 Date: Fri, 25 Mar 2022 18:15:13 +0100
-Subject: [PATCH 14/29] imx8mp-irma6r2.dts: Add epc660 and tc358746 nodes
+Subject: [PATCH 14/33] imx8mp-irma6r2.dts: Add epc660 and tc358746 nodes
 
 Bus width between epc and tc358746 is 14 bits
 
@@ -11,7 +11,7 @@ Signed-off-by: Ian Dannapel <ian.dannapel@iris-sensing.com>
  1 file changed, 75 insertions(+), 64 deletions(-)
 
 diff --git a/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts b/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
-index 062d7ca9f358..d2cbb276137d 100644
+index 2a670415bc3f..b5e76a3a275b 100644
 --- a/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
 +++ b/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
 @@ -179,6 +179,13 @@
