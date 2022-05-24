@@ -13,16 +13,6 @@ UMOUNT="/bin/umount"
 
 MOUNT_OPT="-o ro"
 
-# TODO: Dynamically switch a/b. Could be done via a kernel parameter - see parse_cmdline()
-ROOT_DEV="/dev/mapper/irma6lvm-rootfs_a"
-ROOT_HASH="/dev/mapper/irma6lvm-rootfs_a_hash"
-
-VERITY_NAME="verity-rootfs_a"
-VERITY_DEV="/dev/mapper/${VERITY_NAME}"
-
-HASH_DEV="/dev/mapper/irma6lvm-keystore"
-HASH_MNT="/tmp/keystore"
-
 # init
 if [ -z ${INIT} ];then
     INIT=/sbin/init
@@ -66,16 +56,6 @@ parse_cmdline() {
     CMDLINE="$(cat /proc/cmdline)"
     debug "Kernel cmdline: $CMDLINE"
 
-    # Only extract ROOT_DEV when it is not set previously
-    if [ ! -n ${ROOT_DEV} ]; then
-	for c in ${CMDLINE}; do
-	    if [ "${c:0:5}" == "root=" ]; then
-		ROOT_DEV="${c:5}"
-	    fi
-	done
-    fi
-    debug "ROOT_DEV $ROOT_DEV"
-
     grep enablelog /proc/cmdline > /dev/null
     if [ $? -eq 0 ]; then
 	ENABLELOG="yes"
@@ -92,6 +72,14 @@ parse_cmdline() {
     if [ $? -eq 0 ]; then
 	FACTORYSETUP="yes"
     fi
+    grep -q 'linuxboot_b\|firmware_b' /proc/cmdline
+    if [ $? -eq 0 ]; then
+    FIRMWARE_SUFFIX="_b"
+    else
+    # default to firmware a
+    FIRMWARE_SUFFIX="_a"
+    fi
+    debug "Select firmware${FIRMWARE_SUFFIX}"
 }
 
 mount_pseudo_fs
@@ -102,6 +90,15 @@ vgmknodes
 
 echo "Initramfs Bootstrap..."
 parse_cmdline
+
+ROOT_DEV="/dev/mapper/irma6lvm-rootfs${FIRMWARE_SUFFIX}"
+ROOT_HASH="/dev/mapper/irma6lvm-rootfs${FIRMWARE_SUFFIX}_hash"
+
+VERITY_NAME="verity-rootfs${FIRMWARE_SUFFIX}"
+VERITY_DEV="/dev/mapper/${VERITY_NAME}"
+
+HASH_DEV="/dev/mapper/irma6lvm-keystore"
+HASH_MNT="/tmp/keystore"
 
 if [ "${FACTORYSETUP}" == "yes" ]; then
     if [ -f  /etc/functions_factory ]; then
@@ -122,10 +119,10 @@ fi
 
 mkdir ${HASH_MNT}
 mount ${HASH_DEV} ${HASH_MNT}
-RH_A=$(cat ${HASH_MNT}/rootfs_a_roothash)
+RH=$(cat "${HASH_MNT}/rootfs${FIRMWARE_SUFFIX}_roothash")
 umount ${HASH_MNT}
 
-veritysetup open ${ROOT_DEV} ${VERITY_NAME} ${ROOT_HASH} ${RH_A}
+veritysetup open ${ROOT_DEV} ${VERITY_NAME} ${ROOT_HASH} ${RH}
 mount ${VERITY_DEV} ${ROOT_MNT} ${MOUNT_OPT}
 
 #Switch to real root
