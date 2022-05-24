@@ -7,19 +7,11 @@ software =
 
                 files: (
                                 {
-                                                filename = "@@SWU_KERNEL@@";
-                                                path = "/@@SWU_TARGET_KERNEL@@";
+                                                filename = "@@SWU_FITIMAGE@@";
+                                                path = "@@SWU_TARGET_FITIMAGE@@";
                                                 device = "/dev/swu_kernel";
                                                 filesystem = "vfat";
                                                 version = "@SWU_AUTO_VERSION:kernel";
-                                                properties = {create-destination = "true";}
-                                },
-                                {
-                                                filename = "@@SWU_DEVTREE@@";
-                                                path = "/@@SWU_TARGET_DEVTREE@@";
-                                                device = "/dev/swu_kernel";
-                                                filesystem = "vfat";
-                                                version = "@SWU_AUTO_VERSION:kernel-devicetree";
                                                 properties = {create-destination = "true";}
                                 },
                 );
