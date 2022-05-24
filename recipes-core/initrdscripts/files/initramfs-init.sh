@@ -82,6 +82,14 @@ parse_cmdline() {
     if [ $? -eq 0 ]; then
 	FACTORYSETUP="yes"
     fi
+    grep -q 'linuxboot_b\|firmware_b' /proc/cmdline
+    if [ $? -eq 0 ]; then
+    FIRMWARE_SUFFIX="_b"
+    else
+    # default to firmware a
+    FIRMWARE_SUFFIX="_a"
+    fi
+    debug "Select firmware${FIRMWARE_SUFFIX}"
 }
 
 mount_pseudo_fs
@@ -93,10 +101,10 @@ vgmknodes
 echo "Initramfs Bootstrap..."
 parse_cmdline
 
-ROOT_DEV="/dev/mapper/irma6lvm-rootfs_a"
-ROOT_HASH="/dev/mapper/irma6lvm-rootfs_a_hash"
+ROOT_DEV="/dev/mapper/irma6lvm-rootfs${FIRMWARE_SUFFIX}"
+ROOT_HASH="/dev/mapper/irma6lvm-rootfs${FIRMWARE_SUFFIX}_hash"
 
-VERITY_NAME="verity-rootfs_a"
+VERITY_NAME="verity-rootfs${FIRMWARE_SUFFIX}"
 VERITY_DEV="/dev/mapper/${VERITY_NAME}"
 
 HASH_DEV="/dev/mapper/irma6lvm-keystore"
@@ -121,10 +129,10 @@ fi
 
 mkdir ${HASH_MNT}
 mount ${HASH_DEV} ${HASH_MNT}
-RH_A=$(cat ${HASH_MNT}/rootfs_a_roothash)
+RH=$(cat "${HASH_MNT}/rootfs${FIRMWARE_SUFFIX}_roothash")
 umount ${HASH_MNT}
 
-veritysetup open ${ROOT_DEV} ${VERITY_NAME} ${ROOT_HASH} ${RH_A}
+veritysetup open ${ROOT_DEV} ${VERITY_NAME} ${ROOT_HASH} ${RH}
 mount ${VERITY_DEV} ${ROOT_MNT} ${MOUNT_OPT}
 
 #Switch to real root
