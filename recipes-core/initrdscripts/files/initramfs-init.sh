@@ -56,16 +56,6 @@ parse_cmdline() {
     CMDLINE="$(cat /proc/cmdline)"
     debug "Kernel cmdline: $CMDLINE"
 
-    # Only extract ROOT_DEV when it is not set previously
-    if [ ! -n ${ROOT_DEV} ]; then
-	for c in ${CMDLINE}; do
-	    if [ "${c:0:5}" == "root=" ]; then
-		ROOT_DEV="${c:5}"
-	    fi
-	done
-    fi
-    debug "ROOT_DEV $ROOT_DEV"
-
     grep enablelog /proc/cmdline > /dev/null
     if [ $? -eq 0 ]; then
 	ENABLELOG="yes"
