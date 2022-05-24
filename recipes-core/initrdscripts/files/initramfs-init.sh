@@ -13,16 +13,6 @@ UMOUNT="/bin/umount"
 
 MOUNT_OPT="-o ro"
 
-# TODO: Dynamically switch a/b. Could be done via a kernel parameter - see parse_cmdline()
-ROOT_DEV="/dev/mapper/irma6lvm-rootfs_a"
-ROOT_HASH="/dev/mapper/irma6lvm-rootfs_a_hash"
-
-VERITY_NAME="verity-rootfs_a"
-VERITY_DEV="/dev/mapper/${VERITY_NAME}"
-
-HASH_DEV="/dev/mapper/irma6lvm-keystore"
-HASH_MNT="/tmp/keystore"
-
 # init
 if [ -z ${INIT} ];then
     INIT=/sbin/init
@@ -102,6 +92,15 @@ vgmknodes
 
 echo "Initramfs Bootstrap..."
 parse_cmdline
+
+ROOT_DEV="/dev/mapper/irma6lvm-rootfs_a"
+ROOT_HASH="/dev/mapper/irma6lvm-rootfs_a_hash"
+
+VERITY_NAME="verity-rootfs_a"
+VERITY_DEV="/dev/mapper/${VERITY_NAME}"
+
+HASH_DEV="/dev/mapper/irma6lvm-keystore"
+HASH_MNT="/tmp/keystore"
 
 if [ "${FACTORYSETUP}" == "yes" ]; then
     if [ -f  /etc/functions_factory ]; then
