@@ -8,3 +8,6 @@ CORE_IMAGE_BASE_INSTALL_append = " \
 
 # Add the "cpio.gz" image type to use this initramfs for a fitimage
 IMAGE_FSTYPES_append = " cpio.gz"
+
+# Remove not needed dependencies to speed up build time
+DEPENDS_remove = "u-boot-mfgtool linux-mfgtool"
