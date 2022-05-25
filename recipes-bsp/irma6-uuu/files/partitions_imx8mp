@@ -1,6 +1,6 @@
 label: gpt
 start=1M,    size=   7M, type=3DE21764-95BD-54BD-A5C3-4ABE786F38A8, name=uboot_env 
-start=8M,    size= 128M, type=BC13C2FF-59E6-4262-A352-B275FD6F7172, name=linuxboot_a, attrs=LegacyBIOSBootable
+start=8M,    size= 128M, type=BC13C2FF-59E6-4262-A352-B275FD6F7172, name=linuxboot_a
 start=136M,  size= 128M, type=BC13C2FF-59E6-4262-A352-B275FD6F7172, name=linuxboot_b
 start=264M,  size= 128M, type=BC13C2FF-59E6-4262-A352-B275FD6F7172, name=rescue
 start=392M,  size=3704M, type=0FC63DAF-8483-4772-8E79-3D69D8477DE4, name=lvmdata
