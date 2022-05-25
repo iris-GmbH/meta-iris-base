@@ -29,7 +29,7 @@ software =
     );
     scripts: (
         {
-            filename = "update_firmware.sh";
+            filename = "pre_post_inst.sh";
             type = "shellscript";
         },
     );
