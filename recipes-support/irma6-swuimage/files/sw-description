@@ -31,6 +31,10 @@ software =
                                                 version = "@@SWU_VERSION_ROOTFS@@";
                                                 compressed = "zlib";
                                 },
+                                {
+                                                filename = "bootloader-env";
+                                                type = "bootloader";
+                                }
                 );
 
                 scripts: (

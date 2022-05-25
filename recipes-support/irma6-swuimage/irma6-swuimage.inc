@@ -13,6 +13,7 @@ FILESEXTRAPATHS_prepend := "${@os.path.dirname(d.getVar('FILE'))}/files:"
 SRC_URI = " \
     file://sw-description \
     file://update_firmware.sh \
+    file://bootloader-env \
 "
 
 IMAGE_DEPENDS = "\
