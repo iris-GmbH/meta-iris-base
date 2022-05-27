@@ -76,6 +76,14 @@ FBK: acmd zcat | dd of=/dev/mapper/irma6lvm-rootfs_b
 FBK: ucp rootfs.ext4.gz t:-
 FBK: ucmd sync
 
+# Create ext4 partition for userdata
+FBK: ucmd mkfs.ext4 /dev/mapper/irma6lvm-userdata
+FBK: ucmd mkdir -p /mnt/iris
+FBK: ucmd mount -t ext4 /dev/mapper/irma6lvm-userdata /mnt/iris
+FBK: ucmd mkdir -p /mnt/iris/counter
+FBK: ucmd umount /mnt/iris
+FBK: ucmd sync
+
 # Create fat data partition (keystore)
 FBK: ucmd mkfs.vfat /dev/mapper/irma6lvm-keystore
 FBK: ucmd mkdir -p /mnt/keystore
