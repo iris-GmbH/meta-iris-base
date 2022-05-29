@@ -1,6 +1,8 @@
 # SPDX-License-Identifier: MIT
 # Copyright (C) 2021-2022 iris-GmbH infrared & intelligent sensors
 
+UBOOT_INITIAL_ENV = "u-boot-initial-env"
+
 FILESEXTRAPATHS_prepend := "${THISDIR}/u-boot-imx/common:"
 SRC_URI_append = "\
 	file://0001-Backport-cmd-fs-Use-part_get_info_by_dev_and_name_or.patch\
