@@ -42,3 +42,6 @@ SRC_URI += " \
 
 KERNEL_DEFCONFIG_imx8mpevk = "imx8mp-evk-r2_defconfig"
 KERNEL_DEFCONFIG_imx8mp-irma6r2 = "imx8mp_irma6r2_defconfig"
+
+# Don't include kernels in standard images
+RDEPENDS_${KERNEL_PACKAGE_NAME}-base = ""
