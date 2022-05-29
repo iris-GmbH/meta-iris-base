@@ -18,6 +18,7 @@ SRC_URI_append_imx8mpevk = "\
 	file://0004-imx8mp-evk-Add-cmd-for-booting-signed-fitImage.patch \
 	file://0005-imx8mp-evk-Change-bootcmd-to-fitboot.patch \
 	file://0006-imx8mp-evk-Increase-CONFIG_SYS_BOOTM_LEN-to-32MB.patch \
+	file://0007-imx8mp-evk-defconfig-Use-redundand-env-support.patch \
 "
 
 FILESEXTRAPATHS_prepend_imx8mp-irma6r2 := "${THISDIR}/u-boot-imx/imx8mp-irma6r2:"
