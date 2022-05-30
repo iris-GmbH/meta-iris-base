@@ -41,4 +41,5 @@ SRC_URI_append_imx8mp-irma6r2 = "\
 	file://0016-imx8mp-irma6r2-Add-cmd-for-booting-signed-fitImage.patch \
 	file://0017-imx8mp-irma6r2-Increase-CONFIG_SYS_BOOTM_LEN-to-32MB.patch \
 	file://0018-imx8mp-irma6r2-Change-bootcmd-to-fitboot.patch \
+	file://0019-imx8mp-irma6r2-defconfig-Use-redundand-env-support.patch \
 "
