@@ -21,6 +21,7 @@ and this project adheres to [APR's Version Numbering](https://apr.apache.org/ver
 - [RDPHOEN-1164]: initramfs-init: Dynamically select the correct rootfs from the kernel cmd line argument
 - linux-fslc-iris: Remove kernel from the rootfs & initramfs, because it remains unused for the fitImage setup
 - [RDPHOEN-1140]: Add redundand u-boot-env support and missing release 2 packages: lvm2, cryptsetup libubootenv-bin
+- [RDPHOEN-1178]: Add CAAM rng prediction resistance in Uboot, enables the correct hw rng initialization in Linux.
 
 
 ### Changed
