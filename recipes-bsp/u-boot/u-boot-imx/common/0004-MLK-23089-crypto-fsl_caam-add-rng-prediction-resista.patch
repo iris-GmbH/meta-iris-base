@@ -1,0 +1,84 @@
+From 2a340d8595ab61b6c2fe93fb1d9f82c26b432929 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Horia=20Geant=C4=83?= <horia.geanta@nxp.com>
+Date: Thu, 16 Apr 2020 20:24:47 +0300
+Subject: [PATCH] MLK-23089 crypto: fsl_caam: add rng prediction resistance
+ support
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Instantiate RNG state handles with Prediction Resistance (PR) support.
+This way SW further downstream (e.g. REE / TEE OS etc.) is able
+to use the "PR" bit in RNG generation descriptors (forcing TRNG
+re-seeding before PRNG / DRBG outputs random data).
+
+Note: current patch does not deal with RNG state handles that have
+already been initialized, but without PR support.
+In this case, RNG state handle would have to be deinstantiated first,
+and then reinstantiated with PR support.
+
+Signed-off-by: Horia Geantă <horia.geanta@nxp.com>
+Reviewed-by: Ye Li <ye.li@nxp.com>
+---
+ drivers/crypto/fsl_caam.c          | 9 ++++++---
+ drivers/crypto/fsl_caam_internal.h | 3 +++
+ 2 files changed, 9 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/crypto/fsl_caam.c b/drivers/crypto/fsl_caam.c
+index d89252b218..dd3618eda2 100644
+--- a/drivers/crypto/fsl_caam.c
++++ b/drivers/crypto/fsl_caam.c
+@@ -263,6 +263,7 @@ void caam_open(void)
+ 	 */
+ #ifndef CONFIG_ARCH_IMX8
+ 	u32 temp_reg;
++	u32 init_mask;
+ 
+ 	caam_clock_enable();
+ 
+@@ -284,7 +285,8 @@ void caam_open(void)
+ 
+ 	/* Check if the RNG is already instantiated */
+ 	temp_reg = __raw_readl(CAAM_RDSTA);
+-	if (temp_reg == (RDSTA_IF0 | RDSTA_IF1 | RDSTA_SKVN)) {
++	init_mask = RDSTA_IF0 | RDSTA_IF1 | RDSTA_SKVN;
++	if ((temp_reg & init_mask) == init_mask) {
+ 		printf("RNG already instantiated 0x%X\n", temp_reg);
+ 		return;
+ 	}
+@@ -311,7 +313,8 @@ static const u32 rng_inst_sh0_desc[] = {
+ 	/* Header, don't setup the size */
+ 	CAAM_HDR_CTYPE | CAAM_HDR_ONE | CAAM_HDR_START_INDEX(0),
+ 	/* Operation instantiation (sh0) */
+-	CAAM_PROTOP_CTYPE | CAAM_C1_RNG | ALGO_RNG_SH(0) | ALGO_RNG_INSTANTIATE,
++	CAAM_PROTOP_CTYPE | CAAM_C1_RNG | ALGO_RNG_SH(0) | ALGO_RNG_PR |
++		ALGO_RNG_INSTANTIATE,
+ };
+ 
+ static const u32 rng_inst_sh1_desc[] = {
+@@ -322,7 +325,7 @@ static const u32 rng_inst_sh1_desc[] = {
+ 	CAAM_C0_LOAD_IMM | CAAM_DST_CLEAR_WRITTEN | sizeof(u32),
+ 	0x00000001,
+ 	/* Operation instantiation (sh1) */
+-	CAAM_PROTOP_CTYPE | CAAM_C1_RNG | ALGO_RNG_SH(1)
++	CAAM_PROTOP_CTYPE | CAAM_C1_RNG | ALGO_RNG_SH(1) | ALGO_RNG_PR
+ 		| ALGO_RNG_INSTANTIATE,
+ };
+ 
+diff --git a/drivers/crypto/fsl_caam_internal.h b/drivers/crypto/fsl_caam_internal.h
+index e922d505c8..b0f0cc6399 100644
+--- a/drivers/crypto/fsl_caam_internal.h
++++ b/drivers/crypto/fsl_caam_internal.h
+@@ -249,6 +249,9 @@ typedef enum {
+ #define ALGO_RNG_GENERATE         (0x0 << BS_ALGO_RNG_AS)
+ #define ALGO_RNG_INSTANTIATE      BIT(BS_ALGO_RNG_AS)
+ 
++/* Prediction Resistance */
++#define ALGO_RNG_PR		BIT(1)
++
+ #define CAAM_C1_RNG               ((0x50 << 16) | (2 << 24))
+ 
+ #define BS_JUMP_LOCAL_OFFSET      (0)
+-- 
+2.25.1
+

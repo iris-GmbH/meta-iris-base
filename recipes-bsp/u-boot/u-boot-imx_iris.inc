@@ -8,6 +8,7 @@ SRC_URI_append = "\
 	file://0001-Backport-cmd-fs-Use-part_get_info_by_dev_and_name_or.patch\
 	file://0002-Backport-part-Give-several-functions-more-useful-ret.patch\
 	file://0003-Add-HAB-image-authentication-for-FIT-Images.patch \
+	file://0004-MLK-23089-crypto-fsl_caam-add-rng-prediction-resista.patch \
 "
 
 FILESEXTRAPATHS_prepend_imx8mpevk := "${THISDIR}/u-boot-imx/imx8mpevk:"
