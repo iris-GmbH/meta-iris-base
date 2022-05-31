@@ -19,6 +19,7 @@ and this project adheres to [APR's Version Numbering](https://apr.apache.org/ver
 - [RDPHOEN-1079]: Bump BL31 to v2.4, enables booting newer kernels
 - [RDPHOEN-1143]: Add dm-verity for rootfs volumes (in uuu and initramfs)
 - [RDPHOEN-1164]: initramfs-init: Dynamically select the correct rootfs from the kernel cmd line argument
+- linux-fslc-iris: Remove kernel from the rootfs & initramfs, because it remains unused for the fitImage setup
 
 
 ### Changed
