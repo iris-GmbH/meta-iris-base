@@ -1,6 +1,8 @@
 # SPDX-License-Identifier: MIT
 # Copyright (C) 2021-2022 iris-GmbH infrared & intelligent sensors
 
+UBOOT_INITIAL_ENV = "u-boot-initial-env"
+
 FILESEXTRAPATHS_prepend := "${THISDIR}/u-boot-imx/common:"
 SRC_URI_append = "\
 	file://0001-Backport-cmd-fs-Use-part_get_info_by_dev_and_name_or.patch\
@@ -16,6 +18,7 @@ SRC_URI_append_imx8mpevk = "\
 	file://0004-imx8mp-evk-Add-cmd-for-booting-signed-fitImage.patch \
 	file://0005-imx8mp-evk-Change-bootcmd-to-fitboot.patch \
 	file://0006-imx8mp-evk-Increase-CONFIG_SYS_BOOTM_LEN-to-32MB.patch \
+	file://0007-imx8mp-evk-defconfig-Use-redundand-env-support.patch \
 "
 
 FILESEXTRAPATHS_prepend_imx8mp-irma6r2 := "${THISDIR}/u-boot-imx/imx8mp-irma6r2:"
@@ -38,4 +41,5 @@ SRC_URI_append_imx8mp-irma6r2 = "\
 	file://0016-imx8mp-irma6r2-Add-cmd-for-booting-signed-fitImage.patch \
 	file://0017-imx8mp-irma6r2-Increase-CONFIG_SYS_BOOTM_LEN-to-32MB.patch \
 	file://0018-imx8mp-irma6r2-Change-bootcmd-to-fitboot.patch \
+	file://0019-imx8mp-irma6r2-defconfig-Use-redundand-env-support.patch \
 "
