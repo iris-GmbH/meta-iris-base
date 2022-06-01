@@ -35,7 +35,7 @@ require recipes-kernel/linux/linux-yocto.inc
 
 BRANCH = "feature/phsc/hdr3"
 LINUX_VERSION ?= "4.14.239"
-SRCREV="095104aaa427a935ec4459fea83cad0eff651fed"
+SRCREV="160d2e0fc1d73b81a2eef59a47b9cb87d0af1acb"
 
 SRC_URI = "git://github.com/iris-GmbH/linux-gen6.git;protocol=https;bareclone=1;branch=${BRANCH};depth=1"
 
