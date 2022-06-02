@@ -28,13 +28,13 @@ mount_pseudo_fs() {
 
 debug_reboot() {
     if [ "${DEBUGSHELL}" == "yes" ]; then
-	echo "enter debugshell"
-	/bin/sh
+        echo "enter debugshell"
+        /bin/sh
     else
-	# wait 5 seconds then reboot
-	echo "Reboot in 5 seconds..." > /dev/console
-	sleep 5
-	reboot -f
+        # wait 5 seconds then reboot
+        echo "Reboot in 5 seconds..." > /dev/console
+        sleep 5
+        reboot -f
     fi
 }
 
@@ -58,28 +58,31 @@ parse_cmdline() {
 
     grep enablelog /proc/cmdline > /dev/null
     if [ $? -eq 0 ]; then
-	ENABLELOG="yes"
+        ENABLELOG="yes"
     fi
     grep debugshell /proc/cmdline > /dev/null
     if [ $? -eq 0 ]; then
-	DEBUGSHELL="yes"
+        DEBUGSHELL="yes"
     fi
     grep enterinitramfs /proc/cmdline > /dev/null
     if [ $? -eq 0 ]; then
-	ENTERINITRAMFS="yes"
+        ENTERINITRAMFS="yes"
     fi
     grep -q 'boot_type=factory' /proc/cmdline
     if [ $? -eq 0 ]; then
-	FACTORYSETUP="yes"
+        FACTORYSETUP="yes"
+    fi
+    grep -q 'nfsroot' /proc/cmdline
+    if [ $? -eq 0 ]; then
+        NFSPATH=$(grep -Eo "nfsroot=[^ ]*" /proc/cmdline | tr '=' ',' | cut -d',' -f2)
     fi
     grep -q 'linuxboot_b\|firmware_b' /proc/cmdline
     if [ $? -eq 0 ]; then
-    FIRMWARE_SUFFIX="_b"
+        FIRMWARE_SUFFIX="_b"
     else
     # default to firmware a
-    FIRMWARE_SUFFIX="_a"
+        FIRMWARE_SUFFIX="_a"
     fi
-    debug "Select firmware${FIRMWARE_SUFFIX}"
 }
 
 mount_pseudo_fs
@@ -90,41 +93,3 @@ vgmknodes
 
 echo "Initramfs Bootstrap..."
 parse_cmdline
-
-ROOT_DEV="/dev/mapper/irma6lvm-rootfs${FIRMWARE_SUFFIX}"
-ROOT_HASH="/dev/mapper/irma6lvm-rootfs${FIRMWARE_SUFFIX}_hash"
-
-VERITY_NAME="verity-rootfs${FIRMWARE_SUFFIX}"
-VERITY_DEV="/dev/mapper/${VERITY_NAME}"
-
-HASH_DEV="/dev/mapper/irma6lvm-keystore"
-HASH_MNT="/tmp/keystore"
-
-if [ "${FACTORYSETUP}" == "yes" ]; then
-    if [ -f  /etc/functions_factory ]; then
-	. /etc/functions_factory
-	factory_setup
-	debug_reboot
-    fi
-fi
-
-# Check root device
-debug "Root mnt   : ${ROOT_MNT}"
-debug "Root device: ${ROOT_DEV}"
-debug "Verity device: ${VERITY_DEV}"
-
-if [ "${ROOT_DEV}" == "" ] || [ "${ROOT_DEV}" == "/dev/nfs" ]; then
-    error_exit
-fi
-
-mkdir ${HASH_MNT}
-mount ${HASH_DEV} ${HASH_MNT}
-RH=$(cat "${HASH_MNT}/rootfs${FIRMWARE_SUFFIX}_roothash")
-umount ${HASH_MNT}
-
-veritysetup open ${ROOT_DEV} ${VERITY_NAME} ${ROOT_HASH} ${RH}
-mount ${VERITY_DEV} ${ROOT_MNT} ${MOUNT_OPT}
-
-#Switch to real root
-echo "Switch to root"
-exec switch_root ${ROOT_MNT} ${INIT} ${CMDLINE}
