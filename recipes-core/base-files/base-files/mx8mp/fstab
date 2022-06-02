@@ -1,0 +1,10 @@
+/dev/root            /                    auto       defaults              1  1
+proc                 /proc                proc       defaults              0  0
+devpts               /dev/pts             devpts     mode=0620,gid=5       0  0
+tmpfs                /tmp                 tmpfs      defaults              0  0
+tmpfs                /var/run             tmpfs      defaults              0  0
+/dev/mapper/irma6lvm-userdata /mnt/iris   ext4       defaults              0  0
+
+# bind mount directories for r/w access
+/mnt/iris/counter    /etc/counter         none       defaults,bind         0  0
+
