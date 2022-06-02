@@ -2,12 +2,34 @@
 # Copyright (C) 2022 iris-GmbH infrared & intelligent sensors
 
 FILESEXTRAPATHS_prepend := "${THISDIR}/${PN}:"
-SRC_URI_append := "file://defconfig"
 
-RDEPENDS_${PN} += "util-linux-sfdisk jq"
-FILES_${PN} += "${SWUPDATE_HW_COMPATIBILITY_FILE}"
+# Put reset script right after counting application
+RESET_SCRIPT="reset_upgrade_available.sh"
+RESET_SCRIPT_SYM="S92reset_upgrade_available"
+
+SRC_URI_append := " \
+	file://defconfig \
+	file://${RESET_SCRIPT} \
+"
+
+RDEPENDS_${PN} += " \
+	util-linux-sfdisk \
+	jq \
+	libubootenv-bin \
+"
+
+FILES_${PN} += " \
+	${SWUPDATE_HW_COMPATIBILITY_FILE} \
+	${sysconfdir}/init.d/${RESET_SCRIPT} \
+	${sysconfdir}/rc5.d/${RESET_SCRIPT_SYM} \
+"
 
 do_install_append () {
+	install -d ${D}${sysconfdir}/init.d
+	install -d ${D}${sysconfdir}/rc5.d
+	install -m 0755 ${WORKDIR}/${RESET_SCRIPT} ${D}${sysconfdir}/init.d
+	ln -s -r ${D}${sysconfdir}/init.d/${RESET_SCRIPT} ${D}${sysconfdir}/rc5.d/${RESET_SCRIPT_SYM}
+
 	install -d $(basename -- ${D}${SWUPDATE_HW_COMPATIBILITY_FILE})
 
 	# all machines are v1.0 for now
