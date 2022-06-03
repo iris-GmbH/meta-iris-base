@@ -29,13 +29,13 @@ mount_pseudo_fs() {
 
 debug_reboot() {
     if [ "${DEBUGSHELL}" == "yes" ]; then
-	echo "enter debugshell"
-	/bin/sh
+        echo "enter debugshell"
+        /bin/sh
     else
-	# wait 5 seconds then reboot
-	echo "Reboot in 5 seconds..." > /dev/console
-	sleep 5
-	reboot -f
+        # wait 5 seconds then reboot
+        echo "Reboot in 5 seconds..." > /dev/console
+        sleep 5
+        reboot -f
     fi
 }
 
@@ -59,28 +59,27 @@ parse_cmdline() {
 
     grep enablelog /proc/cmdline > /dev/null
     if [ $? -eq 0 ]; then
-	ENABLELOG="yes"
+        ENABLELOG="yes"
     fi
     grep debugshell /proc/cmdline > /dev/null
     if [ $? -eq 0 ]; then
-	DEBUGSHELL="yes"
+        DEBUGSHELL="yes"
     fi
     grep enterinitramfs /proc/cmdline > /dev/null
     if [ $? -eq 0 ]; then
-	ENTERINITRAMFS="yes"
+        ENTERINITRAMFS="yes"
     fi
     grep -q 'boot_type=factory' /proc/cmdline
     if [ $? -eq 0 ]; then
-	FACTORYSETUP="yes"
+        FACTORYSETUP="yes"
     fi
     grep -q 'linuxboot_b\|firmware_b' /proc/cmdline
     if [ $? -eq 0 ]; then
-    FIRMWARE_SUFFIX="_b"
+        FIRMWARE_SUFFIX="_b"
     else
     # default to firmware a
-    FIRMWARE_SUFFIX="_a"
+        FIRMWARE_SUFFIX="_a"
     fi
-    debug "Select firmware${FIRMWARE_SUFFIX}"
 }
 
 mount_pseudo_fs
@@ -107,6 +106,8 @@ DECRYPT_ROOT_DEV="/dev/mapper/${DECRYPT_NAME}"
 DATA_DEV="/dev/mapper/irma6lvm-userdata"
 DECRYPT_DATA_NAME="decrypted-irma6lvm-userdata"
 
+
+debug "Select firmware${FIRMWARE_SUFFIX}"
 
 if [ "${FACTORYSETUP}" == "yes" ]; then
     if [ -f  /etc/functions_factory ]; then
