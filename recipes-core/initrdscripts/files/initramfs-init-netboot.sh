@@ -7,12 +7,10 @@ PATH=/sbin:/bin:/usr/sbin:/usr/bin
 
 ROOT_MNT="/mnt"
 
-# mount/umount
 MOUNT="/bin/mount"
-UMOUNT="/bin/umount"
 
 # init
-if [ -z ${INIT} ];then
+if [ -z "${INIT}" ];then
     INIT=/sbin/init
 fi
 
@@ -24,12 +22,16 @@ mount_pseudo_fs() {
     ${MOUNT} -t sysfs sysfs /sys
 }
 
+debug() {
+    echo "${@}"
+}
+
 parse_cmdline() {
     #Parse kernel cmdline to extract base device path
     CMDLINE="$(cat /proc/cmdline)"
     debug "Kernel cmdline: $CMDLINE"
-    grep -q 'nfsroot' /proc/cmdline
-    if [ $? -eq 0 ]; then
+    if grep -q 'nfsroot' /proc/cmdline
+    then
         NFSPATH=$(grep -Eo "nfsroot=[^ ]*" /proc/cmdline | tr '=' ',' | cut -d',' -f2)
     fi
 }
@@ -51,8 +53,7 @@ echo "####################################################"
 echo "####################################################"
 echo; echo; echo
 
-# omit MOUNT_OPT, to not setup the rootfs read-only
-mount -t nfs "${NFSPATH}" ${ROOT_MNT}
+${MOUNT} -t nfs "${NFSPATH}" ${ROOT_MNT}
 
 #Switch to real root
 echo "Switch to root"

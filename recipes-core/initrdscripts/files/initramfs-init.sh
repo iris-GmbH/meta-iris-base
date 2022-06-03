@@ -7,14 +7,11 @@ PATH=/sbin:/bin:/usr/sbin:/usr/bin
 
 ROOT_MNT="/mnt"
 
-# mount/umount
 MOUNT="/bin/mount"
 UMOUNT="/bin/umount"
 
-MOUNT_OPT="-o ro"
-
 # init
-if [ -z ${INIT} ];then
+if [ -z "${INIT}" ];then
     INIT=/sbin/init
 fi
 
@@ -28,7 +25,7 @@ mount_pseudo_fs() {
 }
 
 debug_reboot() {
-    if [ "${DEBUGSHELL}" == "yes" ]; then
+    if [ "${DEBUGSHELL}" = "yes" ]; then
         echo "enter debugshell"
         /bin/sh
     else
@@ -40,12 +37,12 @@ debug_reboot() {
 }
 
 error_exit() {
-    echo "ERROR: ${@}" > /dev/console
+    echo "ERROR: ${*}" > /dev/console
     debug_reboot
 }
 
 error() {
-    echo "Error: ${@}"
+    echo "Error: ${*}"
 }
 
 debug() {
@@ -57,27 +54,15 @@ parse_cmdline() {
     CMDLINE="$(cat /proc/cmdline)"
     debug "Kernel cmdline: $CMDLINE"
 
-    grep enablelog /proc/cmdline > /dev/null
-    if [ $? -eq 0 ]; then
-        ENABLELOG="yes"
-    fi
-    grep debugshell /proc/cmdline > /dev/null
-    if [ $? -eq 0 ]; then
+    if grep -q debugshell /proc/cmdline
+    then
         DEBUGSHELL="yes"
     fi
-    grep enterinitramfs /proc/cmdline > /dev/null
-    if [ $? -eq 0 ]; then
-        ENTERINITRAMFS="yes"
-    fi
-    grep -q 'boot_type=factory' /proc/cmdline
-    if [ $? -eq 0 ]; then
-        FACTORYSETUP="yes"
-    fi
-    grep -q 'linuxboot_b\|firmware_b' /proc/cmdline
-    if [ $? -eq 0 ]; then
+    if grep -q 'linuxboot_b\|firmware_b' /proc/cmdline
+    then
         FIRMWARE_SUFFIX="_b"
     else
-    # default to firmware a
+        # default to firmware a
         FIRMWARE_SUFFIX="_a"
     fi
 }
@@ -109,23 +94,11 @@ DECRYPT_DATA_NAME="decrypted-irma6lvm-userdata"
 
 debug "Select firmware${FIRMWARE_SUFFIX}"
 
-if [ "${FACTORYSETUP}" == "yes" ]; then
-    if [ -f  /etc/functions_factory ]; then
-	. /etc/functions_factory
-	factory_setup
-	debug_reboot
-    fi
-fi
-
 # Check root device
 debug "Root mnt   : ${ROOT_MNT}"
 debug "Root device: ${ROOT_DEV}"
 debug "Crypt device: ${DECRYPT_ROOT_DEV}"
 debug "Verity device: ${VERITY_DEV}"
-
-if [ "${ROOT_DEV}" == "" ] || [ "${ROOT_DEV}" == "/dev/nfs" ]; then
-    error_exit
-fi
 
 mkdir ${KEYSTORE}
 mount ${KEYSTORE_DEV} ${KEYSTORE}
@@ -134,7 +107,7 @@ RH=$(cat "${KEYSTORE}/rootfs${FIRMWARE_SUFFIX}_roothash")
 # Add Black key to keyring
 ln -s $KEYSTORE /data
 caam-keygen import $KEYSTORE/caam/volumeKey.bb importKey
-cat $KEYSTORE/caam/importKey | keyctl padd logon logkey: @us
+keyctl padd logon logkey: @us < $KEYSTORE/caam/importKey
 rm /data
 
 debug "Unlocking encrypted device: ${ROOT_DEV}" 
@@ -147,12 +120,12 @@ dmsetup create ${DECRYPT_DATA_NAME} --table "0 $(blockdev --getsz ${DATA_DEV}) \
 vgmknodes
 
 debug "Opening verity device: ${DECRYPT_ROOT_DEV}"
-veritysetup open ${DECRYPT_ROOT_DEV} ${VERITY_NAME} ${ROOT_HASH} ${RH}
+veritysetup open ${DECRYPT_ROOT_DEV} ${VERITY_NAME} ${ROOT_HASH} "${RH}"
 
-mount ${VERITY_DEV} ${ROOT_MNT} ${MOUNT_OPT}
+${MOUNT} ${VERITY_DEV} ${ROOT_MNT} -o ro
 
-umount ${KEYSTORE}
+${UMOUNT} ${KEYSTORE}
 
 #Switch to real root
 echo "Switch to root"
-exec switch_root ${ROOT_MNT} ${INIT} ${CMDLINE}
+exec switch_root ${ROOT_MNT} ${INIT} "${CMDLINE}"
