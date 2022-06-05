@@ -11,8 +11,9 @@ software =
             path = "@@SWU_TARGET_FITIMAGE@@";
             device = "/dev/swu_kernel";
             filesystem = "vfat";
-            version = "@SWU_AUTO_VERSION:kernel";
+            version = "$swupdate_get_pkgvar(kernel)";
             properties = {create-destination = "true";};
+            sha256 = "$swupdate_get_sha256(@@SWU_FITIMAGE@@)";
         },
     );
     images: (
@@ -21,16 +22,19 @@ software =
             device = "/dev/swu_rootfs";
             version = "@@SWU_VERSION_ROOTFS@@";
             compressed = "zlib";
+            sha256 = "$swupdate_get_sha256(@@SWU_ROOTFS@@)";
         },
         {
             filename = "bootloader-env";
             type = "bootloader";
+            sha256 = "$swupdate_get_sha256(bootloader-env)";
         }
     );
     scripts: (
         {
             filename = "pre_post_inst.sh";
             type = "shellscript";
+            sha256 = "$swupdate_get_sha256(pre_post_inst.sh)";
         },
     );
 }
