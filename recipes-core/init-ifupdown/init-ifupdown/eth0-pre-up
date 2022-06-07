@@ -28,8 +28,12 @@ createServiceAdapter(){
 }
 
 setToDHCPMode(){
+   # Do not modify interface when running from nfs
+   if grep -q "root=/dev/nfs" /proc/cmdline
+   then
+      echo "Interface is already used for nfs"
    # check if udhcpc is already running and start dhcp client
-   if [ -f "/var/run/udhcpc.eth0.pid" ]; then
+   elif [ -f "/var/run/udhcpc.eth0.pid" ]; then
       echo "DHCP Client is already running"
    else
       udhcpc -R -b -p /var/run/udhcpc.eth0.pid -i eth0
