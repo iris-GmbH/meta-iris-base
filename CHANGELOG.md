@@ -23,6 +23,7 @@ and this project adheres to [APR's Version Numbering](https://apr.apache.org/ver
 - [RDPHOEN-1140]: Add redundand u-boot-env support and missing release 2 packages: lvm2, cryptsetup libubootenv-bin
 - [RDPHOEN-1178]: Add CAAM rng prediction resistance in Uboot, enables the correct hw rng initialization in Linux.
 - [RDPHOEN-1180]: Use different fstab for R2 to mount the userdata volume
+- [RDPHOEN-1140]: Make swu images work with new partitioning/volumes
 
 
 ### Changed

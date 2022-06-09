@@ -6,32 +6,33 @@ LICENSE = "MIT"
 LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/MIT;md5=0835ade698e0bcf8506ecda2f7b4f302"
 
 IMAGENAME = "${@ d.getVar('PN').replace('-swuimage','')}"
+FITIMAGENAME = "irma6-fitimage"
 
 # The following line forces the usage of the "files" directory next to this .inc file even if it is required from another layer
 FILESEXTRAPATHS_prepend := "${@os.path.dirname(d.getVar('FILE'))}/files:"
 
 SRC_URI = " \
     file://sw-description \
-    file://update_firmware.sh \
+    file://pre_post_inst.sh \
+    file://bootloader-env \
 "
 
 IMAGE_DEPENDS = "\
+	${FITIMAGENAME} \
 	${IMAGENAME} \
 	virtual/kernel \
 "
 
-SWU_KERNEL = "Image-${MACHINE}.bin"
-SWU_DEVTREE = "${MACHINE}.dtb"
+SWU_FITIMAGE = "${FITIMAGENAME}.itb.signed"
 SWU_ROOTFS = "${IMAGENAME}-${MACHINE}.ext4.gz"
 SWU_META = "${IMAGENAME}-${MACHINE}.testdata.json"
 
-SWU_TARGET_KERNEL = "Image"
-SWU_TARGET_DEVTREE = "${MACHINE}.dtb"
+SWU_TARGET_FITIMAGE = "fitImage.signed"
 
 SWU_HW_VERSION = "1.0"
 
 # images and files that will be included in the .swu image
-SWUPDATE_IMAGES = "${SWU_KERNEL} ${SWU_DEVTREE} ${SWU_ROOTFS}"
+SWUPDATE_IMAGES = "${SWU_FITIMAGE} ${SWU_ROOTFS}"
 
 python() {
     if "swupdate" not in (d.getVar('UPDATE_PROCEDURE') or ""):
