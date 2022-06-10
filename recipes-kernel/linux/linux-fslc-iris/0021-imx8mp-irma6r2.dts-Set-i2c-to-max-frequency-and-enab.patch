@@ -1,7 +1,7 @@
-From 4fb87987d45fa6db7a2a3e857de6982f66c2be1d Mon Sep 17 00:00:00 2001
+From 72956444e1a09aa7fb583c320e00b91c7c778260 Mon Sep 17 00:00:00 2001
 From: Ian Dannapel <ian.dannapel@iris-sensing.com>
 Date: Mon, 28 Mar 2022 10:26:17 +0200
-Subject: [PATCH 21/29] imx8mp-irma6r2.dts: Set i2c to max frequency and enable
+Subject: [PATCH 21/33] imx8mp-irma6r2.dts: Set i2c to max frequency and enable
  bus 1 & 4
 
 -devices on i2c4 support only SCL @100KHz
@@ -18,7 +18,7 @@ Signed-off-by: Ian Dannapel <ian.dannapel@iris-sensing.com>
  1 file changed, 23 insertions(+), 2 deletions(-)
 
 diff --git a/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts b/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
-index 3880dbca9365..a52b72a85a38 100644
+index 6efd0e80c894..e111b15b9f5c 100644
 --- a/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
 +++ b/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
 @@ -149,8 +149,15 @@

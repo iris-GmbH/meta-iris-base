@@ -1,7 +1,7 @@
-From 44936c201c0198a6d95828402a2b6db691e9c0cb Mon Sep 17 00:00:00 2001
+From 832fa5c8bb2242cde2648cbbdc7171b9def4e5db Mon Sep 17 00:00:00 2001
 From: Erik Schumacher <Erik.Schumacher@iris-sensing.com>
 Date: Wed, 9 Mar 2022 10:40:43 +0100
-Subject: [PATCH 20/29] imx8mp-irma6r2.dts: Replace dummy clock for serializer
+Subject: [PATCH 20/33] imx8mp-irma6r2.dts: Replace dummy clock for serializer
  with 24MHz PWM (pwm2)
 
 Signed-off-by: Erik Schumacher <Erik.Schumacher@iris-sensing.com>
@@ -10,7 +10,7 @@ Signed-off-by: Erik Schumacher <Erik.Schumacher@iris-sensing.com>
  1 file changed, 10 insertions(+), 6 deletions(-)
 
 diff --git a/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts b/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
-index fd60d26842b4..3880dbca9365 100644
+index c3310e458ed6..6efd0e80c894 100644
 --- a/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
 +++ b/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
 @@ -62,11 +62,12 @@

@@ -1,7 +1,7 @@
-From e8c75db52d8a600feee21aced267a972662813a2 Mon Sep 17 00:00:00 2001
+From f4b5e84a8cff9596cc5b315f93fadd5f803dfa41 Mon Sep 17 00:00:00 2001
 From: Rouven Czerwinski <r.czerwinski@pengutronix.de>
 Date: Thu, 24 Mar 2022 10:03:27 +0100
-Subject: [PATCH 10/29] mipi-csi2-sam: fix MEDIA MIX gasket0 dumps
+Subject: [PATCH 10/33] mipi-csi2-sam: fix MEDIA MIX gasket0 dumps
 
 Somebody forgot that the gasket regmap for the media mix already starts
 at 0x60. Use an additional counter but keep the offsets within the
@@ -14,10 +14,10 @@ Signed-off-by: Ian Dannapel <ian.dannapel@iris-sensing.com>
  1 file changed, 4 insertions(+), 2 deletions(-)
 
 diff --git a/drivers/staging/media/imx/imx8-mipi-csi2-sam.c b/drivers/staging/media/imx/imx8-mipi-csi2-sam.c
-index 67b95932686a..0a2a1fe318e4 100644
+index 0bff18abd3e3..43656a1daa02 100644
 --- a/drivers/staging/media/imx/imx8-mipi-csi2-sam.c
 +++ b/drivers/staging/media/imx/imx8-mipi-csi2-sam.c
-@@ -473,13 +473,15 @@ static void dump_gasket_regs(struct csi_state *state, const char *label)
+@@ -527,13 +527,15 @@ static void dump_gasket_regs(struct csi_state *state, const char *label)
  		{ 0x64, "GPR_GASKET_0_HSIZE" },
  		{ 0x68, "GPR_GASKET_0_VSIZE" },
  	};

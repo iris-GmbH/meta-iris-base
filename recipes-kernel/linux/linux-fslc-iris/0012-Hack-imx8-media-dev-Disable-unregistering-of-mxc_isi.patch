@@ -1,7 +1,7 @@
-From 13feb9e55fcf2b75da3ab9fd10c8dfa21db97c2b Mon Sep 17 00:00:00 2001
+From f474e9373fa33c4dd0a4cadc1f33282b1e772f37 Mon Sep 17 00:00:00 2001
 From: Erik Schumacher <Erik.Schumacher@iris-sensing.com>
 Date: Thu, 24 Mar 2022 10:07:11 +0100
-Subject: [PATCH 12/29] Hack: imx8-media-dev: Disable unregistering of mxc_isi
+Subject: [PATCH 12/33] Hack: imx8-media-dev: Disable unregistering of mxc_isi
  media device
 
 Bad approach! TODO: Distinguish probe failure <> deferred probing
@@ -14,10 +14,10 @@ Signed-off-by: Erik Schumacher <Erik.Schumacher@iris-sensing.com>
  1 file changed, 20 deletions(-)
 
 diff --git a/drivers/staging/media/imx/imx8-media-dev.c b/drivers/staging/media/imx/imx8-media-dev.c
-index 4d019bf33a82..032a45e79f64 100644
+index 10281b2296db..ef914414c372 100644
 --- a/drivers/staging/media/imx/imx8-media-dev.c
 +++ b/drivers/staging/media/imx/imx8-media-dev.c
-@@ -264,23 +264,6 @@ static int mxc_md_clean_unlink_channels(struct mxc_md *mxc_md)
+@@ -267,23 +267,6 @@ static int mxc_md_clean_unlink_channels(struct mxc_md *mxc_md)
  	return 0;
  }
  
@@ -41,7 +41,7 @@ index 4d019bf33a82..032a45e79f64 100644
  static int mxc_md_create_links(struct mxc_md *mxc_md)
  {
  	struct media_entity *source, *sink;
-@@ -1015,9 +998,6 @@ static int mxc_md_probe(struct platform_device *pdev)
+@@ -1021,9 +1004,6 @@ static int mxc_md_probe(struct platform_device *pdev)
  					goto clean_ents;
  
  				mxc_md_clean_unlink_channels(mxc_md);

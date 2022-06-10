@@ -1,7 +1,7 @@
-From e1ab55e908259fca7f14236a8733ffde02f8af8a Mon Sep 17 00:00:00 2001
+From d6cc6e9f44dcd62cf94f842911f3a03494158c71 Mon Sep 17 00:00:00 2001
 From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
 Date: Fri, 25 Mar 2022 17:23:13 +0100
-Subject: [PATCH 04/29] Bugfix: Ignore CQE flag in sdhci-esdhc-imx driver
+Subject: [PATCH 04/33] Bugfix: Ignore CQE flag in sdhci-esdhc-imx driver
 
 For more information check: https://community.nxp.com/t5/i-MX-Processors/eMMC-message-quot-mmc2-running-CQE-recovery-quot/m-p/1092607
 
@@ -11,10 +11,10 @@ Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
  1 file changed, 1 insertion(+), 2 deletions(-)
 
 diff --git a/drivers/mmc/host/sdhci-esdhc-imx.c b/drivers/mmc/host/sdhci-esdhc-imx.c
-index 75538a9b8bed..88430c8c402b 100644
+index 231b224cbec1..2bb61a41e439 100644
 --- a/drivers/mmc/host/sdhci-esdhc-imx.c
 +++ b/drivers/mmc/host/sdhci-esdhc-imx.c
-@@ -231,7 +231,6 @@ static struct esdhc_soc_data usdhc_imx8qxp_data = {
+@@ -243,7 +243,6 @@ static struct esdhc_soc_data usdhc_imx8qxp_data = {
  	.flags = ESDHC_FLAG_USDHC | ESDHC_FLAG_STD_TUNING
  			| ESDHC_FLAG_HAVE_CAP1 | ESDHC_FLAG_HS200
  			| ESDHC_FLAG_HS400 | ESDHC_FLAG_HS400_ES
@@ -22,7 +22,7 @@ index 75538a9b8bed..88430c8c402b 100644
  			| ESDHC_FLAG_STATE_LOST_IN_LPMODE
  			| ESDHC_FLAG_CLK_RATE_LOST_IN_PM_RUNTIME,
  };
-@@ -240,7 +239,7 @@ static struct esdhc_soc_data usdhc_imx8mm_data = {
+@@ -252,7 +251,7 @@ static struct esdhc_soc_data usdhc_imx8mm_data = {
  	.flags = ESDHC_FLAG_USDHC | ESDHC_FLAG_STD_TUNING
  			| ESDHC_FLAG_HAVE_CAP1 | ESDHC_FLAG_HS200
  			| ESDHC_FLAG_HS400 | ESDHC_FLAG_HS400_ES

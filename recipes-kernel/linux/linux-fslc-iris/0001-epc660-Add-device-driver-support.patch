@@ -1,7 +1,7 @@
-From d4de2a595e1afec5c97727444bbc783d6f562537 Mon Sep 17 00:00:00 2001
+From 41ba462e85703d1c31d73e70305e1dfee2ca94c9 Mon Sep 17 00:00:00 2001
 From: Ian Dannapel <ian.dannapel@iris-sensing.com>
 Date: Fri, 1 Apr 2022 09:05:57 +0200
-Subject: [PATCH 01/29] epc660: Add device driver support
+Subject: [PATCH 01/33] epc660: Add device driver support
 
 - copied & adapted from https://github.com/iris-GmbH/linux-gen6/commit/cd9b44db816f06c20501a830c5ed589f55f6170a
 

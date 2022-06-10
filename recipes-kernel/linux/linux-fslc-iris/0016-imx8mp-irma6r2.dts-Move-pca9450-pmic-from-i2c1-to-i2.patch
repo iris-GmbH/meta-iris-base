@@ -1,7 +1,7 @@
-From 0040c115ae1d2471fd7dc154fb262b5c875ebf46 Mon Sep 17 00:00:00 2001
+From 8a9ba06905a0ce52b4fafde925667684073dfed6 Mon Sep 17 00:00:00 2001
 From: Erik Schumacher <Erik.Schumacher@iris-sensing.com>
 Date: Tue, 8 Mar 2022 11:33:36 +0100
-Subject: [PATCH 16/29] imx8mp-irma6r2.dts: Move pca9450 pmic from i2c1 to i2c3
+Subject: [PATCH 16/33] imx8mp-irma6r2.dts: Move pca9450 pmic from i2c1 to i2c3
 
 Signed-off-by: Erik Schumacher <Erik.Schumacher@iris-sensing.com>
 ---
@@ -9,7 +9,7 @@ Signed-off-by: Erik Schumacher <Erik.Schumacher@iris-sensing.com>
  1 file changed, 107 insertions(+), 114 deletions(-)
 
 diff --git a/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts b/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
-index 820b317e4593..f50359f51ac8 100644
+index 1741064cd103..b32608720c90 100644
 --- a/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
 +++ b/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
 @@ -297,120 +297,6 @@

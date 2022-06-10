@@ -1,7 +1,7 @@
-From b3a05130a2cd7aaaf74384a0a74329d24bc31e52 Mon Sep 17 00:00:00 2001
+From d8885c7b1891ae9425bfcd1ff2a8bc4bdccc8c62 Mon Sep 17 00:00:00 2001
 From: Rouven Czerwinski <r.czerwinski@pengutronix.de>
 Date: Thu, 24 Mar 2022 10:04:31 +0100
-Subject: [PATCH 11/29] imx8-media-dev: fix source sink pad setup
+Subject: [PATCH 11/33] imx8-media-dev: fix source sink pad setup
 
 The NXP media driver assumes that there are only sensors connected to
 the CSI interface. However for the bridge we don't want to connect to
@@ -15,10 +15,10 @@ Signed-off-by: Ian Dannapel <ian.dannapel@iris-sensing.com>
  1 file changed, 2 insertions(+), 2 deletions(-)
 
 diff --git a/drivers/staging/media/imx/imx8-media-dev.c b/drivers/staging/media/imx/imx8-media-dev.c
-index 90fde199f162..4d019bf33a82 100644
+index 875c9e92d531..10281b2296db 100644
 --- a/drivers/staging/media/imx/imx8-media-dev.c
 +++ b/drivers/staging/media/imx/imx8-media-dev.c
-@@ -494,8 +494,8 @@ static int mxc_md_create_links(struct mxc_md *mxc_md)
+@@ -497,8 +497,8 @@ static int mxc_md_create_links(struct mxc_md *mxc_md)
  
  			source = &sensor->sd->entity;
  			sink = find_entity_by_name(mxc_md, mipi_csi2->sd_name);

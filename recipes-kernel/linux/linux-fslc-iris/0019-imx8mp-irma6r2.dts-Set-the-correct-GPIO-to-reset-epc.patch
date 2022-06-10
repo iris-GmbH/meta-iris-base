@@ -1,7 +1,7 @@
-From 7a09dce88fdfedf2b11a43ccfca598c069f06c1b Mon Sep 17 00:00:00 2001
+From f074be73078421a807b821f7cf81e1e3a3ec8caf Mon Sep 17 00:00:00 2001
 From: Erik Schumacher <Erik.Schumacher@iris-sensing.com>
 Date: Mon, 28 Mar 2022 09:38:09 +0200
-Subject: [PATCH 19/29] imx8mp-irma6r2.dts: Set the correct GPIO to reset
+Subject: [PATCH 19/33] imx8mp-irma6r2.dts: Set the correct GPIO to reset
  epc660
 
 Signed-off-by: Erik Schumacher <Erik.Schumacher@iris-sensing.com>
@@ -10,7 +10,7 @@ Signed-off-by: Erik Schumacher <Erik.Schumacher@iris-sensing.com>
  1 file changed, 2 insertions(+), 3 deletions(-)
 
 diff --git a/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts b/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
-index f8f6a5995eae..fd60d26842b4 100644
+index 3fedd69610ab..c3310e458ed6 100644
 --- a/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
 +++ b/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
 @@ -157,7 +157,7 @@

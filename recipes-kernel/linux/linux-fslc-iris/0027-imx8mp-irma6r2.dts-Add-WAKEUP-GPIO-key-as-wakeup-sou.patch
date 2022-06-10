@@ -1,7 +1,7 @@
-From a4d52ab4a9fd7d6b902e0cd27d5422a33bc74a88 Mon Sep 17 00:00:00 2001
+From e7a7d01d2e340dd20daeaadf6b4833403ba475aa Mon Sep 17 00:00:00 2001
 From: Erik Schumacher <Erik.Schumacher@iris-sensing.com>
 Date: Fri, 11 Mar 2022 15:26:49 +0100
-Subject: [PATCH 27/29] imx8mp-irma6r2.dts: Add WAKEUP GPIO key as wakeup
+Subject: [PATCH 27/33] imx8mp-irma6r2.dts: Add WAKEUP GPIO key as wakeup
  source for the system
 
 Signed-off-by: Erik Schumacher <Erik.Schumacher@iris-sensing.com>
@@ -10,7 +10,7 @@ Signed-off-by: Erik Schumacher <Erik.Schumacher@iris-sensing.com>
  1 file changed, 19 insertions(+)
 
 diff --git a/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts b/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
-index a343828c19f5..ecfef3359e15 100644
+index b8975377482d..a701c1855016 100644
 --- a/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
 +++ b/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
 @@ -69,6 +69,19 @@
