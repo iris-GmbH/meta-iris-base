@@ -28,6 +28,7 @@ and this project adheres to [APR's Version Numbering](https://apr.apache.org/ver
 
 
 ### Changed
+- [DEVOPS-519] Moved config from iris-kas local.conf to meta-iris-base distro.conf
 
 
 ### Deprecated
