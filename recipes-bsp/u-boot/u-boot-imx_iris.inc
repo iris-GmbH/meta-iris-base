@@ -36,6 +36,9 @@ SRC_URI_append_imx8mpevk = "\
 	file://0008-imx8mp-evk-Resorting-imx8mp_evk_defconfig.patch \
 	file://0009-imx8mp-evk-Implementing-bootcount_limit.patch \
 	file://0010-imx8mp_evk.h-Introduce-netfitboot-command.patch \
+	file://0011-imx8mpevk-Add-reset-after-bootcmd.patch \
+	file://0012-imx8mp-evk-Add-CONFIG_ENV_FLAGS_LIST_STATIC.patch \
+	file://0013-imx8mp_evk_defconfig-Configure-writeable-list-suppor.patch \
 "
 
 FILESEXTRAPATHS_prepend_imx8mp-irma6r2 := "${THISDIR}/u-boot-imx/imx8mp-irma6r2:"
