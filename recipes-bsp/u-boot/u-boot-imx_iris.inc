@@ -64,4 +64,7 @@ SRC_URI_append_imx8mp-irma6r2 = "\
 	file://0019-imx8mp-irma6r2-defconfig-Use-redundand-env-support.patch \
 	file://0020-imx8mp-irma6r2-Implementing-bootcount_limit-for-irma6r2.patch \
 	file://0021-imx8mp_irma6r2.h-Introduce-netfitboot-command.patch \
+	file://0022-imx8mp-irma6r2-Add-CONFIG_ENV_FLAGS_LIST_STATIC.patch \
+	file://0023-imx8mp-irma6r2-Add-reset-after-bootcmd.patch \
+	file://0024-imx8mp_irma6r2_defconfig-Configure-writeable-list-su.patch \
 "

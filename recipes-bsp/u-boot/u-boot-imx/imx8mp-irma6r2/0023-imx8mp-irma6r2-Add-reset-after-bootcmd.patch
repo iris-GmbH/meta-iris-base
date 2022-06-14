@@ -1,0 +1,31 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+Date: Wed, 8 Jun 2022 08:29:14 +0200
+Subject: [PATCH] imx8mp-irma6r2: Add reset after bootcmd
+
+The 'reset' at the end of the bootcmd ensures that a boot failure does not
+drop into an insecure U-boot console.
+
+Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+---
+ include/configs/imx8mp_irma6r2.h | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/include/configs/imx8mp_irma6r2.h b/include/configs/imx8mp_irma6r2.h
+index 86254aabd0..19dedf196d 100644
+--- a/include/configs/imx8mp_irma6r2.h
++++ b/include/configs/imx8mp_irma6r2.h
+@@ -169,7 +169,9 @@
+ 			"fi; " \
+ 		"fi;\0"
+ 
+-#define CONFIG_BOOTCOMMAND "run fitboot;"
++/* Note the 'reset' at the end of the bootcmd. This is to ensure that a failure
++   to boot does not drop you into an insecure U-boot console */
++#define CONFIG_BOOTCOMMAND "run fitboot; reset;"
+ 
+ #endif
+ 
+-- 
+2.36.1
+
