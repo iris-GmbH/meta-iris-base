@@ -1,0 +1,347 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Marek Vasut <marex@denx.de>
+Date: Tue, 7 Jul 2020 20:51:38 +0200
+Subject: [PATCH] env: Add option to only ever append environment
+
+Add configuration option which prevents the environment hash table to be
+ever cleared and reloaded with different content. This is useful in case
+the first environment loaded into the hash table contains e.g. sensitive
+content which must not be dropped or reloaded.
+
+Signed-off-by: Marek Vasut <marex@denx.de>
+Reviewed-by: Tom Rini <trini@konsulko.com>
+---
+ env/Kconfig     | 68 ++++++++++++++++++++++++----------
+ env/env.c       | 98 ++++++++++++++++++++++++++++++++++++++++++-------
+ lib/hashtable.c |  4 ++
+ 3 files changed, 136 insertions(+), 34 deletions(-)
+
+diff --git a/env/Kconfig b/env/Kconfig
+index 4b94a15ac4..1cae1edf6a 100644
+--- a/env/Kconfig
++++ b/env/Kconfig
+@@ -3,6 +3,15 @@ menu "Environment"
+ config ENV_SUPPORT
+ 	def_bool y
+ 
++config SAVEENV
++	def_bool y if CMD_SAVEENV
++
++config ENV_OVERWRITE
++	bool "Enable overwriting environment"
++	help
++	  Use this to permit overriding of certain environmental variables
++	  like Ethernet and Serial
++
+ config ENV_IS_NOWHERE
+ 	bool "Environment is not stored"
+ 	default y if !ENV_IS_IN_EEPROM && !ENV_IS_IN_EXT4 && \
+@@ -10,7 +19,7 @@ config ENV_IS_NOWHERE
+ 		     !ENV_IS_IN_MMC && !ENV_IS_IN_NAND && \
+ 		     !ENV_IS_IN_NVRAM && !ENV_IS_IN_ONENAND && \
+ 		     !ENV_IS_IN_REMOTE && !ENV_IS_IN_SPI_FLASH && \
+-		     !ENV_IS_IN_UBI && !ENV_IS_IN_SATA
++		     !ENV_IS_IN_UBI
+ 	help
+ 	  Define this if you don't want to or can't have an environment stored
+ 	  on a storage medium. In this case the environment will still exist
+@@ -281,20 +290,6 @@ config ENV_IS_IN_REMOTE
+ 	  local device can get the environment from remote memory
+ 	  space by SRIO or PCIE links.
+ 
+-config ENV_IS_IN_SATA
+-    bool "Environment is in SATA disk"
+-    depends on !CHAIN_OF_TRUST
+-    help
+-      Define this if you have a SATA disk device which you
+-      want to use for the environment.
+-
+-      - CONFIG_ENV_OFFSET:
+-      - CONFIG_ENV_SIZE:
+-
+-      These two #defines specify the offset and size of the
+-      environment area within the SATA disk. CONFIG_ENV_OFFSET must be
+-      aligned to an disk sector boundary.
+-
+ config ENV_IS_IN_SPI_FLASH
+ 	bool "Environment is in SPI flash"
+ 	depends on !CHAIN_OF_TRUST && SPI
+@@ -418,8 +413,7 @@ config SYS_REDUNDAND_ENVIRONMENT
+ config ENV_FAT_INTERFACE
+ 	string "Name of the block device for the environment"
+ 	depends on ENV_IS_IN_FAT
+-	default "mmc" if ARCH_SUNXI
+-	default "mmc" if TI_COMMON_CMD_OPTIONS || ARCH_ZYNQMP || ARCH_AT91
++	default "mmc"
+ 	help
+ 	  Define this to a string that is the name of the block device.
+ 
+@@ -446,6 +440,10 @@ config ENV_FAT_DEVICE_AND_PART
+ 	                   If none, first valid partition in device D. If no
+ 	                   partition table then means device D.
+ 
++	  If ENV_FAT_INTERFACE is set to "mmc" then device 'D' can be omitted,
++	  leaving the string starting with a colon, and the boot device will
++	  be used.
++
+ config ENV_FAT_FILE
+ 	string "Name of the FAT file to use for the environment"
+ 	depends on ENV_IS_IN_FAT
+@@ -481,7 +479,7 @@ config ENV_EXT4_DEVICE_AND_PART
+ config ENV_EXT4_FILE
+ 	string "Name of the EXT4 file to use for the environment"
+ 	depends on ENV_IS_IN_EXT4
+-	default "uboot.env"
++	default "/uboot.env"
+ 	help
+ 	  It's a string of the EXT4 file name. This file use to store the
+ 	  environment (explicit path to the file)
+@@ -504,7 +502,7 @@ config ENV_ADDR_REDUND
+ config ENV_OFFSET
+ 	hex "Environment offset"
+ 	depends on ENV_IS_IN_EEPROM || ENV_IS_IN_MMC || ENV_IS_IN_NAND || \
+-		    ENV_IS_IN_SPI_FLASH || ENV_IS_IN_SATA
++		    ENV_IS_IN_SPI_FLASH
+ 	default 0x3f8000 if ARCH_ROCKCHIP && ENV_IS_IN_MMC
+ 	default 0x140000 if ARCH_ROCKCHIP && ENV_IS_IN_SPI_FLASH
+ 	default 0x88000 if ARCH_SUNXI
+@@ -514,6 +512,7 @@ config ENV_OFFSET
+ 	default 0 if ARC
+ 	default 0x140000 if ARCH_AT91
+ 	default 0x260000 if ARCH_OMAP2PLUS
++	default 0x1080000 if MICROBLAZE && ENV_IS_IN_SPI_FLASH
+ 	help
+ 	  Offset from the start of the device (or partition)
+ 
+@@ -543,6 +542,7 @@ config ENV_SECT_SIZE
+ 	default 0x2000 if ARCH_ROCKCHIP
+ 	default 0x40000 if ARCH_ZYNQMP || ARCH_VERSAL
+ 	default 0x20000 if ARCH_ZYNQ || ARCH_OMAP2PLUS || ARCH_AT91
++	default 0x20000 if MICROBLAZE && ENV_IS_IN_SPI_FLASH
+ 	help
+ 	  Size of the sector containing the environment.
+ 
+@@ -572,7 +572,7 @@ config ENV_UBI_VID_OFFSET
+ 	  UBI VID offset for environment. If 0, no custom VID offset is used.
+ 
+ config SYS_RELOC_GD_ENV_ADDR
+-	bool "Relocate gd->en_addr"
++	bool "Relocate gd->env_addr"
+ 	help
+ 	  Relocate the early env_addr pointer so we know it is not inside
+ 	  the binary. Some systems need this and for the rest, it doesn't hurt.
+@@ -602,6 +602,34 @@ config ENV_VARS_UBOOT_RUNTIME_CONFIG
+ 	  run-time determined information about the hardware to the
+ 	  environment.  These will be named board_name, board_rev.
+ 
++config DELAY_ENVIRONMENT
++	bool "Delay environment loading"
++	depends on !OF_CONTROL
++	help
++	  Enable this to inhibit loading the environment during board
++	  initialization. This can address the security risk of untrusted data
++	  being used during boot. Normally the environment is loaded when the
++	  board is initialised so that it is available to U-Boot. This inhibits
++	  that so that the environment is not available until explicitly loaded
++	  later by U-Boot code. With CONFIG_OF_CONTROL this is instead
++	  controlled by the value of /config/load-environment.
++
++config ENV_APPEND
++	bool "Always append the environment with new data"
++	default n
++	help
++	  If defined, the environment hash table is only ever appended with new
++	  data, but the existing hash table can never be dropped and reloaded
++	  with newly imported data. This may be used in combination with static
++	  flags to e.g. to protect variables which must not be modified.
++
++config ENV_ACCESS_IGNORE_FORCE
++	bool "Block forced environment operations"
++	default n
++	help
++	  If defined, don't allow the -f switch to env set override variable
++	  access flags.
++
+ if SPL_ENV_SUPPORT
+ config SPL_ENV_IS_NOWHERE
+ 	bool "SPL Environment is not stored"
+diff --git a/env/env.c b/env/env.c
+index b9febeca51..42c7d8155e 100644
+--- a/env/env.c
++++ b/env/env.c
+@@ -7,6 +7,9 @@
+ #include <common.h>
+ #include <env.h>
+ #include <env_internal.h>
++#include <log.h>
++#include <linux/bitops.h>
++#include <linux/bug.h>
+ 
+ DECLARE_GLOBAL_DATA_PTR;
+ 
+@@ -100,7 +103,7 @@ static void env_set_inited(enum env_location location)
+ 	 * using the above enum value as the bit index. We need to
+ 	 * make sure that we're not overflowing it.
+ 	 */
+-	BUILD_BUG_ON(ARRAY_SIZE(env_locations) > BITS_PER_LONG);
++	BUILD_BUG_ON(ENVL_COUNT > BITS_PER_LONG);
+ 
+ 	gd->env_has_init |= BIT(location);
+ }
+@@ -128,8 +131,6 @@ __weak enum env_location env_get_location(enum env_operation op, int prio)
+ 	if (prio >= ARRAY_SIZE(env_locations))
+ 		return ENVL_UNKNOWN;
+ 
+-	gd->env_load_prio = prio;
+-
+ 	return env_locations[prio];
+ }
+ 
+@@ -186,9 +187,6 @@ int env_load(void)
+ 	for (prio = 0; (drv = env_driver_lookup(ENVOP_LOAD, prio)); prio++) {
+ 		int ret;
+ 
+-		if (!drv->load)
+-			continue;
+-
+ 		if (!env_has_inited(drv->location))
+ 			continue;
+ 
+@@ -201,7 +199,11 @@ int env_load(void)
+ 		ret = drv->load();
+ 		if (!ret) {
+ 			printf("OK\n");
++			gd->env_load_prio = prio;
++
++#if !CONFIG_IS_ENABLED(ENV_APPEND)
+ 			return 0;
++#endif
+ 		} else if (ret == -ENOMSG) {
+ 			/* Handle "bad CRC" case */
+ 			if (best_prio == -1)
+@@ -224,7 +226,36 @@ int env_load(void)
+ 		debug("Selecting environment with bad CRC\n");
+ 	else
+ 		best_prio = 0;
+-	env_get_location(ENVOP_LOAD, best_prio);
++
++	gd->env_load_prio = best_prio;
++
++	return -ENODEV;
++}
++
++int env_reload(void)
++{
++	struct env_driver *drv;
++
++	drv = env_driver_lookup(ENVOP_LOAD, gd->env_load_prio);
++	if (drv) {
++		int ret;
++
++		printf("Loading Environment from %s... ", drv->name);
++
++		if (!env_has_inited(drv->location)) {
++			printf("not initialized\n");
++			return -ENODEV;
++		}
++
++		ret = drv->load();
++		if (ret)
++			printf("Failed (%d)\n", ret);
++		else
++			printf("OK\n");
++
++		if (!ret)
++			return 0;
++	}
+ 
+ 	return -ENODEV;
+ }
+@@ -237,13 +268,17 @@ int env_save(void)
+ 	if (drv) {
+ 		int ret;
+ 
+-		if (!drv->save)
++		printf("Saving Environment to %s... ", drv->name);
++		if (!drv->save) {
++			printf("not possible\n");
+ 			return -ENODEV;
++		}
+ 
+-		if (!env_has_inited(drv->location))
++		if (!env_has_inited(drv->location)) {
++			printf("not initialized\n");
+ 			return -ENODEV;
++		}
+ 
+-		printf("Saving Environment to %s... ", drv->name);
+ 		ret = drv->save();
+ 		if (ret)
+ 			printf("Failed (%d)\n", ret);
+@@ -312,9 +347,44 @@ int env_init(void)
+ 	return ret;
+ }
+ 
+-#ifndef ENV_IS_EMBEDDED
+-__weak long long env_get_offset(long long defautl_offset)
++int env_select(const char *name)
+ {
+-	return defautl_offset;
++	struct env_driver *drv;
++	const int n_ents = ll_entry_count(struct env_driver, env_driver);
++	struct env_driver *entry;
++	int prio;
++	bool found = false;
++
++	printf("Select Environment on %s: ", name);
++
++	/* search ENV driver by name */
++	drv = ll_entry_start(struct env_driver, env_driver);
++	for (entry = drv; entry != drv + n_ents; entry++) {
++		if (!strcmp(entry->name, name)) {
++			found = true;
++			break;
++		}
++	}
++
++	if (!found) {
++		printf("driver not found\n");
++		return -ENODEV;
++	}
++
++	/* search priority by driver */
++	for (prio = 0; (drv = env_driver_lookup(ENVOP_INIT, prio)); prio++) {
++		if (entry->location == env_get_location(ENVOP_LOAD, prio)) {
++			/* when priority change, reset the ENV flags */
++			if (gd->env_load_prio != prio) {
++				gd->env_load_prio = prio;
++				gd->env_valid = ENV_INVALID;
++				gd->flags &= ~GD_FLG_ENV_DEFAULT;
++			}
++			printf("OK\n");
++			return 0;
++		}
++	}
++	printf("priority not found\n");
++
++	return -ENODEV;
+ }
+-#endif
+diff --git a/lib/hashtable.c b/lib/hashtable.c
+index 907e8a642f..18dfa072bd 100644
+--- a/lib/hashtable.c
++++ b/lib/hashtable.c
+@@ -813,6 +813,10 @@ int himport_r(struct hsearch_data *htab,
+ 	if (nvars)
+ 		memcpy(localvars, vars, sizeof(vars[0]) * nvars);
+ 
++#if CONFIG_IS_ENABLED(ENV_APPEND)
++	flag |= H_NOCLEAR;
++#endif
++
+ 	if ((flag & H_NOCLEAR) == 0 && !nvars) {
+ 		/* Destroy old hash table if one exists */
+ 		debug("Destroy Hash Table: %p table = %p\n", htab,
+-- 
+2.36.1
+

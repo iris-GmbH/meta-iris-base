@@ -1,0 +1,78 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+Date: Fri, 10 Jun 2022 21:11:55 +0200
+Subject: [PATCH] imx8m/soc.c: Use arch specific env_get_location
+
+To restrict the "writable" u-boot envs (ENV_WRITELIST) a usecase specific
+function env_get_location is needed:
+
+The env location when saving:
+0. EMMC
+
+The env location when loading and all other cases:
+0. NOWHERE (default envs) and is appended by the filtered envs from the
+1. EMMC
+
+Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+---
+ arch/arm/mach-imx/imx8m/soc.c | 43 ++++++++---------------------------
+ 1 file changed, 9 insertions(+), 34 deletions(-)
+
+diff --git a/arch/arm/mach-imx/imx8m/soc.c b/arch/arm/mach-imx/imx8m/soc.c
+index e71b3755c4..5bbe7bce42 100644
+--- a/arch/arm/mach-imx/imx8m/soc.c
++++ b/arch/arm/mach-imx/imx8m/soc.c
+@@ -1213,41 +1213,16 @@ void do_error(struct pt_regs *pt_regs, unsigned int esr)
+ #if defined(CONFIG_IMX8MN) || defined(CONFIG_IMX8MP)
+ enum env_location env_get_location(enum env_operation op, int prio)
+ {
+-	enum boot_device dev = get_boot_device();
+-	enum env_location env_loc = ENVL_UNKNOWN;
+-
+-	if (prio)
+-		return env_loc;
+-
+-	switch (dev) {
+-#ifdef CONFIG_ENV_IS_IN_SPI_FLASH
+-	case QSPI_BOOT:
+-		env_loc = ENVL_SPI_FLASH;
+-		break;
+-#endif
+-#ifdef CONFIG_ENV_IS_IN_NAND
+-	case NAND_BOOT:
+-		env_loc = ENVL_NAND;
+-		break;
+-#endif
+-#ifdef CONFIG_ENV_IS_IN_MMC
+-	case SD1_BOOT:
+-	case SD2_BOOT:
+-	case SD3_BOOT:
+-	case MMC1_BOOT:
+-	case MMC2_BOOT:
+-	case MMC3_BOOT:
+-		env_loc =  ENVL_MMC;
+-		break;
+-#endif
+-	default:
+-#if defined(CONFIG_ENV_IS_NOWHERE)
+-		env_loc = ENVL_NOWHERE;
+-#endif
+-		break;
++	if (op == ENVOP_SAVE) {
++		if (prio == 0)
++			return ENVL_MMC;
++	} else {
++		if (prio == 0)
++			return ENVL_NOWHERE;
++		if (prio == 1)
++			return ENVL_MMC;
+ 	}
+-
+-	return env_loc;
++	return ENVL_UNKNOWN;
+ }
+ 
+ #ifndef ENV_IS_EMBEDDED
+-- 
+2.36.1
+

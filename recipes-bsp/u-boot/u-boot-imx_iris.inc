@@ -9,6 +9,19 @@ SRC_URI_append = "\
 	file://0002-Backport-part-Give-several-functions-more-useful-ret.patch\
 	file://0003-Add-HAB-image-authentication-for-FIT-Images.patch \
 	file://0004-MLK-23089-crypto-fsl_caam-add-rng-prediction-resista.patch \
+	file://0005-env-Warn-on-force-access-if-ENV_ACCESS_IGNORE_FORCE-.patch \
+	file://0006-env-Add-H_DEFAULT-flag.patch \
+	file://0007-env-Discern-environment-coming-from-external-storage.patch \
+	file://0008-env-Add-option-to-only-ever-append-environment.patch \
+	file://0009-env-Add-support-for-explicit-write-access-list.patch \
+	file://0010-env-nowhere-add-.load-ops.patch \
+	file://0011-env-Fix-warning-when-forcing-environment-without-ENV.patch \
+	file://0012-env-split-env_import_redund-into-2-functions.patch \
+	file://0013-env-increment-redund-flag-on-read-fail.patch \
+	file://0014-env-Fix-invalid-env-handling-in-env_init.patch \
+	file://0015-env-Fix-prio-on-bad-CRC-case-with-ENV_APPEND-enabled.patch \
+	file://0016-env-Invert-gd-env_valid-for-env_mmc_save.patch \
+	file://0017-imx8m-soc.c-Use-arch-specific-env_get_location.patch \
 "
 
 FILESEXTRAPATHS_prepend_imx8mpevk := "${THISDIR}/u-boot-imx/imx8mpevk:"
