@@ -22,6 +22,7 @@ mount_pseudo_fs() {
     debug "Mount pseudo fs"
     ${MOUNT} -t devtmpfs none /dev
     ${MOUNT} -t tmpfs tmp /tmp
+    ${MOUNT} -t tmpfs tmp /run
     ${MOUNT} -t proc proc /proc
     ${MOUNT} -t sysfs sysfs /sys
 }
@@ -94,11 +95,18 @@ parse_cmdline
 ROOT_DEV="/dev/mapper/irma6lvm-rootfs${FIRMWARE_SUFFIX}"
 ROOT_HASH="/dev/mapper/irma6lvm-rootfs${FIRMWARE_SUFFIX}_hash"
 
+KEYSTORE_DEV="/dev/mapper/irma6lvm-keystore"
+KEYSTORE="/tmp/keystore"
+
 VERITY_NAME="verity-rootfs${FIRMWARE_SUFFIX}"
 VERITY_DEV="/dev/mapper/${VERITY_NAME}"
 
-HASH_DEV="/dev/mapper/irma6lvm-keystore"
-HASH_MNT="/tmp/keystore"
+DECRYPT_NAME="decrypted-irma6lvm-rootfs${FIRMWARE_SUFFIX}"
+DECRYPT_ROOT_DEV="/dev/mapper/${DECRYPT_NAME}"
+
+DATA_DEV="/dev/mapper/irma6lvm-userdata"
+DECRYPT_DATA_NAME="decrypted-irma6lvm-userdata"
+
 
 if [ "${FACTORYSETUP}" == "yes" ]; then
     if [ -f  /etc/functions_factory ]; then
@@ -111,19 +119,38 @@ fi
 # Check root device
 debug "Root mnt   : ${ROOT_MNT}"
 debug "Root device: ${ROOT_DEV}"
+debug "Crypt device: ${DECRYPT_ROOT_DEV}"
 debug "Verity device: ${VERITY_DEV}"
 
 if [ "${ROOT_DEV}" == "" ] || [ "${ROOT_DEV}" == "/dev/nfs" ]; then
     error_exit
 fi
 
-mkdir ${HASH_MNT}
-mount ${HASH_DEV} ${HASH_MNT}
-RH=$(cat "${HASH_MNT}/rootfs${FIRMWARE_SUFFIX}_roothash")
-umount ${HASH_MNT}
+mkdir ${KEYSTORE}
+mount ${KEYSTORE_DEV} ${KEYSTORE}
+RH=$(cat "${KEYSTORE}/rootfs${FIRMWARE_SUFFIX}_roothash")
 
-veritysetup open ${ROOT_DEV} ${VERITY_NAME} ${ROOT_HASH} ${RH}
+# Add Black key to keyring
+ln -s $KEYSTORE /data
+caam-keygen import $KEYSTORE/caam/volumeKey.bb importKey
+cat $KEYSTORE/caam/importKey | keyctl padd logon logkey: @us
+rm /data
+
+debug "Unlocking encrypted device: ${ROOT_DEV}" 
+dmsetup create ${DECRYPT_NAME} --table "0 $(blockdev --getsz ${ROOT_DEV}) \
+    crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 ${ROOT_DEV} 0 1 sector_size:4096"
+
+debug "Unlocking encrypted device: ${DATA_DEV}"
+dmsetup create ${DECRYPT_DATA_NAME} --table "0 $(blockdev --getsz ${DATA_DEV}) \
+    crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 ${DATA_DEV} 0 1 sector_size:4096"
+vgmknodes
+
+debug "Opening verity device: ${DECRYPT_ROOT_DEV}"
+veritysetup open ${DECRYPT_ROOT_DEV} ${VERITY_NAME} ${ROOT_HASH} ${RH}
+
 mount ${VERITY_DEV} ${ROOT_MNT} ${MOUNT_OPT}
+
+umount ${KEYSTORE}
 
 #Switch to real root
 echo "Switch to root"

@@ -35,6 +35,12 @@ IRMA6_EXTRA_PACKAGES = " \
 	cryptsetup \
 	libubootenv-bin \
 "
+# IRMA6R2 SoC specific packages (not included in qemu)
+IRMA6_EXTRA_PACKAGES_append_mx8mp = " \
+	keyctl-caam \
+	util-linux-blockdev \
+	keyutils \
+"
 
 # IRMA6 Release 1 only packages
 IRMA6_EXTRA_PACKAGES_sc57x = " \

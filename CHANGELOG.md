@@ -25,6 +25,7 @@ and this project adheres to [APR's Version Numbering](https://apr.apache.org/ver
 - [RDPHOEN-1180]: Use different fstab for R2 to mount the userdata volume
 - [RDPHOEN-1140]: Make swu images work with new partitioning/volumes
 - [RDPHOEN-1144]: Bump Kernel to 5.4-2.3.x-imx and enable CAAM API
+- [RDPHOEN-1142]: Enable encrypted storage and CAAM auto-unlock mechanism
 
 
 ### Changed

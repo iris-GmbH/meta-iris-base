@@ -6,6 +6,13 @@ CORE_IMAGE_BASE_INSTALL_append = " \
     cryptsetup \
 "
 
+# IRMA6R2 SoC specific packages (not included in qemu)
+CORE_IMAGE_BASE_INSTALL_append_mx8mp = " \
+   keyctl-caam \
+   util-linux-blockdev \
+   keyutils \
+"
+
 # Add the "cpio.gz" image type to use this initramfs for a fitimage
 IMAGE_FSTYPES_append = " cpio.gz"
 
