@@ -1,0 +1,23 @@
+[req]
+default_md = sha256
+prompt = no
+encrypt_key = no
+distinguished_name = req_dn
+req_extensions = req_ext
+
+[req_dn]
+C = DE
+ST = Berlin
+L = Berlin
+O = iris-GmbH
+OU = PTS
+CN = ${ENV::PRODUCT_FAMILY}-${ENV::SENSOR_SERIAL}
+
+[req_ext]
+keyUsage = keyEncipherment, dataEncipherment, digitalSignature, nonRepudiation
+extendedKeyUsage = serverAuth,clientAuth
+subjectAltName = @alt_names
+
+[alt_names]
+DNS.1 = sensor.local 
+email.1 = ${ENV::PRODUCT_FAMILY}-${ENV::SENSOR_SERIAL}@iris-sensing.net
