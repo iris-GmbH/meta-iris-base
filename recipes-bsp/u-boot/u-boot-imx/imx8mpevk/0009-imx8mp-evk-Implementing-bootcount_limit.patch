@@ -1,0 +1,219 @@
+From faa410fd17da6abf956c6966f0dba9ae388fcf60 Mon Sep 17 00:00:00 2001
+From: "Jan.Hannig" <jan.hannig@irisgmbh.de>
+Date: Tue, 14 Jun 2022 17:12:03 +0200
+Subject: [PATCH 2/2] [RDPHOEN-1154] Implementing bootcount_limit for evk
+
+Adapt imx8mp_evk_defconfig:
+Activate environment variables bootcount and bootlimit.
+imx8mp_evk-module:
+Set ustate, upgrade_available and firmware all 0 as default values.
+Added ${mmcpart} to mmcargs
+Replace "board_autolocate_boot_partitions" by "board_autogenerate_bootcmd"
+Only the variables bootcmd and altbootcmd are used for the fitImage booting.
+Both bootcmd vars contain the commands "setenv mmcpart [...]" and
+"run fitboot".
+Implementing state handling for firmware version:
+Evaluating "ustate" and "upgrade_available", setting and
+storing (saveenv) "firmware_env" and "upgrade_available".
+Adding macro DEBUG for prints.
+
+Signed-off-by: Jan.Hannig <jan.hannig@irisgmbh.de>
+---
+ board/freescale/imx8mp_evk/imx8mp_evk.c | 116 +++++++++++++++---------
+ configs/imx8mp_evk_defconfig            |   3 +
+ include/configs/imx8mp_evk.h            |   5 +-
+ 3 files changed, 80 insertions(+), 44 deletions(-)
+
+diff --git a/board/freescale/imx8mp_evk/imx8mp_evk.c b/board/freescale/imx8mp_evk/imx8mp_evk.c
+index c274577311..74b18f5b13 100644
+--- a/board/freescale/imx8mp_evk/imx8mp_evk.c
++++ b/board/freescale/imx8mp_evk/imx8mp_evk.c
+@@ -21,9 +21,12 @@
+ #include "../common/tcpc.h"
+ #include <usb.h>
+ #include <dwc3-uboot.h>
++#include "bootcount.h"
+ 
+ DECLARE_GLOBAL_DATA_PTR;
+ 
++#define DEBUG 0
++
+ #define UART_PAD_CTRL	(PAD_CTL_DSE6 | PAD_CTL_FSEL1)
+ #define WDOG_PAD_CTRL	(PAD_CTL_DSE6 | PAD_CTL_ODE | PAD_CTL_PUE | PAD_CTL_PE)
+ 
+@@ -499,50 +502,77 @@ int board_init(void)
+ 	return 0;
+ }
+ 
+-void board_autolocate_boot_partitions(void)
++void board_autogenerate_bootcmd (void)
+ {
+-	/* TODO (RDPHOEN-1080, ERSC):
+-	   - read bootable flag in GPT, what if no partition is bootable?
+-	   - what to do with the changed (and maybe saved) env values?
+-	   - what to do, if boot/rootfs not found?
+-	*/
+-	u32 dev_no = env_get_ulong("emmc_dev", 10, 2);
+-	char firmware = 'a'; // assume A for now
+-	char mmcroot[32];
+-	char partboot[32];
+-	char partbootfull[32];
+-	char partrootfull[32];
+-	disk_partition_t part_info;
+-
+-	printf("Active firmware: %c - Locating partitions ...\n", firmware);
+-
+-	sprintf(partboot, "linuxboot_%c", firmware);
+-	sprintf(partbootfull, "%d#%s", dev_no, partboot);
+-	sprintf(partrootfull, "%d#rootfs_%c", dev_no, firmware);
+-	int partnumboot = part_get_info_by_dev_and_name_or_num("mmc", partbootfull, 0, &part_info);
+-
+-	if (partnumboot < 0) {
+-		printf(" !! Could not locate linux boot partition!\n");
+-	} else if (!part_info.bootable) {
+-		printf(" !! Found linux boot partition, but partition is not marked bootable!\n");
+-	} else {
+-		printf(" Found linux boot at %d\n", partnumboot);
+-	}
+-
+-	int partnumroot = part_get_info_by_dev_and_name_or_num("mmc", partrootfull, 0, &part_info);
+-	if (partnumroot < 0) {
+-		printf(" !! Could not locate linux rootfs partition!\n");
+-	} else {
+-		printf(" Found linux rootfs at %d\n", partnumroot);
+-	}
+-
+-	env_set("mmcpart", partboot);
+-	env_set_ulong("mmcdev", dev_no);
++    int firmware_env = env_get_ulong("firmware", 10, 0);
++    char *firmware;
++    char *altfirmware;
++    char bootcmd[50];
++    char altbootcmd[50];
++    char partboot[20];
++    char altpartboot[20];
++    int upgrade_available = env_get_ulong("upgrade_available", 10, 0);
++    int ustate = env_get_ulong("ustate", 10, 0);
++
++#if DEBUG
++    printf("Active firmware: %d. ustate: %d \n", firmware_env, ustate);
++#endif
+ 
+-	/* Set mmcblk env */
+-	sprintf(mmcroot, "/dev/mmcblk%dp%d rootwait rw",
+-		mmc_map_to_kernel_blk(dev_no), partnumroot);
+-	env_set("mmcroot", mmcroot);
++    if ( (upgrade_available == 1) && ( ustate == 1) )
++    {
++        /* Change the boot firmware:  */
++        if (firmware_env == 1 ){
++            firmware = "a";
++            altfirmware = "b";
++            firmware_env = 0;
++        }
++        /* Contains [if (firmware_env == 0) ] and all other -invalid- numbers --> set the default firmware_env value to 0 */
++        else {
++            firmware = "b";
++            altfirmware = "a";
++            firmware_env = 1;
++        }
++        
++        /* firmware value is responsibly set by bootloader for further boot events */
++        env_set_ulong("firmware", firmware_env);
++        /* Save the state  of having changed boot firmware */
++        ustate = 2;
++        env_set_ulong("ustate", ustate);
++        /* Store both values in ROM / eMMC */
++        env_save();
++#if DEBUG
++        printf("#1 Active firmware_env set to: %ld resp. %d. firmware: %s; altfirmware: %s. ustate: %ld \n", env_get_ulong("firmware", 10, 0), firmware_env, firmware, altfirmware, env_get_ulong("ustate", 10, 0) );
++#endif
++    }
++    else /* In all other cases --> boot from actual firmware and just initialize "altfirmware"/"firmware" according to "firmware_env" */
++    {
++        if (firmware_env == 1 ){
++            firmware = "b";
++            altfirmware = "a";
++        }
++        /* Contains [if (firmware_env == 0) ] and all other -invalid- numbers */
++        else {
++            firmware = "a";
++            altfirmware = "b";
++        }
++#if DEBUG
++        printf("#2 Active firmware set to: %ld resp. %s; altfirmware: %s. ustate: %ld \n", env_get_ulong("firmware", 10, 0), firmware, altfirmware, env_get_ulong("ustate", 10, 0) );
++#endif
++    }
++
++    /* Combine the (alt)bootcmd according to the change of variable "firmware" */
++    snprintf(partboot, sizeof(partboot), "linuxboot_%s", firmware);
++    snprintf(altpartboot, sizeof(altpartboot), "linuxboot_%s", altfirmware);
++    /* "reset;" as a security desgin pattern "so that any failure of the bootcmd does not leave you 
++    in an insecure U-Boot console environment." -- http://trac.gateworks.com/wiki/secure_boot  */
++    snprintf(bootcmd, sizeof(bootcmd), "setenv mmcpart %s; run fitboot; reset;", partboot);
++    snprintf(altbootcmd, sizeof(altbootcmd), "setenv mmcpart %s; run fitboot; reset;", altpartboot);
++#if DEBUG
++    printf("partboot: %s  ... altpartboot: %s \n", partboot, altpartboot);
++    printf("bootcmd: %s . altbootcmd: %s \n", bootcmd, altbootcmd);
++#endif
++    env_set("bootcmd", bootcmd);
++    env_set("altbootcmd", altbootcmd);
+ }
+ 
+ int board_late_init(void)
+@@ -555,7 +585,7 @@ int board_late_init(void)
+ 	env_set("board_rev", "iMX8MP");
+ #endif
+ 
+-	board_autolocate_boot_partitions();
++	board_autogenerate_bootcmd();
+ 	return 0;
+ }
+ 
+diff --git a/configs/imx8mp_evk_defconfig b/configs/imx8mp_evk_defconfig
+index 0a31a29214..8029d831b1 100644
+--- a/configs/imx8mp_evk_defconfig
++++ b/configs/imx8mp_evk_defconfig
+@@ -16,6 +16,7 @@ CONFIG_USB_TCPC=y
+ CONFIG_TARGET_IMX8MP_EVK=y
+ CONFIG_SPL_SERIAL_SUPPORT=y
+ CONFIG_SPL_DRIVERS_MISC_SUPPORT=y
++CONFIG_BOOTCOUNT_BOOTLIMIT=5
+ CONFIG_NR_DRAM_BANKS=3
+ CONFIG_SPL=y
+ CONFIG_ENV_OFFSET_REDUND=0x402000
+@@ -72,6 +73,8 @@ CONFIG_SYS_RELOC_GD_ENV_ADDR=y
+ CONFIG_ENV_VARS_UBOOT_RUNTIME_CONFIG=y
+ CONFIG_REGMAP=y
+ CONFIG_SYSCON=y
++CONFIG_BOOTCOUNT_LIMIT=y
++CONFIG_BOOTCOUNT_ENV=y
+ CONFIG_CLK_COMPOSITE_CCF=y
+ CONFIG_CLK_IMX8MP=y
+ CONFIG_USB_FUNCTION_FASTBOOT=y
+diff --git a/include/configs/imx8mp_evk.h b/include/configs/imx8mp_evk.h
+index fbbab0c31f..7637c47d2d 100644
+--- a/include/configs/imx8mp_evk.h
++++ b/include/configs/imx8mp_evk.h
+@@ -89,6 +89,9 @@
+ 	"initrd_high=0xffffffffffffffff\0" \
+ 	"emmc_dev=2\0"\
+ 	"sd_dev=1\0" \
++	"firmware=0\0" \
++	"upgrade_available=0\0" \
++	"ustate=0\0" \
+ 
+ /* Initial environment variables */
+ #define CONFIG_EXTRA_ENV_SETTINGS		\
+@@ -107,7 +110,7 @@
+ 	"mmcdev="__stringify(CONFIG_SYS_MMC_ENV_DEV)"\0" \
+ 	"mmcroot=" CONFIG_MMCROOT " rootwait rw\0" \
+ 	"mmcautodetect=yes\0" \
+-	"mmcargs=setenv bootargs ${jh_clk} console=${console} root=${mmcroot}\0 " \
++	"mmcargs=setenv bootargs ${jh_clk} console=${console} root=${mmcroot} ${mmcpart}\0 " \
+ 	"loadbootscript=fatload mmc ${mmcdev}#${mmcpart} ${loadaddr} ${script};\0" \
+ 	"bootscript=echo Running bootscript from mmc ...; " \
+ 		"source\0" \
+-- 
+2.20.1
+

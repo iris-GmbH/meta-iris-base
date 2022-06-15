@@ -20,6 +20,8 @@ SRC_URI_append_imx8mpevk = "\
 	file://0005-imx8mp-evk-Change-bootcmd-to-fitboot.patch \
 	file://0006-imx8mp-evk-Increase-CONFIG_SYS_BOOTM_LEN-to-32MB.patch \
 	file://0007-imx8mp-evk-defconfig-Use-redundand-env-support.patch \
+	file://0008-imx8mp-evk-Resorting-imx8mp_evk_defconfig.patch \
+	file://0009-imx8mp-evk-Implementing-bootcount_limit.patch \
 "
 
 FILESEXTRAPATHS_prepend_imx8mp-irma6r2 := "${THISDIR}/u-boot-imx/imx8mp-irma6r2:"
@@ -43,4 +45,5 @@ SRC_URI_append_imx8mp-irma6r2 = "\
 	file://0017-imx8mp-irma6r2-Increase-CONFIG_SYS_BOOTM_LEN-to-32MB.patch \
 	file://0018-imx8mp-irma6r2-Change-bootcmd-to-fitboot.patch \
 	file://0019-imx8mp-irma6r2-defconfig-Use-redundand-env-support.patch \
+	file://0020-imx8mp-irma6r2-Implementing-bootcount_limit-for-irma6r2.patch \
 "
