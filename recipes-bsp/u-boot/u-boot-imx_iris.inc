@@ -22,6 +22,7 @@ SRC_URI_append_imx8mpevk = "\
 	file://0007-imx8mp-evk-defconfig-Use-redundand-env-support.patch \
 	file://0008-imx8mp-evk-Resorting-imx8mp_evk_defconfig.patch \
 	file://0009-imx8mp-evk-Implementing-bootcount_limit.patch \
+	file://0010-imx8mp_evk.h-Introduce-netfitboot-command.patch \
 "
 
 FILESEXTRAPATHS_prepend_imx8mp-irma6r2 := "${THISDIR}/u-boot-imx/imx8mp-irma6r2:"
@@ -46,4 +47,5 @@ SRC_URI_append_imx8mp-irma6r2 = "\
 	file://0018-imx8mp-irma6r2-Change-bootcmd-to-fitboot.patch \
 	file://0019-imx8mp-irma6r2-defconfig-Use-redundand-env-support.patch \
 	file://0020-imx8mp-irma6r2-Implementing-bootcount_limit-for-irma6r2.patch \
+	file://0021-imx8mp_irma6r2.h-Introduce-netfitboot-command.patch \
 "
