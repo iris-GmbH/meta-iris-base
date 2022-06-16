@@ -69,16 +69,13 @@ FBK: ucmd vgmknodes
 
 # Create fat data partition (keystore)
 FBK: ucmd mkfs.vfat /dev/mapper/irma6lvm-keystore
-FBK: ucmd mkdir -p /mnt/keystore
 FBK: ucmd mount -t vfat /dev/mapper/irma6lvm-keystore /mnt/keystore
 
 # Generate black key blobs
-FBK: ucmd ln -s /mnt/keystore /data
 FBK: ucmd caam-keygen create volumeKey ccm -s 32
-FBK: ucmd rm /data
 
 # Setup encrypted partitions
-FBK: ucmd cat /mnt/keystore/caam/volumeKey | keyctl padd logon logkey: @us
+FBK: ucmd keyctl padd logon logkey: @us < /mnt/keystore/caam/volumeKey
 FBK: ucmd dmsetup -v create decrypted-irma6lvm-rootfs_a --table "0 $(blockdev --getsz /dev/mapper/irma6lvm-rootfs_a) crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 /dev/mapper/irma6lvm-rootfs_a 0 1 sector_size:4096"
 FBK: ucmd dmsetup -v create decrypted-irma6lvm-rootfs_b --table "0 $(blockdev --getsz /dev/mapper/irma6lvm-rootfs_b) crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 /dev/mapper/irma6lvm-rootfs_b 0 1 sector_size:4096"
 FBK: ucmd dmsetup -v create decrypted-irma6lvm-userdata --table "0 $(blockdev --getsz /dev/mapper/irma6lvm-userdata) crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 /dev/mapper/irma6lvm-userdata 0 1 sector_size:4096"
