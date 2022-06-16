@@ -1,0 +1,3 @@
+# -v, --verbose:          be verbose, set maximum loglevel
+# -p, --postupdate:       execute post-update command
+SWUPDATE_ARGS="-v -p 'reboot'"
