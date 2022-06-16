@@ -27,11 +27,13 @@ IRMA6_BASE_PACKAGES = " \
 	libxml2 \
 	nginx \
 	sqlite3 \
+	nettle-bin \
 	nettle-dev \
     gnutls-bin \
     gnutls \
 	gnutls-dev \
 	chrony \
+	chronyc \
 "
 
 # IRMA6 default (Release 2) only packages
