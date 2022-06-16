@@ -16,6 +16,9 @@ S = "${WORKDIR}/git"
 
 TARGET_CC_ARCH += "${LDFLAGS}"
 
+# Adjust keyblob location - this is fixed and cannot be changed during runtime
+EXTRA_OEMAKE = "KEYBLOB_LOCATION=/mnt/keystore/caam/"
+
 do_install () {
     oe_runmake DESTDIR=${D} install
 }
