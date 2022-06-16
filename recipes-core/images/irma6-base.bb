@@ -28,7 +28,8 @@ IRMA6_BASE_PACKAGES = " \
 	nginx \
 	sqlite3 \
 	nettle-dev \
-	gnutls \
+    gnutls-bin \
+    gnutls \
 	gnutls-dev \
 	chrony \
 "
