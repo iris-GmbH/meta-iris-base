@@ -40,6 +40,7 @@ IRMA6_EXTRA_PACKAGES_append_mx8mp = " \
 	keyctl-caam \
 	util-linux-blockdev \
 	keyutils \
+	mmc-utils \
 "
 
 # IRMA6 Release 1 only packages
