@@ -1,3 +1,8 @@
 # -v, --verbose:          be verbose, set maximum loglevel
 # -p, --postupdate:       execute post-update command
 SWUPDATE_ARGS="-v -p 'reboot'"
+
+# -p, --port <port>              : server port number  (default: 8080)
+# -r, --document-root <path>     : path to document root directory (default: .)
+# -t, --timeout                  : timeout to check if connection is lost (default: check disabled)
+SWUPDATE_WEBSERVER_ARGS="-r /var/www/swupdate -p 8080"
