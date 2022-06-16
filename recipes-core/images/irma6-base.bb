@@ -27,7 +27,7 @@ IRMA6_BASE_PACKAGES = " \
 	libxml2 \
 	nginx \
 	sqlite3 \
-	nettle-bin \
+	nettle \
 	nettle-dev \
     gnutls-bin \
     gnutls \
