@@ -27,6 +27,7 @@ and this project adheres to [APR's Version Numbering](https://apr.apache.org/ver
 - [RDPHOEN-1144]: Bump Kernel to 5.4-2.3.x-imx and enable CAAM API
 - [RDPHOEN-1142]: Enable encrypted storage and CAAM auto-unlock mechanism
 - [RDPHOEN-1154] Implementing bootcount_limit for imx8mp-evk and imx8mp-irma6r2
+- [RDPHOEN-1165]: Add netboot fitimage for R2
 
 
 ### Changed
