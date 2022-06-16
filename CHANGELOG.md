@@ -22,6 +22,7 @@ and this project adheres to [APR's Version Numbering](https://apr.apache.org/ver
 - linux-fslc-iris: Remove kernel from the rootfs & initramfs, because it remains unused for the fitImage setup
 - [RDPHOEN-1140]: Add redundand u-boot-env support and missing release 2 packages: lvm2, cryptsetup libubootenv-bin
 - [RDPHOEN-1178]: Add CAAM rng prediction resistance in Uboot, enables the correct hw rng initialization in Linux.
+- [RDPHOEN-1153]: Add u-boot env writeable list feature
 - [RDPHOEN-1180]: Use different fstab for R2 to mount the userdata volume
 - [RDPHOEN-1140]: Make swu images work with new partitioning/volumes
 - [RDPHOEN-1144]: Bump Kernel to 5.4-2.3.x-imx and enable CAAM API

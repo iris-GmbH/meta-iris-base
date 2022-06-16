@@ -9,6 +9,19 @@ SRC_URI_append = "\
 	file://0002-Backport-part-Give-several-functions-more-useful-ret.patch\
 	file://0003-Add-HAB-image-authentication-for-FIT-Images.patch \
 	file://0004-MLK-23089-crypto-fsl_caam-add-rng-prediction-resista.patch \
+	file://0005-env-Warn-on-force-access-if-ENV_ACCESS_IGNORE_FORCE-.patch \
+	file://0006-env-Add-H_DEFAULT-flag.patch \
+	file://0007-env-Discern-environment-coming-from-external-storage.patch \
+	file://0008-env-Add-option-to-only-ever-append-environment.patch \
+	file://0009-env-Add-support-for-explicit-write-access-list.patch \
+	file://0010-env-nowhere-add-.load-ops.patch \
+	file://0011-env-Fix-warning-when-forcing-environment-without-ENV.patch \
+	file://0012-env-split-env_import_redund-into-2-functions.patch \
+	file://0013-env-increment-redund-flag-on-read-fail.patch \
+	file://0014-env-Fix-invalid-env-handling-in-env_init.patch \
+	file://0015-env-Fix-prio-on-bad-CRC-case-with-ENV_APPEND-enabled.patch \
+	file://0016-env-Invert-gd-env_valid-for-env_mmc_save.patch \
+	file://0017-imx8m-soc.c-Use-arch-specific-env_get_location.patch \
 "
 
 FILESEXTRAPATHS_prepend_imx8mpevk := "${THISDIR}/u-boot-imx/imx8mpevk:"
@@ -23,6 +36,9 @@ SRC_URI_append_imx8mpevk = "\
 	file://0008-imx8mp-evk-Resorting-imx8mp_evk_defconfig.patch \
 	file://0009-imx8mp-evk-Implementing-bootcount_limit.patch \
 	file://0010-imx8mp_evk.h-Introduce-netfitboot-command.patch \
+	file://0011-imx8mpevk-Add-reset-after-bootcmd.patch \
+	file://0012-imx8mp-evk-Add-CONFIG_ENV_FLAGS_LIST_STATIC.patch \
+	file://0013-imx8mp_evk_defconfig-Configure-writeable-list-suppor.patch \
 "
 
 FILESEXTRAPATHS_prepend_imx8mp-irma6r2 := "${THISDIR}/u-boot-imx/imx8mp-irma6r2:"
@@ -48,4 +64,7 @@ SRC_URI_append_imx8mp-irma6r2 = "\
 	file://0019-imx8mp-irma6r2-defconfig-Use-redundand-env-support.patch \
 	file://0020-imx8mp-irma6r2-Implementing-bootcount_limit-for-irma6r2.patch \
 	file://0021-imx8mp_irma6r2.h-Introduce-netfitboot-command.patch \
+	file://0022-imx8mp-irma6r2-Add-CONFIG_ENV_FLAGS_LIST_STATIC.patch \
+	file://0023-imx8mp-irma6r2-Add-reset-after-bootcmd.patch \
+	file://0024-imx8mp_irma6r2_defconfig-Configure-writeable-list-su.patch \
 "

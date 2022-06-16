@@ -1,0 +1,31 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+Date: Tue, 14 Jun 2022 08:19:39 +0200
+Subject: [PATCH] imx8mpevk: Add reset after bootcmd
+
+The 'reset' at the end of the bootcmd ensures that a boot failure does not
+drop into an insecure U-boot console.
+
+Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+---
+ include/configs/imx8mp_evk.h | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/include/configs/imx8mp_evk.h b/include/configs/imx8mp_evk.h
+index 7637c47d2d..507f4104ed 100644
+--- a/include/configs/imx8mp_evk.h
++++ b/include/configs/imx8mp_evk.h
+@@ -151,7 +151,9 @@
+ 			"fi; " \
+ 		"fi;\0"
+ 
+-#define CONFIG_BOOTCOMMAND "run fitboot;"
++/* Note the 'reset' at the end of the bootcmd. This is to ensure that a failure
++   to boot does not drop you into an insecure U-boot console */
++#define CONFIG_BOOTCOMMAND "run fitboot; reset;"
+ 
+ /* Link Definitions */
+ #define CONFIG_LOADADDR			0x40480000
+-- 
+2.36.1
+

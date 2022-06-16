@@ -1,0 +1,45 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Marek Vasut <marex@denx.de>
+Date: Wed, 20 Jan 2021 15:45:16 +0100
+Subject: [PATCH] env: Fix invalid env handling in env_init()
+
+This fixes the case where there are multiple environment drivers, one of
+them is the default environment one, and it is followed by an environment
+driver which does not implement .init() callback. The default environment
+driver sets gd->env_valid to ENV_INVALID and returns 0 from its .init()
+callback implementation, which is valid behavior for default environment.
+
+Since the subsequent environment driver does not implement .init(), it
+also does not modify the $ret variable in the loop. Therefore, the loop
+is exited with gd->env_valid=ENV_INVALID and ret=0, which means that the
+code further down in env_init() will not reset the environment to the
+default one, which is incorrect.
+
+This patch sets the $ret variable back to -ENOENT in case the env_valid
+is set to ENV_INVALID by an environment driver, so that the environment
+would be correctly reset back to default one, unless a subsequent driver
+loads a valid environment.
+
+Signed-off-by: Marek Vasut <marex@denx.de>
+Tested-By: Tim Harvey <tharvey@gateworks.com>
+---
+ env/env.c | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/env/env.c b/env/env.c
+index 42c7d8155e..4dacd3dd63 100644
+--- a/env/env.c
++++ b/env/env.c
+@@ -332,6 +332,9 @@ int env_init(void)
+ 
+ 		debug("%s: Environment %s init done (ret=%d)\n", __func__,
+ 		      drv->name, ret);
++
++		if (gd->env_valid == ENV_INVALID)
++			ret = -ENOENT;
+ 	}
+ 
+ 	if (!prio)
+-- 
+2.36.1
+
