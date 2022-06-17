@@ -7,3 +7,5 @@ tmpfs                /var/run             tmpfs      defaults              0  0
 
 # bind mount directories for r/w access
 /mnt/iris/counter    /etc/counter         none       defaults,bind         0  0
+/mnt/iris/log        /var/log             none       defaults,bind         0  0
+/mnt/iris/run        /run                 none       defaults,bind         0  0
