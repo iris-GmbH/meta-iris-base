@@ -40,3 +40,5 @@ BOARD ?= "sc573-gen6"
 # ldconfig is used to rebuild the /etc/ld.so.cache when new libraries are introduced during runtime
 # this is not needed and /etc/ld.so.cache is already populated by Yocto, disabling this saves ~250kB
 DISTRO_FEATURES_remove += "ldconfig"
+
+IMAGE_FEATURES_remove += "read-only-rootfs"
