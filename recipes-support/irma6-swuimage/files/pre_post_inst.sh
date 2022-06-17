@@ -74,7 +74,6 @@ remove_symlinks() {
 }
 
 mount_keystore() {
-	mkdir -p ${KEYSTORE} || exit 1
 	mount -t vfat ${KEYSTORE_DEV} ${KEYSTORE} || exit 1
 }
 

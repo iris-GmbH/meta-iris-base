@@ -100,7 +100,6 @@ debug "Root device: ${ROOT_DEV}"
 debug "Crypt device: ${DECRYPT_ROOT_DEV}"
 debug "Verity device: ${VERITY_DEV}"
 
-mkdir ${KEYSTORE}
 ${MOUNT} ${KEYSTORE_DEV} ${KEYSTORE}
 RH=$(cat "${KEYSTORE}/rootfs${FIRMWARE_SUFFIX}_roothash")
 
