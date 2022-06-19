@@ -3,8 +3,7 @@ software =
     version = "0.1.0";
     bootloader_transaction_marker = false;
     description = "Firmware update for IRMA6 image";
-
-    hardware-compatibility: [ "@@SWU_HW_VERSION@@" ];
+    hardware-compatibility = [ "@@SWU_HW_VERSION@@" ];
 
     files: (
         {
@@ -29,7 +28,13 @@ software =
             filename = "bootloader-env";
             type = "bootloader";
             sha256 = "$swupdate_get_sha256(bootloader-env)";
-        }
+        },
+        {
+            filename = "@@SWU_BOOTLOADER@@";
+            device = "/dev/swu_bootloader";
+            version = "$swupdate_get_pkgvar(@@IMAGE_BOOTLOADER@@)";
+            sha256 = "$swupdate_get_sha256(@@SWU_BOOTLOADER@@)";
+        },
     );
     scripts: (
         {
