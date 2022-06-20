@@ -8,6 +8,8 @@ SRC_URI += "file://sensor_cert.cnf"
 SRC_URI += "file://LICENSE"
 
 do_install() {
+    install -d "${D}/usr/local/bin"
+    install -d "${D}/etc/openssl"
     install -m 0755 "${WORKDIR}/create_identity_cert.sh" "${D}/usr/local/bin/create_identity_cert.sh"
     install -m 0644 "${WORKDIR}/sensor_cert.cnf" "${D}/etc/openssl/sensor_cert.cnf"
 }
