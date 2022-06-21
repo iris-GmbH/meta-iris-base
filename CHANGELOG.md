@@ -31,6 +31,7 @@ and this project adheres to [APR's Version Numbering](https://apr.apache.org/ver
 - [RDPHOEN-1154] Implementing bootcount_limit for imx8mp-evk and imx8mp-irma6r2
 - [RDPHOEN-1165]: Add netboot fitimage for R2
 - [RDPHOEN-256]: Add linux watchdog feature
+- [RDPHOEN-1192]: Add encrypted storage swupdate support
 
 
 ### Changed

@@ -2,5 +2,5 @@ FILESEXTRAPATHS_prepend := "${THISDIR}/${PN}:"
 
 SRC_URI += "file://fstab"
 
-# Create /mnt/iris so the fstab can use it as mountpoint
-dirs755_append_mx8mp = " /mnt/iris"
+# Create /mnt/ folders so the fstab can use it as mountpoint
+dirs755:append:mx8mp = " /mnt/keystore /mnt/iris"

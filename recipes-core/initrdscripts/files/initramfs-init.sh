@@ -80,7 +80,7 @@ ROOT_DEV="/dev/mapper/irma6lvm-rootfs${FIRMWARE_SUFFIX}"
 ROOT_HASH="/dev/mapper/irma6lvm-rootfs${FIRMWARE_SUFFIX}_hash"
 
 KEYSTORE_DEV="/dev/mapper/irma6lvm-keystore"
-KEYSTORE="/tmp/keystore"
+KEYSTORE="/mnt/keystore"
 
 VERITY_NAME="verity-rootfs${FIRMWARE_SUFFIX}"
 VERITY_DEV="/dev/mapper/${VERITY_NAME}"
@@ -100,15 +100,12 @@ debug "Root device: ${ROOT_DEV}"
 debug "Crypt device: ${DECRYPT_ROOT_DEV}"
 debug "Verity device: ${VERITY_DEV}"
 
-mkdir ${KEYSTORE}
-mount ${KEYSTORE_DEV} ${KEYSTORE}
+${MOUNT} ${KEYSTORE_DEV} ${KEYSTORE}
 RH=$(cat "${KEYSTORE}/rootfs${FIRMWARE_SUFFIX}_roothash")
 
 # Add Black key to keyring
-ln -s $KEYSTORE /data
 caam-keygen import $KEYSTORE/caam/volumeKey.bb importKey
 keyctl padd logon logkey: @us < $KEYSTORE/caam/importKey
-rm /data
 
 debug "Unlocking encrypted device: ${ROOT_DEV}" 
 dmsetup create ${DECRYPT_NAME} --table "0 $(blockdev --getsz ${ROOT_DEV}) \
@@ -119,12 +116,12 @@ dmsetup create ${DECRYPT_DATA_NAME} --table "0 $(blockdev --getsz ${DATA_DEV}) \
     crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 ${DATA_DEV} 0 1 sector_size:4096"
 vgmknodes
 
+${UMOUNT} ${KEYSTORE}
+
 debug "Opening verity device: ${DECRYPT_ROOT_DEV}"
 veritysetup open ${DECRYPT_ROOT_DEV} ${VERITY_NAME} ${ROOT_HASH} "${RH}"
 
 ${MOUNT} ${VERITY_DEV} ${ROOT_MNT} -o ro
-
-${UMOUNT} ${KEYSTORE}
 
 #Switch to real root
 echo "Switch to root"
