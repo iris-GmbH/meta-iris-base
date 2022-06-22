@@ -31,9 +31,11 @@ software =
         },
         {
             filename = "@@SWU_BOOTLOADER@@";
+            type = "bootloader_update"
             device = "/dev/swu_bootloader";
             version = "$swupdate_get_pkgvar(@@IMAGE_BOOTLOADER@@)";
             sha256 = "$swupdate_get_sha256(@@SWU_BOOTLOADER@@)";
+            install-if-higher = true;
         },
     );
     scripts: (

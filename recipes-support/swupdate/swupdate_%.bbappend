@@ -13,12 +13,14 @@ SRC_URI_append := " \
 	file://defconfig \
 	file://${RESET_SCRIPT} \
 	file://swupdate_default_args \
+	file://bootloader_update.lua \
 "
 
 RDEPENDS_${PN} += " \
 	util-linux-sfdisk \
 	jq \
 	libubootenv-bin \
+	swupdate-lualoader \
 "
 
 FILES_${PN} += " \
@@ -38,8 +40,11 @@ do_install_append () {
 	install -d ${D}${sysconfdir}/swupdate/conf.d/
 	install -m 0644 ${WORKDIR}/swupdate_default_args ${D}${sysconfdir}/swupdate/conf.d/
 
-	install -d $(basename -- ${D}${SWUPDATE_HW_COMPATIBILITY_FILE})
+	# install lua handlers
+	install -d ${D}${libdir}/swupdate/lua-handlers
+	install -m 0644 ${WORKDIR}/bootloader_update.lua ${D}${libdir}/swupdate/lua-handlers/
 
 	# all machines are v1.0 for now
+	install -d $(basename -- ${D}${SWUPDATE_HW_COMPATIBILITY_FILE})
 	echo "${MACHINE} 1.0" > ${D}${SWUPDATE_HW_COMPATIBILITY_FILE}
 }
