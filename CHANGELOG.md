@@ -35,7 +35,7 @@ and this project adheres to [APR's Version Numbering](https://apr.apache.org/ver
 - [RDPHOEN-1182]: Configure swupdate's fallback webserver mongoose and add swupdate's www root
 - [RDPHOEN-1182]: Move nginx content to meta-iris to avoid multiple nginx_%.bbappend's
 - [RDPHOEN-1182]: Enable read-only-rootfs tweaks and use default's fstab mount points
-
+- [RDPHOEN-1203](https://jira.iris-sensing.net/browse/RDPHOEN-1203): Add mmc-utils for R2
 
 ### Changed
 - [DEVOPS-519] Moved config from iris-kas local.conf to meta-iris-base distro.conf
