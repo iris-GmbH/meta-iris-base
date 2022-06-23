@@ -1,6 +1,9 @@
 # SPDX-License-Identifier: MIT
 # Copyright (C) 2021-2022 iris-GmbH infrared & intelligent sensors
 
+inherit irma6-bootloader-version
+LOCALVERSION = "-${IRIS_IMX_BOOT_RELEASE}"
+
 UBOOT_INITIAL_ENV = "u-boot-initial-env"
 
 FILESEXTRAPATHS_prepend := "${THISDIR}/u-boot-imx/common:"
