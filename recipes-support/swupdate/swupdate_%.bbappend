@@ -9,10 +9,14 @@ wwwdir = "/var/www/swupdate"
 RESET_SCRIPT="reset_upgrade_available.sh"
 RESET_SCRIPT_SYM="S92reset_upgrade_available"
 
+# use git instead of quilt to apply binary patch as well
+PATCHTOOL = "git"
+
 SRC_URI_append := " \
 	file://defconfig \
 	file://${RESET_SCRIPT} \
 	file://swupdate_default_args \
+	file://0001-RDPHOEN-1221-SWUpdate-Webinterface-CI-rework.patch \
 "
 
 RDEPENDS_${PN} += " \
