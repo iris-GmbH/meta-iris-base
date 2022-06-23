@@ -3,6 +3,8 @@
 
 FILESEXTRAPATHS_prepend := "${THISDIR}/${PN}:"
 
+wwwdir = "/var/www/swupdate"
+
 # Put reset script right after counting application
 RESET_SCRIPT="reset_upgrade_available.sh"
 RESET_SCRIPT_SYM="S92reset_upgrade_available"

@@ -52,7 +52,7 @@ IMAGE_INSTALL_append = " \
 "
 
 # Include swupdate in image if swupdate is part of the update procedure
-IMAGE_INSTALL_append = " ${@bb.utils.contains('UPDATE_PROCEDURE', 'swupdate', 'swupdate', '', d)}"
+IMAGE_INSTALL_append = " ${@bb.utils.contains('UPDATE_PROCEDURE', 'swupdate', 'swupdate swupdate-www', '', d)}"
 
 # this cannot be done directly in the os-release recipe, due to yocto's buttom-up approach
 # os-release does not know how the final image will be named, as the IMAGE_NAME variable is out of scope

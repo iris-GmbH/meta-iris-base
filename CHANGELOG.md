@@ -32,6 +32,9 @@ and this project adheres to [APR's Version Numbering](https://apr.apache.org/ver
 - [RDPHOEN-1165]: Add netboot fitimage for R2
 - [RDPHOEN-256]: Add linux watchdog feature
 - [RDPHOEN-1192]: Add encrypted storage swupdate support
+- [RDPHOEN-1182]: Configure swupdate's fallback webserver mongoose and add swupdate's www root
+- [RDPHOEN-1182]: Move nginx content to meta-iris to avoid multiple nginx_%.bbappend's
+- [RDPHOEN-1182]: Enable read-only-rootfs tweaks and use default's fstab mount points
 
 
 ### Changed
