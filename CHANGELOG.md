@@ -38,7 +38,7 @@ and this project adheres to [APR's Version Numbering](https://apr.apache.org/ver
 - [RDPHOEN-1060] Add kernel driver for eth0 ADIn1200 PHY
 - [RDPHOEN-1060]: Fix eqos driver in uboot to get ethernet working on release 2 hardware
 - [RDPHOEN-255]: Add Bootloader Update procedure for eMMC with SWUpdate
-
+- [RDPHOEN-1221]: Applying Iris Coporate Design to SWUpdate webinterface
 
 
 ### Changed
