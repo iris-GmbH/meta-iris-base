@@ -39,6 +39,7 @@ SRC_URI_append_imx8mpevk = "\
 	file://0011-imx8mpevk-Add-reset-after-bootcmd.patch \
 	file://0012-imx8mp-evk-Add-CONFIG_ENV_FLAGS_LIST_STATIC.patch \
 	file://0013-imx8mp_evk_defconfig-Configure-writeable-list-suppor.patch \
+	file://fragment-u.cfg \
 "
 
 FILESEXTRAPATHS_prepend_imx8mp-irma6r2 := "${THISDIR}/u-boot-imx/imx8mp-irma6r2:"
@@ -68,3 +69,9 @@ SRC_URI_append_imx8mp-irma6r2 = "\
 	file://0023-imx8mp-irma6r2-Add-reset-after-bootcmd.patch \
 	file://0024-imx8mp_irma6r2_defconfig-Configure-writeable-list-su.patch \
 "
+
+do_print_vars () {
+    bbwarn "IMAGE_NAME: ${IMAGENAME}"
+}
+
+addtask do_print_vars before do_compile

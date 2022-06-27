@@ -39,10 +39,20 @@ SRC_URI += " \
     file://0031-tc358746.c-Reset-when-changing-format.patch \
     file://0032-imx8mp-irma6r2.dts-Change-memory-range-for-dsp.patch \
     file://0033-imx8mp-irma6r2.dts-Add-csi_mclk-to-pinctrl.patch \
+    file://fragment.cfg \
 "
 
 KERNEL_DEFCONFIG_imx8mpevk = "imx8mp-evk-r2_defconfig"
 KERNEL_DEFCONFIG_imx8mp-irma6r2 = "imx8mp_irma6r2_defconfig"
 
+IMAGENAME = "${@ d.getVar('PN')}"
+
+do_print_vars () {
+    bbwarn "IMAGE_NAME: ${IMAGENAME}"
+    bbwarn "ENV_IMAGENAME: ${ENV_IMAGENAME}"
+}
+
 # Don't include kernels in standard images
 RDEPENDS_${KERNEL_PACKAGE_NAME}-base = ""
+
+addtask do_print_vars before do_configure

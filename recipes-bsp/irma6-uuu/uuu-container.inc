@@ -80,4 +80,11 @@ do_deploy () {
     echo "SIZE_ROOTFS=\"$size_rootfs\"" >> ${UUU_DEPLOY_DIR}/${HASHSUMS}
 }
 
+
+do_print_vars () {
+    bbwarn "IMAGE_NAME: ${IMAGENAME}"
+}
+
+addtask do_print_vars before do_configure
+
 addtask do_deploy after do_install
