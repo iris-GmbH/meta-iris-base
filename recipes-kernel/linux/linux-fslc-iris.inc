@@ -39,7 +39,7 @@ SRC_URI += " \
     file://0031-tc358746.c-Reset-when-changing-format.patch \
     file://0032-imx8mp-irma6r2.dts-Change-memory-range-for-dsp.patch \
     file://0033-imx8mp-irma6r2.dts-Add-csi_mclk-to-pinctrl.patch \
-"
+    file://0034-imx8mp-irma6r2.dts-Add-kernel-driver-for-eth0-ADIn1200-PHY.patch"
 
 KERNEL_DEFCONFIG_imx8mpevk = "imx8mp-evk-r2_defconfig"
 KERNEL_DEFCONFIG_imx8mp-irma6r2 = "imx8mp_irma6r2_defconfig"
