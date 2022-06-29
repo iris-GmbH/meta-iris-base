@@ -90,6 +90,9 @@ do_configure() {
                 --chronyrundir=/run/chrony \
                 --host-system=Linux \
                 ${PACKAGECONFIG_CONFARGS}
+                
+    echo "config arguments ${PACKAGECONFIG_CONFARGS}" >> ${D}${sysconfdir}/chrony.conf
+
 }
 
 do_install() {
