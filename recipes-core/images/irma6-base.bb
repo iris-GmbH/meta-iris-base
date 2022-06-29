@@ -12,6 +12,7 @@ TOOLCHAIN_TARGET_TASK += "googletest"
 
 PV = "${DISTRO_VERSION}"
 inherit irma6-versioning
+inherit pkgconfig
 
 IRMA6_BASE_PACKAGES = " \
 	libstdc++ \
@@ -28,9 +29,10 @@ IRMA6_BASE_PACKAGES = " \
 	nginx \
 	sqlite3 \
 	nettle \
+	nettle-bin \
 	nettle-dev \
-    gnutls-bin \
-    gnutls \
+	gnutls \
+	gnutls-bin \
 	gnutls-dev \
 	chrony \
 	chronyc \
