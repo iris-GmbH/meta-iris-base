@@ -90,9 +90,7 @@ do_configure() {
                 --with-ntp-era=$(shell date -d '1970-01-01 00:00:00+00:00' +'%s') \
                 --with-pidfile=/run/chrony/chronyd.pid \
                 --chronyrundir=/run/chrony \
-                --host-system=Linux \
-                ${PACKAGECONFIG_CONFARGS}
-
+                --host-system=Linux
 	set +x
 }
 
