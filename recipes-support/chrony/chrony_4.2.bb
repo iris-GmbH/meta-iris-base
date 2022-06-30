@@ -84,8 +84,6 @@ DISABLE_STATIC = ""
 
 do_configure() {
 
-	echo "config arguments ${PACKAGECONFIG_CONFARGS}" >> ${D}${sysconfdir}/chrony.conf
-
 	set -x
     ./configure --sysconfdir=${sysconfdir} --bindir=${bindir} --sbindir=${sbindir} \
                 --localstatedir=${localstatedir} --datarootdir=${datadir} \
@@ -99,6 +97,9 @@ do_configure() {
 }
 
 do_install() {
+	echo "config arguments ${PACKAGECONFIG_CONFARGS}" >> ${D}${sysconfdir}/chrony.conf
+
+
     # Binaries
     install -d ${D}${bindir}
     install -m 0755 ${S}/chronyc ${D}${bindir}
