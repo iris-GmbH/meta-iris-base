@@ -97,9 +97,6 @@ do_configure() {
 }
 
 do_install() {
-	echo "config arguments ${PACKAGECONFIG_CONFARGS}" >> ${D}${sysconfdir}/chrony.conf
-
-
     # Binaries
     install -d ${D}${bindir}
     install -m 0755 ${S}/chronyc ${D}${bindir}
@@ -109,6 +106,9 @@ do_install() {
     # Config file
     install -d ${D}${sysconfdir}
     install -m 644 ${WORKDIR}/chrony.conf ${D}${sysconfdir}
+
+    echo "config arguments ${PACKAGECONFIG_CONFARGS}" >> ${D}${sysconfdir}/chrony.conf
+
     if ${@bb.utils.contains('PACKAGECONFIG', 'privdrop', 'true', 'false', d)}; then
         echo "# Define user to drop to after dropping root privileges" >> ${D}${sysconfdir}/chrony.conf
         echo "user chronyd" >> ${D}${sysconfdir}/chrony.conf
