@@ -83,6 +83,10 @@ PACKAGECONFIG[libcap] = "--with-libcap,--without-libcap,libcap"
 DISABLE_STATIC = ""
 
 do_configure() {
+
+	echo "config arguments ${PACKAGECONFIG_CONFARGS}" >> ${D}${sysconfdir}/chrony.conf
+
+	set -x
     ./configure --sysconfdir=${sysconfdir} --bindir=${bindir} --sbindir=${sbindir} \
                 --localstatedir=${localstatedir} --datarootdir=${datadir} \
                 --with-ntp-era=$(shell date -d '1970-01-01 00:00:00+00:00' +'%s') \
@@ -90,9 +94,8 @@ do_configure() {
                 --chronyrundir=/run/chrony \
                 --host-system=Linux \
                 ${PACKAGECONFIG_CONFARGS}
-                
-    echo "config arguments ${PACKAGECONFIG_CONFARGS}" >> ${D}${sysconfdir}/chrony.conf
 
+	set +x
 }
 
 do_install() {
