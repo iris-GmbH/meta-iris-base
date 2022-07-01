@@ -36,6 +36,7 @@ and this project adheres to [APR's Version Numbering](https://apr.apache.org/ver
 - [RDPHOEN-1182]: Move nginx content to meta-iris to avoid multiple nginx_%.bbappend's
 - [RDPHOEN-1182]: Enable read-only-rootfs tweaks and use default's fstab mount points
 - [RDPHOEN-1060] Add kernel driver for eth0 ADIn1200 PHY
+- [RDPHOEN-1060]: Fix eqos driver in uboot to get ethernet working on release 2 hardware
 
 
 
