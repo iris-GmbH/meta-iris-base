@@ -44,7 +44,11 @@ unlock_device() {
 	caam-keygen import $KEYSTORE/caam/volumeKey.bb importKey
 	keyctl padd logon logkey: @us < $KEYSTORE/caam/importKey
 
-	# TODO: Error handling when alternative boot volume is corrupted
+	# Remove the volume from previous failed run
+	if [ -b "$DECRYPT_ROOT_DEV" ]; then
+		lock_device
+	fi
+
 	dmsetup create ${DECRYPT_NAME} --table "0 $(blockdev --getsz ${ROOT_DEV}) \
 		crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 ${ROOT_DEV} 0 1 sector_size:4096" || exit 1
 }
@@ -74,7 +78,9 @@ remove_symlinks() {
 }
 
 mount_keystore() {
-	mount -t vfat ${KEYSTORE_DEV} ${KEYSTORE} || exit 1
+	if ! grep -qs "${KEYSTORE}" /proc/mounts; then
+		mount -t vfat ${KEYSTORE_DEV} ${KEYSTORE} || exit 1
+	fi
 }
 
 umount_keystore() {
