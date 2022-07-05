@@ -227,4 +227,4 @@ do_deploy_append() {
     fi
 }
 
-addtask do_sign_uboot before do_deploy after do_compile
+addtask do_sign_uboot before do_deploy do_install after do_compile
