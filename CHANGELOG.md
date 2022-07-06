@@ -39,6 +39,8 @@ and this project adheres to [APR's Version Numbering](https://apr.apache.org/ver
 - [RDPHOEN-1060]: Fix eqos driver in uboot to get ethernet working on release 2 hardware
 - [RDPHOEN-255]: Add Bootloader Update procedure for eMMC with SWUpdate
 - [RDPHOEN-1221]: Applying Iris Coporate Design to SWUpdate webinterface
+- [RDPHOEN-1226]: Adjust EPC660 & Serializer reset pins
+
 
 
 ### Changed
