@@ -5,9 +5,9 @@ FILESEXTRAPATHS:prepend := "${THISDIR}/${PN}:"
 CERT_TARGET_DIR = "${D}${datadir}/ca-certificates"
 
 do_install:append() {
-    if [ ! -e "${SWUPDATE_CMS_CERT}" ] ; then
-        bberror "Error: SWUPDATE_CMS_CERT: ${SWUPDATE_CMS_CERT} does not exist!"
+    if [ ! -e "${SWUPDATE_CA_CERT}" ] ; then
+        bberror "Error: SWUPDATE_CA_CERT: ${SWUPDATE_CA_CERT} does not exist!"
     fi
     install -d ${CERT_TARGET_DIR}/swupdate
-    install -m 0755 ${SWUPDATE_CMS_CERT} ${CERT_TARGET_DIR}/swupdate/sign.crt
+    install -m 0755 ${SWUPDATE_CA_CERT} ${CERT_TARGET_DIR}/swupdate/sign.crt
 }
