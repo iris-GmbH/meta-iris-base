@@ -21,10 +21,8 @@ IMAGE_DEPENDS = "\
 	${FITIMAGENAME} \
 	${IMAGENAME} \
 	virtual/kernel \
-	${IMAGE_BOOTLOADER} \
 "
 
-SWU_BOOTLOADER = "${IMAGE_BOOTLOADER}.signed"
 SWU_FITIMAGE = "${FITIMAGENAME}.itb.signed"
 SWU_ROOTFS = "${IMAGENAME}-${MACHINE}.ext4.gz"
 SWU_META = "${IMAGENAME}-${MACHINE}.testdata.json"
@@ -34,7 +32,7 @@ SWU_TARGET_FITIMAGE = "fitImage.signed"
 SWU_HW_VERSION = "1.0"
 
 # images and files that will be included in the .swu image
-SWUPDATE_IMAGES = "${SWU_FITIMAGE} ${SWU_ROOTFS} ${SWU_BOOTLOADER}"
+SWUPDATE_IMAGES = "${SWU_FITIMAGE} ${SWU_ROOTFS}"
 
 python() {
     if "swupdate" not in (d.getVar('UPDATE_PROCEDURE') or ""):
