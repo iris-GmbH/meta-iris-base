@@ -35,6 +35,8 @@ FILES_${PN} += " \
 	${sysconfdir}/swupdate/conf.d/swupdate_default_args \
 "
 
+SWU_HW_VERSION ?= "${@'0.0' if not d.getVar('HW_VERSION') else d.getVar('HW_VERSION')}"
+
 do_install_append () {
 	install -d ${D}${sysconfdir}/init.d
 	install -d ${D}${sysconfdir}/rc5.d
@@ -49,7 +51,10 @@ do_install_append () {
 	install -d ${D}${libdir}/swupdate/lua-handlers
 	install -m 0644 ${WORKDIR}/bootloader_update.lua ${D}${libdir}/swupdate/lua-handlers/
 
-	# all machines are v1.0 for now
+	# set /etc/hwrevision
+	if [ "${SWU_HW_VERSION}" = "0.0" ]; then
+		bbwarn "SWU_HW_VERSION is not set in the machine conf file. Use ${SWU_HW_VERSION} for now!"
+	fi
 	install -d $(basename -- ${D}${SWUPDATE_HW_COMPATIBILITY_FILE})
-	echo "${MACHINE} 1.0" > ${D}${SWUPDATE_HW_COMPATIBILITY_FILE}
+	echo "${MACHINE} ${SWU_HW_VERSION}" > ${D}${SWUPDATE_HW_COMPATIBILITY_FILE}
 }
