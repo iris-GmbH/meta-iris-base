@@ -74,9 +74,7 @@ remove_symlinks() {
 }
 
 mount_keystore() {
-	if ! grep -qs "${KEYSTORE}" /proc/mounts; then
-		mount -t vfat ${KEYSTORE_DEV} ${KEYSTORE} || exit 1
-	fi
+	mount -t vfat ${KEYSTORE_DEV} ${KEYSTORE} || exit 1
 }
 
 umount_keystore() {
