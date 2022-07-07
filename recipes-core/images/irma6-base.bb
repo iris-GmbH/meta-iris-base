@@ -34,6 +34,7 @@ IRMA6_EXTRA_PACKAGES = " \
 	lvm2 \
 	cryptsetup \
 	libubootenv-bin \
+	iris-ca-certificates \
 "
 # IRMA6R2 SoC specific packages (not included in qemu)
 IRMA6_EXTRA_PACKAGES_append_mx8mp = " \
