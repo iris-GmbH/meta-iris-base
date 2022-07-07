@@ -71,4 +71,6 @@ SRC_URI_append_imx8mp-irma6r2 = "\
 	file://0023-imx8mp-irma6r2-Add-reset-after-bootcmd.patch \
 	file://0024-imx8mp_irma6r2_defconfig-Configure-writeable-list-su.patch \
 	file://0025-imx8mp_irma6r2-Generic-EQOS-driver-dwc_eth_qos.c-usable-for-RMII.patch \
+	file://0026-imx8mp-irma6r2-Add-i2c4-to-bootloader-device-tree-fo.patch \
+	file://0027-imx8mp-irma6r2-Add-IU-EEPROM-readout-for-configuring.patch \
 "
