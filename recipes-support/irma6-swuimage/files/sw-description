@@ -14,6 +14,7 @@ software =
             version = "$swupdate_get_pkgvar(kernel)";
             properties = {create-destination = "true";};
             sha256 = "$swupdate_get_sha256(@@SWU_FITIMAGE@@)";
+            encrypted = true;
         },
     );
     images: (
@@ -23,11 +24,13 @@ software =
             version = "@@SWU_VERSION_ROOTFS@@";
             compressed = "zlib";
             sha256 = "$swupdate_get_sha256(@@SWU_ROOTFS@@)";
+            encrypted = true;
         },
         {
-            filename = "bootloader-env";
+            filename = "@@SWU_BOOTLOADER_ENV@@";
             type = "bootloader";
-            sha256 = "$swupdate_get_sha256(bootloader-env)";
+            sha256 = "$swupdate_get_sha256(@@SWU_BOOTLOADER_ENV@@)";
+            encrypted = true;
         },
         {
             filename = "@@SWU_BOOTLOADER@@";
@@ -36,13 +39,15 @@ software =
             version = "$swupdate_get_pkgvar(@@IMAGE_BOOTLOADER@@)";
             sha256 = "$swupdate_get_sha256(@@SWU_BOOTLOADER@@)";
             install-if-higher = true;
+            encrypted = true;
         },
     );
     scripts: (
         {
-            filename = "pre_post_inst.sh";
+            filename = "@@SWU_PRE_POST_SCRIPT@@";
             type = "shellscript";
-            sha256 = "$swupdate_get_sha256(pre_post_inst.sh)";
+            sha256 = "$swupdate_get_sha256(@@SWU_PRE_POST_SCRIPT@@)";
+            encrypted = true;
         },
     );
 }

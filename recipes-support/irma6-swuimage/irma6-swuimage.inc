@@ -27,6 +27,9 @@ IMAGE_DEPENDS = "\
 SWU_BOOTLOADER = "${IMAGE_BOOTLOADER}.signed"
 SWU_FITIMAGE = "${FITIMAGENAME}.itb.signed"
 SWU_ROOTFS = "${IMAGENAME}-${MACHINE}.ext4.gz"
+SWU_BOOTLOADER_ENV = "bootloader-env"
+SWU_PRE_POST_SCRIPT = "pre_post_inst.sh"
+
 SWU_META = "${IMAGENAME}-${MACHINE}.testdata.json"
 
 SWU_TARGET_FITIMAGE = "fitImage.signed"
@@ -48,6 +51,16 @@ python do_swuimage_prepend () {
     image_dir = d.getVar('DEPLOY_DIR_IMAGE', True)
     irmameta = json.load(open(os.path.join(image_dir, d.getVar("SWU_META"))))
     d.setVar("SWU_VERSION_ROOTFS", irmameta['FIRMWARE_VERSION'])
+
+    # mark images that needs to be encrypted, before being passed to swu
+    def mark_encrypted(artefact):
+        d.setVarFlag('SWUPDATE_IMAGES_ENCRYPTED', artefact, '1')
+
+    mark_encrypted(d.getVar('SWU_BOOTLOADER'))
+    mark_encrypted(d.getVar('SWU_FITIMAGE'))
+    mark_encrypted(d.getVar('SWU_ROOTFS'))
+    mark_encrypted(d.getVar('SWU_BOOTLOADER_ENV'))
+    mark_encrypted(d.getVar('SWU_PRE_POST_SCRIPT'))
 }
 
 inherit swupdate
