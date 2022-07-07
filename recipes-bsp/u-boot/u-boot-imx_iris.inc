@@ -42,6 +42,7 @@ SRC_URI_append_imx8mpevk = "\
 	file://0011-imx8mpevk-Add-reset-after-bootcmd.patch \
 	file://0012-imx8mp-evk-Add-CONFIG_ENV_FLAGS_LIST_STATIC.patch \
 	file://0013-imx8mp_evk_defconfig-Configure-writeable-list-suppor.patch \
+	file://0014-imx8mp_evk-enable-u-boot-watchdog.patch \
 "
 
 FILESEXTRAPATHS_prepend_imx8mp-irma6r2 := "${THISDIR}/u-boot-imx/imx8mp-irma6r2:"
@@ -71,4 +72,5 @@ SRC_URI_append_imx8mp-irma6r2 = "\
 	file://0023-imx8mp-irma6r2-Add-reset-after-bootcmd.patch \
 	file://0024-imx8mp_irma6r2_defconfig-Configure-writeable-list-su.patch \
 	file://0025-imx8mp_irma6r2-Generic-EQOS-driver-dwc_eth_qos.c-usable-for-RMII.patch \
+	file://0026-imx8mp_irma6r2-enable-bootloader-watchdog.patch \
 "

@@ -1,0 +1,132 @@
+From d30f32d7e22e1da7aa5b166becfe78d6fd90ae6a Mon Sep 17 00:00:00 2001
+From: sven-foerster <sven.foerster@iris-sensing.com>
+Date: Sun, 3 Jul 2022 17:57:26 +0200
+Subject: [PATCH] {RDPHOEN-1191] enable u-boot watchdog
+
+Signed-off-by: sven-foerster <sven.foerster@iris-sensing.com>
+---
+ board/freescale/imx8mp_evk/imx8mp_evk.c | 15 +++++++++++++++
+ configs/imx8mp_evk_defconfig            |  2 ++
+ include/bootcount.h                     |  6 ++++++
+ include/watchdog.h                      | 14 +++++++++++---
+ 4 files changed, 34 insertions(+), 3 deletions(-)
+
+diff --git a/board/freescale/imx8mp_evk/imx8mp_evk.c b/board/freescale/imx8mp_evk/imx8mp_evk.c
+index 74b18f5b13..899f27cb1c 100644
+--- a/board/freescale/imx8mp_evk/imx8mp_evk.c
++++ b/board/freescale/imx8mp_evk/imx8mp_evk.c
+@@ -26,6 +26,7 @@
+ DECLARE_GLOBAL_DATA_PTR;
+ 
+ #define DEBUG 0
++#define DBG_WATCHDOG 0
+ 
+ #define UART_PAD_CTRL	(PAD_CTL_DSE6 | PAD_CTL_FSEL1)
+ #define WDOG_PAD_CTRL	(PAD_CTL_DSE6 | PAD_CTL_ODE | PAD_CTL_PUE | PAD_CTL_PE)
+@@ -507,7 +508,11 @@ void board_autogenerate_bootcmd (void)
+     int firmware_env = env_get_ulong("firmware", 10, 0);
+     char *firmware;
+     char *altfirmware;
++#if DBG_WATCHDOG
++    char bootcmd[100];
++#else
+     char bootcmd[50];
++#endif
+     char altbootcmd[50];
+     char partboot[20];
+     char altpartboot[20];
+@@ -518,6 +523,12 @@ void board_autogenerate_bootcmd (void)
+     printf("Active firmware: %d. ustate: %d \n", firmware_env, ustate);
+ #endif
+ 
++#if DBG_WATCHDOG
++    upgrade_available = 1;
++    env_set_ulong("upgrade_available", upgrade_available);
++    printf("Info: upgrade_available=%d\n", upgrade_available);
++#endif
++
+     if ( (upgrade_available == 1) && ( ustate == 1) )
+     {
+         /* Change the boot firmware:  */
+@@ -565,7 +576,11 @@ void board_autogenerate_bootcmd (void)
+     snprintf(altpartboot, sizeof(altpartboot), "linuxboot_%s", altfirmware);
+     /* "reset;" as a security desgin pattern "so that any failure of the bootcmd does not leave you 
+     in an insecure U-Boot console environment." -- http://trac.gateworks.com/wiki/secure_boot  */
++#if DBG_WATCHDOG
++    snprintf(bootcmd, sizeof(bootcmd), "setenv mmcpart %s; while true; do sleep %d; echo %s; done; run fitboot; reset;", partboot, 10, " wait 10sec ..");
++#else
+     snprintf(bootcmd, sizeof(bootcmd), "setenv mmcpart %s; run fitboot; reset;", partboot);
++#endif
+     snprintf(altbootcmd, sizeof(altbootcmd), "setenv mmcpart %s; run fitboot; reset;", altpartboot);
+ #if DEBUG
+     printf("partboot: %s  ... altpartboot: %s \n", partboot, altpartboot);
+diff --git a/configs/imx8mp_evk_defconfig b/configs/imx8mp_evk_defconfig
+index 8029d831b1..7f0bc250df 100644
+--- a/configs/imx8mp_evk_defconfig
++++ b/configs/imx8mp_evk_defconfig
+@@ -133,4 +133,6 @@ CONFIG_VIDEO_LCD_RAYDIUM_RM67191=y
+ CONFIG_VIDEO_IMX_SEC_DSI=y
+ CONFIG_VIDEO_IMX_LCDIFV3=y
+ CONFIG_VIDEO_ADV7535=y
++CONFIG_WATCHDOG_RESET_DISABLE=y
++CONFIG_IMX_WATCHDOG=y
+ CONFIG_OF_LIBFDT_OVERLAY=y
+diff --git a/include/bootcount.h b/include/bootcount.h
+index cd30403984..b0edcacf55 100644
+--- a/include/bootcount.h
++++ b/include/bootcount.h
+@@ -11,6 +11,8 @@
+ #include <asm/byteorder.h>
+ #include <env.h>
+ 
++#define DBG_BOOTCOUNT 1
++
+ #ifdef CONFIG_DM_BOOTCOUNT
+ 
+ struct bootcount_ops {
+@@ -123,6 +125,10 @@ static inline void bootcount_inc(void)
+ {
+ 	unsigned long bootcount = bootcount_load();
+ 
++#if DBG_BOOTCOUNT
++	printf("Info: bootcount=%lu\n", bootcount);
++#endif
++
+ 	if (gd->flags & GD_FLG_SPL_INIT) {
+ 		bootcount_store(++bootcount);
+ 		return;
+diff --git a/include/watchdog.h b/include/watchdog.h
+index a4a4e8e614..628c0469c2 100644
+--- a/include/watchdog.h
++++ b/include/watchdog.h
+@@ -32,6 +32,10 @@ int init_func_watchdog_reset(void);
+ #  error "Configuration error: CONFIG_HW_WATCHDOG and CONFIG_WATCHDOG can't be used together."
+ #endif
+ 
++static inline void imx_dummy_watchdog_reset(void)
++{
++}
++
+ /*
+  * Hardware watchdog
+  */
+@@ -39,9 +43,13 @@ int init_func_watchdog_reset(void);
+ 	#if defined(__ASSEMBLY__)
+ 		#define WATCHDOG_RESET bl hw_watchdog_reset
+ 	#else
+-		extern void hw_watchdog_reset(void);
+-
+-		#define WATCHDOG_RESET hw_watchdog_reset
++		#if defined(CONFIG_IMX_WATCHDOG) && defined(CONFIG_WATCHDOG_RESET_DISABLE)
++			void imx_dummy_watchdog_reset(void);
++			#define WATCHDOG_RESET imx_dummy_watchdog_reset
++		#else
++			extern void hw_watchdog_reset(void);
++			#define WATCHDOG_RESET hw_watchdog_reset
++		#endif /* CONFIG_IMX_WATCHDOG && CONFIG_WATCHDOG_RESET_DISABLE */
+ 	#endif /* __ASSEMBLY__ */
+ #else
+ 	/*
+-- 
+2.17.1
+
