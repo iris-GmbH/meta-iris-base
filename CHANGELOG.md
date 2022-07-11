@@ -41,7 +41,7 @@ and this project adheres to [APR's Version Numbering](https://apr.apache.org/ver
 - [RDPHOEN-1221]: Applying Iris Coporate Design to SWUpdate webinterface
 - [RDPHOEN-1226]: Adjust EPC660 & Serializer reset pins
 - [DEVOPS-522]: Add dev keys for swupdate signing, move existing keys from iris-kas repo to meta-iris-base
-
+- [RDPHOEN-1120]: swupdate: Enable support for signed images
 
 
 ### Changed
