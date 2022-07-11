@@ -1,9 +1,16 @@
+# The fw compatibility check in swupdate only compares the version string
+# consisting of major.minor.patch. The image type prefix and also the suffix
+# [-prerelease] or [+buildinfo] are ignored.
+. /etc/os-release
+FW_VERSION=`echo $VERSION | grep -oP '\d+.\d+.\d'`
+
 # -v, --verbose                  : be verbose, set maximum loglevel
 # -p, --postupdate               : execute post-update command
 # -k, --key <public key file>    : file with public key to verify images
 # -K, --key-aes <key file>       : the file contains the symmetric key to be used
 #                                  to decrypt images
-SWUPDATE_ARGS="-v -p 'reboot' -k /etc/iris/ca-certificates/swupdate-ca.crt -K /etc/iris/swupdate/encryption.key"
+# -N, --no-downgrading <version> : not install a release older as <version>
+SWUPDATE_ARGS="-v -p 'reboot' -k /etc/iris/ca-certificates/swupdate-ca.crt -K /etc/iris/swupdate/encryption.key -N $FW_VERSION"
 
 # -p, --port <port>              : server port number  (default: 8080)
 # -r, --document-root <path>     : path to document root directory (default: .)
