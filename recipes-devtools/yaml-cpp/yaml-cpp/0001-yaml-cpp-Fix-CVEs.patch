@@ -6,7 +6,7 @@ Subject: [PATCH] yaml-cpp: Fix CVEs
 Fix stack overflow in HandleNode by explicitly limiting the depth of recursion.
 
 Upstream-Status: Backport [https://github.com/jbeder/yaml-cpp/pull/807]
-CVE: CVE-2017-5950 CVE-2018-20573 CVE-2018-20574 CVE-2019-6285
+CVE: CVE-2017-5950 CVE-2018-20573 CVE-2018-20574 CVE-2019-6285 CVE-2019-6292
 
 Signed-off-by: Jasper Orschulko <Jasper.Orschulko@iris-sensing.com>
 ---
