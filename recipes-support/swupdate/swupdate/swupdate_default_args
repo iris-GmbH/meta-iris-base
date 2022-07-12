@@ -1,7 +1,9 @@
 # -v, --verbose                  : be verbose, set maximum loglevel
 # -p, --postupdate               : execute post-update command
 # -k, --key <public key file>    : file with public key to verify images
-SWUPDATE_ARGS="-v -p 'reboot' -k /usr/share/iris/ca-certificates/swupdate/ca.crt"
+# -K, --key-aes <key file>       : the file contains the symmetric key to be used
+#                                  to decrypt images
+SWUPDATE_ARGS="-v -p 'reboot' -k /usr/share/iris/ca-certificates/swupdate/ca.crt -K /etc/iris/swupdate/encryption.key"
 
 # -p, --port <port>              : server port number  (default: 8080)
 # -r, --document-root <path>     : path to document root directory (default: .)
