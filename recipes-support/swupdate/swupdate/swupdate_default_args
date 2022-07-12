@@ -3,7 +3,7 @@
 # -k, --key <public key file>    : file with public key to verify images
 # -K, --key-aes <key file>       : the file contains the symmetric key to be used
 #                                  to decrypt images
-SWUPDATE_ARGS="-v -p 'reboot' -k /usr/share/iris/ca-certificates/swupdate/ca.crt -K /etc/iris/swupdate/encryption.key"
+SWUPDATE_ARGS="-v -p 'reboot' -k /etc/iris/ca-certificates/swupdate-ca.crt -K /etc/iris/swupdate/encryption.key"
 
 # -p, --port <port>              : server port number  (default: 8080)
 # -r, --document-root <path>     : path to document root directory (default: .)
