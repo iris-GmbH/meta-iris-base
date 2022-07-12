@@ -1,0 +1,235 @@
+From 8aa8457069e68413056a29e63d7acfad17e2a51e Mon Sep 17 00:00:00 2001
+From: Alan Griffiths <alan@octopull.co.uk>
+Date: Thu, 9 Apr 2020 19:02:10 +0100
+Subject: [PATCH] yaml-cpp: Fix CVEs
+
+Fix stack overflow in HandleNode by explicitly limiting the depth of recursion.
+
+Upstream-Status: Backport [https://github.com/jbeder/yaml-cpp/pull/807]
+CVE: CVE-2017-5950 CVE-2018-20573 CVE-2018-20574 CVE-2019-6285
+
+Signed-off-by: Jasper Orschulko <Jasper.Orschulko@iris-sensing.com>
+---
+ include/yaml-cpp/depthguard.h | 77 +++++++++++++++++++++++++++++++++++
+ src/depthguard.cpp            | 10 +++++
+ src/singledocparser.cpp       |  3 ++
+ src/singledocparser.h         |  2 +
+ test/parser_test.cpp          | 64 +++++++++++++++++++++++++++++
+ 5 files changed, 156 insertions(+)
+ create mode 100644 include/yaml-cpp/depthguard.h
+ create mode 100644 src/depthguard.cpp
+ create mode 100644 test/parser_test.cpp
+
+diff --git a/include/yaml-cpp/depthguard.h b/include/yaml-cpp/depthguard.h
+new file mode 100644
+index 0000000..8ca61ac
+--- /dev/null
++++ b/include/yaml-cpp/depthguard.h
+@@ -0,0 +1,77 @@
++#ifndef DEPTH_GUARD_H_00000000000000000000000000000000000000000000000000000000
++#define DEPTH_GUARD_H_00000000000000000000000000000000000000000000000000000000
++
++#if defined(_MSC_VER) ||                                            \
++    (defined(__GNUC__) && (__GNUC__ == 3 && __GNUC_MINOR__ >= 4) || \
++     (__GNUC__ >= 4))  // GCC supports "pragma once" correctly since 3.4
++#pragma once
++#endif
++
++#include "exceptions.h"
++
++namespace YAML {
++
++/**
++ * @brief The DeepRecursion class
++ *  An exception class which is thrown by DepthGuard. Ideally it should be
++ * a member of DepthGuard. However, DepthGuard is a templated class which means
++ * that any catch points would then need to know the template parameters. It is
++ * simpler for clients to not have to know at the catch point what was the
++ * maximum depth.
++ */
++class DeepRecursion : public ParserException {
++public:
++  virtual ~DeepRecursion() = default;
++
++  DeepRecursion(int depth, const Mark& mark_, const std::string& msg_);
++
++  // Returns the recursion depth when the exception was thrown
++  int depth() const {
++    return m_depth;
++  }
++
++private:
++  int m_depth = 0;
++};
++
++/**
++ * @brief The DepthGuard class
++ *  DepthGuard takes a reference to an integer. It increments the integer upon
++ * construction of DepthGuard and decrements the integer upon destruction.
++ *
++ * If the integer would be incremented past max_depth, then an exception is
++ * thrown. This is ideally geared toward guarding against deep recursion.
++ *
++ * @param max_depth
++ *  compile-time configurable maximum depth.
++ */
++template <int max_depth = 2000>
++class DepthGuard final {
++public:
++  DepthGuard(int & depth_, const Mark& mark_, const std::string& msg_) : m_depth(depth_) {
++    ++m_depth;
++    if ( max_depth <= m_depth ) {
++        throw DeepRecursion{m_depth, mark_, msg_};
++    }
++  }
++
++  DepthGuard(const DepthGuard & copy_ctor) = delete;
++  DepthGuard(DepthGuard && move_ctor) = delete;
++  DepthGuard & operator=(const DepthGuard & copy_assign) = delete;
++  DepthGuard & operator=(DepthGuard && move_assign) = delete;
++
++  ~DepthGuard() {
++    --m_depth;
++  }
++
++  int current_depth() const {
++    return m_depth;
++  }
++
++private:
++    int & m_depth;
++};
++
++} // namespace YAML
++
++#endif // DEPTH_GUARD_H_00000000000000000000000000000000000000000000000000000000
+diff --git a/src/depthguard.cpp b/src/depthguard.cpp
+new file mode 100644
+index 0000000..b88cd34
+--- /dev/null
++++ b/src/depthguard.cpp
+@@ -0,0 +1,10 @@
++#include "yaml-cpp/depthguard.h"
++
++namespace YAML {
++
++DeepRecursion::DeepRecursion(int depth, const Mark& mark_, const std::string& msg_)
++    : ParserException(mark_, msg_),
++      m_depth(depth) {
++}
++
++} // namespace YAML
+diff --git a/src/singledocparser.cpp b/src/singledocparser.cpp
+index a27c1c3..44ae5d3 100644
+--- a/src/singledocparser.cpp
++++ b/src/singledocparser.cpp
+@@ -7,6 +7,7 @@
+ #include "singledocparser.h"
+ #include "tag.h"
+ #include "token.h"
++#include "yaml-cpp/depthguard.h"
+ #include "yaml-cpp/emitterstyle.h"
+ #include "yaml-cpp/eventhandler.h"
+ #include "yaml-cpp/exceptions.h"  // IWYU pragma: keep
+@@ -46,6 +47,8 @@ void SingleDocParser::HandleDocument(EventHandler& eventHandler) {
+ }
+ 
+ void SingleDocParser::HandleNode(EventHandler& eventHandler) {
++  DepthGuard<2000> depthguard(depth, m_scanner.mark(), ErrorMsg::BAD_FILE);
++
+   // an empty node *is* a possibility
+   if (m_scanner.empty()) {
+     eventHandler.OnNull(m_scanner.mark(), NullAnchor);
+diff --git a/src/singledocparser.h b/src/singledocparser.h
+index 2b92067..fa7f117 100644
+--- a/src/singledocparser.h
++++ b/src/singledocparser.h
+@@ -16,6 +16,7 @@
+ 
+ namespace YAML {
+ class CollectionStack;
++template <int> class DepthGuard; // depthguard.h
+ class EventHandler;
+ class Node;
+ class Scanner;
+@@ -51,6 +52,7 @@ class SingleDocParser : private noncopyable {
+   anchor_t LookupAnchor(const Mark& mark, const std::string& name) const;
+ 
+  private:
++  int depth = 0;
+   Scanner& m_scanner;
+   const Directives& m_directives;
+   std::unique_ptr<CollectionStack> m_pCollectionStack;
+diff --git a/test/parser_test.cpp b/test/parser_test.cpp
+new file mode 100644
+index 0000000..e5002a4
+--- /dev/null
++++ b/test/parser_test.cpp
+@@ -0,0 +1,64 @@
++#include <yaml-cpp/depthguard.h>
++#include "yaml-cpp/parser.h"
++#include "yaml-cpp/exceptions.h"
++#include "mock_event_handler.h"
++#include "gtest/gtest.h"
++
++using YAML::Parser;
++using YAML::MockEventHandler;
++using ::testing::NiceMock;
++using ::testing::StrictMock;
++
++TEST(ParserTest, Empty) {
++    Parser parser;
++
++    EXPECT_FALSE(parser);
++
++    StrictMock<MockEventHandler> handler;
++    EXPECT_FALSE(parser.HandleNextDocument(handler));
++}
++
++TEST(ParserTest, CVE_2017_5950) {
++    std::string excessive_recursion;
++    for (auto i = 0; i != 16384; ++i)
++        excessive_recursion.push_back('[');
++    std::istringstream input{excessive_recursion};
++    Parser parser{input};
++
++    NiceMock<MockEventHandler> handler;
++    EXPECT_THROW(parser.HandleNextDocument(handler), YAML::DeepRecursion);
++}
++
++TEST(ParserTest, CVE_2018_20573) {
++    std::string excessive_recursion;
++    for (auto i = 0; i != 20535; ++i)
++        excessive_recursion.push_back('{');
++    std::istringstream input{excessive_recursion};
++    Parser parser{input};
++
++    NiceMock<MockEventHandler> handler;
++    EXPECT_THROW(parser.HandleNextDocument(handler), YAML::DeepRecursion);
++}
++
++TEST(ParserTest, CVE_2018_20574) {
++    std::string excessive_recursion;
++    for (auto i = 0; i != 21989; ++i)
++        excessive_recursion.push_back('{');
++    std::istringstream input{excessive_recursion};
++    Parser parser{input};
++
++    NiceMock<MockEventHandler> handler;
++    EXPECT_THROW(parser.HandleNextDocument(handler), YAML::DeepRecursion);
++}
++
++TEST(ParserTest, CVE_2019_6285) {
++    std::string excessive_recursion;
++    for (auto i = 0; i != 23100; ++i)
++        excessive_recursion.push_back('[');
++    excessive_recursion.push_back('f');
++    std::istringstream input{excessive_recursion};
++    Parser parser{input};
++
++    NiceMock<MockEventHandler> handler;
++    EXPECT_THROW(parser.HandleNextDocument(handler), YAML::DeepRecursion);
++}
+-- 
+2.37.0
+
