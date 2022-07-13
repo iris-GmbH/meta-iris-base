@@ -31,7 +31,7 @@ SWU_META = "${IMAGENAME}-${MACHINE}.testdata.json"
 
 SWU_TARGET_FITIMAGE = "fitImage.signed"
 
-SWU_HW_VERSION = "1.0"
+SWU_HW_VERSION ?= "${@'0.0' if not d.getVar('HW_VERSION') else d.getVar('HW_VERSION')}"
 
 # images and files that will be included in the .swu image
 SWUPDATE_IMAGES = "${SWU_FITIMAGE} ${SWU_ROOTFS} ${SWU_BOOTLOADER}"
