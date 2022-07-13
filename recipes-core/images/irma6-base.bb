@@ -27,6 +27,7 @@ IRMA6_BASE_PACKAGES = " \
 	libxml2 \
 	nginx \
 	sqlite3 \
+	rsyslog \
 "
 
 # IRMA6 default (Release 2) only packages
