@@ -44,6 +44,8 @@ and this project adheres to [APR's Version Numbering](https://apr.apache.org/ver
 - [DEVOPS-522]: Add dev keys for swupdate signing, move existing keys from iris-kas repo to meta-iris-base
 - [RDPHOEN-1120]: swupdate: Enable support for signed images
 - [RDPHOEN-1120]: swupdate: Enable support for encrypted images
+- [RDPHOEN-1220]: Add IU EEPROM readout for nfs boot flag
+- [RDPHOEN-1225]: Add IU EEPROM readout for mac address
 
 ### Changed
 - [DEVOPS-519] Moved config from iris-kas local.conf to meta-iris-base distro.conf
