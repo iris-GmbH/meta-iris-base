@@ -44,6 +44,7 @@ IRMA6_EXTRA_PACKAGES_append_mx8mp = " \
 	keyutils \
 	mmc-utils \
 	dosfstools \
+	e2fsprogs-mke2fs \
 "
 
 # IRMA6 Release 1 only packages
