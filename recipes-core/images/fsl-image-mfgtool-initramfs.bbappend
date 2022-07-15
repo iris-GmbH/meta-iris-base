@@ -11,6 +11,7 @@ CORE_IMAGE_BASE_INSTALL_append_mx8mp = " \
    keyctl-caam \
    util-linux-blockdev \
    keyutils \
+   bc \
 "
 
 # Add the "cpio.gz" image type to use this initramfs for a fitimage
