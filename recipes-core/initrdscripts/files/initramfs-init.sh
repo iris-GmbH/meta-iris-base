@@ -101,6 +101,7 @@ debug "Crypt device: ${DECRYPT_ROOT_DEV}"
 debug "Verity device: ${VERITY_DEV}"
 
 ${MOUNT} ${KEYSTORE_DEV} ${KEYSTORE}
+#TODO: Check signature of "ext4.roothash" here!!
 RH=$(cat "${KEYSTORE}/rootfs${FIRMWARE_SUFFIX}_roothash")
 
 # Add Black key to keyring

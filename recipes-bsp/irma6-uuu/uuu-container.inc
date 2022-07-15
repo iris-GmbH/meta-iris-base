@@ -34,6 +34,8 @@ FITIMAGEUUU = "irma6-fitimage-uuu.itb.signed"
 # set output directory and file names
 UUU_DEPLOY_DIR = "${DEPLOYDIR}/${PN}"
 
+#TODO: Add "ext4.roothash" here!!
+
 FLASHBINDEPLOY = "flash.bin.signed"
 HASHSUMS = "hashsums"
 ROOTFSDEPLOY = "rootfs.ext4.gz"
@@ -59,6 +61,7 @@ do_deploy () {
     install -m 0644 ${DEPLOY_DIR_IMAGE}/${ROOTFSROOTHASH} ${UUU_DEPLOY_DIR}/${ROOTFSROOTHASHDEPLOY}
     install -m 0644 ${DEPLOY_DIR_IMAGE}/${FITIMAGE} ${UUU_DEPLOY_DIR}/${FITIMAGEDEPLOY}
     install -m 0644 ${DEPLOY_DIR_IMAGE}/${FITIMAGEUUU} ${UUU_DEPLOY_DIR}/${FITIMAGEUUUDEPLOY}
+    #TODO: Install "ext4.roothash" here!!
 
     install -m 0644 ${WORKDIR}/${PARTITIONS} ${UUU_DEPLOY_DIR}/${PARTITIONSDEPLOY}
     install -m 0644 ${WORKDIR}/${UUUSCRIPT} ${UUU_DEPLOY_DIR}/${UUUSCRIPTDEPLOY}

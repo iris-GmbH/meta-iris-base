@@ -116,6 +116,7 @@ FBK: ucmd sync
 
 FBK: ucp rootfs.ext4.roothash t:/mnt/keystore/rootfs_a_roothash
 FBK: ucp rootfs.ext4.roothash t:/mnt/keystore/rootfs_b_roothash
+#TODO: Copy "ext4.roothash" here!!
 
 FBK: ucmd umount /mnt/keystore
 FBK: ucmd sync

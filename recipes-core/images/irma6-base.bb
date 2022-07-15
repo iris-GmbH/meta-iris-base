@@ -107,6 +107,8 @@ do_generate_dmverity_hashes () {
     roothashfile="${IMGDEPLOYDIR}/${IMAGE_NAME}${IMAGE_NAME_SUFFIX}.ext4.roothash"
     echo "${roothash}" > "${roothashfile}"
 
+    #TODO: Sign "ext4.roothash" here!!
+
     # copy hash device to image directory
     hashdevfile="${IMGDEPLOYDIR}/${IMAGE_NAME}${IMAGE_NAME_SUFFIX}.ext4.hashdevice"
     cp "${hashdev}" "${hashdevfile}"
