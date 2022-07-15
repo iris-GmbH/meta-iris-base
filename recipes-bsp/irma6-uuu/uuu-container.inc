@@ -23,6 +23,8 @@ do_deploy[nostamp] = "1"
 
 # set generic file names that should match for most images
 ROOTFS = "${IMAGENAME}-${MACHINE}-*.rootfs.ext4.gz"
+ROOTFSVERITY = "${IMAGENAME}-${MACHINE}-*.rootfs.ext4.hashdevice"
+ROOTFSROOTHASH = "${IMAGENAME}-${MACHINE}-*.rootfs.ext4.roothash"
 PARTITIONS ?= "partitions_${MACHINE}"
 UUUSCRIPT ?= "flashall_${MACHINE}.uuu"
 VERIFICATIONSCRIPT ?= "verification_${MACHINE}.sh"
@@ -35,6 +37,8 @@ UUU_DEPLOY_DIR = "${DEPLOYDIR}/${PN}"
 FLASHBINDEPLOY = "flash.bin.signed"
 HASHSUMS = "hashsums"
 ROOTFSDEPLOY = "rootfs.ext4.gz"
+ROOTFSVERITYDEPLOY = "rootfs.ext4.hashdevice"
+ROOTFSROOTHASHDEPLOY = "rootfs.ext4.roothash"
 PARTITIONSDEPLOY = "partitions"
 UUUSCRIPTDEPLOY = "flashall.uuu"
 VERIFICATIONSCRIPTDEPLOY = "verification.sh"
@@ -51,6 +55,8 @@ do_deploy () {
     install -m 0644 ${WORKDIR}/recipe-sysroot/${FLASHBIN} ${UUU_DEPLOY_DIR}/${FLASHBINDEPLOY}
 
     install -m 0644 ${DEPLOY_DIR_IMAGE}/${ROOTFS} ${UUU_DEPLOY_DIR}/${ROOTFSDEPLOY}
+    install -m 0644 ${DEPLOY_DIR_IMAGE}/${ROOTFSVERITY} ${UUU_DEPLOY_DIR}/${ROOTFSVERITYDEPLOY}
+    install -m 0644 ${DEPLOY_DIR_IMAGE}/${ROOTFSROOTHASH} ${UUU_DEPLOY_DIR}/${ROOTFSROOTHASHDEPLOY}
     install -m 0644 ${DEPLOY_DIR_IMAGE}/${FITIMAGE} ${UUU_DEPLOY_DIR}/${FITIMAGEDEPLOY}
     install -m 0644 ${DEPLOY_DIR_IMAGE}/${FITIMAGEUUU} ${UUU_DEPLOY_DIR}/${FITIMAGEUUUDEPLOY}
 
@@ -78,6 +84,9 @@ do_deploy () {
     # Calculate the size for partition check: Decompress rootfs.ext4.gz virtually and evaluate the size with wc
     size_rootfs="$(zcat ${UUU_DEPLOY_DIR}/${ROOTFSDEPLOY} | wc -c)"
     echo "SIZE_ROOTFS=\"$size_rootfs\"" >> ${UUU_DEPLOY_DIR}/${HASHSUMS}
+
+    size_rootfsverity="$(stat --printf=%s ${UUU_DEPLOY_DIR}/${ROOTFSVERITYDEPLOY})"
+    echo "SIZE_ROOTFSVERITY=\"$size_rootfsverity\"" >> ${UUU_DEPLOY_DIR}/${HASHSUMS}
 }
 
 addtask do_deploy after do_install
