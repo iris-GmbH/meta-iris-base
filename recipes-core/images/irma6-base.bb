@@ -80,4 +80,43 @@ python () {
     d.appendVar('ROOTFS_POSTPROCESS_COMMAND', 'replace_etc_version;')
 }
 
+# Generate dm-verity root hash for R2
+DEPENDS_append_mx8mp = " cryptsetup-native gzip-native bc-native xxd-native"
+# TODO: do the next 2 lines work properly? Always generate hashes for ext4 image
+do_generate_dmverity_hashes[nostamp] += "1"
+do_image_ext4[nostamp] += "1"
+do_generate_dmverity_hashes () {
+    blockdev=$(mktemp)
+    paddeddev=$(mktemp)
+    hashdev=$(mktemp)
+
+    # unzip ext4.gz image to tempfile
+    ext4img="${IMGDEPLOYDIR}/${IMAGE_NAME}${IMAGE_NAME_SUFFIX}.ext4.gz"
+    gzip -dc "${ext4img}" > "${blockdev}"
+
+    # get size of ext4 image and pad it to next 4MB block
+    ext4size=$(stat -c%s "${blockdev}")
+    paddedsize=$(echo "(((ext4size/(4*1024*1024)) + ((ext4size % (4*1024*1024)) > 0)) * (4*1024*1024))" | bc)
+    cat "${blockdev}" /dev/zero | head -c "${paddedsize}" > "${paddeddev}"
+
+    # generate random salt and run veritysetup to get the roothash
+    salt=$(head -c32 /dev/urandom | xxd -ps -c 0)
+    #TODO: non-deterministic??
+    output=$(veritysetup format -s "${salt}" "${blockdev}" "${hashdev}")
+    roothash=$(echo "$output" | grep "^Root hash:" | cut -f2)
+
+    # write roothash to image directory
+    roothashfile="${IMGDEPLOYDIR}/${IMAGE_NAME}${IMAGE_NAME_SUFFIX}.ext4.roothash"
+    echo "${roothash}" > "${roothashfile}"
+
+    # copy hash device to image directory
+    hashdevfile="${IMGDEPLOYDIR}/${IMAGE_NAME}${IMAGE_NAME_SUFFIX}.ext4.hashdevice"
+    cp "${hashdev}" "${hashdevfile}"
+
+    # delete tempfiles
+    rm "${blockdev}" "${paddeddev}" "${hashdev}"
+}
+
+addtask do_generate_dmverity_hashes after do_image_ext4 before do_image_complete
+
 inherit irma6-firmware-zip
