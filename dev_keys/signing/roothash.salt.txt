@@ -1,0 +1,7 @@
+# Create salt for dm-verity
+
+$ openssl rand -hex 32
+98fcdb5adc2fce6431ba857a647c79cf88cf50088b494d82577af7f5472818ca
+
+$ head -c32 /dev/urandom | xxd -ps -c 0
+12423f58383dbf4acddc1b4d97acd401a44b14d150f8adcb59ba11738f8bd0bc
