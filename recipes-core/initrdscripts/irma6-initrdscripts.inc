@@ -16,6 +16,8 @@ RDEPENDS_${PN} = " \
     cryptsetup \
     keyutils \
     lvm2 \
+    openssl-bin \
+    iris-signing \
 "
 
 S = "${WORKDIR}"

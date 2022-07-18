@@ -76,11 +76,13 @@ vgmknodes
 echo "Initramfs Bootstrap..."
 parse_cmdline
 
-ROOT_DEV="/dev/mapper/irma6lvm-rootfs${FIRMWARE_SUFFIX}"
-ROOT_HASH="/dev/mapper/irma6lvm-rootfs${FIRMWARE_SUFFIX}_hash"
-
 KEYSTORE_DEV="/dev/mapper/irma6lvm-keystore"
 KEYSTORE="/mnt/keystore"
+
+ROOT_DEV=/dev/mapper/irma6lvm-rootfs${FIRMWARE_SUFFIX}
+ROOT_HASH_DEV=/dev/mapper/irma6lvm-rootfs${FIRMWARE_SUFFIX}_hash
+ROOT_HASH=${KEYSTORE}/rootfs${FIRMWARE_SUFFIX}_roothash
+ROOT_HASH_SIGNATURE=${KEYSTORE}/rootfs${FIRMWARE_SUFFIX}_roothash.signature
 
 VERITY_NAME="verity-rootfs${FIRMWARE_SUFFIX}"
 VERITY_DEV="/dev/mapper/${VERITY_NAME}"
@@ -91,6 +93,7 @@ DECRYPT_ROOT_DEV="/dev/mapper/${DECRYPT_NAME}"
 DATA_DEV="/dev/mapper/irma6lvm-userdata"
 DECRYPT_DATA_NAME="decrypted-irma6lvm-userdata"
 
+PUBKEY="/etc/iris/signing/roothash-public-key.pem"
 
 debug "Select firmware${FIRMWARE_SUFFIX}"
 
@@ -101,7 +104,12 @@ debug "Crypt device: ${DECRYPT_ROOT_DEV}"
 debug "Verity device: ${VERITY_DEV}"
 
 ${MOUNT} ${KEYSTORE_DEV} ${KEYSTORE}
-RH=$(cat "${KEYSTORE}/rootfs${FIRMWARE_SUFFIX}_roothash")
+
+if ! /usr/bin/openssl dgst -sha256 -verify "${PUBKEY}" -signature "${ROOT_HASH_SIGNATURE}" "${ROOT_HASH}"
+then
+    exit 1
+fi
+RH=$(cat "${ROOT_HASH}")
 
 # Add Black key to keyring
 caam-keygen import $KEYSTORE/caam/volumeKey.bb importKey
@@ -119,7 +127,7 @@ vgmknodes
 ${UMOUNT} ${KEYSTORE}
 
 debug "Opening verity device: ${DECRYPT_ROOT_DEV}"
-veritysetup open ${DECRYPT_ROOT_DEV} ${VERITY_NAME} ${ROOT_HASH} "${RH}"
+veritysetup open ${DECRYPT_ROOT_DEV} ${VERITY_NAME} ${ROOT_HASH_DEV} ${RH}
 
 ${MOUNT} ${VERITY_DEV} ${ROOT_MNT} -o ro
 
