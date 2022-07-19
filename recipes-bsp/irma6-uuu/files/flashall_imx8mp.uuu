@@ -116,6 +116,8 @@ FBK: ucmd sync
 
 FBK: ucp rootfs.ext4.roothash t:/mnt/keystore/rootfs_a_roothash
 FBK: ucp rootfs.ext4.roothash t:/mnt/keystore/rootfs_b_roothash
+FBK: ucp rootfs.ext4.roothash.signature t:/mnt/keystore/rootfs_a_roothash.signature
+FBK: ucp rootfs.ext4.roothash.signature t:/mnt/keystore/rootfs_b_roothash.signature
 
 FBK: ucmd umount /mnt/keystore
 FBK: ucmd sync
