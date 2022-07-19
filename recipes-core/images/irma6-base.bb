@@ -33,9 +33,11 @@ IRMA6_BASE_PACKAGES = " \
 IRMA6_EXTRA_PACKAGES = " \
 	lvm2 \
 	cryptsetup \
+	openssl-bin \
 	libubootenv-bin \
 	iris-ca-certificates \
 	iris-encryption \
+	iris-signing \
 "
 # IRMA6R2 SoC specific packages (not included in qemu)
 IRMA6_EXTRA_PACKAGES_append_mx8mp = " \
@@ -81,7 +83,7 @@ python () {
 }
 
 # Generate dm-verity root hash for R2
-DEPENDS_append_mx8mp = " cryptsetup-native gzip-native bc-native xxd-native"
+DEPENDS_append_mx8mp = " cryptsetup-native gzip-native bc-native xxd-native openssl-native"
 # TODO: do the next 2 lines work properly? Always generate hashes for ext4 image
 do_generate_dmverity_hashes[nostamp] += "1"
 do_image_ext4[nostamp] += "1"
@@ -109,9 +111,26 @@ do_generate_dmverity_hashes () {
     roothashfile="${IMGDEPLOYDIR}/${IMAGE_NAME}${IMAGE_NAME_SUFFIX}.ext4.roothash"
     echo "${roothash}" > "${roothashfile}"
 
+    # sign roothash and write signature to image directory
+    roothash_signature_file="${roothashfile}.signature"
+    if ! openssl dgst -sha256 -sign "${ROOTHASH_SIGNING_PRIVATE_KEY}" -out "${roothash_signature_file}" "${roothashfile}"
+    then
+        bbfatal "Signing roothash failed"
+        exit 1
+    fi
+
     # copy hash device to image directory
     hashdevfile="${IMGDEPLOYDIR}/${IMAGE_NAME}${IMAGE_NAME_SUFFIX}.ext4.hashdevice"
     cp "${hashdev}" "${hashdevfile}"
+
+    # create symlinks
+    roothash_sym="${IMGDEPLOYDIR}/${PN}-${MACHINE}.ext4.roothash"
+    roothash_sig_sym="${IMGDEPLOYDIR}/${PN}-${MACHINE}.ext4.roothash.signature"
+    hashdevice_sym="${IMGDEPLOYDIR}/${PN}-${MACHINE}.ext4.hashdevice"
+
+    ln -sfr "${roothashfile}" "${roothash_sym}"
+    ln -sfr "${roothash_signature_file}" "${roothash_sig_sym}"
+    ln -sfr "${hashdevfile}" "${hashdevice_sym}"
 
     # delete tempfiles
     rm "${blockdev}" "${paddeddev}" "${hashdev}"
