@@ -50,7 +50,13 @@ python do_swuimage_prepend () {
     # read rootfs / irma6 version from meta file
     image_dir = d.getVar('DEPLOY_DIR_IMAGE', True)
     irmameta = json.load(open(os.path.join(image_dir, d.getVar("SWU_META"))))
-    d.setVar("SWU_VERSION_ROOTFS", irmameta['FIRMWARE_VERSION'])
+    fw_version = irmameta['FIRMWARE_VERSION']
+    d.setVar("SWU_VERSION_ROOTFS", fw_version)
+
+    # set the swu fw version
+    import re
+    swu_fw_version = re.search('\d+\.\d+\.\d+', fw_version).group(0)
+    d.setVar("SWU_FW_VERSION", swu_fw_version)
 
     # mark images that needs to be encrypted, before being passed to swu
     def mark_encrypted(artefact):

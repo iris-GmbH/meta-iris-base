@@ -1,6 +1,6 @@
 software =
 {
-    version = "0.1.0";
+    version = "@@SWU_FW_VERSION@@";
     bootloader_transaction_marker = false;
     description = "Firmware update for IRMA6 image";
     hardware-compatibility = [ "@@SWU_HW_VERSION@@" ];
