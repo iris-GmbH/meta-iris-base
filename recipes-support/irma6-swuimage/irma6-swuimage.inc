@@ -61,6 +61,10 @@ python do_swuimage_prepend () {
     mark_encrypted(d.getVar('SWU_ROOTFS'))
     mark_encrypted(d.getVar('SWU_BOOTLOADER_ENV'))
     mark_encrypted(d.getVar('SWU_PRE_POST_SCRIPT'))
+
+    # The iv is changed with each swu
+    key,iv = swupdate_extract_keys(d.getVar('SWUPDATE_AES_FILE', True))
+    d.setVar("SWU_IVT", iv)
 }
 
 inherit swupdate
