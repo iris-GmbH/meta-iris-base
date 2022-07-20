@@ -1,8 +1,5 @@
-# The fw compatibility check in swupdate only compares the version string
-# consisting of major.minor.patch. The image type prefix and also the suffix
-# [-prerelease] or [+buildinfo] are ignored.
 . /etc/os-release
-FW_VERSION=`echo $VERSION | grep -oP '\d+.\d+.\d'`
+FW_VERSION=`echo $VERSION | grep -oE '[0-9]+\.[0-9]+\.[0-9]+'`
 
 # -v, --verbose                  : be verbose, set maximum loglevel
 # -p, --postupdate               : execute post-update command
