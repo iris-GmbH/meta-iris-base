@@ -46,6 +46,7 @@ and this project adheres to [APR's Version Numbering](https://apr.apache.org/ver
 - [RDPHOEN-1120]: swupdate: Enable support for encrypted images
 - [RDPHOEN-1220]: Add IU EEPROM readout for nfs boot flag
 - [RDPHOEN-1225]: Add IU EEPROM readout for mac address
+- [APC-4800/APC-4821] Added rsyslogd and files for remote syslog server
 
 ### Changed
 - [DEVOPS-519] Moved config from iris-kas local.conf to meta-iris-base distro.conf
