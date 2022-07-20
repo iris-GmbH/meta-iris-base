@@ -14,7 +14,7 @@ if [ -f /etc/syslog-startup.conf ]; then
 	. /etc/syslog-startup.conf
 	
 	if [ -f /mnt/iris/logging/syslog-remotes.conf ]; then
-		. /etc/syslog-remotes.conf
+		. /mnt/iris/logging/syslog-remotes.conf
 	fi
 
 	LOG_LOCAL=0
