@@ -38,6 +38,7 @@ IRMA6_EXTRA_PACKAGES = " \
 	iris-ca-certificates \
 	iris-encryption \
 	iris-signing \
+	rsyslog \
 "
 # IRMA6R2 SoC specific packages (not included in qemu)
 IRMA6_EXTRA_PACKAGES_append_mx8mp = " \
