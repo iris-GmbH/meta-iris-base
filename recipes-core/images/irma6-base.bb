@@ -84,9 +84,6 @@ python () {
 
 # Generate dm-verity root hash for R2
 DEPENDS_append_mx8mp = " cryptsetup-native gzip-native bc-native xxd-native openssl-native"
-# TODO: do the next 2 lines work properly? Always generate hashes for ext4 image
-do_generate_dmverity_hashes[nostamp] += "1"
-do_image_ext4[nostamp] += "1"
 do_generate_dmverity_hashes () {
     blockdev=$(mktemp)
     paddeddev=$(mktemp)
@@ -101,9 +98,7 @@ do_generate_dmverity_hashes () {
     paddedsize=$(echo "(((ext4size/(4*1024*1024)) + ((ext4size % (4*1024*1024)) > 0)) * (4*1024*1024))" | bc)
     cat "${blockdev}" /dev/zero | head -c "${paddedsize}" > "${paddeddev}"
 
-    # generate random salt and run veritysetup to get the roothash
-    salt=$(head -c32 /dev/urandom | xxd -ps -c 0)
-    #TODO: non-deterministic??
+    salt=$(cat ${ROOTHASH_DM_VERITY_SALT})
     output=$(veritysetup format -s "${salt}" "${blockdev}" "${hashdev}")
     roothash=$(echo "$output" | grep "^Root hash:" | cut -f2)
 
