@@ -80,6 +80,12 @@ replace_etc_version () {
 # https://git.yoctoproject.org/cgit/cgit.cgi/poky/tree/meta/classes/rootfs-postcommands.bbclass?h=dunfell&id=43060f59ba60a0257864f1f7b25b51fac3f2d2cf#n57
 python () {
     d.appendVar('ROOTFS_POSTPROCESS_COMMAND', 'replace_etc_version;')
+
+    # Add task R2 only for ext4 builds
+    image_fstypes = d.getVar('IMAGE_FSTYPES')
+    compat_machines = (d.getVar('MACHINEOVERRIDES') or "").split(":")
+    if 'mx8mp' in compat_machines and 'ext4' in image_fstypes:
+        bb.build.addtask('do_generate_dmverity_hashes', 'do_image_complete', 'do_image_ext4', d)
 }
 
 # Generate dm-verity root hash for R2
@@ -130,7 +136,5 @@ do_generate_dmverity_hashes () {
     # delete tempfiles
     rm "${blockdev}" "${paddeddev}" "${hashdev}"
 }
-
-addtask do_generate_dmverity_hashes after do_image_ext4 before do_image_complete
 
 inherit irma6-firmware-zip
