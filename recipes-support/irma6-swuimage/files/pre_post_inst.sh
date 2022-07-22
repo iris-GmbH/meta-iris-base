@@ -4,8 +4,14 @@ if [ $# -lt 1 ]; then
 	exit 0;
 fi
 
+TAG=$0
+
+log() {
+	logger -t $TAG $1
+}
+
 exists() {
-	command -v "$1" >/dev/null 2>&1 || { echo "ERROR: $1 not found"; exit 1; }
+	command -v "$1" >/dev/null 2>&1 || { log "ERROR: $1 not found"; exit 1; }
 }
 
 cmds_exist () {
@@ -22,7 +28,7 @@ parse_cmdline() {
 		# default to update firmware b
 		FIRMWARE_SUFFIX="_b"
 	fi
-	echo "Update firmware${FIRMWARE_SUFFIX}"
+	log "Update firmware${FIRMWARE_SUFFIX}"
 }
 
 set_device_names() {
@@ -63,7 +69,7 @@ get_bootdev_name() {
 	EMMC_DEV="/dev/mmcblk2"
 	KERNEL_DEV=$(sfdisk -J $EMMC_DEV | jq 'first(.partitiontable.partitions[] | select ((.name!=null) and (.name=="linuxboot'${FIRMWARE_SUFFIX}'")) | .node)' -r)
 	if ! [ -b "$KERNEL_DEV" ]; then
-		echo "Could not locate boot partition for firmware${FIRMWARE_SUFFIX}"; exit 1;
+		log "Could not locate boot partition for firmware${FIRMWARE_SUFFIX}"; exit 1;
 	fi
 }
 
