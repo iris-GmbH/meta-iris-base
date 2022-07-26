@@ -27,6 +27,9 @@ IMAGE_DEPENDS = "\
 SWU_BOOTLOADER = "${IMAGE_BOOTLOADER}.signed"
 SWU_FITIMAGE = "${FITIMAGENAME}.itb.signed"
 SWU_ROOTFS = "${IMAGENAME}-${MACHINE}.ext4.gz"
+SWU_ROOTHASH="${IMAGENAME}-${MACHINE}.ext4.roothash"
+SWU_ROOTHASH_SIGNATURE="${IMAGENAME}-${MACHINE}.ext4.roothash.signature"
+SWU_HASHDEVICE="${IMAGENAME}-${MACHINE}.ext4.hashdevice"
 SWU_BOOTLOADER_ENV = "bootloader-env"
 SWU_PRE_POST_SCRIPT = "pre_post_inst.sh"
 
@@ -37,7 +40,7 @@ SWU_TARGET_FITIMAGE = "fitImage.signed"
 SWU_HW_VERSION ?= "${@'0.0' if not d.getVar('HW_VERSION') else d.getVar('HW_VERSION')}"
 
 # images and files that will be included in the .swu image
-SWUPDATE_IMAGES = "${SWU_FITIMAGE} ${SWU_ROOTFS} ${SWU_BOOTLOADER}"
+SWUPDATE_IMAGES = "${SWU_FITIMAGE} ${SWU_ROOTFS} ${SWU_BOOTLOADER} ${SWU_ROOTHASH} ${SWU_ROOTHASH_SIGNATURE} ${SWU_HASHDEVICE}"
 
 python() {
     if "swupdate" not in (d.getVar('UPDATE_PROCEDURE') or ""):
@@ -67,6 +70,9 @@ python do_swuimage_prepend () {
     mark_encrypted(d.getVar('SWU_ROOTFS'))
     mark_encrypted(d.getVar('SWU_BOOTLOADER_ENV'))
     mark_encrypted(d.getVar('SWU_PRE_POST_SCRIPT'))
+    mark_encrypted(d.getVar('SWU_ROOTHASH'))
+    mark_encrypted(d.getVar('SWU_ROOTHASH_SIGNATURE'))
+    mark_encrypted(d.getVar('SWU_HASHDEVICE'))
 
     # The iv is changed with each swu
     key,iv = swupdate_extract_keys(d.getVar('SWUPDATE_AES_FILE', True))

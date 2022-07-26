@@ -50,6 +50,7 @@ and this project adheres to [APR's Version Numbering](https://apr.apache.org/ver
 - [RDPHOEN-1120]: swupdate: Enable support for rotating iv for encrypted swu images
 - [RDPHOEN-1204]: Add dosfstools to imx8mp irma6-base for formatting with FAT (mkfs.vfat)
 - [RDPHOEN-1204]: Add e2fsprogs-mke2fs to imx8mp irma6-base for formatting with ext4 (mkfs.ext4)
+- [RDPHOEN-1163]: Pregenerate and sign dmverity hashes
 
 
 ### Changed

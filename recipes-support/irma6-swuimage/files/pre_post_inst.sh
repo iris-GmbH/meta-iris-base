@@ -12,6 +12,7 @@ cmds_exist () {
 	exists veritysetup
 	exists sfdisk
 	exists jq
+	exists openssl
 }
 
 parse_cmdline() {
@@ -31,6 +32,7 @@ set_device_names() {
 	ROOT_DEV="/dev/mapper/irma6lvm-rootfs${FIRMWARE_SUFFIX}"
 	ROOT_HASH_DEV="/dev/mapper/irma6lvm-rootfs${FIRMWARE_SUFFIX}_hash"
 	ROOT_HASH="${KEYSTORE}/rootfs${FIRMWARE_SUFFIX}_roothash"
+	ROOT_HASH_SIGNATURE="${ROOT_HASH}.signature"
 
 	VERITY_NAME="verity-rootfs${FIRMWARE_SUFFIX}"
 	VERITY_DEV="/dev/mapper/${VERITY_NAME}"
@@ -65,16 +67,21 @@ get_bootdev_name() {
 	fi
 }
 
+verify_roothash_signature() {
+	PUBKEY="/etc/iris/signing/roothash-public-key.pem"
+	/usr/bin/openssl dgst -sha256 -verify "${PUBKEY}" -signature "${ROOT_HASH_SIGNATURE}" "${ROOT_HASH}" || exit 1
+}
+
 create_symlinks() {
 	ln -sf "$KERNEL_DEV" /dev/swu_kernel || exit 1
 	ln -sf "$DECRYPT_ROOT_DEV" /dev/swu_rootfs || exit 1
-	ln -sf "$ROOT_HASH_DEV" /dev/swu_rootfs_hash || exit 1
+	ln -sf "$ROOT_HASH_DEV" /dev/swu_hash_dev || exit 1
+	ln -sf "$ROOT_HASH" /dev/swu_roothash || exit 1
+	ln -sf "$ROOT_HASH_SIGNATURE" /dev/swu_roothash_signature || exit 1
 }
 
 remove_symlinks() {
-	rm /dev/swu_kernel
-	rm /dev/swu_rootfs
-	rm /dev/swu_rootfs_hash
+	rm -f /dev/swu_*
 }
 
 mount_keystore() {
@@ -85,12 +92,6 @@ mount_keystore() {
 
 umount_keystore() {
 	umount ${KEYSTORE}
-}
-
-write_root_hash() {
-	# TODO: Unsafe! Store roothash in a secure manner!
-	veritysetup format ${DECRYPT_ROOT_DEV} ${ROOT_HASH_DEV} | grep "Root hash:" | grep -Eo "[0-9a-f]+$" > ${ROOT_HASH} || exit 1
-	
 }
 
 if [ "$1" = "preinst" ]; then
@@ -108,9 +109,9 @@ if [ "$1" = "postinst" ]; then
 	parse_cmdline
 	set_device_names
 	get_bootdev_name
-	write_root_hash
 	lock_device
-	umount_keystore
+	verify_roothash_signature
 	remove_symlinks
+	umount_keystore
 	exit 0
 fi

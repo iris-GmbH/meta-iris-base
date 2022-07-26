@@ -33,9 +33,11 @@ IRMA6_BASE_PACKAGES = " \
 IRMA6_EXTRA_PACKAGES = " \
 	lvm2 \
 	cryptsetup \
+	openssl-bin \
 	libubootenv-bin \
 	iris-ca-certificates \
 	iris-encryption \
+	iris-signing \
 "
 # IRMA6R2 SoC specific packages (not included in qemu)
 IRMA6_EXTRA_PACKAGES_append_mx8mp = " \
@@ -78,6 +80,61 @@ replace_etc_version () {
 # https://git.yoctoproject.org/cgit/cgit.cgi/poky/tree/meta/classes/rootfs-postcommands.bbclass?h=dunfell&id=43060f59ba60a0257864f1f7b25b51fac3f2d2cf#n57
 python () {
     d.appendVar('ROOTFS_POSTPROCESS_COMMAND', 'replace_etc_version;')
+
+    # Add task R2 only for ext4 builds
+    image_fstypes = d.getVar('IMAGE_FSTYPES')
+    compat_machines = (d.getVar('MACHINEOVERRIDES') or "").split(":")
+    if 'mx8mp' in compat_machines and 'ext4' in image_fstypes:
+        bb.build.addtask('do_generate_dmverity_hashes', 'do_image_complete', 'do_image_ext4', d)
+}
+
+# Generate dm-verity root hash for R2
+DEPENDS_append_mx8mp = " cryptsetup-native gzip-native bc-native xxd-native openssl-native"
+do_generate_dmverity_hashes () {
+    blockdev=$(mktemp)
+    paddeddev=$(mktemp)
+    hashdev=$(mktemp)
+
+    # unzip ext4.gz image to tempfile
+    ext4img="${IMGDEPLOYDIR}/${IMAGE_NAME}${IMAGE_NAME_SUFFIX}.ext4.gz"
+    gzip -dc "${ext4img}" > "${blockdev}"
+
+    # get size of ext4 image and pad it to next 4MB block
+    ext4size=$(stat -c%s "${blockdev}")
+    paddedsize=$(echo "(((ext4size/(4*1024*1024)) + ((ext4size % (4*1024*1024)) > 0)) * (4*1024*1024))" | bc)
+    cat "${blockdev}" /dev/zero | head -c "${paddedsize}" > "${paddeddev}"
+
+    salt=$(cat ${ROOTHASH_DM_VERITY_SALT})
+    output=$(veritysetup format -s "${salt}" "${blockdev}" "${hashdev}")
+    roothash=$(echo "$output" | grep "^Root hash:" | cut -f2)
+
+    # write roothash to image directory
+    roothashfile="${IMGDEPLOYDIR}/${IMAGE_NAME}${IMAGE_NAME_SUFFIX}.ext4.roothash"
+    echo "${roothash}" > "${roothashfile}"
+
+    # sign roothash and write signature to image directory
+    roothash_signature_file="${roothashfile}.signature"
+    if ! openssl dgst -sha256 -sign "${ROOTHASH_SIGNING_PRIVATE_KEY}" -out "${roothash_signature_file}" "${roothashfile}"
+    then
+        bbfatal "Signing roothash failed"
+        exit 1
+    fi
+
+    # copy hash device to image directory
+    hashdevfile="${IMGDEPLOYDIR}/${IMAGE_NAME}${IMAGE_NAME_SUFFIX}.ext4.hashdevice"
+    cp "${hashdev}" "${hashdevfile}"
+
+    # create symlinks
+    roothash_sym="${IMGDEPLOYDIR}/${PN}-${MACHINE}.ext4.roothash"
+    roothash_sig_sym="${IMGDEPLOYDIR}/${PN}-${MACHINE}.ext4.roothash.signature"
+    hashdevice_sym="${IMGDEPLOYDIR}/${PN}-${MACHINE}.ext4.hashdevice"
+
+    ln -sfr "${roothashfile}" "${roothash_sym}"
+    ln -sfr "${roothash_signature_file}" "${roothash_sig_sym}"
+    ln -sfr "${hashdevfile}" "${hashdevice_sym}"
+
+    # delete tempfiles
+    rm "${blockdev}" "${paddeddev}" "${hashdev}"
 }
 
 inherit irma6-firmware-zip
