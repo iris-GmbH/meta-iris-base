@@ -13,11 +13,18 @@
 ### END INIT INFO
 
 PATH=/sbin:/bin:/usr/bin:/usr/sbin
-
+CFG_FILE=/mnt/iris/chrony/chrony.conf
+DEFAULT_CFG=/etc/default/chrony.conf
 DAEMON=/usr/sbin/chronyd
 PIDFILE=/run/chrony/chronyd.pid
 
-test -x $DAEMON -a -r /etc/chrony.conf || exit 0
+# copy default config, if custom one does not exist
+if [ ! -f $CFG_FILE ]; then
+	mkdir /mnt/iris/chrony
+	cp $DEFAULT_CFG $CFG_FILE
+fi
+
+test -x $DAEMON -a -r ${CFG_FILE} || exit 0
 
 # Source function library.
 . /etc/init.d/functions
@@ -25,7 +32,7 @@ test -x $DAEMON -a -r /etc/chrony.conf || exit 0
 # Functions to do individual actions
 startdaemon(){
 	echo -n "Starting chronyd: "
-	start-stop-daemon --start --quiet --oknodo --pidfile $PIDFILE --startas $DAEMON -- "$@"
+	start-stop-daemon --start --quiet --oknodo --pidfile $PIDFILE --startas $DAEMON -- "$@" -f ${CFG_FILE}
 	echo "done"
 }
 stopdaemon(){
