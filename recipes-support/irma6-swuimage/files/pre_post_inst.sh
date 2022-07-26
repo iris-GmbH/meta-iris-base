@@ -81,7 +81,7 @@ create_symlinks() {
 }
 
 remove_symlinks() {
-	rm /dev/swu_*
+	rm -f /dev/swu_*
 }
 
 mount_keystore() {
