@@ -74,3 +74,7 @@ SRC_URI_append_imx8mp-irma6r2 = "\
 	file://0026-imx8mp-irma6r2-Add-i2c4-to-bootloader-device-tree-fo.patch \
 	file://0027-imx8mp-irma6r2-Add-IU-EEPROM-readout-for-configuring.patch \
 "
+
+SRC_URI_append_poky-iris-deploy = "\
+	file://deploy-u.cfg \
+"
