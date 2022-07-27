@@ -51,6 +51,7 @@ and this project adheres to [APR's Version Numbering](https://apr.apache.org/ver
 - [RDPHOEN-1250]: swupdate: Add check if swupdate still runs after update
 - [RDPHOEN-1204]: Add dosfstools to imx8mp irma6-base for formatting with FAT (mkfs.vfat)
 - [RDPHOEN-1204]: Add e2fsprogs-mke2fs to imx8mp irma6-base for formatting with ext4 (mkfs.ext4)
+- [RDPHOEN-1213]: swupdate: Use swupdate.cfg instead of args and add more handler for future use
 - [RDPHOEN-1163]: Pregenerate and sign dmverity hashes
 
 
