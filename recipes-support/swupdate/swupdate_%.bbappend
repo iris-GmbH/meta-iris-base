@@ -15,7 +15,8 @@ PATCHTOOL = "git"
 SRC_URI_append := " \
 	file://defconfig \
 	file://${RESET_SCRIPT} \
-	file://swupdate_default_args \
+	file://swupdate.sh \
+	file://swupdate.cfg.in \
 	file://bootloader_update.lua \
 	file://0001-RDPHOEN-1221-Formatting-index.html.patch \
 	file://0002-RDPHOEN-1221-SWUpdate-Webinterface-CI-rework.patch \
@@ -32,7 +33,7 @@ FILES_${PN} += " \
 	${SWUPDATE_HW_COMPATIBILITY_FILE} \
 	${sysconfdir}/init.d/${RESET_SCRIPT} \
 	${sysconfdir}/rc5.d/${RESET_SCRIPT_SYM} \
-	${sysconfdir}/swupdate/conf.d/swupdate_default_args \
+	${sysconfdir}/swupdate.cfg \
 "
 
 SWU_HW_VERSION ?= "${@'0.0' if not d.getVar('HW_VERSION') else d.getVar('HW_VERSION')}"
@@ -43,9 +44,17 @@ do_install_append () {
 	install -m 0755 ${WORKDIR}/${RESET_SCRIPT} ${D}${sysconfdir}/init.d
 	ln -s -r ${D}${sysconfdir}/init.d/${RESET_SCRIPT} ${D}${sysconfdir}/rc5.d/${RESET_SCRIPT_SYM}
 
-	# set swupdate default arguments
-	install -d ${D}${sysconfdir}/swupdate/conf.d/
-	install -m 0644 ${WORKDIR}/swupdate_default_args ${D}${sysconfdir}/swupdate/conf.d/
+	# create swupdate.cfg and replace variables
+	cp ${WORKDIR}/swupdate.cfg.in ${WORKDIR}/swupdate.cfg
+	export FW_VERSION=`echo ${DISTRO_VERSION} | grep -oP '\d+\.\d+\.\d+'`
+	if [ -z "$FW_VERSION" ]; then
+		bbfatal "ERROR: Can not read read firmware version"
+	fi
+	sed -i "s|FW_VERSION|$FW_VERSION|g" ${WORKDIR}/swupdate.cfg
+
+	# copy swupdate.cfg
+	install -d ${D}${sysconfdir}
+	install -m 644 ${WORKDIR}/swupdate.cfg ${D}${sysconfdir}
 
 	# install lua handlers
 	install -d ${D}${libdir}/swupdate/lua-handlers
