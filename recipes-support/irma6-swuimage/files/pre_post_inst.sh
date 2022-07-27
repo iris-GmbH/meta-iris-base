@@ -100,11 +100,41 @@ umount_keystore() {
 	umount ${KEYSTORE}
 }
 
+resize_lvm() {
+	# suppress lvm tool warnings regarding closing of all file descriptors
+	export LVM_SUPPRESS_FD_WARNINGS=1
+
+	rootfs_file=$(ls /tmp/*.ext4.gz)
+
+	# get encryption key for decrypting
+	key=$(cut -d' ' -f1 < /etc/iris/swupdate/encryption.key)
+	iv=$(cut -d' ' -f2 < /etc/iris/swupdate/encryption.key)
+
+	# get current rootfs size
+	cur_size=$(lvs --select "lv_name = rootfs$FIRMWARE_SUFFIX" -o LV_SIZE --units B --nosuffix --noheadings | cut -c3-)
+	
+	# get new rootfs size
+	new_size=$(openssl enc -d -aes-256-cbc -K "$key" -iv "$iv" -in "$rootfs_file" | zcat | wc -c)
+
+	# resize lv if needed
+	if [ $new_size -ne $cur_size ]; then
+
+		# mount over read-only /etc/lvm to modify config
+		mkdir -p /tmp/etc/lvm
+		mount --bind /tmp/etc/lvm /etc/lvm
+
+		echo "Resize rootfs logical volume: ${cur_size} -> ${new_size}"
+		lvresize --force --yes --quiet -L "$new_size"B "$ROOT_DEV" 2> /dev/null
+		vgmknodes
+	fi
+}
+
 if [ "$1" = "preinst" ]; then
 	cmds_exist	
 	parse_cmdline
 	set_device_names
 	mount_keystore
+	resize_lvm
 	unlock_device
 	get_bootdev_name
 	create_symlinks
