@@ -52,7 +52,7 @@ and this project adheres to [APR's Version Numbering](https://apr.apache.org/ver
 - [RDPHOEN-1204]: Add dosfstools to imx8mp irma6-base for formatting with FAT (mkfs.vfat)
 - [RDPHOEN-1204]: Add e2fsprogs-mke2fs to imx8mp irma6-base for formatting with ext4 (mkfs.ext4)
 - [RDPHOEN-1163]: Pregenerate and sign dmverity hashes
-
+- [RDPHOEN-1257]: Add resizing of rootfs logical volume during update
 
 ### Changed
 - [DEVOPS-519] Moved config from iris-kas local.conf to meta-iris-base distro.conf
