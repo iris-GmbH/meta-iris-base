@@ -104,6 +104,10 @@ resize_lvm() {
 	# suppress lvm tool warnings regarding closing of all file descriptors
 	export LVM_SUPPRESS_FD_WARNINGS=1
 
+	# get new compressed/encrypted rootfs
+	if [ ! -e /tmp/*.ext4.gz ]; then
+		log "Could not find new rootfs during logical volume resize!"; exit 1;
+	fi
 	rootfs_file=$(ls /tmp/*.ext4.gz)
 
 	# get encryption key for decrypting
@@ -115,23 +119,22 @@ resize_lvm() {
 	
 	# get new rootfs size
 	new_size=$(openssl enc -d -aes-256-cbc -K "$key" -iv "$iv" -in "$rootfs_file" | zcat | wc -c)
-
-	# resize lv if needed
-	if [ $new_size -ne $cur_size ]; then
-
-		# mount over read-only /etc/lvm to modify config
-		if ! grep -qs /etc/lvm /proc/mounts; then
-			mkdir -p /tmp/etc/lvm
-			mount --bind /tmp/etc/lvm /etc/lvm
-		fi
-
-		echo "Resize rootfs logical volume: ${cur_size} -> ${new_size}"
-		lvresize --force --yes --quiet -L "$new_size"B "$ROOT_DEV" 2> /dev/null
-		vgmknodes
-
-		umount /etc/lvm
-		rm -R /tmp/etc
+	if [ $new_size -eq 0 ]; then
+		log "Could not retrieve new rootfs size during logical volume resize!"; exit 1;
 	fi
+
+	# mount over read-only /etc/lvm to modify config
+	if ! grep -qs /etc/lvm /proc/mounts; then
+		mkdir -p /tmp/etc/lvm
+		mount --bind /tmp/etc/lvm /etc/lvm
+	fi
+
+	log "Resize rootfs logical volume: ${cur_size} to ${new_size}"
+	lvresize --force --yes --quiet -L "$new_size"B "$ROOT_DEV" 2> /dev/null
+	vgmknodes
+
+	umount /etc/lvm
+	rm -R /tmp/etc
 }
 
 if [ "$1" = "preinst" ]; then
