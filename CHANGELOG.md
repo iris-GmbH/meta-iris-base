@@ -53,6 +53,7 @@ and this project adheres to [APR's Version Numbering](https://apr.apache.org/ver
 - [RDPHOEN-1204]: Add e2fsprogs-mke2fs to imx8mp irma6-base for formatting with ext4 (mkfs.ext4)
 - [RDPHOEN-1213]: swupdate: Use swupdate.cfg instead of args and add more handler for future use
 - [RDPHOEN-1163]: Pregenerate and sign dmverity hashes
+- [APC-4836]: Add chrony integration for IRMA 6 R2.
 
 
 ### Changed
