@@ -2,7 +2,7 @@ SRC_URI += "file://fragment.cfg"
 SRC_URI += "file://arp.cfg"
 SRC_URI += "file://ntpd.cfg"
 SRC_URI += "file://mdev.conf"
-SRC_URI += "${@'file://enable_watchdog.cfg' if d.getVar('IRMA6_RELEASE') != 1 else ''}"
+SRC_URI += "${@'file://enable_watchdog.cfg file://devmem.cfg' if d.getVar('IRMA6_RELEASE') != 1 else ''}"
 SRC_URI += "file://busybox_watchdog.sh"
 
 FILESEXTRAPATHS_prepend := "${THISDIR}/${PN}:"
