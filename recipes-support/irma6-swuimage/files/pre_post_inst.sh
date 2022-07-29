@@ -120,12 +120,17 @@ resize_lvm() {
 	if [ $new_size -ne $cur_size ]; then
 
 		# mount over read-only /etc/lvm to modify config
-		mkdir -p /tmp/etc/lvm
-		mount --bind /tmp/etc/lvm /etc/lvm
+		if ! grep -qs /etc/lvm /proc/mounts; then
+			mkdir -p /tmp/etc/lvm
+			mount --bind /tmp/etc/lvm /etc/lvm
+		fi
 
 		echo "Resize rootfs logical volume: ${cur_size} -> ${new_size}"
 		lvresize --force --yes --quiet -L "$new_size"B "$ROOT_DEV" 2> /dev/null
 		vgmknodes
+
+		umount /etc/lvm
+		rm -R /tmp/etc
 	fi
 }
 
