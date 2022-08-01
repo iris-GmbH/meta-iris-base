@@ -105,10 +105,17 @@ resize_lvm() {
 	export LVM_SUPPRESS_FD_WARNINGS=1
 
 	# get new compressed/encrypted rootfs
-	if [ ! -e /tmp/*.ext4.gz ]; then
+	if [ ! -e /tmp/sw-description ]; then
+		log "Could not find sw-description file during logical volume resize!"; exit 1;
+	fi
+	rootfs_file=$(grep ext4.gz /tmp/sw-description | grep -Eo "\".*\"" | sed 's/"//g')
+	if [ -z "$rootfs_file" ]; then
 		log "Could not find new rootfs during logical volume resize!"; exit 1;
 	fi
-	rootfs_file=$(ls /tmp/*.ext4.gz)
+	rootfs_file="/tmp/$rootfs_file"
+	if [ ! -e "$rootfs_file" ]; then
+		log "Could not find new rootfs during logical volume resize!"; exit 1;
+	fi
 
 	# get encryption key for decrypting
 	key=$(cut -d' ' -f1 < /etc/iris/swupdate/encryption.key)
