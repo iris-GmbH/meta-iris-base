@@ -7,7 +7,7 @@ fi
 TAG=$0
 
 log() {
-	logger -t $TAG $1
+	logger -t "$TAG" "$1"
 }
 
 exists() {
