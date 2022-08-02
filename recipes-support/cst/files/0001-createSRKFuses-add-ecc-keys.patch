@@ -1,0 +1,169 @@
+From 6f3bd4d043b25e19ad90c3a104cae71beaef16b1 Mon Sep 17 00:00:00 2001
+From: Ian Dannapel <ian.dannapel@iris-sensing.com>
+Date: Tue, 2 Aug 2022 16:19:22 +0200
+Subject: [PATCH] createSRKFuses: add ecc keys
+
+---
+ createSRKFuses | 93 +++++++++++++++++++++++++++++---------------------
+ 1 file changed, 54 insertions(+), 39 deletions(-)
+
+diff --git a/createSRKFuses b/createSRKFuses
+index d8cbe65..1a47f31 100755
+--- a/createSRKFuses
++++ b/createSRKFuses
+@@ -1,8 +1,8 @@
++#!/bin/bash
+ #
+-# Copyright 2017-2018 NXP
++# Copyright 2017-2018, 2022 NXP
+ #
+ ##########################################################################
+-#!/bin/bash
+ #
+ # SCRIPT:  	createSRKFuses
+ #
+@@ -17,14 +17,21 @@
+ #Debug
+ DEBUG=0
+ 
+-# Help
+-if [[ "$1" = "-h" || "$1" = "--help" || "$1" = "" ]] ; then
+-	echo
+-	echo "./createSRKFuses [-h|--help] for help"
+-	echo "Usage: ./createSRKFuses <SRK table> <Number of SRKs> <SRK key length>"
+-	echo "Number of SRK : 1 - 4"
+-	echo "SRK Key Length : 1024, 2048, 3072, 4096"
++print_usage ()
++{
++    echo
++    echo "./createSRKFuses [-h|--help] for help"
++    echo "Usage: ./createSRKFuses <SRK table> <Number of SRKs> <SRK key length> <SRK Key Type>"
++    echo "Number of SRK : 1 - 4"
++	echo "SRK Key Type : rsa, ecc"
++    echo "SRK Key Length : 1024, 2048, 3072, 4096 for RSA key type"
++	echo "                 256, 384 or 521 for ECC key type"
+ 	exit 1
++}
++
++# Help
++if [[ "$1" == "-h" || "$1" == "--help" || "$1" == "" ]] ; then
++	print_usage
+ fi
+ 
+ # Input SRK Table file
+@@ -33,12 +40,7 @@ if [[ -n "$SRKtablefile" &&  -f "$SRKtablefile" ]] ; then
+ 	echo "SRK table file is $1"
+ else
+ 	echo "File $1 doesnt exist or is empty"
+-	echo
+-	echo "./createSRKFuses [-h|--help] for help"
+-	echo "Usage: ./createSRKFuses <SRK table> <Number of SRKs> <SRK key length>"
+-	echo "Number of SRK : 1 - 4"
+-	echo "SRK Key Length : 1024, 2048, 3072, 4096"
+-	exit 1
++	print_usage
+ fi
+ 
+ # Number of SRK certs
+@@ -47,37 +49,50 @@ if [[ $2 > 0 && $2 < 5 ]] ; then
+ 	echo "Number of SRKs are $nSRK"
+ else
+ 	echo "Number of SRKs need to be between 1 and 4"
+-	echo
+-	echo "./createSRKFuses [-h|--help] for help"
+-	echo "Usage: ./createSRKFuses <SRK table> <Number of SRKs> <SRK key length>"
+-	echo "Number of SRK : 1 - 4"
+-	echo "SRK Key Length : 1024, 2048, 3072, 4096"
+-	exit 1
++	print_usage
+ fi
+ 
+-# SRK key length
+-lSRK=$3
+-if [[ $lSRK = 1024 || $lSRK = 2048 || $lSRK = 3072 || $lSRK = 4096 ]] ; then
+-	echo "SRK Key length is $lSRK"
++# SRK key type
++tSRK=$4
++if [[ $tSRK == "rsa" || $tSRK == "ecc" ]] ; then
++	echo "SRK Key Type is $4"
++	# SRK key length based on key type
++	lSRK=$3
++	if [[ $tSRK == "rsa" ]] ; then
++		if [[ $lSRK == 1024 || $lSRK == 2048 || $lSRK == 3072 || $lSRK == 4096 ]] ; then
++			echo "SRK $tSRK Key length is $lSRK"
++		else
++			echo "SRK key length needs to be 1024, 2048, 3072 or 4096 bits"
++			print_usage
++		fi
++	else
++		if [[ $lSRK == 256 || $lSRK == 384 || $lSRK == 521 ]] ; then
++			echo "SRK $tSRK Key length is $lSRK"
++		else
++			echo "SRK key length needs to be 256, 384 or 521 bits"
++			print_usage
++		fi
++	fi
+ else
+-	echo "SRK key length needs to be 1024, 2048, 3072 or 4096 bits"
+-	echo
+-	echo "./createSRKFuses [-h|--help] for help"
+-	echo "Usage: ./createSRKFuses <SRK table> <Number of SRKs> <SRK key length>"
+-	echo "Number of SRK : 1 - 4"
+-	echo "SRK Key Length : 1024, 2048, 3072, 4096"
+-	exit 1
++	echo "SRK Key type should be rsa or ecc"
++	print_usage
+ fi
+ 
+ # Decide size of cert w.r.t SRK Key Length
+-if [ $lSRK = 1024 ] ; then
++if [ $lSRK == 1024 ] ; then
+ 	countSize=143;
+-elif [ $lSRK = 2048 ] ; then
++elif [ $lSRK == 2048 ] ; then
+ 	countSize=271;
+-elif [ $lSRK = 3072 ] ; then
++elif [ $lSRK == 3072 ] ; then
+ 	countSize=399;
+-elif [ $lSRK = 4096 ] ; then
++elif [ $lSRK == 4096 ] ; then
+ 	countSize=527;
++elif [ $lSRK == 256 ] ; then
++	countSize=76
++elif [ $lSRK == 384 ] ; then
++    countSize=108
++elif [ $lSRK == 521 ] ; then
++    countSize=144
+ fi
+ 
+ 
+@@ -86,7 +101,7 @@ i=$nSRK
+ for nSRK in {1..4} ; do
+ 	dd if=$1 of=SRKCert$nSRK bs=1 skip=$((4+($countSize*($nSRK-1)))) count=$countSize
+ 	echo "File SRKCert$nSRK created"
+-	if [ $nSRK = $i ] ; then
++	if [ $nSRK == $i ] ; then
+ 		break
+ 	fi
+ done
+@@ -99,7 +114,7 @@ for fSRK in SRKCert[1234] ; do
+ 			perl -e 'print pack "H*", <STDIN>' | \
+ 				dd of=$fSRK.bin bs=1 count=32
+ 	echo "File $fSRK.bin created"
+-	if [ $nSRK = $i ] ; then
++	if [ $nSRK == $i ] ; then
+ 		break
+ 	fi
+ 	i=$((i+1))
+@@ -112,7 +127,7 @@ cat SRKCert[1234].bin | \
+ 			dd of=SRK_fuses.bin bs=1 count=32
+ 
+ #remove all temp files
+-if [ $DEBUG = 0 ]; then
++if [ $DEBUG == 0 ]; then
+ 	rm -v SRKCert*
+ fi
+ 
+-- 
+2.25.1
+
