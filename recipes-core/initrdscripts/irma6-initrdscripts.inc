@@ -18,6 +18,7 @@ RDEPENDS_${PN} = " \
     lvm2 \
     openssl-bin \
     iris-signing \
+    e2fsprogs-mke2fs \
 "
 
 S = "${WORKDIR}"

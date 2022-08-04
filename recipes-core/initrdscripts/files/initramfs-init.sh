@@ -67,11 +67,69 @@ parse_cmdline() {
     fi
 }
 
+# provisioning flash procedure
+pvsn_flash() {
+    echo "Initramfs provisioning flash routine started..."
+    ROOT_DEV="/dev/mapper/irma6lvm-pvsn_rootfs"
+    DATA_DEV="/dev/mapper/irma6lvm-pvsn_userdata"
+
+    # Mount keystore
+    KEYSTORE_DEV="/dev/mapper/irma6lvm-keystore"
+    KEYSTORE="/mnt/keystore"
+    ${MOUNT} ${KEYSTORE_DEV} ${KEYSTORE}
+
+    # Generate black key blobs
+    caam-keygen create volumeKey ccm -s 32
+
+    # Setup encrypted partitions
+    keyctl padd logon logkey: @us < /mnt/keystore/caam/volumeKey
+    dmsetup -v create decrypted-irma6lvm-rootfs_a --table "0 $(blockdev --getsz /dev/mapper/irma6lvm-rootfs_a) crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 /dev/mapper/irma6lvm-rootfs_a 0 1 sector_size:4096"
+    dmsetup -v create decrypted-irma6lvm-rootfs_b --table "0 $(blockdev --getsz /dev/mapper/irma6lvm-rootfs_b) crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 /dev/mapper/irma6lvm-rootfs_b 0 1 sector_size:4096"
+    dmsetup -v create decrypted-irma6lvm-userdata --table "0 $(blockdev --getsz /dev/mapper/irma6lvm-userdata) crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 /dev/mapper/irma6lvm-userdata 0 1 sector_size:4096"
+    vgmknodes
+
+    # Copy rootfs
+    dd if=/dev/mapper/irma6lvm-pvsn_rootfs of=/dev/mapper/decrypted-irma6lvm-rootfs_a
+    dd if=/dev/mapper/irma6lvm-rootfs_a of=/dev/mapper/irma6lvm-rootfs_b
+
+    # Mount and copy userdata
+    mkfs.ext4 /dev/mapper/decrypted-irma6lvm-userdata
+    mkdir -p /mnt/pvsn_userdata
+    mkdir -p /mnt/userdata
+    mount -t ext4 /dev/mapper/decrypted-irma6lvm-userdata /mnt/userdata
+    mount -t ext4 /dev/mapper/irma6lvm-pvsn_userdata /mnt/pvsn_userdata
+    mkdir -p /mnt/iris/counter
+    cp -R /mnt/pvsn_userdata/* /mnt/userdata
+    umount /mnt/userdata
+    umount /mnt/pvsn_userdata
+    rm -R /mnt/pvsn_userdata
+    rm -R /mnt/userdata
+
+    # Remove provisioning volumes
+    lvchange -an "/dev/mapper/irma6lvm-pvsn_rootfs"
+    lvchange -an "/dev/mapper/irma6lvm-pvsn_userdata"
+    lvremove --force --yes --verbose "/dev/mapper/irma6lvm-pvsn_rootfs"
+    lvremove --force --yes --verbose "/dev/mapper/irma6lvm-pvsn_userdata"
+    vgchange -a y
+    vgmknodes
+
+    # Close decrypted devices
+    dmsetup remove /dev/mapper/decrypted-irma6lvm-rootfs_a
+    dmsetup remove /dev/mapper/decrypted-irma6lvm-rootfs_b
+    dmsetup remove /dev/mapper/decrypted-irma6lvm-userdata
+}
+
 mount_pseudo_fs
 
 # populate LVM mapper devices
 vgchange -a y
 vgmknodes
+
+# check if we are in provisioning and need to encrypt the volumes
+echo "Provisioning check..."
+if [ -e "/dev/mapper/irma6lvm-pvsn_rootfs" ]; then
+    pvsn_flash
+fi
 
 echo "Initramfs Bootstrap..."
 parse_cmdline
