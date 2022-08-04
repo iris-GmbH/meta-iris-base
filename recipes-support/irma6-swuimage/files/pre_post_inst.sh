@@ -45,6 +45,10 @@ set_device_names() {
 
 	DECRYPT_NAME="decrypted-irma6lvm-rootfs${FIRMWARE_SUFFIX}"
 	DECRYPT_ROOT_DEV="/dev/mapper/${DECRYPT_NAME}"
+
+	# get encryption key for decrypting
+	KEY=$(cut -d' ' -f1 < /etc/iris/swupdate/encryption.key)
+	IV=$(cut -d' ' -f2 < /etc/iris/swupdate/encryption.key)
 }
 
 unlock_device() {
@@ -100,32 +104,75 @@ umount_keystore() {
 	umount ${KEYSTORE}
 }
 
+imx_fuse_read () {
+	idx=${1}	# index = bank * 4 + word
+	count=${2}	# count = number of words to be read
+
+	ocotp_patch=$(find /sys/bus/ -name "imx-ocotp0")
+	[ -z ${ocotp_patch} ] && { log "No FUSE support!"; exit 1; }
+	ocotp_file=${ocotp_patch}/nvmem
+
+	dd if=${ocotp_file} bs=4 count=${count} skip=${idx} 2>/dev/null | hexdump -e '"0x%04x\n"'
+}
+
+
+check_hab_srk() {
+	key_type="ecc"
+	key_length=521
+	n_of_srks=4
+
+	# check if secure boot is activated
+	boot_cfg=$(imx_fuse_read 7 1)
+	if [ "$(( 0x02000000 & boot_cfg ))" -eq 0 ]; then
+ 		log "Secure boot is not activated, skipping SRK fuses verification"
+ 		return
+	fi
+
+	# read SRK fuses
+	srk_count=$(( 2*n_of_srks ))
+	srk_fuses=$(imx_fuse_read 24 $srk_count)
+
+	# read flash.bin SRKs
+	flashbin_file=$(cat /tmp/sw-description | tr '\n' ' ' | grep -o '{[^}]*device = "/dev/swu_bootloader"[^}]*}' | grep -o 'filename = "[^"]*";' | cut -d'"' -f 2)
+	flashbin_file="/tmp/$flashbin_file"
+	flashbin_file_decrypted="/tmp/imx-boot.signed_dec"
+	if [ ! -e "$flashbin_file" ]; then
+		log "File $flashbin_file not present, cannot verify bootloader SRKs"; exit 1;
+	fi
+
+	openssl enc -d -aes-256-cbc -K "$KEY" -iv "$IV" -in $flashbin_file > "$flashbin_file_decrypted"
+	(cd /tmp/ && csf_parser -s "$flashbin_file_decrypted" > /dev/null 2>&1)
+	(cd /tmp/ && createSRKFuses output/SRKTable.bin "$n_of_srks" "$key_length" "$key_type" > /dev/null 2>&1)
+	srk_bootloader=$(hexdump -e '"0x%04x\n"' /tmp/SRK_fuses.bin)
+	
+	rm -rf /tmp/output/ /tmp/SRK_fuses.bin "$flashbin_file_decrypted"
+
+	if [ "$srk_bootloader" != "$srk_fuses" ]; then
+		log "Aborting, SRK Bootloader does not match SRK Fuse!"
+		log "SRK Bootloader: $srk_bootloader"
+		log "SRK Fuse: $srk_fuses"
+		exit 1;
+	fi 
+
+	log "SRK Bootloader verification passed"
+}
+
 resize_lvm() {
 	# suppress lvm tool warnings regarding closing of all file descriptors
 	export LVM_SUPPRESS_FD_WARNINGS=1
 
 	# get new compressed/encrypted rootfs
-	if [ ! -e /tmp/sw-description ]; then
-		log "Could not find sw-description file during logical volume resize!"; exit 1;
-	fi
-	rootfs_file=$(grep ext4.gz /tmp/sw-description | grep -Eo "\".*\"" | sed 's/"//g')
-	if [ -z "$rootfs_file" ]; then
-		log "Could not find new rootfs during logical volume resize!"; exit 1;
-	fi
+	rootfs_file=$(cat /tmp/sw-description | tr '\n' ' ' | grep -o '{[^}]*device = "/dev/swu_rootfs"[^}]*}' | grep -o 'filename = "[^"]*";' | cut -d'"' -f 2)
 	rootfs_file="/tmp/$rootfs_file"
 	if [ ! -e "$rootfs_file" ]; then
 		log "Could not find new rootfs during logical volume resize!"; exit 1;
 	fi
 
-	# get encryption key for decrypting
-	key=$(cut -d' ' -f1 < /etc/iris/swupdate/encryption.key)
-	iv=$(cut -d' ' -f2 < /etc/iris/swupdate/encryption.key)
-
 	# get current rootfs size
 	cur_size=$(lvs --select "lv_name = rootfs$FIRMWARE_SUFFIX" -o LV_SIZE --units B --nosuffix --noheadings | cut -c3-)
 	
 	# get new rootfs size
-	new_size=$(openssl enc -d -aes-256-cbc -K "$key" -iv "$iv" -in "$rootfs_file" | zcat | wc -c)
+	new_size=$(openssl enc -d -aes-256-cbc -K "$KEY" -iv "$IV" -in "$rootfs_file" | zcat | wc -c)
 	if [ $new_size -eq 0 ]; then
 		log "Could not retrieve new rootfs size during logical volume resize!"; exit 1;
 	fi
@@ -149,6 +196,7 @@ if [ "$1" = "preinst" ]; then
 	parse_cmdline
 	set_device_names
 	mount_keystore
+	check_hab_srk
 	resize_lvm
 	unlock_device
 	get_bootdev_name
