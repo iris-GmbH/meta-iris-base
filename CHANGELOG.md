@@ -70,6 +70,7 @@ and this project adheres to [APR's Version Numbering](https://apr.apache.org/ver
 - [RDPHOEN-958]: Removing the bootloader code configuration CONFIG_CMD_BOOTEFI for imx8mpevk and imx8mp-irma6r2, as (u)efi isn't used
 - [RDPHOEN-1179]: Remove mfgtool unneeded dependency to speed up build time
 - imx8mp multiconfig: Remove impractical wic images, because they can not be used with current SOC encrypted volumes
+- [DEVOPS-549]: Remove Jenkinsfile, using gitlab ci instead
 
 ### Fixed
 - [RDPHOEN-1013]: Fix setting the format on the Serializer, enables switching between Raw12 and Raw14 formats without setting the format twice
