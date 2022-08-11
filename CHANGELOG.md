@@ -59,6 +59,7 @@ and this project adheres to [APR's Version Numbering](https://apr.apache.org/ver
 - [APC-4836] Disable internal snvs rtc on r2.
 - [RDPHOEN-1040]: Add "sync" command in uuu flash script
 - [RDPHOEN-1084]: Add config fragment for kernel and u-boot
+- [RDPHOEN-1273]: Add encryption of logical volumes to initramfs to use valid black key blobs
 
 ### Changed
 - [DEVOPS-519] Moved config from iris-kas local.conf to meta-iris-base distro.conf
