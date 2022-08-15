@@ -44,6 +44,10 @@ SRC_URI += " \
     file://0036-imx8mp-irma6r2.dts-Adjust-EPC660-TC358746-reset-pins.patch \
 "
 
+SRC_URI_append_poky-iris-deploy = "\
+	file://deploy.cfg \
+"
+
 KERNEL_DEFCONFIG_imx8mpevk = "imx8mp-evk-r2_defconfig"
 KERNEL_DEFCONFIG_imx8mp-irma6r2 = "imx8mp_irma6r2_defconfig"
 
