@@ -91,18 +91,22 @@ FBK: ucmd vgmknodes
 # Flash rootfs to both rootfs partitions
 FBK: acmd zcat | dd of=/dev/mapper/decrypted-irma6lvm-rootfs_a
 FBK: ucp rootfs.ext4.gz t:-
+FBK: sync
 FBK: ucmd sync
 
 FBK: acmd zcat | dd of=/dev/mapper/decrypted-irma6lvm-rootfs_b
 FBK: ucp rootfs.ext4.gz t:-
+FBK: sync
 FBK: ucmd sync
 
 FBK: acmd cat | dd of=/dev/mapper/irma6lvm-rootfs_a_hash
 FBK: ucp rootfs.ext4.hashdevice t:-
+FBK: sync
 FBK: ucmd sync
 
 FBK: acmd cat | dd of=/dev/mapper/irma6lvm-rootfs_b_hash
 FBK: ucp rootfs.ext4.hashdevice t:-
+FBK: sync
 FBK: ucmd sync
 
 # Create ext4 partition for userdata

@@ -57,6 +57,7 @@ and this project adheres to [APR's Version Numbering](https://apr.apache.org/ver
 - [APC-4848]: Add rsyslog integration for IRMA 6 R2.
 - [APC-4836]: Add chrony integration for IRMA 6 R2.
 - [APC-4836] Disable internal snvs rtc on r2.
+- [RDPHOEN-1040]: Add "sync" command in uuu flash script
 
 ### Changed
 - [DEVOPS-519] Moved config from iris-kas local.conf to meta-iris-base distro.conf
