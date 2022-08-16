@@ -91,6 +91,7 @@ pvsn_flash() {
     # Copy rootfs
     dd if=/dev/mapper/irma6lvm-pvsn_rootfs of=/dev/mapper/decrypted-irma6lvm-rootfs_a
     dd if=/dev/mapper/irma6lvm-rootfs_a of=/dev/mapper/irma6lvm-rootfs_b
+    sync
 
     # Mount and copy userdata
     mkfs.ext4 /dev/mapper/decrypted-irma6lvm-userdata
@@ -98,7 +99,7 @@ pvsn_flash() {
     mkdir -p /mnt/userdata
     mount -t ext4 /dev/mapper/decrypted-irma6lvm-userdata /mnt/userdata
     mount -t ext4 /dev/mapper/irma6lvm-pvsn_userdata /mnt/pvsn_userdata
-    mkdir -p /mnt/iris/counter
+    mkdir -p /mnt/userdata/counter
     cp -R /mnt/pvsn_userdata/* /mnt/userdata
     umount /mnt/userdata
     umount /mnt/pvsn_userdata
