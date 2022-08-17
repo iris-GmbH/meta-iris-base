@@ -194,8 +194,8 @@ fi
 RH=$(cat "${ROOT_HASH}")
 
 # Add Black key to keyring
-caam-keygen import $KEYSTORE/caam/volumeKey.bb importKey
-keyctl padd logon logkey: @us < $KEYSTORE/caam/importKey
+caam-keygen import $KEYSTORE/caam/volumeKey.bb volumeKey
+keyctl padd logon logkey: @us < $KEYSTORE/caam/volumeKey
 
 debug "Unlocking encrypted device: ${ROOT_DEV}" 
 dmsetup create ${DECRYPT_NAME} --table "0 $(blockdev --getsz ${ROOT_DEV}) \
