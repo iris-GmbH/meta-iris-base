@@ -15,6 +15,7 @@ RDEPENDS_${PN} = " \
     util-linux-uuidd \
     cryptsetup \
     keyutils \
+    mmc-utils \
     lvm2 \
     openssl-bin \
     iris-signing \

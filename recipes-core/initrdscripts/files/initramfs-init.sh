@@ -67,6 +67,23 @@ parse_cmdline() {
     fi
 }
 
+pvsn_wipe() {
+    sector_size=512 # 512 bytes
+    first_pe=2048 # first physical extent starts at 1 MiB (2048 sectors * 512B sector size) (LVM MDA is located here)
+    partition_offset=$(cat "/sys/class/block/mmcblk2p5/start")
+    pv_size=$(pvs --no-heading --no-suffix -o pv_size --unit B | xargs) # physical volume size in bytes
+    pe_count=$(pvs --no-heading -o pv_pe_count | xargs) # physical extent count
+    pe_size=$((pv_size / pe_count)) # physical extent size in bytes (should be 4 MiB)
+    lv_start_pe=$(pvs --no-headings -o seg_pe_ranges --select "lv_name = $1" | sed -e 's/.*:\(.*\)-.*/\1/') # start of logical volume in physical extents
+    lv_size_pe=$(pvs --no-headings -o seg_size_pe --select "lv_name = $1" | xargs) # size of logical volume in physical extents
+
+    # convert bytes to mmc sectors (512B per sector)
+    start=$((lv_start_pe * pe_size / sector_size + partition_offset + first_pe))
+    end=$(((lv_start_pe + lv_size_pe) * pe_size / sector_size + partition_offset + first_pe - 1))
+
+    mmc erase secure-erase "$start" "$end" "/dev/mmcblk2"
+}
+
 # provisioning flash procedure
 pvsn_flash() {
     echo "Initramfs provisioning flash routine started..."
@@ -105,7 +122,13 @@ pvsn_flash() {
     umount /mnt/pvsn_userdata
     rm -R /mnt/pvsn_userdata
     rm -R /mnt/userdata
+    sync
 
+    # Secure erase logical volumes
+    pvsn_wipe pvsn_rootfs
+    pvsn_wipe pvsn_userdata
+    sync
+    
     # Remove provisioning volumes
     lvchange -an "/dev/mapper/irma6lvm-pvsn_rootfs"
     lvchange -an "/dev/mapper/irma6lvm-pvsn_userdata"
