@@ -60,6 +60,7 @@ and this project adheres to [APR's Version Numbering](https://apr.apache.org/ver
 - [RDPHOEN-1040]: Add "sync" command in uuu flash script
 - [RDPHOEN-1084]: Add config fragment for kernel and u-boot
 - [RDPHOEN-1273]: Add encryption of logical volumes to initramfs to use valid black key blobs
+- [RDPHOEN-1270]: Add check for when the device is locked to not nfs boot
 
 ### Changed
 - [DEVOPS-519] Moved config from iris-kas local.conf to meta-iris-base distro.conf

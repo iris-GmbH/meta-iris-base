@@ -73,6 +73,7 @@ SRC_URI_append_imx8mp-irma6r2 = "\
 	file://0025-imx8mp_irma6r2-Generic-EQOS-driver-dwc_eth_qos.c-usable-for-RMII.patch \
 	file://0026-imx8mp-irma6r2-Add-i2c4-to-bootloader-device-tree-fo.patch \
 	file://0027-imx8mp-irma6r2-Add-IU-EEPROM-readout-for-configuring.patch \
+	file://0028-imx8mp-irma6r2-Add-check-for-when-the-device-is-lock.patch \
 "
 
 SRC_URI_append_poky-iris-deploy = "\
