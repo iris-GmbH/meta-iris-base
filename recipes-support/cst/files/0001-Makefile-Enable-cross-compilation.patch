@@ -1,0 +1,44 @@
+From cf25799a0db3836a94677ecdfebec5eaea196c62 Mon Sep 17 00:00:00 2001
+From: Ian Dannapel <ian.dannapel@iris-sensing.com>
+Date: Tue, 2 Aug 2022 09:28:39 +0200
+Subject: [PATCH] Makefile: Enable cross compilation
+
+---
+ Makefile     | 6 +++---
+ csf_parser.c | 2 +-
+ 2 files changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/Makefile b/Makefile
+index ef88b66..9095f23 100755
+--- a/Makefile
++++ b/Makefile
+@@ -10,10 +10,10 @@
+ #
+ #==============================================================================
+ 
+-CC = gcc
++CC ?= gcc
+ 
+-COPTS = -g -Wall -Werror
+-CFLAGS = -I.
++COPTS ?= -g -Wall -Werror
++CFLAGS ?= -I.
+ 
+ DEPS = csf_parser.h extract_csf.h
+ SRCS = csf_parser.c extract_csf.c
+diff --git a/csf_parser.c b/csf_parser.c
+index c72fc6d..810607e 100755
+--- a/csf_parser.c
++++ b/csf_parser.c
+@@ -477,7 +477,7 @@ int parse_unlock_cmd(const uint8_t *csf_hdr, int csf_len, int offset)
+ 
+         char *def = NULL;
+         char *des = NULL;
+-        uint32_t ulck_features;
++        uint32_t ulck_features = 0;
+         csf_cmd_unlock_t *unlock_cmd = (csf_cmd_unlock_t *)csf_hdr;
+ 
+         if (debug_log) {
+-- 
+2.25.1
+
