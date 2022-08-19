@@ -1,0 +1,44 @@
+From 604f1d6be2bdceeadbb03c9af8006d2516f2fca7 Mon Sep 17 00:00:00 2001
+From: Erik Schumacher <erik.schumacher@iris-sensing.com>
+Date: Thu, 18 Aug 2022 16:47:57 +0200
+Subject: [PATCH] [RDPHOEN-1295] Increase critical thermal point
+
+Industrial version of SoC can handle 105 degree celsius
+
+Signed-off-by: Erik Schumacher <erik.schumacher@iris-sensing.com>
+---
+ .../boot/dts/freescale/imx8mp-irma6r2.dts      | 18 ++++++++++++++++++
+ 1 file changed, 18 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts b/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
+index dbc04bb7914f..0d2c28ec6d9e 100644
+--- a/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
++++ b/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
+@@ -96,6 +96,24 @@
+ 	};
+ };
+ 
++/* IRMA6R2 uses the industrial version so we can handle 105 degree celsius
++   Be careful when using consumer grade CPUs for development! */
++&cpu_alert0 {
++	temperature = <95000>;
++};
++
++&cpu_crit0 {
++	temperature = <105000>;
++};
++
++&soc_alert0 {
++	temperature = <95000>;
++};
++
++&soc_crit0 {
++	temperature = <105000>;
++};
++
+ &dsp_reserved {
+ 	reg = <0 0x5C000000 0 0x2000000>;
+ };
+-- 
+2.37.2
+

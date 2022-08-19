@@ -69,6 +69,7 @@ and this project adheres to [APR's Version Numbering](https://apr.apache.org/ver
 - [DEVOPS-531] Split distro configs into deploy and maintenance
 - [RDPHOEN-1257]: Changed to only enable debug-tweaks for maintenance build
 - [RDPHOEN-1152]: Disable u-boot console and boot delay for deploy build
+- [RDPHOEN-1295]: Increase critical CPU temperature for R2 to 105 degree celsius
 
 ### Deprecated
 
