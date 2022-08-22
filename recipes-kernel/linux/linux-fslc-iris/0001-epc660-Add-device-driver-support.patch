@@ -680,7 +680,7 @@ index 000000000000..1ffe6f37a448
 +		- line_width = 2*160 (considering a hbinned capture)
 +	hblank = (2 * 26.042µs - 320 / 24Mhz) * 24Mhz = 930 
 +	*/
-+	hblank = 930;
++	hblank = 1000;
 +	epc660->hblank =
 +		v4l2_ctrl_new_std(&epc660->hdl, &epc660_ctrl_ops,
 +				  V4L2_CID_HBLANK, hblank, hblank, 1, hblank);
