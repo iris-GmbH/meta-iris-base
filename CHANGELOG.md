@@ -62,6 +62,7 @@ and this project adheres to [APR's Version Numbering](https://apr.apache.org/ver
 - [RDPHOEN-1273]: Add encryption of logical volumes to initramfs to use valid black key blobs
 - [RDPHOEN-1270]: Add check for when the device is locked to not nfs boot
 - [RDPHOEN-1228]: Add SRK bootloader check for secure boot activated devices
+- [APC-4910] Added rsyslog template according to RFC5424
 
 ### Changed
 - [DEVOPS-519] Moved config from iris-kas local.conf to meta-iris-base distro.conf
