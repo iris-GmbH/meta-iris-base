@@ -71,6 +71,7 @@ and this project adheres to [APR's Version Numbering](https://apr.apache.org/ver
 - [RDPHOEN-1257]: Changed to only enable debug-tweaks for maintenance build
 - [RDPHOEN-1152]: Disable u-boot console and boot delay for deploy build
 - [RDPHOEN-1295]: Increase critical CPU temperature for R2 to 105 degree celsius
+- [RDPHOEN-1291]: Set pwm2 for serializer on R2 to a frequency slightly above 24 MHz
 
 ### Deprecated
 
