@@ -18,6 +18,7 @@ and this project adheres to [APR's Version Numbering](https://apr.apache.org/ver
 
 
 ### Fixed
+- [RDPHOEN-1289]: set persistent path for dropbear rsa host key (IRMA 6 Release 2)
 
 
 ### Simulation only
