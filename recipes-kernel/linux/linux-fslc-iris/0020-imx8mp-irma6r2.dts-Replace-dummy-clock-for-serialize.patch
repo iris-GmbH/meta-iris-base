@@ -24,9 +24,9 @@ index c3310e458ed6..6efd0e80c894 100644
  		#clock-cells = <0>;
 -		clock-frequency = <32000000>;
 -		clock-output-names = "32m_serialize";
-+		clock-frequency = <24000000>;
++		clock-frequency = <24390000>;
 +		clock-output-names = "serializer_clk";
-+		pwms = <&pwm2 0 42>; /* 42ns - 24 MHz */
++		pwms = <&pwm2 0 41>; /* 41ns - 24.39 MHz */
  	};
  };
  
