@@ -54,6 +54,9 @@ echo "####################################################"
 echo; echo; echo
 
 ${MOUNT} -t nfs "${NFSPATH}" ${ROOT_MNT}
+${MOUNT} --move /dev ${ROOT_MNT}/dev
+${MOUNT} --move /proc ${ROOT_MNT}/proc
+${MOUNT} --move /sys ${ROOT_MNT}/sys
 
 #Switch to real root
 echo "Switch to root"
