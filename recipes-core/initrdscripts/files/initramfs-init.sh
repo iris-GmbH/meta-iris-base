@@ -212,6 +212,9 @@ debug "Opening verity device: ${DECRYPT_ROOT_DEV}"
 veritysetup open ${DECRYPT_ROOT_DEV} ${VERITY_NAME} ${ROOT_HASH_DEV} ${RH}
 
 ${MOUNT} ${VERITY_DEV} ${ROOT_MNT} -o ro
+${MOUNT} --move /dev ${ROOT_MNT}/dev
+${MOUNT} --move /proc ${ROOT_MNT}/proc
+${MOUNT} --move /sys ${ROOT_MNT}/sys
 
 #Switch to real root
 echo "Switch to root"
