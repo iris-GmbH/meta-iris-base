@@ -114,7 +114,8 @@ and this project adheres to [APR's Version Numbering](https://apr.apache.org/ver
 ### Fixed
 - [RDPHOEN-1013]: Fix setting the format on the Serializer, enables switching between Raw12 and Raw14 formats without setting the format twice
 - [RDPHOEN-1150]: Fix fsl-dsp devicetree node in linux-fslc, place reserved memory region inside RAM bounds
-
+- [RDPHOEN-1299]: Fix r/w access on netfitboot
+- [RDPHOEN-1299]: Fix init script terminal output
 
 
 ## [2.0.3] - 2022-03-23
