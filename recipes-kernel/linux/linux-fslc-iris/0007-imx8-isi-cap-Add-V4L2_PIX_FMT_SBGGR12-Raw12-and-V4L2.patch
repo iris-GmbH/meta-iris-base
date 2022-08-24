@@ -1,0 +1,83 @@
+From 824b4789bd9db3ca6a167dbae7dea5a09a180be0 Mon Sep 17 00:00:00 2001
+From: Ian Dannapel <ian.dannapel@iris-sensing.com>
+Date: Thu, 24 Mar 2022 09:40:51 +0100
+Subject: [PATCH 07/33] imx8-isi-cap: Add V4L2_PIX_FMT_SBGGR12 (Raw12) and
+ V4L2_PIX_FMT_SBGGR14P (Raw14) formats
+
+Signed-off-by: Ian Dannapel <ian.dannapel@iris-sensing.com>
+---
+ drivers/staging/media/imx/imx8-isi-cap.c | 39 ++++++++++++++++++++++--
+ 1 file changed, 36 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/staging/media/imx/imx8-isi-cap.c b/drivers/staging/media/imx/imx8-isi-cap.c
+index 6ba5b3a86f49..768bb732064d 100644
+--- a/drivers/staging/media/imx/imx8-isi-cap.c
++++ b/drivers/staging/media/imx/imx8-isi-cap.c
+@@ -105,6 +105,22 @@ struct mxc_isi_fmt mxc_isi_out_formats[] = {
+ 		.memplanes	= 1,
+ 		.colplanes	= 1,
+ 		.mbus_code	= MEDIA_BUS_FMT_RGB888_1X24,
++	}, {
++		.name		= "RAW12",
++		.fourcc		= V4L2_PIX_FMT_SBGGR12,
++		.depth		= { 16 },
++		.color		= MXC_ISI_OUT_FMT_RAW12,
++		.memplanes	= 1,
++		.colplanes	= 1,
++		.mbus_code	= MEDIA_BUS_FMT_SBGGR12_1X12,
++	}, {
++		.name		= "RAW14",
++		.fourcc		= V4L2_PIX_FMT_SBGGR14P,
++		.depth		= { 16 },
++		.color		= MXC_ISI_OUT_FMT_RAW14,
++		.memplanes	= 1,
++		.colplanes	= 1,
++		.mbus_code	= MEDIA_BUS_FMT_SBGGR14_1X14,
+ 	}
+ };
+ 
+@@ -124,6 +140,18 @@ struct mxc_isi_fmt mxc_isi_src_formats[] = {
+ 		.depth		= { 32 },
+ 		.memplanes	= 1,
+ 		.colplanes	= 1,
++	}, {
++		.name		= "RAW12",
++		.fourcc		= V4L2_PIX_FMT_SBGGR12,
++		.depth		= { 16 },
++		.memplanes	= 1,
++		.colplanes	= 1,
++	}, {
++		.name		= "RAW14",
++		.fourcc		= V4L2_PIX_FMT_SBGGR14P,
++		.depth		= { 16 },
++		.memplanes	= 1,
++		.colplanes	= 1,
+ 	}
+ };
+ 
+@@ -163,14 +191,19 @@ struct mxc_isi_fmt *mxc_isi_get_src_fmt(struct v4l2_subdev_format *sd_fmt)
+ 	u32 index;
+ 
+ 	/* two fmt RGB32 and YUV444 from pixellink */
+-	if (sd_fmt->format.code == MEDIA_BUS_FMT_YUYV8_1X16 ||
++	if (sd_fmt->format.code == MEDIA_BUS_FMT_SBGGR12_1X12) {
++		index = 2;
++	} else if (sd_fmt->format.code == MEDIA_BUS_FMT_SBGGR14_1X14) {
++		index = 3;
++	} else if (sd_fmt->format.code == MEDIA_BUS_FMT_YUYV8_1X16 ||
+ 	    sd_fmt->format.code == MEDIA_BUS_FMT_YVYU8_2X8 ||
+ 	    sd_fmt->format.code == MEDIA_BUS_FMT_AYUV8_1X32 ||
+ 	    sd_fmt->format.code == MEDIA_BUS_FMT_UYVY8_2X8 ||
+-	    sd_fmt->format.code == MEDIA_BUS_FMT_YUYV8_2X8)
++	    sd_fmt->format.code == MEDIA_BUS_FMT_YUYV8_2X8) {
+ 		index = 1;
+-	else
++	} else {
+ 		index = 0;
++	}
+ 	return &mxc_isi_src_formats[index];
+ }
+ 
+-- 
+2.25.1
+

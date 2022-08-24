@@ -6,9 +6,10 @@ inherit deploy
 
 # Depend on image (read from PN), initrams, kernel and imx-boot (u-boot)
 do_install[depends] = "\
-	${IMAGENAME}:do_image_complete \
-	${INITRAMFSNAME}:do_image_complete \
-	virtual/kernel:do_deploy"
+    ${IMAGENAME}:do_image_complete \
+    irma6-fitimage:do_assemble_fit \
+    irma6-fitimage-uuu:do_assemble_fit \
+    virtual/kernel:do_deploy"
 DEPENDS = "imx-boot"
 COMPATIBLE_MACHINE = "mx8"
 LICENSE = "MIT"
@@ -20,40 +21,74 @@ do_install[noexec] = "1"
 do_compile[noexec] = "1"
 do_deploy[nostamp] = "1"
 
-# set generic file names that should match for most images
-KERNEL = "Image-${MACHINE}.bin"
-ROOTFS = "${IMAGENAME}-${MACHINE}-*.rootfs.ext4.gz"
-PARTITIONS = "partitions_${MACHINE}"
-UUUSCRIPT = "flashall_${MACHINE}.uuu"
-INITRAMFS = "${INITRAMFSNAME}-${MACHINE}-*.rootfs.cpio.gz.u-boot"
+ROOTFS = "${IMAGENAME}-${MACHINE}.ext4.gz"
+ROOTFSVERITY = "${IMAGENAME}-${MACHINE}.ext4.hashdevice"
+ROOTFSROOTHASH = "${IMAGENAME}-${MACHINE}.ext4.roothash"
+ROOTFSROOTHASH_SIGNATURE = "${IMAGENAME}-${MACHINE}.ext4.roothash.signature"
+PARTITIONS ?= "partitions_${MACHINE}"
+UUUSCRIPT ?= "flashall_${MACHINE}.uuu"
+VERIFICATIONSCRIPT ?= "verification_${MACHINE}.sh"
+FITIMAGE = "irma6-fitimage.itb.signed"
+FITIMAGEUUU = "irma6-fitimage-uuu.itb.signed"
 
 # set output directory and file names
 UUU_DEPLOY_DIR = "${DEPLOYDIR}/${PN}"
 
-FLASHBINDEPLOY = "flash.bin"
-KERNELDEPLOY = "Image"
-DEVTREEDEPLOY = "devicetree.dtb"
+FLASHBINDEPLOY = "flash.bin.signed"
+HASHSUMS = "hashsums"
 ROOTFSDEPLOY = "rootfs.ext4.gz"
+ROOTFSVERITYDEPLOY = "rootfs.ext4.hashdevice"
+ROOTFSROOTHASHDEPLOY = "rootfs.ext4.roothash"
+ROOTFSROOTHASHDEPLOY_SIGNATURE = "rootfs.ext4.roothash.signature"
 PARTITIONSDEPLOY = "partitions"
 UUUSCRIPTDEPLOY = "flashall.uuu"
-INITRAMFSDEPLOY = "rootfs.cpio.gz.u-boot"
+VERIFICATIONSCRIPTDEPLOY = "verification.sh"
+FITIMAGEDEPLOY = "fitImage.signed"
+FITIMAGEUUUDEPLOY = "fitImage-uuu.signed"
 
 # The following line forces the usage of the "files" directory next to this .inc file even if it is required from another layer
 FILESEXTRAPATHS_prepend := "${@os.path.dirname(d.getVar('FILE'))}/files:"
 
-SRC_URI = "file://${PARTITIONS} file://${UUUSCRIPT}"
+SRC_URI = "file://${PARTITIONS} file://${UUUSCRIPT} file://${VERIFICATIONSCRIPT}"
 
 do_deploy () {
-	install -d ${UUU_DEPLOY_DIR}
-	install -m 0644 ${WORKDIR}/recipe-sysroot/${FLASHBIN} ${UUU_DEPLOY_DIR}/${FLASHBINDEPLOY}
-	
-	install -m 0644 ${DEPLOY_DIR_IMAGE}/${KERNEL} ${UUU_DEPLOY_DIR}/${KERNELDEPLOY}
-	install -m 0644 ${DEPLOY_DIR_IMAGE}/${DEVTREE} ${UUU_DEPLOY_DIR}/${DEVTREEDEPLOY}
-	install -m 0644 ${DEPLOY_DIR_IMAGE}/${ROOTFS} ${UUU_DEPLOY_DIR}/${ROOTFSDEPLOY}
-	install -m 0644 ${DEPLOY_DIR_IMAGE}/${INITRAMFS} ${UUU_DEPLOY_DIR}/${INITRAMFSDEPLOY}
+    install -d ${UUU_DEPLOY_DIR}
+    install -m 0644 ${WORKDIR}/recipe-sysroot/${FLASHBIN} ${UUU_DEPLOY_DIR}/${FLASHBINDEPLOY}
 
-	install -m 0644 ${WORKDIR}/${PARTITIONS} ${UUU_DEPLOY_DIR}/${PARTITIONSDEPLOY}
-	install -m 0644 ${WORKDIR}/${UUUSCRIPT} ${UUU_DEPLOY_DIR}/${UUUSCRIPTDEPLOY}
+    install -m 0644 ${DEPLOY_DIR_IMAGE}/${ROOTFS} ${UUU_DEPLOY_DIR}/${ROOTFSDEPLOY}
+    install -m 0644 ${DEPLOY_DIR_IMAGE}/${ROOTFSVERITY} ${UUU_DEPLOY_DIR}/${ROOTFSVERITYDEPLOY}
+    install -m 0644 ${DEPLOY_DIR_IMAGE}/${ROOTFSROOTHASH} ${UUU_DEPLOY_DIR}/${ROOTFSROOTHASHDEPLOY}
+    install -m 0644 ${DEPLOY_DIR_IMAGE}/${ROOTFSROOTHASH_SIGNATURE} ${UUU_DEPLOY_DIR}/${ROOTFSROOTHASHDEPLOY_SIGNATURE}
+    install -m 0644 ${DEPLOY_DIR_IMAGE}/${FITIMAGE} ${UUU_DEPLOY_DIR}/${FITIMAGEDEPLOY}
+    install -m 0644 ${DEPLOY_DIR_IMAGE}/${FITIMAGEUUU} ${UUU_DEPLOY_DIR}/${FITIMAGEUUUDEPLOY}
+
+    install -m 0644 ${WORKDIR}/${PARTITIONS} ${UUU_DEPLOY_DIR}/${PARTITIONSDEPLOY}
+    install -m 0644 ${WORKDIR}/${UUUSCRIPT} ${UUU_DEPLOY_DIR}/${UUUSCRIPTDEPLOY}
+    install -m 0644 ${WORKDIR}/${VERIFICATIONSCRIPT} ${UUU_DEPLOY_DIR}/${VERIFICATIONSCRIPTDEPLOY}
+
+    # for hashsum check, calculate the hashsums of the original files and store them into one file
+    # If a file exists so far, delete it
+    rm -f ${UUU_DEPLOY_DIR}/${HASHSUMS}
+
+    # Read out the hashsum and store it into variable hash_flashbin without the path output of sha256sum
+    hash_flashbin=$(sha256sum ${UUU_DEPLOY_DIR}/${FLASHBINDEPLOY} | cut -d' ' -f1)
+    # Write the formatted value together with a variable into hashsum file
+    echo "HASH_FLASHBIN=\"$hash_flashbin\"" >> ${UUU_DEPLOY_DIR}/${HASHSUMS}
+    # Calculate the size for partition check
+    size_flashbin="$(stat --printf=%s ${UUU_DEPLOY_DIR}/${FLASHBINDEPLOY})"
+    echo "SIZE_FLASHBIN=\"$size_flashbin\"" >> ${UUU_DEPLOY_DIR}/${HASHSUMS}
+
+    hash_fitimage=$(sha256sum ${UUU_DEPLOY_DIR}/${FITIMAGEDEPLOY} | cut -d' ' -f1)
+    echo "HASH_FITIMAGE=\"$hash_fitimage\"" >> ${UUU_DEPLOY_DIR}/${HASHSUMS}
+
+    hash_rootfs=$(zcat ${UUU_DEPLOY_DIR}/${ROOTFSDEPLOY} | sha256sum - | cut -d' ' -f1)
+    echo "HASH_ROOTFS=\"$hash_rootfs\"" >> ${UUU_DEPLOY_DIR}/${HASHSUMS}
+    # Calculate the size for partition check: Decompress rootfs.ext4.gz virtually and evaluate the size with wc
+    size_rootfs="$(zcat ${UUU_DEPLOY_DIR}/${ROOTFSDEPLOY} | wc -c)"
+    echo "SIZE_ROOTFS=\"$size_rootfs\"" >> ${UUU_DEPLOY_DIR}/${HASHSUMS}
+
+    size_rootfsverity="$(stat --printf=%s ${UUU_DEPLOY_DIR}/${ROOTFSVERITYDEPLOY})"
+    echo "SIZE_ROOTFSVERITY=\"$size_rootfsverity\"" >> ${UUU_DEPLOY_DIR}/${HASHSUMS}
 }
 
 addtask do_deploy after do_install

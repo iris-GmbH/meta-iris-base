@@ -1,0 +1,64 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Martin Fuzzey <martin.fuzzey@flowbird.group>
+Date: Mon, 11 Jan 2021 11:27:20 +0100
+Subject: [PATCH] env: Fix warning when forcing environment without
+ ENV_ACCESS_IGNORE_FORCE
+
+Since commit 0f036bf4b87e ("env: Warn on force access if ENV_ACCESS_IGNORE_FORCE set")
+a warning message is displayed when setenv -f is used WITHOUT
+CONFIG_ENV_ACCESS_IGNORE_FORCE, but the variable is set anyway, resulting
+in lots of log pollution.
+
+env_flags_validate() returns 0 if the access is accepted, or non zero
+if it is refused.
+
+So the original code
+	#ifndef CONFIG_ENV_ACCESS_IGNORE_FORCE
+		if (flag & H_FORCE)
+			return 0;
+	#endif
+
+was correct, it returns 0 (accepts the modification) if forced UNLESS
+IGNORE_FORCE is set (in which case access checks in the following code
+are applied). The broken patch just added a printf to the force accepted
+case.
+
+To obtain the intent of the patch we need this:
+	if (flag & H_FORCE) {
+	#ifdef CONFIG_ENV_ACCESS_IGNORE_FORCE
+		printf("## Error: Can't force access to \"%s\"\n", name);
+	#else
+		return 0;
+	#endif
+	}
+
+Fixes: 0f036bf4b87e ("env: Warn on force access if ENV_ACCESS_IGNORE_FORCE set")
+
+Signed-off-by: Martin Fuzzey <martin.fuzzey@flowbird.group>
+---
+ env/flags.c | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
+
+diff --git a/env/flags.c b/env/flags.c
+index c27f4f636b..0b90ef9534 100644
+--- a/env/flags.c
++++ b/env/flags.c
+@@ -564,12 +564,13 @@ int env_flags_validate(const struct env_entry *item, const char *newval,
+ 		return 1;
+ #endif
+ 
+-#ifndef CONFIG_ENV_ACCESS_IGNORE_FORCE
+ 	if (flag & H_FORCE) {
++#ifdef CONFIG_ENV_ACCESS_IGNORE_FORCE
+ 		printf("## Error: Can't force access to \"%s\"\n", name);
++#else
+ 		return 0;
+-	}
+ #endif
++	}
+ 	switch (op) {
+ 	case env_op_delete:
+ 		if (item->flags & ENV_FLAGS_VARACCESS_PREVENT_DELETE) {
+-- 
+2.36.1
+

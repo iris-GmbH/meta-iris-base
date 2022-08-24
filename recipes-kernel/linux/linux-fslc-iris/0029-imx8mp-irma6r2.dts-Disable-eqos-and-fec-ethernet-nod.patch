@@ -1,0 +1,117 @@
+From ed333722e84361d3309f163393c06a892214484c Mon Sep 17 00:00:00 2001
+From: Erik Schumacher <Erik.Schumacher@iris-sensing.com>
+Date: Wed, 30 Mar 2022 15:27:48 +0200
+Subject: [PATCH 29/33] imx8mp-irma6r2.dts: Disable eqos and fec ethernet nodes
+
+Removed because the clock pin ENET_TD2 (AF26) is not connected.
+This enables the board to boot.
+
+Signed-off-by: Erik Schumacher <Erik.Schumacher@iris-sensing.com>
+---
+ .../boot/dts/freescale/imx8mp-irma6r2.dts     | 83 -------------------
+ 1 file changed, 83 deletions(-)
+
+diff --git a/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts b/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
+index a367c2679d32..4460e88180b1 100644
+--- a/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
++++ b/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
+@@ -120,48 +120,6 @@
+ 	status = "okay";
+ };
+ 
+-
+-&eqos {
+-	pinctrl-names = "default";
+-	pinctrl-0 = <&pinctrl_eqos>;
+-	phy-mode = "rgmii-id";
+-	phy-handle = <&ethphy0>;
+-	status = "okay";
+-
+-	mdio {
+-		compatible = "snps,dwmac-mdio";
+-		#address-cells = <1>;
+-		#size-cells = <0>;
+-
+-		ethphy0: ethernet-phy@1 {
+-			compatible = "ethernet-phy-ieee802.3-c22";
+-			reg = <1>;
+-			eee-broken-1000t;
+-		};
+-	};
+-};
+-
+-&fec {
+-	pinctrl-names = "default";
+-	pinctrl-0 = <&pinctrl_fec>;
+-	phy-mode = "rgmii-id";
+-	phy-handle = <&ethphy1>;
+-	fsl,magic-packet;
+-	status = "okay";
+-
+-	mdio {
+-		#address-cells = <1>;
+-		#size-cells = <0>;
+-
+-		ethphy1: ethernet-phy@1 {
+-			compatible = "ethernet-phy-ieee802.3-c22";
+-			reg = <1>;
+-			eee-broken-1000t;
+-		};
+-	};
+-};
+-
+-
+ &i2c1 {
+ 	clock-frequency = <384000>;
+ 	pinctrl-names = "default";
+@@ -531,47 +489,6 @@
+ 		>;
+ 	};
+ 
+-	pinctrl_eqos: eqosgrp {
+-		fsl,pins = <
+-			MX8MP_IOMUXC_ENET_MDC__ENET_QOS_MDC	0x3
+-			MX8MP_IOMUXC_ENET_MDIO__ENET_QOS_MDIO	0x3
+-			MX8MP_IOMUXC_ENET_RD0__ENET_QOS_RGMII_RD0	0x91
+-			MX8MP_IOMUXC_ENET_RD1__ENET_QOS_RGMII_RD1	0x91
+-			MX8MP_IOMUXC_ENET_RD2__ENET_QOS_RGMII_RD2	0x91
+-			MX8MP_IOMUXC_ENET_RD3__ENET_QOS_RGMII_RD3	0x91
+-			MX8MP_IOMUXC_ENET_RXC__CCM_ENET_QOS_CLOCK_GENERATE_RX_CLK	0x91
+-			MX8MP_IOMUXC_ENET_RX_CTL__ENET_QOS_RGMII_RX_CTL	0x91
+-			MX8MP_IOMUXC_ENET_TD0__ENET_QOS_RGMII_TD0		0x1f
+-			MX8MP_IOMUXC_ENET_TD1__ENET_QOS_RGMII_TD1		0x1f
+-			MX8MP_IOMUXC_ENET_TD2__ENET_QOS_RGMII_TD2		0x1f
+-			MX8MP_IOMUXC_ENET_TD3__ENET_QOS_RGMII_TD3		0x1f
+-			MX8MP_IOMUXC_ENET_TX_CTL__ENET_QOS_RGMII_TX_CTL	0x1f
+-			MX8MP_IOMUXC_ENET_TXC__CCM_ENET_QOS_CLOCK_GENERATE_TX_CLK	0x1f
+-			MX8MP_IOMUXC_SAI2_RXC__GPIO4_IO22		0x19
+-		>;
+-	};
+-
+-	pinctrl_fec: fecgrp {
+-		fsl,pins = <
+-			MX8MP_IOMUXC_SAI1_RXD2__ENET1_MDC		0x3
+-			MX8MP_IOMUXC_SAI1_RXD3__ENET1_MDIO		0x3
+-			MX8MP_IOMUXC_SAI1_RXD4__ENET1_RGMII_RD0		0x91
+-			MX8MP_IOMUXC_SAI1_RXD5__ENET1_RGMII_RD1		0x91
+-			MX8MP_IOMUXC_SAI1_RXD6__ENET1_RGMII_RD2		0x91
+-			MX8MP_IOMUXC_SAI1_RXD7__ENET1_RGMII_RD3		0x91
+-			MX8MP_IOMUXC_SAI1_TXC__ENET1_RGMII_RXC		0x91
+-			MX8MP_IOMUXC_SAI1_TXFS__ENET1_RGMII_RX_CTL	0x91
+-			MX8MP_IOMUXC_SAI1_TXD0__ENET1_RGMII_TD0		0x1f
+-			MX8MP_IOMUXC_SAI1_TXD1__ENET1_RGMII_TD1		0x1f
+-			MX8MP_IOMUXC_SAI1_TXD2__ENET1_RGMII_TD2		0x1f
+-			MX8MP_IOMUXC_SAI1_TXD3__ENET1_RGMII_TD3		0x1f
+-			MX8MP_IOMUXC_SAI1_TXD4__ENET1_RGMII_TX_CTL	0x1f
+-			MX8MP_IOMUXC_SAI1_TXD5__ENET1_RGMII_TXC		0x1f
+-			MX8MP_IOMUXC_SAI1_RXD0__GPIO4_IO02		0x19
+-		>;
+-	};
+-
+-
+ 	pinctrl_gpio_led: gpioledgrp {
+ 		fsl,pins = <
+ 			MX8MP_IOMUXC_SAI1_RXD3__GPIO4_IO05	0x19
+-- 
+2.25.1
+

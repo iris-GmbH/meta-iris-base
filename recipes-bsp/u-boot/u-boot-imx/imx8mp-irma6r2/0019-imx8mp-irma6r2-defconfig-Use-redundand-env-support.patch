@@ -1,0 +1,44 @@
+From 1e538427b02fd3f31543cfd4aaf62199eeaa2c2c Mon Sep 17 00:00:00 2001
+From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+Date: Tue, 31 May 2022 13:57:44 +0200
+Subject: [PATCH] imx8mp-irma6r2-defconfig: Use redundand env support
+
+Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+---
+ configs/imx8mp_irma6r2_defconfig | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/configs/imx8mp_irma6r2_defconfig b/configs/imx8mp_irma6r2_defconfig
+index cb826927e1..675fdada31 100644
+--- a/configs/imx8mp_irma6r2_defconfig
++++ b/configs/imx8mp_irma6r2_defconfig
+@@ -9,8 +9,7 @@ CONFIG_SPL_LIBGENERIC_SUPPORT=y
+ CONFIG_SYS_I2C_MXC_I2C1=y
+ CONFIG_SYS_I2C_MXC_I2C2=y
+ CONFIG_SYS_I2C_MXC_I2C3=y
+-CONFIG_ENV_SIZE=0x1000
+-CONFIG_ENV_SECT_SIZE=0x10000
++CONFIG_ENV_SIZE=0x2000
+ CONFIG_ENV_OFFSET=0x400000
+ CONFIG_DM_GPIO=y
+ CONFIG_TARGET_IMX8MP_IRMA6R2=y
+@@ -18,6 +17,7 @@ CONFIG_SPL_SERIAL_SUPPORT=y
+ CONFIG_SPL_DRIVERS_MISC_SUPPORT=y
+ CONFIG_NR_DRAM_BANKS=3
+ CONFIG_SPL=y
++CONFIG_ENV_OFFSET_REDUND=0x402000
+ CONFIG_IMX_HAB=y
+ CONFIG_CSF_SIZE=0x2000
+ CONFIG_SPL_IMX_ROMAPI_LOADADDR=0x48000000
+@@ -70,7 +70,7 @@ CONFIG_OF_CONTROL=y
+ CONFIG_DEFAULT_DEVICE_TREE="imx8mp-irma6r2"
+ CONFIG_ENV_IS_NOWHERE=y
+ CONFIG_ENV_IS_IN_MMC=y
+-CONFIG_ENV_IS_IN_NAND=y
++CONFIG_SYS_REDUNDAND_ENVIRONMENT=y
+ CONFIG_SYS_RELOC_GD_ENV_ADDR=y
+ CONFIG_ENV_VARS_UBOOT_RUNTIME_CONFIG=y
+ CONFIG_NET_RANDOM_ETHADDR=y
+-- 
+2.36.1
+

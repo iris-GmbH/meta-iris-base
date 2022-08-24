@@ -1,0 +1,25 @@
+From 60b7b8ea4992f4e627f2f513365da232df7a5cc3 Mon Sep 17 00:00:00 2001
+From: Ian Dannapel <ian.dannapel@iris-sensing.com>
+Date: Thu, 24 Mar 2022 09:57:02 +0100
+Subject: [PATCH 08/33] imx8-isi-core.h: Add MXC_ISI_OUT_FMT_RAW14 enum
+
+Signed-off-by: Ian Dannapel <ian.dannapel@iris-sensing.com>
+---
+ drivers/staging/media/imx/imx8-isi-core.h | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/drivers/staging/media/imx/imx8-isi-core.h b/drivers/staging/media/imx/imx8-isi-core.h
+index c955ec21c8d8..fa670c2b6bc8 100644
+--- a/drivers/staging/media/imx/imx8-isi-core.h
++++ b/drivers/staging/media/imx/imx8-isi-core.h
+@@ -62,6 +62,7 @@ enum mxc_isi_out_fmt {
+ 	MXC_ISI_OUT_FMT_RAW10,
+ 	MXC_ISI_OUT_FMT_RAW10P,
+ 	MXC_ISI_OUT_FMT_RAW12,
++	MXC_ISI_OUT_FMT_RAW14,
+ 	MXC_ISI_OUT_FMT_RAW16,
+ 	MXC_ISI_OUT_FMT_YUV444_1P8P,
+ 	MXC_ISI_OUT_FMT_YUV444_2P8P,
+-- 
+2.25.1
+

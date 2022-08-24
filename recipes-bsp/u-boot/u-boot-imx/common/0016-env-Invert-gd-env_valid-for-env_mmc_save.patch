@@ -1,0 +1,39 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+Date: Tue, 14 Jun 2022 20:45:14 +0200
+Subject: [PATCH] env: Invert gd->env_valid for env_mmc_save
+
+The A/B update strategy of the env's has a gap in the first 2 calls of saveenv.
+The env's are stored twice on the first memory area if:
+gd->env_valid == ENV_INVALID.
+
+u-boot=> saveenv
+Saving Environment to MMC... Writing to MMC(1)... OK
+u-boot=> saveenv
+Saving Environment to MMC... Writing to MMC(1)... OK  <-- !!!
+u-boot=> saveenv
+Saving Environment to MMC... Writing to redundant MMC(1)... OK
+u-boot=> saveenv
+Saving Environment to MMC... Writing to MMC(1)... OK
+
+Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+---
+ env/mmc.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/env/mmc.c b/env/mmc.c
+index 7833404cd1..e6b51a1ffa 100644
+--- a/env/mmc.c
++++ b/env/mmc.c
+@@ -227,7 +227,7 @@ static int env_mmc_save(void)
+ 	ret = 0;
+ 
+ #ifdef CONFIG_ENV_OFFSET_REDUND
+-	gd->env_valid = gd->env_valid == ENV_REDUND ? ENV_VALID : ENV_REDUND;
++	gd->env_valid = gd->env_valid == ENV_VALID ? ENV_REDUND : ENV_VALID;
+ #endif
+ 
+ fini:
+-- 
+2.36.1
+

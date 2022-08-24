@@ -1,0 +1,146 @@
+#!/bin/sh
+
+# SPDX-License-Identifier: MIT
+# Copyright (C) 2022 iris-GmbH infrared & intelligent sensors
+
+# filename: eth0-pre-up
+# This script configures the eth0 Linux network interface as follows
+#
+# eth0.0: Interface 1: is the customer-specific network adapter. It can be configured to work as a DHCP client or as a network adapter in static IP mode
+# eth0.1: Interface 2: is the service network adapter: Is is always in static IP mode, whereby the IP address is generated from the Mac address
+#
+# The static ip address for the interface eth0:0 is taken from the /etc/counter/config.yaml file
+# If no ip address or mode can be found, the adapter is configured to work as a DHCP client
+
+createIpFromMAC(){
+   # read mac from address, extract last bytes and generate ip address
+   read -r MAC </sys/class/net/eth0/address
+   MAC2=$(printf '%s' "$MAC" | tr ':' ' ')
+   MAC5=$(echo $MAC2 | awk '{ print $5 }')
+   MAC6=$(echo $MAC2 | awk '{ print $6 }')
+   IP=172.16.$((0x${MAC5})).$((0x${MAC6}))
+}
+
+createServiceAdapter(){
+   # add virtual network adapter with ip generated from mac
+   ifconfig eth0:1 $IP netmask 255.254.0.0
+   echo "Interface 1: using IP: $IP"
+}
+
+setToDHCPMode(){
+   # Do not modify interface when running from nfs
+   if grep -q "root=/dev/nfs" /proc/cmdline
+   then
+      echo "Interface is already used for nfs"
+   # check if udhcpc is already running and start dhcp client
+   elif [ -f "/var/run/udhcpc.eth0.pid" ]; then
+      echo "DHCP Client is already running"
+   else
+      udhcpc -R -b -p /var/run/udhcpc.eth0.pid -i eth0
+   fi
+}
+
+createCustomerAdapter(){
+   # add virtual adapter from customer configuration
+   # check if customer configuration exists, if not add dhcp adapter
+   if [ -f "$CUSTOMERNETWORKFILE" ]; then
+      if [ "$CUSTOMERMODE" = "" ] || [ "$CUSTOMERMODE" -eq 1 ]; then
+         # nothing to do. eth0.0 is by default in dhcp mode
+         setToDHCPMode
+         echo "Interface 0: set to DHCP Mode"
+      elif [ "$CUSTOMERMODE" -eq 0 ]; then
+         # check if ip and netmask is not empty
+         if [ "$CUSTOMERIP" != "" ] &&  [ "$CUSTOMERNETMASK" != "" ]; then
+            ifconfig eth0 $CUSTOMERIP netmask $CUSTOMERNETMASK
+            echo "Interface 0: reconfigured to customer needs, IP:$CUSTOMERIP, NETMASK:$CUSTOMERNETMASK"
+            # add gateway route
+            if [ "$CUSTOMERGATEWAY" != "" ]; then
+               route add default gw $CUSTOMERGATEWAY eth0
+               echo "$CUSTOMERGATEWAY Gateway route added for eth0"
+            fi
+         else
+            echo "Interface 0: config file does not provide the necessary informations, leave interface in dhcp mode."
+            setToDHCPMode
+         fi
+      fi
+   else
+      echo "Interface 0: $CUSTOMERNETWORKFILE does not exist, leave interface in dhcp mode."
+      setToDHCPMode
+   fi
+}
+
+parameterExists(){
+  param=`echo $json | sed -rn 's/.*"('"$1"')"\s*:.*/\1/p'`
+  if [ "$param" = "" ]; then
+    false
+  else
+    true
+  fi
+}
+
+getIpAddress(){
+  adr=`echo $json | sed -rn 's/.*"'"$1"'"\s*:\s*\{\s*"value"\s*:\s*\{\s*"value"\s*:\s*"([^"]*).*/\1/p'`
+  echo $adr
+}
+
+getParameter(){
+  val=`echo $json | sed -rn 's/.*"'"$1"'"\s*:\s*\{\s*"value"\s*:\s*([^,]*).*/\1/p'`
+  echo $val
+}
+
+# Main function
+echo "Network Configuration Script"
+
+# Create ip from mac and create network adapter
+createIpFromMAC
+
+# Convert config to single line json so we can regex it with sed
+json=`cat /etc/counter/config_customer.json | tr '\n' ' '`
+CUSTOMERNETWORKFILE="/etc/counter/config_customer.json"
+
+# Read config parameter
+echo "Configuration:"
+
+# service adapter is enabled by default
+ENABLE_SERVICE_ADAPTER=true 
+if parameterExists "pa\.communication\.enableserviceip"; then
+   ENABLE_SERVICE_ADAPTER=$(getParameter "pa\.communication\.enableserviceip")
+   echo "  pa.communication.enableserviceip:" $ENABLE_SERVICE_ADAPTER
+fi
+
+# dhcp is activated by default
+CUSTOMERMODE=1
+if parameterExists "pa\.communication\.ipaddressconfiguration"; then
+   CUSTOMERMODE=$(getParameter "pa\.communication\.ipaddressconfiguration")
+   echo "  pa.communication.ipaddressconfiguration:" $CUSTOMERMODE
+fi
+
+# default values for customer defined ip settings
+CUSTOMERIP=0.0.0.0
+CUSTOMERNETMASK=0.0.0.0
+CUSTOMERGATEWAY=0.0.0.0
+if parameterExists "pa\.communication\.ipaddr"; then
+   CUSTOMERIP=$(getIpAddress "pa\.communication\.ipaddr")
+   echo "  pa.communication.ipaddr:" $CUSTOMERIP
+fi
+if parameterExists "pa\.communication\.netmask"; then
+   CUSTOMERNETMASK=$(getIpAddress "pa\.communication\.netmask")
+   echo "  pa.communication.netmask:" $CUSTOMERNETMASK
+fi
+if parameterExists "pa\.communication\.gateway"; then
+   CUSTOMERGATEWAY=$(getIpAddress "pa\.communication\.gateway")
+   echo "  pa.communication.gateway:" $CUSTOMERGATEWAY
+fi
+
+# add customer adapter
+createCustomerAdapter
+
+# check if MAC5 AND MAC6 IS != 0
+if  [ $((0x${MAC5})) -eq 0 ] && [ $((0x${MAC6})) -eq 0 ]; then
+   echo "MAC is not valid"
+else
+   # MAC is valid, create service adapter if enabled by the customer
+   if [ "$ENABLE_SERVICE_ADAPTER" = true ]; then
+      createServiceAdapter
+   fi
+fi

@@ -1,0 +1,132 @@
+From f367ea4c188278f2ebdec20aaacb5cfda767642b Mon Sep 17 00:00:00 2001
+From: Ian Dannapel <ian.dannapel@iris-sensing.com>
+Date: Fri, 13 May 2022 15:27:16 +0200
+Subject: [PATCH 03/33] imx8mp-evk.dts: Add epc660 and tc358746 nodes to dts
+
+Signed-off-by: Ian Dannapel <ian.dannapel@iris-sensing.com>
+---
+ arch/arm64/boot/dts/freescale/imx8mp-evk.dts | 87 ++++++++++++++------
+ 1 file changed, 63 insertions(+), 24 deletions(-)
+
+diff --git a/arch/arm64/boot/dts/freescale/imx8mp-evk.dts b/arch/arm64/boot/dts/freescale/imx8mp-evk.dts
+index c7e15842933f..f607db073ea4 100644
+--- a/arch/arm64/boot/dts/freescale/imx8mp-evk.dts
++++ b/arch/arm64/boot/dts/freescale/imx8mp-evk.dts
+@@ -204,6 +204,13 @@
+ 				    100>;
+ 		default-brightness-level = <80>;
+ 	};
++
++	clk_serialize: clock_serialize {
++		compatible = "fixed-clock";
++		#clock-cells = <0>;
++		clock-frequency = <32000000>;
++		clock-output-names = "32m_serialize";
++	};
+ };
+ 
+ &aud2htx {
+@@ -494,32 +501,62 @@
+ 		};
+ 	};
+ 
+-	ov5640_0: ov5640_mipi@3c {
+-		compatible = "ovti,ov5640";
+-		reg = <0x3c>;
+-		pinctrl-names = "default";
+-		pinctrl-0 = <&pinctrl_csi0_pwn>, <&pinctrl_csi0_rst>, <&pinctrl_csi_mclk>;
+-		clocks = <&clk IMX8MP_CLK_IPP_DO_CLKO2>;
+-		clock-names = "xclk";
+-		assigned-clocks = <&clk IMX8MP_CLK_IPP_DO_CLKO2>;
+-		assigned-clock-parents = <&clk IMX8MP_CLK_24M>;
+-		assigned-clock-rates = <24000000>;
+-		csi_id = <0>;
+-		powerdown-gpios = <&gpio2 11 GPIO_ACTIVE_HIGH>;
+-		reset-gpios = <&gpio1 6 GPIO_ACTIVE_LOW>;
+-		mclk = <24000000>;
+-		mclk_source = <0>;
+-		mipi_csi;
++	epc660_mipi: epc660_mipi@22 {
++		compatible = "epc660";
++		reg = <0x22>;
+ 		status = "okay";
++ 		pinctrl-names = "default";
++		pinctrl-0 = <&pinctrl_csi0_rst>, <&pinctrl_csi_mclk>;
++ 		reset-gpios = <&gpio1 6 GPIO_ACTIVE_LOW>;
+ 
+-		port {
+-			ov5640_mipi_0_ep: endpoint {
+-				remote-endpoint = <&mipi_csi0_ep>;
+-				data-lanes = <1 2>;
+-				clock-lanes = <0>;
++		#address-cells = <1>;
++		#size-cells = <0>;
++
++		port@0 {
++			reg = <0>;
++			epc660_parallel_out: endpoint {
++				bus-type = <5>;
++				bus-width = <12>;
++				hsync-active = <0>;
++				vsync-active = <0>;
++				field-even-active = <0>;
++				pclk-sample = <1>;
++				remote-endpoint = <&tc358748_parallel_in>;
+ 			};
+ 		};
+ 	};
++
++	tc358748_adapter: csi-bridge@e {
++		compatible = "toshiba,tc358746";
++		reg = <0x0e>;
++		status = "okay";
++		
++		clocks = <&clk_serialize>;
++		default-input = <0>;
++		
++		#address-cells = <1>;
++		#size-cells = <0>;
++ 
++		port@0 {
++			reg = <0>;
++			tc358748_parallel_in: endpoint {
++				bus-type = <5>;
++				bus-width = <12>;
++				hsync-active = <0>;
++				vsync-active = <0>;
++				field-even-active = <0>;
++				remote-endpoint = <&epc660_parallel_out>;
++			};
++		};
++		port@1 {
++			reg = <1>;
++			tc358748_mipi_out: endpoint {
++ 				data-lanes = <1 2>;
++				link-frequencies = /bits/ 64 <216000000>;
++				remote-endpoint = <&mipi_csi0_ep>;
++ 			};
++ 		};
++ 	};
+ };
+ 
+ &i2c3 {
+@@ -1289,11 +1326,13 @@
+ 	port@0 {
+ 		reg = <0>;
+ 		mipi_csi0_ep: endpoint {
+-			remote-endpoint = <&ov5640_mipi_0_ep>;
+ 			data-lanes = <2>;
+-			csis-hs-settle = <13>;
+-			csis-clk-settle = <2>;
++			clock-lanes = <1>;
++			remote-endpoint = <&tc358748_mipi_out>;
++			csis-hs-settle = <3>;
++			csis-clk-settle = <0>;
+ 			csis-wclk;
++			link-frequencies = /bits/ 64 <216000000>;
+ 		};
+ 	};
+ };
+-- 
+2.25.1
+

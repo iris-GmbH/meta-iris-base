@@ -1,0 +1,51 @@
+From 3583f1e6cb5998819cff81ebf103ac6dc1df0ea4 Mon Sep 17 00:00:00 2001
+From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+Date: Fri, 11 Mar 2022 11:58:44 +0100
+Subject: [PATCH 24/33] imx8mp-irma6r2.dts: Disable UART1
+
+UART1 is not connected on irma6r2
+
+Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+---
+ .../boot/dts/freescale/imx8mp-irma6r2.dts      | 18 ------------------
+ 1 file changed, 18 deletions(-)
+
+diff --git a/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts b/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
+index 65721e993f94..1d1e62d5051a 100644
+--- a/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
++++ b/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
+@@ -386,15 +386,6 @@
+ 	};
+ };
+ 
+-&uart1 { /* BT */
+-	pinctrl-names = "default";
+-	pinctrl-0 = <&pinctrl_uart1>;
+-	assigned-clocks = <&clk IMX8MP_CLK_UART1>;
+-	assigned-clock-parents = <&clk IMX8MP_SYS_PLL1_80M>;
+-	fsl,uart-has-rtscts;
+-	status = "okay";
+-};
+-
+ &uart2 {
+ 	/* console */
+ 	pinctrl-names = "default";
+@@ -610,15 +601,6 @@
+ 		>;
+ 	};
+ 
+-	pinctrl_uart1: uart1grp {
+-		fsl,pins = <
+-			MX8MP_IOMUXC_UART1_RXD__UART1_DCE_RX	0x140
+-			MX8MP_IOMUXC_UART1_TXD__UART1_DCE_TX	0x140
+-			MX8MP_IOMUXC_UART3_RXD__UART1_DCE_CTS	0x140
+-			MX8MP_IOMUXC_UART3_TXD__UART1_DCE_RTS	0x140
+-		>;
+-	};
+-
+ 	pinctrl_uart2: uart2grp {
+ 		fsl,pins = <
+ 			MX8MP_IOMUXC_UART2_RXD__UART2_DCE_RX	0x49
+-- 
+2.25.1
+

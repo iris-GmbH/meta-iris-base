@@ -1,0 +1,65 @@
+#! /bin/sh
+
+# System V init script for chrony
+# Adapted from the script already in meta-networking for ntpd
+
+### BEGIN INIT INFO
+# Provides:        chrony
+# Required-Start:  $network $remote_fs $syslog
+# Required-Stop:   $network $remote_fs $syslog
+# Default-Start:   2 3 4 5
+# Default-Stop:
+# Short-Description: Start chrony time daemon
+### END INIT INFO
+
+PATH=/sbin:/bin:/usr/bin:/usr/sbin
+CFG_FILE=/mnt/iris/chrony/chrony.conf
+DEFAULT_CFG=/etc/default/chrony.conf
+DAEMON=/usr/sbin/chronyd
+PIDFILE=/run/chrony/chronyd.pid
+
+# copy default config, if custom one does not exist
+if [ ! -f $CFG_FILE ]; then
+	mkdir /mnt/iris/chrony
+	cp $DEFAULT_CFG $CFG_FILE
+fi
+
+test -x $DAEMON -a -r ${CFG_FILE} || exit 0
+
+# Source function library.
+. /etc/init.d/functions
+
+# Functions to do individual actions
+startdaemon(){
+	echo -n "Starting chronyd: "
+	start-stop-daemon --start --quiet --oknodo --pidfile $PIDFILE --startas $DAEMON -- "$@" -f ${CFG_FILE}
+	echo "done"
+}
+stopdaemon(){
+	echo -n "Stopping chronyd: "
+	start-stop-daemon --stop --quiet --oknodo -p $PIDFILE
+	echo "done"
+}
+
+case "$1" in
+  start)
+	startdaemon
+	;;
+  stop)
+  	stopdaemon
+	;;
+  force-reload | restart | reload)
+  	stopdaemon
+	startdaemon
+	;;
+  status)
+	status /usr/sbin/chronyd;
+	exit $?
+	;;
+  *)
+	echo "Usage: chronyd { start | stop | status | restart | reload }" >&2
+	exit 1
+	;;
+esac
+
+exit 0

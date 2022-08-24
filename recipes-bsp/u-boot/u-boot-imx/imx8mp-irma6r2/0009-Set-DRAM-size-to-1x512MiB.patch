@@ -1,0 +1,50 @@
+From 024fc16b4d139e7fa8b72b886f82903d05d01314 Mon Sep 17 00:00:00 2001
+From: Erik Schumacher <erik.schumacher@iris-sensing.com>
+Date: Mon, 17 Sep 2001 00:00:00 +0200
+Subject: [PATCH 09/13] Set DRAM size to 1x1GiB
+
+For series production we use 512MiB DRAM. The 512MiB DRAM configuration also
+works for 1GiB DRAMs.
+
+Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+---
+ arch/arm/dts/imx8mp-irma6r2.dts  | 3 +--
+ include/configs/imx8mp_irma6r2.h | 6 ++----
+ 2 files changed, 3 insertions(+), 6 deletions(-)
+
+diff --git a/arch/arm/dts/imx8mp-irma6r2.dts b/arch/arm/dts/imx8mp-irma6r2.dts
+index 810bbcb7a9..e6fb091d73 100644
+--- a/arch/arm/dts/imx8mp-irma6r2.dts
++++ b/arch/arm/dts/imx8mp-irma6r2.dts
+@@ -20,8 +20,7 @@
+ 
+ 	memory@40000000 {
+ 		device_type = "memory";
+-		reg = <0x0 0x40000000 0 0xc0000000>,
+-		      <0x1 0x00000000 0 0xc0000000>;
++		reg = <0x0 0x40000000 0 0x20000000>;
+ 	};
+ 
+ 	leds {
+diff --git a/include/configs/imx8mp_irma6r2.h b/include/configs/imx8mp_irma6r2.h
+index 13e87ea3dc..75459c59d7 100644
+--- a/include/configs/imx8mp_irma6r2.h
++++ b/include/configs/imx8mp_irma6r2.h
+@@ -193,12 +193,10 @@
+ /* Size of malloc() pool */
+ #define CONFIG_SYS_MALLOC_LEN		SZ_32M
+ 
+-/* Totally 6GB DDR */
++/* Totally 512 MB DDR */
+ #define CONFIG_SYS_SDRAM_BASE		0x40000000
+ #define PHYS_SDRAM			0x40000000
+-#define PHYS_SDRAM_SIZE			0xC0000000	/* 3 GB */
+-#define PHYS_SDRAM_2			0x100000000
+-#define PHYS_SDRAM_2_SIZE		0xC0000000	/* 3 GB */
++#define PHYS_SDRAM_SIZE			0x20000000	/* 512 MB */
+ 
+ #define CONFIG_SYS_MEMTEST_START	PHYS_SDRAM
+ #define CONFIG_SYS_MEMTEST_END		(CONFIG_SYS_MEMTEST_START + \
+-- 
+2.35.1
+

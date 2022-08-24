@@ -1,0 +1,34 @@
+From 6d8dcb0f2e7a6e72f8b071500ccbcb05beff8a23 Mon Sep 17 00:00:00 2001
+From: Erik Schumacher <Erik.Schumacher@iris-sensing.com>
+Date: Tue, 8 Mar 2022 11:25:06 +0100
+Subject: [PATCH 15/33] imx8mp-irma6r2.dts: Reduce size of linux,cma contiguous
+ memory
+
+Reduce offset and size so the memory region fits the 1GB DDR memory
+
+Signed-off-by: Erik Schumacher <Erik.Schumacher@iris-sensing.com>
+---
+ arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts b/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
+index b5e76a3a275b..1741064cd103 100644
+--- a/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
++++ b/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
+@@ -188,6 +188,13 @@
+ 	};
+ };
+ 
++&resmem {
++	linux,cma {
++		size = <0 0xc000000>;
++		alloc-ranges = <0 0x40000000 0 0x60000000>;
++	};
++};
++
+ &aud2htx {
+ 	status = "okay";
+ };
+-- 
+2.25.1
+

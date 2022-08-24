@@ -1,0 +1,26 @@
+From 585919039f13aa956860e9085d9ed5b3f459daeb Mon Sep 17 00:00:00 2001
+From: Erik Schumacher <erik.schumacher@iris-sensing.com>
+Date: Fri, 10 Jun 2022 16:41:16 +0200
+Subject: [PATCH] imx8mp_irma6r2.h: Introduce netfitboot command
+
+Boot fitimages from network/tftp
+---
+ include/configs/imx8mp_irma6r2.h | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/include/configs/imx8mp_irma6r2.h b/include/configs/imx8mp_irma6r2.h
+index b1254487c2..8f805268c0 100644
+--- a/include/configs/imx8mp_irma6r2.h
++++ b/include/configs/imx8mp_irma6r2.h
+@@ -126,6 +126,8 @@
+ 	"fit_img=fitImage.signed\0" \
+ 	"fit_addr=0x48000000\0" \
+ 	"fitboot=fatload mmc ${mmcdev}#${mmcpart} ${fit_addr} ${fit_img}; run mmcargs; bootm ${fit_addr}\0" \
++	"netfitboot=dhcp ${fit_addr} ${fit_img}; run netargs; bootm ${fit_addr}\0" \
++	"nfsroot=/srv/nfs\0" \
+ 	"mmcboot=echo Booting from mmc ...; " \
+ 		"run mmcargs; " \
+ 		"if test ${boot_fit} = yes || test ${boot_fit} = try; then " \
+-- 
+2.36.1
+

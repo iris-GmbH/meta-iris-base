@@ -1,0 +1,27 @@
+# see https://github.com/sbabic/swupdate/blob/master/examples/configuration/swupdate.cfg
+
+globals :
+{
+    verbose = true;
+    syslog = true;
+    public-key-file = "/etc/iris/ca-certificates/swupdate-ca.crt";
+    aes-key-file = "/etc/iris/swupdate/encryption.key";
+    postupdatecmd = "reboot;"
+    no-downgrading = "FW_VERSION"
+};
+
+logcolors :
+{
+    error = "red:blink";
+    trace = "green:normal";
+    debug = "magenta:normal";
+    warning = "yellow:underline";
+};
+
+webserver :
+{
+    document_root = "/var/www/swupdate";
+    userid          = 0;
+    groupid         = 0;
+    listening_ports = 8080;
+};

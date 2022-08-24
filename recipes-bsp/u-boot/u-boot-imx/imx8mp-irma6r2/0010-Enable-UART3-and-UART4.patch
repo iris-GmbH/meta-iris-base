@@ -1,0 +1,62 @@
+From d58df621630e1a81f4a1e948ef1b6233e67df60d Mon Sep 17 00:00:00 2001
+From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+Date: Fri, 11 Mar 2022 11:19:42 +0100
+Subject: [PATCH 10/13] Enable UART3 and UART4
+
+UART3 = uC
+UART4 = M7
+
+Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+---
+ arch/arm/dts/imx8mp-irma6r2.dts | 28 ++++++++++++++++++++++++++++
+ 1 file changed, 28 insertions(+)
+
+diff --git a/arch/arm/dts/imx8mp-irma6r2.dts b/arch/arm/dts/imx8mp-irma6r2.dts
+index b2c787c1fa..ce51fcf2eb 100644
+--- a/arch/arm/dts/imx8mp-irma6r2.dts
++++ b/arch/arm/dts/imx8mp-irma6r2.dts
+@@ -332,6 +332,20 @@
+ 	status = "okay";
+ };
+ 
++&uart3 {
++	/* console */
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_uart3>;
++	status = "okay";
++};
++
++&uart4 {
++	/* console */
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_uart4>;
++	status = "okay";
++};
++
+ &usb3_phy0 {
+ 	status = "okay";
+ };
+@@ -521,6 +535,20 @@
+ 		>;
+ 	};
+ 
++	pinctrl_uart3: uart3grp {
++		fsl,pins = <
++			MX8MP_IOMUXC_UART3_RXD__UART3_DCE_RX	0x49
++			MX8MP_IOMUXC_UART3_TXD__UART3_DCE_TX	0x49
++		>;
++	};
++
++	pinctrl_uart4: uart4grp {
++		fsl,pins = <
++			MX8MP_IOMUXC_UART4_RXD__UART4_DCE_RX	0x49
++			MX8MP_IOMUXC_UART4_TXD__UART4_DCE_TX	0x49
++		>;
++	};
++
+ 	pinctrl_usb1_vbus: usb1grp {
+ 		fsl,pins = <
+ 			MX8MP_IOMUXC_GPIO1_IO14__GPIO1_IO14	0x19
+-- 
+2.35.1
+
