@@ -13,4 +13,4 @@ do_install() {
 }
 FILES_${PN} += "/usr/local/bin/create_identity_cert.sh"
 FILES_${PN} += "/etc/openssl/sensor_cert.cnf"
-RDEPENDS_${PN} += "busybox openssl"
+RDEPENDS_${PN} += "busybox openssl bash"
