@@ -4,7 +4,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [APR's Version Numbering](https://apr.apache.org/versioning.html).
 
-## [2.0.4] -dev (HEAD) - n/a
+## [2.0.5-dev] (HEAD) - n/a
+### Added
+
+
+### Changed
+
+
+### Deprecated
+
+
+### Removed
+
+
+### Fixed
+
+
+### Simulation only
+
+
+### Maintenance only
+
+
+### Known issues
+
+
+
+## [2.0.4] - 2022-08-24
 ### Added
 - [RDPHOEN-957]: Add script for IP configuration (eth:0.0 .. DHCP or static customer IP retrieved from customer configuration; eth:0.1 service IP 172.16.x.y calculated from MAC address)
 - [RDPHOEN-1034/1035/1036]: Add support for irma6-r2 machine, including patches for bootloader, boot image creation and kernel
@@ -72,8 +98,6 @@ and this project adheres to [APR's Version Numbering](https://apr.apache.org/ver
 - [RDPHOEN-1152]: Disable u-boot console and boot delay for deploy build
 - [RDPHOEN-1295]: Increase critical CPU temperature for R2 to 105 degree celsius
 
-### Deprecated
-
 
 ### Removed
 - [RDPHOEN-958]: Removing the bootloader code configuration CONFIG_CMD_BOOTEFI for imx8mpevk and imx8mp-irma6r2, as (u)efi isn't used
@@ -84,15 +108,6 @@ and this project adheres to [APR's Version Numbering](https://apr.apache.org/ver
 ### Fixed
 - [RDPHOEN-1013]: Fix setting the format on the Serializer, enables switching between Raw12 and Raw14 formats without setting the format twice
 - [RDPHOEN-1150]: Fix fsl-dsp devicetree node in linux-fslc, place reserved memory region inside RAM bounds
-
-
-### Simulation only
-
-
-### Maintenance only
-
-
-### Known issues
 
 
 
