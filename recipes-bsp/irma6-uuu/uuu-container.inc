@@ -75,8 +75,8 @@ do_deploy () {
     if [ -z "${key}" ] || [ -z "${iv}" ];then
         bbfatal "SWUPDATE_DEFAULT_AES_FILE=$SWUPDATE_DEFAULT_AES_FILE does not contain valid keys"
     fi
-    install -d ${WORKDIR}/encryption.key ${UUU_DEPLOY_DIR}/encryption.key
     echo "${key} ${iv}" > ${WORKDIR}/encryption.key
+    install -m 0644 ${WORKDIR}/encryption.key ${UUU_DEPLOY_DIR}/encryption.key
 
     # for hashsum check, calculate the hashsums of the original files and store them into one file
     # If a file exists so far, delete it
