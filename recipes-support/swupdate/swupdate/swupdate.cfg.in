@@ -5,7 +5,7 @@ globals :
     verbose = true;
     syslog = true;
     public-key-file = "/etc/iris/ca-certificates/swupdate-ca.crt";
-    aes-key-file = "/etc/iris/swupdate/encryption.key";
+    aes-key-file = "/mnt/iris/swupdate/encryption.key";
     postupdatecmd = "reboot;"
     no-downgrading = "FW_VERSION"
 };

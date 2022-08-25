@@ -36,7 +36,6 @@ IRMA6_EXTRA_PACKAGES = " \
 	openssl-bin \
 	libubootenv-bin \
 	iris-ca-certificates \
-	iris-encryption \
 	iris-signing \
 	rsyslog \
 	chrony \

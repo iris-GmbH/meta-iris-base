@@ -47,8 +47,8 @@ set_device_names() {
 	DECRYPT_ROOT_DEV="/dev/mapper/${DECRYPT_NAME}"
 
 	# get encryption key for decrypting
-	KEY=$(cut -d' ' -f1 < /etc/iris/swupdate/encryption.key)
-	IV=$(cut -d' ' -f2 < /etc/iris/swupdate/encryption.key)
+	KEY=$(cut -d' ' -f1 < /mnt/iris/swupdate/encryption.key)
+	IV=$(cut -d' ' -f2 < /mnt/iris/swupdate/encryption.key)
 }
 
 unlock_device() {
@@ -144,7 +144,7 @@ check_hab_srk() {
 	(cd /tmp/ && csf_parser -s "$flashbin_file_decrypted" > /dev/null 2>&1)
 	(cd /tmp/ && createSRKFuses output/SRKTable.bin "$n_of_srks" "$key_length" "$key_type" > /dev/null 2>&1)
 	srk_bootloader=$(hexdump -e '"0x%04x\n"' /tmp/SRK_fuses.bin)
-	
+
 	rm -rf /tmp/output/ /tmp/SRK_fuses.bin "$flashbin_file_decrypted"
 
 	if [ "$srk_bootloader" != "$srk_fuses" ]; then
@@ -152,7 +152,7 @@ check_hab_srk() {
 		log "SRK Bootloader: $srk_bootloader"
 		log "SRK Fuse: $srk_fuses"
 		exit 1;
-	fi 
+	fi
 
 	log "SRK Bootloader verification passed"
 }
@@ -170,7 +170,7 @@ resize_lvm() {
 
 	# get current rootfs size
 	cur_size=$(lvs --select "lv_name = rootfs$FIRMWARE_SUFFIX" -o LV_SIZE --units B --nosuffix --noheadings | cut -c3-)
-	
+
 	# get new rootfs size
 	new_size=$(openssl enc -d -aes-256-cbc -K "$KEY" -iv "$IV" -in "$rootfs_file" | zcat | wc -c)
 	if [ $new_size -eq 0 ]; then
@@ -192,7 +192,7 @@ resize_lvm() {
 }
 
 if [ "$1" = "preinst" ]; then
-	cmds_exist	
+	cmds_exist
 	parse_cmdline
 	set_device_names
 	mount_keystore
