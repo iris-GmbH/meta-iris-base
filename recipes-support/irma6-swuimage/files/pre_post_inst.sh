@@ -47,8 +47,8 @@ set_device_names() {
 	DECRYPT_ROOT_DEV="/dev/mapper/${DECRYPT_NAME}"
 
 	# get encryption key for decrypting
-	KEY=$(cut -d' ' -f1 < /etc/iris/swupdate/encryption.key)
-	IV=$(cut -d' ' -f2 < /etc/iris/swupdate/encryption.key)
+	KEY=$(cut -d' ' -f1 < /mnt/iris/swupdate/encryption.key)
+	IV=$(cut -d' ' -f2 < /mnt/iris/swupdate/encryption.key)
 }
 
 unlock_device() {
