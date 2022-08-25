@@ -114,6 +114,12 @@ FBK: ucmd mkfs.ext4 /dev/mapper/decrypted-irma6lvm-userdata
 FBK: ucmd mkdir -p /mnt/iris
 FBK: ucmd mount -t ext4 /dev/mapper/decrypted-irma6lvm-userdata /mnt/iris
 FBK: ucmd mkdir -p /mnt/iris/counter
+FBK: ucmd mkdir -p /mnt/iris/swupdate
+
+# Copy swupdate encryption key
+FBK: ucp encryption.key t:/mnt/iris/swupdate/encryption.key
+
+# Umount userdata
 FBK: ucmd umount /mnt/iris
 FBK: ucmd dmsetup remove decrypted-irma6lvm-userdata
 FBK: ucmd sync
