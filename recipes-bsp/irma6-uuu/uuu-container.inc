@@ -66,6 +66,19 @@ do_deploy () {
     install -m 0644 ${WORKDIR}/${UUUSCRIPT} ${UUU_DEPLOY_DIR}/${UUUSCRIPTDEPLOY}
     install -m 0644 ${WORKDIR}/${VERIFICATIONSCRIPT} ${UUU_DEPLOY_DIR}/${VERIFICATIONSCRIPTDEPLOY}
 
+    # add encryption key
+    if [ ! -e "${SWUPDATE_AES_SNAKEOIL_FILE}" ]; then
+        bbfatal "SWUPDATE_AES_SNAKEOIL_FILE=$SWUPDATE_AES_SNAKEOIL_FILE does not exist!"
+    fi
+    key=`cat ${SWUPDATE_AES_SNAKEOIL_FILE} | grep ^key | cut -d '=' -f 2`
+    iv=`cat ${SWUPDATE_AES_SNAKEOIL_FILE} | grep ^iv | cut -d '=' -f 2`
+    if [ -z "${key}" ] || [ -z "${iv}" ];then
+        bbfatal "SWUPDATE_AES_SNAKEOIL_FILE=$SWUPDATE_AES_SNAKEOIL_FILE does not contain valid keys"
+    fi
+    echo "${key} ${iv}" > ${WORKDIR}/swupdate_snakeoil_encryption.key
+    install -m 644 ${WORKDIR}/swupdate_snakeoil_encryption.key ${UUU_DEPLOY_DIR}/swupdate_snakeoil_encryption.key
+
+
     # for hashsum check, calculate the hashsums of the original files and store them into one file
     # If a file exists so far, delete it
     rm -f ${UUU_DEPLOY_DIR}/${HASHSUMS}
