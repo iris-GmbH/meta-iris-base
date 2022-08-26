@@ -4,29 +4,9 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [APR's Version Numbering](https://apr.apache.org/versioning.html).
 
-## [2.0.5-dev] (HEAD) - n/a
-### Added
-
-
+## [2.0.5] - 2022-08-26
 ### Changed
-
-
-### Deprecated
-
-
-### Removed
-
-
-### Fixed
-
-
-### Simulation only
-
-
-### Maintenance only
-
-
-### Known issues
+- Do not deploy production swupdate key to rootfs
 
 
 
