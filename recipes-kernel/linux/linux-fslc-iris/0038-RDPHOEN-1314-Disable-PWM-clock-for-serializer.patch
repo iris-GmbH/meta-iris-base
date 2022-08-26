@@ -1,0 +1,57 @@
+From d19eb01ac8df47ae41f57b30a22a0add25e6edb6 Mon Sep 17 00:00:00 2001
+From: Erik Schumacher <erik.schumacher@iris-sensing.com>
+Date: Thu, 25 Aug 2022 12:23:17 +0200
+Subject: [PATCH] [RDPHOEN-1314] Disable PWM clock for serializer
+
+The serializer will source the pll clock from the pclk provided by the
+epc660. The pclk is internally divided by 4 before it arrives at the
+pll.
+
+The setup is wrong because:
+ - we use a tcmi clk div (in the epc660) of 6, so pclk is 16 MHz
+ - in epc660.c the pclk is declared as 24MHz
+ - the divided pclk would be 4MHz instead of the 6MHz given in dts
+ - the hblank in epc660.c is not adjusted
+Setting "correct" numbers (as far as we could tell) still leads to
+flickering and bad frames.
+
+Signed-off-by: Erik Schumacher <erik.schumacher@iris-sensing.com>
+---
+ arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts | 5 ++---
+ drivers/media/i2c/tc358746.c                     | 2 +-
+ 2 files changed, 3 insertions(+), 4 deletions(-)
+
+diff --git a/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts b/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
+index 40204717416f..8212812257c4 100644
+--- a/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
++++ b/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
+@@ -68,11 +68,10 @@
+ 	};
+ 
+ 	clk_serializer: serializer_clock {
+-		compatible = "pwm-clock";
++		compatible = "fixed-clock";
+ 		#clock-cells = <0>;
+-		clock-frequency = <24000000>;
++		clock-frequency = <6000000>;
+ 		clock-output-names = "serializer_clk";
+-		pwms = <&pwm2 0 42>; /* 42ns - 24 MHz */
+ 	};
+ 
+ 	gpio-keys {
+diff --git a/drivers/media/i2c/tc358746.c b/drivers/media/i2c/tc358746.c
+index f5c30a67d321..3dcda0170536 100644
+--- a/drivers/media/i2c/tc358746.c
++++ b/drivers/media/i2c/tc358746.c
+@@ -1595,7 +1595,7 @@ static int tc358746_probe_fw(struct tc358746_state *state)
+ 	 * The PLL input clock is obtained by dividing refclk by pll_prd.
+ 	 * It must be between 4 MHz and 40 MHz, lower frequency is better.
+ 	 */
+-	pll_prediv = DIV_ROUND_CLOSEST(refclk, 4000000);
++	pll_prediv = DIV_ROUND_DOWN_ULL(refclk, 4000000);
+ 	if (pll_prediv < 1 || pll_prediv > 16) {
+ 		v4l2_err(sd, "Invalid pll pre-divider value: %d\n", pll_prediv);
+ 		return -EINVAL;
+-- 
+2.37.2
+
