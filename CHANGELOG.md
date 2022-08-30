@@ -4,30 +4,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [APR's Version Numbering](https://apr.apache.org/versioning.html).
 
-## [2.0.6-dev] (HEAD) - n/a
-### Added
-
-
+## [2.0.6] - 2022-08-30
 ### Changed
-
-
-### Deprecated
-
-
-### Removed
+- [RDPHOEN-1314]: Disable PWM clock for serializer on R2
 
 
 ### Fixed
+- [RDPHOEN-1299]: Fix r/w access on netfitboot
+- [RDPHOEN-1299]: Fix init script terminal output
 - [RDPHOEN-1289]: set persistent path for dropbear rsa host key (IRMA 6 Release 2)
-
-
-### Simulation only
-
-
-### Maintenance only
-
-
-### Known issues
 
 
 
@@ -104,7 +89,6 @@ and this project adheres to [APR's Version Numbering](https://apr.apache.org/ver
 - [RDPHOEN-1257]: Changed to only enable debug-tweaks for maintenance build
 - [RDPHOEN-1152]: Disable u-boot console and boot delay for deploy build
 - [RDPHOEN-1295]: Increase critical CPU temperature for R2 to 105 degree celsius
-- [RDPHOEN-1314]: Disable PWM clock for serializer on R2
 
 
 ### Removed
@@ -116,8 +100,7 @@ and this project adheres to [APR's Version Numbering](https://apr.apache.org/ver
 ### Fixed
 - [RDPHOEN-1013]: Fix setting the format on the Serializer, enables switching between Raw12 and Raw14 formats without setting the format twice
 - [RDPHOEN-1150]: Fix fsl-dsp devicetree node in linux-fslc, place reserved memory region inside RAM bounds
-- [RDPHOEN-1299]: Fix r/w access on netfitboot
-- [RDPHOEN-1299]: Fix init script terminal output
+
 
 
 ## [2.0.3] - 2022-03-23
