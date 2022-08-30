@@ -78,6 +78,9 @@ do_deploy () {
     echo "${key} ${iv}" > ${WORKDIR}/swupdate_snakeoil_encryption.key
     install -m 644 ${WORKDIR}/swupdate_snakeoil_encryption.key ${UUU_DEPLOY_DIR}/swupdate_snakeoil_encryption.key
 
+    # add identity key and cert
+    install -m 644 "${IDENTITY_SNAKEOIL_KEY}" ${UUU_DEPLOY_DIR}/sensor_identity_snakeoil.key
+    install -m 644 "${IDENTITY_SNAKEOIL_CRT}" ${UUU_DEPLOY_DIR}/sensor_identity_snakeoil.crt
 
     # for hashsum check, calculate the hashsums of the original files and store them into one file
     # If a file exists so far, delete it
