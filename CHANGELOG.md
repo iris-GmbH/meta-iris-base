@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [APR's Version Numbering](https://apr.apache.org/versioning.html).
 
+## [2.0.6] - 2022-08-30
+### Changed
+- [RDPHOEN-1314]: Disable PWM clock for serializer on R2
+
+
+### Fixed
+- [RDPHOEN-1299]: Fix r/w access on netfitboot
+- [RDPHOEN-1299]: Fix init script terminal output
+- [RDPHOEN-1289]: set persistent path for dropbear rsa host key (IRMA 6 Release 2)
+
+
+
 ## [2.0.5] - 2022-08-26
 ### Changed
 - Do not deploy production swupdate key to rootfs
