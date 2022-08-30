@@ -48,7 +48,8 @@ set_device_names() {
 
 	# get encryption key for decrypting
 	KEY=$(cut -d' ' -f1 < /mnt/iris/swupdate/encryption.key)
-	IV=$(cut -d' ' -f2 < /mnt/iris/swupdate/encryption.key)
+	# use iv from new sw-description
+	IV=$(grep ivt /tmp/sw-description | cut -d'"' -f2 | head -1)
 }
 
 unlock_device() {
