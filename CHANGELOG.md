@@ -23,6 +23,10 @@ and this project adheres to [APR's Version Numbering](https://apr.apache.org/ver
 ### Known issues
 
 
+### Fixed
+- swupdate: pre_post_inst.sh: Don't rely on the default iv and use the new one passed by the sw-description
+
+
 
 ## [2.0.6] - 2022-08-30
 ### Changed
