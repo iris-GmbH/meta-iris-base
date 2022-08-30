@@ -18,7 +18,7 @@ and this project adheres to [APR's Version Numbering](https://apr.apache.org/ver
 
 
 ### Removed
-
+- [RDPHOEN-1326]: Remove kernel-modules
 
 ### Known issues
 
