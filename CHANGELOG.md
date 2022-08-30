@@ -19,7 +19,7 @@ and this project adheres to [APR's Version Numbering](https://apr.apache.org/ver
 
 ### Fixed
 - [RDPHOEN-1289]: set persistent path for dropbear rsa host key (IRMA 6 Release 2)
-
+- swupdate: pre_post_inst.sh: Don't rely on the default iv and use the new one passed by the sw-description
 
 ### Simulation only
 
