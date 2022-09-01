@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [APR's Version Numbering](https://apr.apache.org/versioning.html).
 
-## [2.0.7-dev] (HEAD) - n/a
+## [2.0.8-dev] (HEAD) - n/a
 ### Added
 - [RDPHOEN-1281]: Copy snake oil identity key/cert with uuu for dev usage
 
@@ -23,6 +23,7 @@ and this project adheres to [APR's Version Numbering](https://apr.apache.org/ver
 ### Known issues
 
 
+## [2.0.7] - 2022-08-26
 ### Fixed
 - swupdate: pre_post_inst.sh: Don't rely on the default iv and use the new one passed by the sw-description
 
