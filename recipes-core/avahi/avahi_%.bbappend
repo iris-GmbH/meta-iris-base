@@ -7,6 +7,7 @@ FILESEXTRAPATHS_prepend := "${THISDIR}/${PN}:"
 # TODO: clean up patch, so that it is accepted into upstream. See comments in linked PR.
 SRC_URI += "file://0001-filter-denied-virtual-interfaces-when-adding-address.patch"
 SRC_URI += "file://avahi-daemon.conf"
+SRC_URI += "file://this-will-fail"
 
 target_path = "/etc/avahi"
 
