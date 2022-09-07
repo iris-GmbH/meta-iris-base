@@ -7,6 +7,7 @@ and this project adheres to [APR's Version Numbering](https://apr.apache.org/ver
 ## [2.0.8-dev] (HEAD) - n/a
 ### Added
 - [RDPHOEN-1281]: Copy snake oil identity key/cert with uuu for dev usage
+- [RDPHOEN-1348]: Enforce major updates
 
 ### Changed
 

@@ -8,6 +8,7 @@ globals :
     aes-key-file = "/mnt/iris/swupdate/encryption.key";
     postupdatecmd = "reboot;"
     no-downgrading = "FW_VERSION"
+    max-version = "MAX_VERSION"
 };
 
 logcolors :
