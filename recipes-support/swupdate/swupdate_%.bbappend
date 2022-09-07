@@ -22,6 +22,10 @@ SRC_URI_append := " \
 	file://0002-RDPHOEN-1221-SWUpdate-Webinterface-CI-rework.patch \
 "
 
+DEPENDS += " \
+	bc-native \
+"
+
 RDEPENDS_${PN} += " \
 	util-linux-sfdisk \
 	jq \
@@ -51,6 +55,11 @@ do_install_append () {
 		bbfatal "ERROR: Can not read read firmware version"
 	fi
 	sed -i "s|FW_VERSION|$FW_VERSION|g" ${WORKDIR}/swupdate.cfg
+
+	# enforce max-version to MAJOR+1.999.999
+	MAJOR=$(echo $FW_VERSION | cut -d"." -f1)
+	export MAX_VERSION="$(echo "$MAJOR+1" | bc).999.999"
+	sed -i "s|MAX_VERSION|$MAX_VERSION|g" ${WORKDIR}/swupdate.cfg
 
 	# copy swupdate.cfg
 	install -d ${D}${sysconfdir}
