@@ -12,7 +12,7 @@ and this project adheres to [APR's Version Numbering](https://apr.apache.org/ver
 
 
 ### Fixed
-
+- u-boot: imx8mp_irma6r2_defconfig: Enable CONFIG_SPL_FIT_SIGNATURE
 
 ### Deprecated
 
