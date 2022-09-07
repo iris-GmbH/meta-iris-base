@@ -25,6 +25,7 @@ SRC_URI_append = "\
 	file://0015-env-Fix-prio-on-bad-CRC-case-with-ENV_APPEND-enabled.patch \
 	file://0016-env-Invert-gd-env_valid-for-env_mmc_save.patch \
 	file://0017-imx8m-soc.c-Use-arch-specific-env_get_location.patch \
+	file://0018-Kconfig-SPL_FIT_SIGNATURE-Don-t-depend-on-SPL_DM.patch \
 "
 
 FILESEXTRAPATHS_prepend_imx8mpevk := "${THISDIR}/u-boot-imx/imx8mpevk:"
@@ -42,6 +43,7 @@ SRC_URI_append_imx8mpevk = "\
 	file://0011-imx8mpevk-Add-reset-after-bootcmd.patch \
 	file://0012-imx8mp-evk-Add-CONFIG_ENV_FLAGS_LIST_STATIC.patch \
 	file://0013-imx8mp_evk_defconfig-Configure-writeable-list-suppor.patch \
+	file://0014-imx8mp_evk_defconfig-Add-CONFIG_SPL_FIT_SIGNATURE.patch \
 "
 
 FILESEXTRAPATHS_prepend_imx8mp-irma6r2 := "${THISDIR}/u-boot-imx/imx8mp-irma6r2:"
@@ -74,6 +76,7 @@ SRC_URI_append_imx8mp-irma6r2 = "\
 	file://0026-imx8mp-irma6r2-Add-i2c4-to-bootloader-device-tree-fo.patch \
 	file://0027-imx8mp-irma6r2-Add-IU-EEPROM-readout-for-configuring.patch \
 	file://0028-imx8mp-irma6r2-Add-check-for-when-the-device-is-lock.patch \
+	file://0029-imx8mp_irma6r2_defconfig-Add-CONFIG_SPL_FIT_SIGNATUR.patch \
 "
 
 SRC_URI_append_poky-iris-deploy = "\

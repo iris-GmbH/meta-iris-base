@@ -1,0 +1,25 @@
+From ed39eda3e9dcfdcb7b9c5159909cf3e83887c379 Mon Sep 17 00:00:00 2001
+From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+Date: Wed, 7 Sep 2022 23:32:36 +0200
+Subject: [PATCH] Kconfig: SPL_FIT_SIGNATURE: Don't depend on SPL_DM
+
+Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+---
+ Kconfig | 1 -
+ 1 file changed, 1 deletion(-)
+
+diff --git a/Kconfig b/Kconfig
+index 5f24c803ba..30b8fea2a6 100644
+--- a/Kconfig
++++ b/Kconfig
+@@ -452,7 +452,6 @@ config SPL_FIT_PRINT
+ 
+ config SPL_FIT_SIGNATURE
+ 	bool "Enable signature verification of FIT firmware within SPL"
+-	depends on SPL_DM
+ 	select SPL_FIT
+ 	select SPL_RSA
+ 
+-- 
+2.37.2
+
