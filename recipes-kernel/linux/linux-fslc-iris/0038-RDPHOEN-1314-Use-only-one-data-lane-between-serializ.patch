@@ -1,0 +1,79 @@
+From c613de60a00b15394f4cdfc97a1d54d96d88ea0a Mon Sep 17 00:00:00 2001
+From: Erik Schumacher <erik.schumacher@iris-sensing.com>
+Date: Fri, 9 Sep 2022 11:21:53 +0200
+Subject: [PATCH] [RDPHOEN-1314] Use only one data lane between serializer and
+ SoC
+
+Minor fixes in clock frequency and pll calculation
+Set debug=1 in mipi driver to see possible ECC errors
+
+Signed-off-by: Erik Schumacher <erik.schumacher@iris-sensing.com>
+---
+ arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts | 8 ++++----
+ drivers/media/i2c/tc358746.c                     | 2 +-
+ drivers/staging/media/imx/imx8-mipi-csi2-sam.c   | 2 +-
+ 3 files changed, 6 insertions(+), 6 deletions(-)
+
+diff --git a/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts b/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
+index 40204717416f..41b24a52786d 100644
+--- a/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
++++ b/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
+@@ -70,9 +70,9 @@
+ 	clk_serializer: serializer_clock {
+ 		compatible = "pwm-clock";
+ 		#clock-cells = <0>;
+-		clock-frequency = <24000000>;
++		clock-frequency = <23800000>;
+ 		clock-output-names = "serializer_clk";
+-		pwms = <&pwm2 0 42>; /* 42ns - 24 MHz */
++		pwms = <&pwm2 0 42>; /* 42ns - 23.8 MHz */
+ 	};
+ 
+ 	gpio-keys {
+@@ -244,7 +244,7 @@
+ 		port@1 {
+ 			reg = <1>;
+ 			tc358748_mipi_out: endpoint {
+-				data-lanes = <1 2>;
++				data-lanes = <1>;
+ 				link-frequencies = /bits/ 64 <216000000>;
+ 				remote-endpoint = <&mipi1_csi_in>;
+ 			};
+@@ -265,7 +265,7 @@
+ 	port@0 {
+ 		reg = <0>;
+ 		mipi1_csi_in: endpoint {
+-			data-lanes = <2>;
++			data-lanes = <1>;
+ 			clock-lanes = <1>;
+ 			remote-endpoint = <&tc358748_mipi_out>;
+ 			csis-hs-settle = <3>;
+diff --git a/drivers/media/i2c/tc358746.c b/drivers/media/i2c/tc358746.c
+index f5c30a67d321..3dcda0170536 100644
+--- a/drivers/media/i2c/tc358746.c
++++ b/drivers/media/i2c/tc358746.c
+@@ -1595,7 +1595,7 @@ static int tc358746_probe_fw(struct tc358746_state *state)
+ 	 * The PLL input clock is obtained by dividing refclk by pll_prd.
+ 	 * It must be between 4 MHz and 40 MHz, lower frequency is better.
+ 	 */
+-	pll_prediv = DIV_ROUND_CLOSEST(refclk, 4000000);
++	pll_prediv = DIV_ROUND_DOWN_ULL(refclk, 4000000);
+ 	if (pll_prediv < 1 || pll_prediv > 16) {
+ 		v4l2_err(sd, "Invalid pll pre-divider value: %d\n", pll_prediv);
+ 		return -EINVAL;
+diff --git a/drivers/staging/media/imx/imx8-mipi-csi2-sam.c b/drivers/staging/media/imx/imx8-mipi-csi2-sam.c
+index 43656a1daa02..824af1321370 100644
+--- a/drivers/staging/media/imx/imx8-mipi-csi2-sam.c
++++ b/drivers/staging/media/imx/imx8-mipi-csi2-sam.c
+@@ -406,7 +406,7 @@ struct csi_state {
+ 	bool hdr;
+ };
+ 
+-static int debug;
++static int debug = 1;
+ module_param(debug, int, 0644);
+ MODULE_PARM_DESC(debug, "Debug level (0-2)");
+ 
+-- 
+2.37.3
+

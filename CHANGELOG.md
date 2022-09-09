@@ -9,7 +9,8 @@ and this project adheres to [APR's Version Numbering](https://apr.apache.org/ver
 
 
 ### Changed
-
+- [RDPHOEN-1314]: Revert "Disable PWM clock for serializer on R2"
+- [RDPHOEN-1314]: Use only one MIPI lane on R2 (with PWM and minor corrections)
 
 ### Fixed
 
