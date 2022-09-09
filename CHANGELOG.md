@@ -4,6 +4,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [APR's Version Numbering](https://apr.apache.org/versioning.html).
 
+## [2.0.9-dev] (HEAD) - n/a
+### Added
+
+
+### Changed
+- [RDPHOEN-1314]: Revert "Disable PWM clock for serializer on R2"
+- [RDPHOEN-1314]: Use only one MIPI lane on R2 (with PWM and minor corrections)
+
+### Fixed
+
+
+### Deprecated
+
+
+### Removed
+
+
+### Known issues
+
+
+
 ## [2.0.8] 2022-09-07
 ### Added
 - [RDPHOEN-1281]: Copy snake oil identity key/cert with uuu for dev usage
