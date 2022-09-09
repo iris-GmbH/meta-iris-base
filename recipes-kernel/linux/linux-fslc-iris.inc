@@ -43,7 +43,7 @@ SRC_URI += " \
     file://0035-RDPHOEN-1218-Skip-registering-of-clkout-for-RTC.patch \
     file://0036-imx8mp-irma6r2.dts-Adjust-EPC660-TC358746-reset-pins.patch \
     file://0037-RDPHOEN-1295-Increase-critical-thermal-point.patch \
-    file://0038-RDPHOEN-1314-Disable-PWM-clock-for-serializer.patch \
+    file://0038-RDPHOEN-1314-Use-only-one-data-lane-between-serializ.patch \
 "
 
 SRC_URI_append_poky-iris-deploy = "\
