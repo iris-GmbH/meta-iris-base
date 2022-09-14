@@ -1,0 +1,144 @@
+From 024aa222cfaaff0f4ddd4c81f4f4e49ad24f84a5 Mon Sep 17 00:00:00 2001
+From: Erik Schumacher <erik.schumacher@iris-sensing.com>
+Date: Wed, 14 Sep 2022 16:23:13 +0200
+Subject: [PATCH] [RDPHOEN-1314] Fix MIPI settings on tc358746
+
+tc358746:
+After a soft reset the PLL must be configured before any DHY/CSI related
+registers are written.
+Minor code fixes.
+
+imx8-mipi-csi2-sam.c:
+Add debug = 1 to print summary of communication errors
+
+imx8mp-irma6r2.dts:
+Use correct PWM timings and set tc358746 clock to non-continuous mode
+
+imx8mp-evk.dts:
+Set tc358746 clock to non-continuous mode
+
+Signed-off-by: Erik Schumacher <erik.schumacher@iris-sensing.com>
+---
+ arch/arm64/boot/dts/freescale/imx8mp-evk.dts  |  1 +
+ .../boot/dts/freescale/imx8mp-irma6r2.dts     |  5 ++--
+ drivers/media/i2c/tc358746.c                  | 28 +++++++++----------
+ .../staging/media/imx/imx8-mipi-csi2-sam.c    |  2 +-
+ 4 files changed, 19 insertions(+), 17 deletions(-)
+
+diff --git a/arch/arm64/boot/dts/freescale/imx8mp-evk.dts b/arch/arm64/boot/dts/freescale/imx8mp-evk.dts
+index f607db073ea4..47c3bccc4dad 100644
+--- a/arch/arm64/boot/dts/freescale/imx8mp-evk.dts
++++ b/arch/arm64/boot/dts/freescale/imx8mp-evk.dts
+@@ -552,6 +552,7 @@
+ 			reg = <1>;
+ 			tc358748_mipi_out: endpoint {
+  				data-lanes = <1 2>;
++				clock-noncontinuous;
+ 				link-frequencies = /bits/ 64 <216000000>;
+ 				remote-endpoint = <&mipi_csi0_ep>;
+  			};
+diff --git a/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts b/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
+index 40204717416f..738bae87b698 100644
+--- a/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
++++ b/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
+@@ -70,9 +70,9 @@
+ 	clk_serializer: serializer_clock {
+ 		compatible = "pwm-clock";
+ 		#clock-cells = <0>;
+-		clock-frequency = <24000000>;
++		clock-frequency = <23800000>;
+ 		clock-output-names = "serializer_clk";
+-		pwms = <&pwm2 0 42>; /* 42ns - 24 MHz */
++		pwms = <&pwm2 0 42>; /* 42ns - 23.8 MHz */
+ 	};
+ 
+ 	gpio-keys {
+@@ -245,6 +245,7 @@
+ 			reg = <1>;
+ 			tc358748_mipi_out: endpoint {
+ 				data-lanes = <1 2>;
++				clock-noncontinuous;
+ 				link-frequencies = /bits/ 64 <216000000>;
+ 				remote-endpoint = <&mipi1_csi_in>;
+ 			};
+diff --git a/drivers/media/i2c/tc358746.c b/drivers/media/i2c/tc358746.c
+index f5c30a67d321..16c4aaebdd40 100644
+--- a/drivers/media/i2c/tc358746.c
++++ b/drivers/media/i2c/tc358746.c
+@@ -236,7 +236,7 @@ tc358746_dump_csi(struct v4l2_subdev *sd,
+ 	v4l2_dbg(2, debug, sd, "twakeupcnt %u\n", csi_setting->twakeupcnt);
+ 	v4l2_dbg(2, debug, sd, "tclk_postcnt %u\n", csi_setting->tclk_postcnt);
+ 	v4l2_dbg(2, debug, sd, "ths_trailcnt %u\n", csi_setting->ths_trailcnt);
+-	v4l2_dbg(2, debug, sd, "csi_hs_lp_hs_ps %u (%u us)\n",
++	v4l2_dbg(2, debug, sd, "csi_hs_lp_hs_ps %u (%u ns)\n",
+ 		csi_setting->csi_hs_lp_hs_ps,
+ 		csi_setting->csi_hs_lp_hs_ps / 1000);
+ }
+@@ -1143,18 +1143,17 @@ static int tc358746_s_power(struct v4l2_subdev *sd, int on)
+ 	 */
+ 	tc358746_sreset(sd);
+ 
+-	if (state->fmt_changed) {
+-		tc358746_set_buffers(sd);
+-		tc358746_set_csi(sd);
+-		tc358746_set_csi_color_space(sd);
++	/* always reconfigure the PLL and CSI registers after a sw reset */
++	/* switch to sleep mode as recommend in REF_01 */
++	tc358746_sleep_mode(sd, 1);
++	tc358746_set_pll(sd);
++	tc358746_sleep_mode(sd, 0);
+ 
+-		/* as recommend in REF_01 */
+-		tc358746_sleep_mode(sd, 1);
+-		tc358746_set_pll(sd);
+-		tc358746_sleep_mode(sd, 0);
++	tc358746_set_buffers(sd);
++	tc358746_set_csi(sd);
++	tc358746_set_csi_color_space(sd);
+ 
+-		state->fmt_changed = false;
+-	}
++	state->fmt_changed = false;
+ 
+ 	tc358746_enable_csi_lanes(sd, on);
+ 	tc358746_enable_csi_module(sd, on);
+@@ -1595,7 +1594,7 @@ static int tc358746_probe_fw(struct tc358746_state *state)
+ 	 * The PLL input clock is obtained by dividing refclk by pll_prd.
+ 	 * It must be between 4 MHz and 40 MHz, lower frequency is better.
+ 	 */
+-	pll_prediv = DIV_ROUND_CLOSEST(refclk, 4000000);
++	pll_prediv = DIV_ROUND_DOWN_ULL(refclk, 4000000);
+ 	if (pll_prediv < 1 || pll_prediv > 16) {
+ 		v4l2_err(sd, "Invalid pll pre-divider value: %d\n", pll_prediv);
+ 		return -EINVAL;
+@@ -1850,11 +1849,12 @@ static int tc358746_probe(struct i2c_client *client)
+ 
+ 	/* Apply default settings */
+ 	tc358746_sreset(sd);
++	tc358746_sleep_mode(sd, 1);
++	tc358746_set_pll(sd);
++
+ 	tc358746_set_buffers(sd);
+ 	tc358746_set_csi(sd);
+ 	tc358746_set_csi_color_space(sd);
+-	tc358746_sleep_mode(sd, 1);
+-	tc358746_set_pll(sd);
+ 	tc358746_enable_stream(sd, 0);
+ 
+ 	err = tc358746_async_register(state);
+diff --git a/drivers/staging/media/imx/imx8-mipi-csi2-sam.c b/drivers/staging/media/imx/imx8-mipi-csi2-sam.c
+index 43656a1daa02..824af1321370 100644
+--- a/drivers/staging/media/imx/imx8-mipi-csi2-sam.c
++++ b/drivers/staging/media/imx/imx8-mipi-csi2-sam.c
+@@ -406,7 +406,7 @@ struct csi_state {
+ 	bool hdr;
+ };
+ 
+-static int debug;
++static int debug = 1;
+ module_param(debug, int, 0644);
+ MODULE_PARM_DESC(debug, "Debug level (0-2)");
+ 
+-- 
+2.37.3
+
