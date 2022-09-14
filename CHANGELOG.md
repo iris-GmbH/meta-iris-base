@@ -9,9 +9,11 @@ and this project adheres to [APR's Version Numbering](https://apr.apache.org/ver
 
 
 ### Changed
+- [RDPHOEN-1314]: Revert "Use only one MIPI lane on R2"
 
 
 ### Fixed
+- [RDPHOEN-1314]: Fix tc358746 serializer configuration
 
 
 ### Deprecated
