@@ -1,0 +1,39 @@
+From a8a4cf8709b1a99264379e7d980884da092dfe03 Mon Sep 17 00:00:00 2001
+From: Erik Schumacher <erik.schumacher@iris-sensing.com>
+Date: Thu, 15 Sep 2022 12:51:44 +0200
+Subject: [PATCH 3/3] [RDPHOEN-1314] imx8mp-irma6r2.dts: Serializer config
+
+Use correct PWM timings and set tc358746 clock to non-continuous mode
+
+Signed-off-by: Erik Schumacher <erik.schumacher@iris-sensing.com>
+---
+ arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
+
+diff --git a/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts b/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
+index 40204717416f..738bae87b698 100644
+--- a/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
++++ b/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
+@@ -70,9 +70,9 @@
+ 	clk_serializer: serializer_clock {
+ 		compatible = "pwm-clock";
+ 		#clock-cells = <0>;
+-		clock-frequency = <24000000>;
++		clock-frequency = <23800000>;
+ 		clock-output-names = "serializer_clk";
+-		pwms = <&pwm2 0 42>; /* 42ns - 24 MHz */
++		pwms = <&pwm2 0 42>; /* 42ns - 23.8 MHz */
+ 	};
+ 
+ 	gpio-keys {
+@@ -245,6 +245,7 @@
+ 			reg = <1>;
+ 			tc358748_mipi_out: endpoint {
+ 				data-lanes = <1 2>;
++				clock-noncontinuous;
+ 				link-frequencies = /bits/ 64 <216000000>;
+ 				remote-endpoint = <&mipi1_csi_in>;
+ 			};
+-- 
+2.37.3
+
