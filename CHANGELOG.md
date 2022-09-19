@@ -14,6 +14,7 @@ and this project adheres to [APR's Version Numbering](https://apr.apache.org/ver
 
 ### Fixed
 - [RDPHOEN-1314]: Fix tc358746 serializer configuration
+- [RDPHOEN-1371]: swupdate: Bind swupdate to localhost
 
 
 ### Deprecated
