@@ -10,6 +10,7 @@ and this project adheres to [APR's Version Numbering](https://apr.apache.org/ver
 
 ### Changed
 - [RDPHOEN-1314]: Revert "Use only one MIPI lane on R2"
+- [RDPHOEN-1357]: Adjust hs-settle MIPI configuration
 
 
 ### Fixed
