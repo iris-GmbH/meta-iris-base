@@ -33,9 +33,9 @@
 inherit kernel
 require recipes-kernel/linux/linux-yocto.inc
 
-BRANCH = "develop"
+BRANCH = "feature/hdr3"
 LINUX_VERSION ?= "4.14.239"
-SRCREV="15914084eee46b5f90e250d45fa8d1bcc6aa191e"
+SRCREV="f4f0d3a32497413e610f4393b0f0a61b93165fc8"
 
 SRC_URI = "git://github.com/iris-GmbH/linux-gen6.git;protocol=https;bareclone=1;branch=${BRANCH};depth=1"
 
