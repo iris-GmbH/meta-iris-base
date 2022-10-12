@@ -6,6 +6,7 @@ and this project adheres to [APR's Version Numbering](https://apr.apache.org/ver
 
 ## [2.0.10-dev] (HEAD) - n/a
 ### Added
+- [RDPHOEN-1364]: Add nftables firewall userspace application
 
 
 ### Changed

@@ -42,6 +42,7 @@ IRMA6_EXTRA_PACKAGES = " \
 	chronyc \
 	hab-csf-parser \
 	hab-srktool-scripts \
+	nftables \
 "
 # IRMA6R2 SoC specific packages (not included in qemu)
 IRMA6_EXTRA_PACKAGES_append_mx8mp = " \
