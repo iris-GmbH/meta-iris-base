@@ -1,0 +1,38 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Erik Schumacher <erik.schumacher@iris-sensing.com>
+Date: Thu, 15 Sep 2022 12:50:38 +0200
+Subject: [PATCH] imx8mp-evk.dts: Serializer config
+
+Set tc358746 clock to non-continuous mode
+Set hs-settle accordingly to the 216Mhz CSI Clock frequency
+
+Signed-off-by: Erik Schumacher <erik.schumacher@iris-sensing.com>
+Signed-off-by: Ian Dannapel <ian.dannapel@iris-sensing.com>
+---
+ arch/arm64/boot/dts/freescale/imx8mp-evk.dts | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/arch/arm64/boot/dts/freescale/imx8mp-evk.dts b/arch/arm64/boot/dts/freescale/imx8mp-evk.dts
+index f607db073ea4..dc5e078ee907 100644
+--- a/arch/arm64/boot/dts/freescale/imx8mp-evk.dts
++++ b/arch/arm64/boot/dts/freescale/imx8mp-evk.dts
+@@ -552,6 +552,7 @@
+ 			reg = <1>;
+ 			tc358748_mipi_out: endpoint {
+  				data-lanes = <1 2>;
++				clock-noncontinuous;
+ 				link-frequencies = /bits/ 64 <216000000>;
+ 				remote-endpoint = <&mipi_csi0_ep>;
+  			};
+@@ -1329,7 +1330,7 @@
+ 			data-lanes = <2>;
+ 			clock-lanes = <1>;
+ 			remote-endpoint = <&tc358748_mipi_out>;
+-			csis-hs-settle = <3>;
++			csis-hs-settle = <4>;
+ 			csis-clk-settle = <0>;
+ 			csis-wclk;
+ 			link-frequencies = /bits/ 64 <216000000>;
+-- 
+2.25.1
+
