@@ -33,6 +33,7 @@ and this project adheres to [APR's Version Numbering](https://apr.apache.org/ver
 ## [2.0.10] - 2022-10-13
 ### Added
 - [RDPHOEN-1364]: Add nftables firewall userspace application
+- [RDPHOEN-1364]: Add ip addr syntax validation when setting static ip
 
 
 ### Changed
