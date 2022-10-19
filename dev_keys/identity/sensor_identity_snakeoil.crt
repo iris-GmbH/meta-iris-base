@@ -1,14 +1,87 @@
+Certificate:
+    Data:
+        Version: 3 (0x2)
+        Serial Number:
+            f7:52:8b:71:3a:2e:a5:49:1c:56:76:3f:66:29:a7:67
+        Signature Algorithm: sha256WithRSAEncryption
+        Issuer: CN=IRIS-TEST CA
+        Validity
+            Not Before: Oct 18 12:27:26 2022 GMT
+            Not After : Jan 20 12:27:26 2025 GMT
+        Subject: CN=irma6-1234
+        Subject Public Key Info:
+            Public Key Algorithm: rsaEncryption
+                RSA Public-Key: (2048 bit)
+                Modulus:
+                    00:9a:30:ae:c0:8e:ac:5e:31:77:10:51:45:a1:07:
+                    0f:e6:4d:db:ac:d7:61:3b:80:66:b0:d2:54:d3:5e:
+                    6a:65:f3:3c:ae:7b:71:57:14:51:11:61:fa:17:6a:
+                    80:02:50:25:a3:a8:78:bc:d9:4e:5a:cf:90:0b:d7:
+                    99:38:2d:f4:f6:d3:f9:bd:7c:f9:97:cf:23:e8:b1:
+                    9f:d3:12:9f:ad:dc:87:bb:77:88:16:1f:f7:bb:11:
+                    63:e0:70:1b:d3:de:73:71:a9:b5:55:8d:0d:ab:a3:
+                    2e:96:6d:75:e1:c8:e9:65:b0:47:71:30:e5:14:02:
+                    23:ee:73:5d:3b:94:21:ad:2a:56:13:38:d9:e7:40:
+                    78:6a:88:52:79:18:7c:69:d3:8e:33:fc:7c:b3:e3:
+                    a2:e7:7f:a5:05:55:36:ff:7a:f0:58:70:a6:8d:34:
+                    36:12:f5:bb:b0:19:8c:21:3f:5d:16:24:98:dd:8d:
+                    9e:26:17:b4:8f:83:2f:0d:77:ca:43:86:0f:5d:1e:
+                    68:9e:92:ab:8d:dc:e5:53:41:fd:b8:5b:7e:ef:fc:
+                    11:36:a4:6b:6a:d7:66:94:bb:2b:7c:12:37:1e:b0:
+                    65:4d:a6:56:77:08:18:f6:bc:43:6b:77:87:9a:35:
+                    27:9f:f7:3d:0e:ee:86:21:db:76:e5:07:cd:dd:46:
+                    6f:c3
+                Exponent: 65537 (0x10001)
+        X509v3 extensions:
+            X509v3 Basic Constraints: 
+                CA:FALSE
+            X509v3 Subject Key Identifier: 
+                24:2E:2C:A6:D3:38:50:02:4E:56:B1:96:1E:49:08:50:3F:18:AA:F2
+            X509v3 Authority Key Identifier: 
+                keyid:C5:40:09:6A:80:C3:A4:DE:22:D4:C1:57:69:5D:A2:D2:47:D5:94:32
+                DirName:/CN=IRIS-TEST CA
+                serial:24:2A:60:C5:DA:6A:6F:EC:7D:AD:B4:DE:96:24:66:F7:EE:C8:F5:51
+
+            X509v3 Extended Key Usage: 
+                TLS Web Server Authentication
+            X509v3 Key Usage: 
+                Digital Signature, Key Encipherment
+            X509v3 Subject Alternative Name: 
+                DNS:irma6-1234, IP Address:10.42.0.70
+    Signature Algorithm: sha256WithRSAEncryption
+         31:1b:01:4f:94:f7:03:fb:84:01:16:48:ba:27:1f:b0:0f:9b:
+         f6:36:17:71:e1:a3:a0:29:d6:cf:31:18:1e:51:72:24:dc:c4:
+         eb:55:56:de:49:b5:2a:8a:f1:c4:9d:d3:ef:ab:a7:8e:dc:f5:
+         a6:38:0d:e0:30:9f:1f:98:69:cb:a9:07:a6:c1:7b:ce:2c:04:
+         e2:04:87:24:ce:3f:06:48:9d:80:16:8a:4b:e3:a6:a5:aa:de:
+         8a:1c:fd:5d:74:79:b0:4a:30:4f:c0:43:2d:10:dd:25:bf:3c:
+         72:ca:bf:f2:ea:87:74:3a:e7:c0:90:fc:30:10:c0:30:aa:bb:
+         4f:19:39:f0:bb:1e:10:c5:84:c0:ac:30:29:1f:70:b3:88:fb:
+         5b:79:5b:89:4b:cb:b2:85:39:b1:e7:93:f4:5f:cb:19:ba:b5:
+         b2:be:e4:a1:ce:57:d3:e9:11:31:8b:1a:67:00:b2:f5:b5:58:
+         44:7b:1c:fa:00:0d:c7:ee:1f:19:a7:53:cb:2f:9c:dd:9d:c3:
+         ee:a9:22:ba:4a:2f:e7:5e:f1:88:23:79:79:0b:20:a8:bb:f2:
+         bf:24:75:52:39:b5:f9:db:0f:e9:58:16:80:61:59:01:eb:74:
+         f3:8e:80:53:db:fd:93:38:76:ee:c3:57:78:a0:84:55:11:e8:
+         8f:08:51:d9
 -----BEGIN CERTIFICATE-----
-MIICFDCCAZoCFA91w3jMd0QBKNoo5natN0lFbnAMMAoGCCqGSM49BAMCMG4xCzAJ
-BgNVBAYTAkRFMQ8wDQYDVQQIDAZCZXJsaW4xDzANBgNVBAcMBkJlcmxpbjESMBAG
-A1UECgwJaXJpcy1HbWJIMQwwCgYDVQQLDANQVFMxGzAZBgNVBAMMEmlybWE2UjIt
-OTkwMDAxMDAwMTAeFw0yMjA4MjkxMzQwMjlaFw00MjA4MjQxMzQwMjlaMG4xCzAJ
-BgNVBAYTAkRFMQ8wDQYDVQQIDAZCZXJsaW4xDzANBgNVBAcMBkJlcmxpbjESMBAG
-A1UECgwJaXJpcy1HbWJIMQwwCgYDVQQLDANQVFMxGzAZBgNVBAMMEmlybWE2UjIt
-OTkwMDAxMDAwMTB2MBAGByqGSM49AgEGBSuBBAAiA2IABCXLENsIlw0VppHxJ7D0
-AkshM4iFkaDr8Nha8O3/+bBWCj2FttwZthcVm1MXfvuexLiGRiU8CEtna33/rpOC
-5QP7b1+GY66mFDkDHbGXDJYfWi1qskEbuOC85rekFR25lzAKBggqhkjOPQQDAgNo
-ADBlAjEAl9GHA3wyMJVQo3gSrgldiu6CEP5tm7yfjk0PKwiZXLNDSry7RW9sA1IZ
-mah+9prgAjA63L/WFeYKsoqxOTzdWNRSn5n1VJqT6nlGO0GMlLGJb3PF306kJx7o
-ETfmH1ZQ9tE=
+MIIDeDCCAmCgAwIBAgIRAPdSi3E6LqVJHFZ2P2Ypp2cwDQYJKoZIhvcNAQELBQAw
+FzEVMBMGA1UEAwwMSVJJUy1URVNUIENBMB4XDTIyMTAxODEyMjcyNloXDTI1MDEy
+MDEyMjcyNlowFTETMBEGA1UEAwwKaXJtYTYtMTIzNDCCASIwDQYJKoZIhvcNAQEB
+BQADggEPADCCAQoCggEBAJowrsCOrF4xdxBRRaEHD+ZN26zXYTuAZrDSVNNeamXz
+PK57cVcUURFh+hdqgAJQJaOoeLzZTlrPkAvXmTgt9PbT+b18+ZfPI+ixn9MSn63c
+h7t3iBYf97sRY+BwG9Pec3GptVWNDaujLpZtdeHI6WWwR3Ew5RQCI+5zXTuUIa0q
+VhM42edAeGqIUnkYfGnTjjP8fLPjoud/pQVVNv968Fhwpo00NhL1u7AZjCE/XRYk
+mN2NniYXtI+DLw13ykOGD10eaJ6Sq43c5VNB/bhbfu/8ETaka2rXZpS7K3wSNx6w
+ZU2mVncIGPa8Q2t3h5o1J5/3PQ7uhiHbduUHzd1Gb8MCAwEAAaOBwDCBvTAJBgNV
+HRMEAjAAMB0GA1UdDgQWBBQkLiym0zhQAk5WsZYeSQhQPxiq8jBSBgNVHSMESzBJ
+gBTFQAlqgMOk3iLUwVdpXaLSR9WUMqEbpBkwFzEVMBMGA1UEAwwMSVJJUy1URVNU
+IENBghQkKmDF2mpv7H2ttN6WJGb37sj1UTATBgNVHSUEDDAKBggrBgEFBQcDATAL
+BgNVHQ8EBAMCBaAwGwYDVR0RBBQwEoIKaXJtYTYtMTIzNIcECioARjANBgkqhkiG
+9w0BAQsFAAOCAQEAMRsBT5T3A/uEARZIuicfsA+b9jYXceGjoCnWzzEYHlFyJNzE
+61VW3km1KorxxJ3T76unjtz1pjgN4DCfH5hpy6kHpsF7ziwE4gSHJM4/BkidgBaK
+S+Ompareihz9XXR5sEowT8BDLRDdJb88csq/8uqHdDrnwJD8MBDAMKq7Txk58Lse
+EMWEwKwwKR9ws4j7W3lbiUvLsoU5seeT9F/LGbq1sr7koc5X0+kRMYsaZwCy9bVY
+RHsc+gANx+4fGadTyy+c3Z3D7qkiukov517xiCN5eQsgqLvyvyR1Ujm1+dsP6VgW
+gGFZAet0846AU9v9kzh27sNXeKCEVRHojwhR2Q==
 -----END CERTIFICATE-----
