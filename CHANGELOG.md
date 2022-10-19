@@ -6,7 +6,8 @@ and this project adheres to [APR's Version Numbering](https://apr.apache.org/ver
 
 ## [2.0.11-dev] (HEAD) - n/a
 ### Added
-
+- [RDPHOEN-1402]: Add snake oil identity cert/key with root CA
+- [RDPHOEN-1404]: Create symlink for webtls
 
 ### Changed
 
