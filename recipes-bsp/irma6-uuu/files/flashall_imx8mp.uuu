@@ -118,6 +118,7 @@ FBK: ucp swupdate_snakeoil_encryption.key t:/mnt/iris/swupdate/encryption.key
 FBK: ucmd mkdir -p /mnt/iris/identity
 FBK: ucp sensor_identity_snakeoil.key t:/mnt/iris/identity/sensor.key
 FBK: ucp sensor_identity_snakeoil.crt t:/mnt/iris/identity/sensor.crt
+FBK: ucmd ln -sr /mnt/iris/identity /mnt/iris/webtls
 FBK: ucmd mkdir -p /mnt/iris/counter
 FBK: ucmd mkdir -p /mnt/iris/dropbear
 FBK: ucmd umount /mnt/iris
