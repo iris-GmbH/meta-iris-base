@@ -7,6 +7,9 @@ and this project adheres to [APR's Version Numbering](https://apr.apache.org/ver
 ## [2.0.11-dev] (HEAD) - n/a
 ### Added
 - Allow end/pos1/del commands in UART terminal
+- [RDPHOEN-1402]: Add snake oil identity cert/key with root CA
+- [RDPHOEN-1402]: uuu: Create rw location for nginx sites-enabled
+- [RDPHOEN-1404]: Create symlink for webtls and default webserver conf symlink
 
 ### Changed
 - Enable Debug-Tweaks (UART root access) on all R1 images
