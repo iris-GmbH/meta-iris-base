@@ -9,7 +9,7 @@ and this project adheres to [APR's Version Numbering](https://apr.apache.org/ver
 
 
 ### Changed
-
+- Enable Debug-Tweaks (UART root access) on all R1 images
 
 ### Deprecated
 
