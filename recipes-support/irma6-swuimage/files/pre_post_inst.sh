@@ -192,6 +192,18 @@ resize_lvm() {
 	rm -R /tmp/etc
 }
 
+create_webserver_symlinks() {
+    if [ ! -L "/mnt/iris/webtls" ]; then
+        log "Create default webtls symlink"
+        ln -sf /mnt/iris/identity /mnt/iris/webtls || exit 1
+    fi
+    if [ ! -L "/mnt/iris/nginx/sites-enabled/default_server" ]; then
+        log "Create default webserver server conf symlink"
+        mkdir -p /mnt/iris/nginx/sites-enabled || exit 1
+        ln -sf /etc/nginx/sites-available/reverse_proxy_http.conf /mnt/iris/nginx/sites-enabled/default_server  || exit 1
+    fi
+}
+
 if [ "$1" = "preinst" ]; then
 	cmds_exist
 	parse_cmdline
@@ -202,6 +214,7 @@ if [ "$1" = "preinst" ]; then
 	unlock_device
 	get_bootdev_name
 	create_symlinks
+	create_webserver_symlinks
 	exit 0
 fi
 
