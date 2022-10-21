@@ -1,0 +1,2 @@
+include:
+  - remote: 'https://gitlab.devops.defra01.iris-sensing.net/public-projects/yocto/iris-kas/-/raw/develop/.gitlab/layers-template.yml'
