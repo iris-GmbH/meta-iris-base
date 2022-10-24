@@ -10,6 +10,8 @@ and this project adheres to [APR's Version Numbering](https://apr.apache.org/ver
 - [RDPHOEN-1402]: Add snake oil identity cert/key with root CA
 - [RDPHOEN-1402]: uuu: Create rw location for nginx sites-enabled
 - [RDPHOEN-1404]: Create symlink for webtls and default webserver conf symlink
+- [RDPHOEN-1327]: Save timestamp on rw partition (only R2)
+- [RDPHOEN-1327]: Add script that periodically saves the timestamp
 
 ### Changed
 - Enable Debug-Tweaks (UART root access) on all R1 images
