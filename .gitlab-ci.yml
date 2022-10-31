@@ -1,2 +1,2 @@
 include:
-  - remote: 'https://gitlab.devops.defra01.iris-sensing.net/public-projects/yocto/iris-kas/-/raw/develop/.gitlab/layers-template.yml'
+  - remote: 'https://gitlab.devops.defra01.iris-sensing.net/public-projects/yocto/iris-kas/-/raw/bugfix/jaor/gitlab_meta_layer_trigger_downstream_pipeline/.gitlab/layers-template.yml'
