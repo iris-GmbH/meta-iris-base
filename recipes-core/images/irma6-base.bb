@@ -143,8 +143,6 @@ do_generate_dmverity_hashes () {
 }
 
 # The rootfs on R2 is read-only, so the timestamp must be saved in a r/w location
-# Skip writing of "default" timestamp in /etc/timestamp (as this file will never be used)
-ROOTFS_POSTPROCESS_COMMAND_remove_mx8mp = "rootfs_update_timestamp"
 
 # Set timestamp file. /etc/default/timestamp will be sourced by the init-scripts
 add_default_timestamp_location(){
