@@ -37,6 +37,7 @@ and this project adheres to [APR's Version Numbering](https://apr.apache.org/ver
 ### Added
 - [RDPHOEN-1364]: Add nftables firewall userspace application
 - [RDPHOEN-1364]: Add ip addr syntax validation when setting static ip
+- [RDPHOEN-1441]: nginx: Add Diffie-Hellman RSA key parameters
 
 
 ### Changed
