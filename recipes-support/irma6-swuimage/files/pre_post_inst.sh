@@ -40,9 +40,6 @@ set_device_names() {
 	ROOT_HASH="${KEYSTORE}/rootfs${FIRMWARE_SUFFIX}_roothash"
 	ROOT_HASH_SIGNATURE="${ROOT_HASH}.signature"
 
-	VERITY_NAME="verity-rootfs${FIRMWARE_SUFFIX}"
-	VERITY_DEV="/dev/mapper/${VERITY_NAME}"
-
 	DECRYPT_NAME="decrypted-irma6lvm-rootfs${FIRMWARE_SUFFIX}"
 	DECRYPT_ROOT_DEV="/dev/mapper/${DECRYPT_NAME}"
 
