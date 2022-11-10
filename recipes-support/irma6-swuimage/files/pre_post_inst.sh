@@ -40,9 +40,6 @@ set_device_names() {
 	ROOT_HASH="${KEYSTORE}/rootfs${FIRMWARE_SUFFIX}_roothash"
 	ROOT_HASH_SIGNATURE="${ROOT_HASH}.signature"
 
-	VERITY_NAME="verity-rootfs${FIRMWARE_SUFFIX}"
-	VERITY_DEV="/dev/mapper/${VERITY_NAME}"
-
 	DECRYPT_NAME="decrypted-irma6lvm-rootfs${FIRMWARE_SUFFIX}"
 	DECRYPT_ROOT_DEV="/dev/mapper/${DECRYPT_NAME}"
 
@@ -122,6 +119,9 @@ check_hab_srk() {
 	key_length=521
 	n_of_srks=4
 
+	# images to be verified for SRK signature
+	signed_images="/tmp/imx-boot.signed /tmp/irma6-fitimage.itb.signed"
+
 	# check if secure boot is activated
 	boot_cfg=$(imx_fuse_read 7 1)
 	if [ "$(( 0x02000000 & boot_cfg ))" -eq 0 ]; then
@@ -133,29 +133,33 @@ check_hab_srk() {
 	srk_count=$(( 2*n_of_srks ))
 	srk_fuses=$(imx_fuse_read 24 $srk_count)
 
-	# read flash.bin SRKs
-	flashbin_file=$(cat /tmp/sw-description | tr '\n' ' ' | grep -o '{[^}]*device = "/dev/swu_bootloader"[^}]*}' | grep -o 'filename = "[^"]*";' | cut -d'"' -f 2)
-	flashbin_file="/tmp/$flashbin_file"
-	flashbin_file_decrypted="/tmp/imx-boot.signed_dec"
-	if [ ! -e "$flashbin_file" ]; then
-		log "File $flashbin_file not present, cannot verify bootloader SRKs"; exit 1;
-	fi
+	for signed_image in $signed_images
+	do
+		if [ ! -e "$signed_image" ]; then
+			log "File $signed_image not present, cannot verify SRKs"; exit 1;
+		fi
 
-	openssl enc -d -aes-256-cbc -K "$KEY" -iv "$IV" -in $flashbin_file > "$flashbin_file_decrypted"
-	(cd /tmp/ && csf_parser -s "$flashbin_file_decrypted" > /dev/null 2>&1)
-	(cd /tmp/ && createSRKFuses output/SRKTable.bin "$n_of_srks" "$key_length" "$key_type" > /dev/null 2>&1)
-	srk_bootloader=$(hexdump -e '"0x%04x\n"' /tmp/SRK_fuses.bin)
+		# decrypt image to read SRKs
+		file_decrypted="/tmp/file_decrypted"
+		openssl enc -d -aes-256-cbc -K "$KEY" -iv "$IV" -in $signed_image > "$file_decrypted"
 
-	rm -rf /tmp/output/ /tmp/SRK_fuses.bin "$flashbin_file_decrypted"
+		# read SRKs from image
+		(cd /tmp/ && csf_parser -s "$file_decrypted" > /dev/null 2>&1)
+		(cd /tmp/ && createSRKFuses output/SRKTable.bin "$n_of_srks" "$key_length" "$key_type" > /dev/null 2>&1)
+		srk_image=$(hexdump -e '"0x%04x\n"' /tmp/SRK_fuses.bin)
 
-	if [ "$srk_bootloader" != "$srk_fuses" ]; then
-		log "Aborting, SRK Bootloader does not match SRK Fuse!"
-		log "SRK Bootloader: $srk_bootloader"
-		log "SRK Fuse: $srk_fuses"
-		exit 1;
-	fi
+		# clean up
+		rm -rf /tmp/output/ /tmp/SRK_fuses.bin "$file_decrypted"
 
-	log "SRK Bootloader verification passed"
+		if [ "$srk_image" != "$srk_fuses" ]; then
+			log "Aborting, SRK $signed_image does not match SRK Fuse!"
+			log "SRK Image: $srk_image"
+			log "SRK Fuse: $srk_fuses"
+			exit 1;
+		fi
+	done
+
+	log "SRK verification passed"
 }
 
 resize_lvm() {
