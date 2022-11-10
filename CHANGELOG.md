@@ -13,6 +13,8 @@ and this project adheres to [APR's Version Numbering](https://apr.apache.org/ver
 - [RDPHOEN-1327]: Save timestamp on rw partition (only R2)
 - [RDPHOEN-1327]: Add script that periodically saves the timestamp
 - [APC-5379]: Add fitImage SRK verification on update
+- [APC-5286]: Keep current and alternative firmware to be the same after a successfull update
+- [APC-5286]: Update alternative bootloader after successfull update
 - [APC-4580]: Add predefined avahi service to publish a http service
 
 ### Changed
