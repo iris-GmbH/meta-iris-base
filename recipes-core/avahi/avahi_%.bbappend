@@ -5,9 +5,9 @@ FILESEXTRAPATHS_prepend := "${THISDIR}/${PN}:"
 # fixes RDV-2762
 # patch taken from https://github.com/lathiat/avahi/pull/115
 # TODO: clean up patch, so that it is accepted into upstream. See comments in linked PR.
-SRC_URI += "file://0001-filter-denied-virtual-interfaces-when-adding-address.patch"
-SRC_URI += "file://avahi-daemon.conf"
-SRC_URI += "file://irma-provider.service"
+SRC_URI += "file://0001-filter-denied-virtual-interfaces-when-adding-address.patch \
+           file://avahi-daemon.conf \
+           file://irma-provider.service"
 
 target_path = "/etc/avahi"
 
