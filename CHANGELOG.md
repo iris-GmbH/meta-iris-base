@@ -15,6 +15,7 @@ and this project adheres to [APR's Version Numbering](https://apr.apache.org/ver
 - [APC-5379]: Add fitImage SRK verification on update
 - [APC-5286]: Keep current and alternative firmware to be the same after a successfull update
 - [APC-5286]: Update alternative bootloader after successfull update
+- [APC-5376]: Add power on selftest after update
 - [APC-4580]: Add predefined avahi service to publish a http service
 
 ### Changed
