@@ -11,15 +11,19 @@ log() {
 
 ALTERNATIVE_FW_UPDATE_FLAG=/mnt/iris/alternative_fw_needs_update
 
-# Check if everything is still ok after update on first boot after reboot
+# Check if everything is still ok after update on reboot
 PENDING_UPDATE=$(fw_printenv upgrade_available | awk -F'=' '{print $2}')
 if [ "$PENDING_UPDATE" = "1" ]; then
-	# Check if swupdate is still running
-	if ! pidofproc swupdate; then
-		log "Error: swupdate is not running"
-		reboot
-		exit 1
-	fi
+	# Check that all necessary tools are available and running
+	tools="nginx WebInterfaceServer swupdate count_von_count i6ls"
+	log "[STARTED] power on self test started!"
+	for tool in $tools; do
+		if ! pidofproc "$tool" &>/dev/null; then
+			log "[FAILED] $tool"; reboot; exit 1;
+		fi
+		log "[PASSED] $tool"
+	done
+	log "[PASSED] power on self test"
 
 	# Alternative firmware needs an update if roothash differs
 	mount /dev/mapper/irma6lvm-keystore /mnt/keystore
