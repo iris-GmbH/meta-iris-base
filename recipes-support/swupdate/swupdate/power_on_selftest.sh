@@ -37,11 +37,12 @@ if [ "$PENDING_UPDATE" = "1" ]; then
 	printf "bootcount=0\nupgrade_available=\nustate=\n" > "$TMP_ENV_FILE"
 	fw_setenv -s "$TMP_ENV_FILE"
 	rm "$TMP_ENV_FILE"
-	log "Update successful complete"
+	log "Firmware update successful complete"
 fi
 
 # Update the alternative firmware after success
 if [ -f "$ALTERNATIVE_FW_UPDATE_FLAG" ]; then
+	log "Start updating alternative firmware"
 	if grep -q 'linuxboot_b\|firmware_b' /proc/cmdline; then
 		CUR_FITIMAGE_DEV=/dev/mmcblk2p3
 		ALT_FITIMAGE_DEV=/dev/mmcblk2p2
@@ -58,19 +59,25 @@ if [ -f "$ALTERNATIVE_FW_UPDATE_FLAG" ]; then
 	mkdir /tmp/cur_fitimage_dev /tmp/alt_fitimage_dev
 	mount "$CUR_FITIMAGE_DEV" /tmp/cur_fitimage_dev
 	mount "$ALT_FITIMAGE_DEV" /tmp/alt_fitimage_dev
-	cp /tmp/cur_fitimage_dev/fitImage.signed /tmp/alt_fitimage_dev/fitImage.signed
+	cp /tmp/cur_fitimage_dev/fitImage.signed /tmp/alt_fitimage_dev/fitImage.signed || \
+		log "Error: Failed to copy alternative fitImage"
 	umount /tmp/cur_fitimage_dev /tmp/alt_fitimage_dev
 	rm -r /tmp/cur_fitimage_dev /tmp/alt_fitimage_dev
 
 	# Update alternative rootfs and rootfs hashtree volumes
-	dd if="/dev/mapper/irma6lvm-rootfs_${CUR_FW_SUFFIX}" of="/dev/mapper/irma6lvm-rootfs_${ALT_FW_SUFFIX}" bs=10M
-	dd if="/dev/mapper/irma6lvm-rootfs_${CUR_FW_SUFFIX}_hash" of="/dev/mapper/irma6lvm-rootfs_${ALT_FW_SUFFIX}_hash" bs=10M
+	dd if="/dev/mapper/irma6lvm-rootfs_${CUR_FW_SUFFIX}" of="/dev/mapper/irma6lvm-rootfs_${ALT_FW_SUFFIX}" bs=10M || \
+		log "Error: Failed to copy alternative rootfs"
+	dd if="/dev/mapper/irma6lvm-rootfs_${CUR_FW_SUFFIX}_hash" of="/dev/mapper/irma6lvm-rootfs_${ALT_FW_SUFFIX}_hash" bs=10M || \
+		log "Error: Failed to copy alternative rootfs hash device"
 
 	# Update alternative roothash and roothash.signature
 	mount /dev/mapper/irma6lvm-keystore /mnt/keystore
-	cp "/mnt/keystore/rootfs_${CUR_FW_SUFFIX}_roothash" "/mnt/keystore/rootfs_${ALT_FW_SUFFIX}_roothash"
-	cp "/mnt/keystore/rootfs_${CUR_FW_SUFFIX}_roothash.signature" "/mnt/keystore/rootfs_${ALT_FW_SUFFIX}_roothash.signature"
+	cp "/mnt/keystore/rootfs_${CUR_FW_SUFFIX}_roothash" "/mnt/keystore/rootfs_${ALT_FW_SUFFIX}_roothash" || \
+		log "Error: Failed to copy alternative roothash"
+	cp "/mnt/keystore/rootfs_${CUR_FW_SUFFIX}_roothash.signature" "/mnt/keystore/rootfs_${ALT_FW_SUFFIX}_roothash.signature" || \
+		log "Error: Failed to copy alternative roothash.signature"
 	umount /mnt/keystore
 
 	rm "$ALTERNATIVE_FW_UPDATE_FLAG"
+	log "Alternative firmware update complete"
 fi
