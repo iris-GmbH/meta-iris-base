@@ -66,6 +66,11 @@ bootloader_handler = function(image)
 	-- toggle /dev/mmcblk2bootX
 	os.capture("/usr/bin/mmc bootpart enable " .. part_no  .. " 0 /dev/mmcblk2")
 
+	-- also update current bootloader
+	os.capture("/bin/echo 0 > /sys/block/mmcblk2boot" .. current_part_no_z .. "/force_ro")
+	os.capture("/bin/dd if=/dev/mmcblk2boot" .. part_no_z .. " of=/dev/mmcblk2boot" .. current_part_no_z .. " &>/dev/null")
+	os.capture("/bin/echo 1 > /sys/block/mmcblk2boot" .. current_part_no_z .. "/force_ro")
+
 	swupdate.notify(swupdate.RECOVERY_STATUS.SUCCESS, 0, "Bootloader update successful")
 	return 0
 end
