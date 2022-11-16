@@ -27,7 +27,7 @@ power_on_selftest() {
 			if pidofproc "$tool" >/dev/null 2>&1; then
 				log "[PASSED] $tool"; break;
 			else
-				log "Retry $retries getting pid of $tool"; sleep 1;
+				log "Retry $((i+=1)) getting pid of $tool"; sleep 1;
 			fi
 			retries=$((retries-1))
 		done
