@@ -1,0 +1,147 @@
+From ad0f84b4c4e359d9e5c5168e25f92ea7ed2c99ed Mon Sep 17 00:00:00 2001
+From: "philipp.schoewe" <Philipp.Schoewe@iris-sensing.com>
+Date: Thu, 17 Nov 2022 13:29:16 +0100
+Subject: [PATCH] imx8mp-irma6r2: Add check for EEPROM config reset and admin
+ reset flags
+
+---
+ .../freescale/imx8mp_irma6r2/imx8mp_irma6r2.c | 23 ++++++++++++++-----
+ .../freescale/imx8mp_irma6r2/interface_unit.c | 23 +++++++++++++++++--
+ .../freescale/imx8mp_irma6r2/interface_unit.h | 10 ++++++++
+ 3 files changed, 48 insertions(+), 8 deletions(-)
+
+diff --git a/board/freescale/imx8mp_irma6r2/imx8mp_irma6r2.c b/board/freescale/imx8mp_irma6r2/imx8mp_irma6r2.c
+index b3c2c271d6..18d078a9a2 100644
+--- a/board/freescale/imx8mp_irma6r2/imx8mp_irma6r2.c
++++ b/board/freescale/imx8mp_irma6r2/imx8mp_irma6r2.c
+@@ -535,8 +535,8 @@ void board_autogenerate_bootcmd (void)
+     int firmware_env = env_get_ulong("firmware", 10, 0);
+     char *firmware;
+     char *altfirmware;
+-    char bootcmd[50];
+-    char altbootcmd[50];
++    char bootcmd[100];
++    char altbootcmd[100];
+     char partboot[20];
+     char altpartboot[20];
+     int upgrade_available = env_get_ulong("upgrade_available", 10, 0);
+@@ -590,7 +590,8 @@ void board_autogenerate_bootcmd (void)
+ 
+ 	/* read interface unit eeprom for nfs boot flag and mac address */
+ 	bool nfs_boot = false;
+-	if (IU_read_eeprom() == 0) {
++    int eeprom_valid = IU_read_eeprom();
++	if (eeprom_valid == 0) {
+ 		IU_print_eeprom_content();
+ 		IU_set_mac("eth1addr");
+ 
+@@ -599,7 +600,7 @@ void board_autogenerate_bootcmd (void)
+ 			nfs_boot = IU_get_nfs_boot_flag();
+ 		}
+ 	}
+-	
++
+ 	if (nfs_boot) {
+ 		snprintf(bootcmd, sizeof(bootcmd), "run netfitboot; reset;");
+ 	} else {
+@@ -610,11 +611,21 @@ void board_autogenerate_bootcmd (void)
+ 		in an insecure U-Boot console environment." -- http://trac.gateworks.com/wiki/secure_boot  */
+ 		snprintf(bootcmd, sizeof(bootcmd), "setenv mmcpart %s; run fitboot; reset;", partboot);
+ 		snprintf(altbootcmd, sizeof(altbootcmd), "setenv mmcpart %s; run fitboot; reset;", altpartboot);
++		if (eeprom_valid == 0) {
++			/* check config reset flag */
++			if (IU_get_config_reset_flag()) {
++				strcat(bootcmd, " reset_config;");
++			}
++			/* check device admin reset flag */
++			if (IU_get_admin_reset_flag()) {
++				strcat(bootcmd, " reset_admin;");
++			}
++		}
+ 	}
+-#if DEBUG
++//#if DEBUG
+     printf("partboot: %s  ... altpartboot: %s \n", partboot, altpartboot);
+     printf("bootcmd: %s . altbootcmd: %s \n", bootcmd, altbootcmd);
+-#endif
++//#endif
+     env_set("bootcmd", bootcmd);
+     env_set("altbootcmd", altbootcmd);
+ 
+diff --git a/board/freescale/imx8mp_irma6r2/interface_unit.c b/board/freescale/imx8mp_irma6r2/interface_unit.c
+index ae499dc144..fc7587b3e2 100644
+--- a/board/freescale/imx8mp_irma6r2/interface_unit.c
++++ b/board/freescale/imx8mp_irma6r2/interface_unit.c
+@@ -34,7 +34,7 @@ struct __attribute__ ((__packed__)) interface_configuration_block {
+ 	uint8_t mac[6];
+ 	uint8_t dn[8];
+ 	struct bcb_flags_t {
+-		uint8_t nfs :1, dhcp :1, reserved :6;
++		uint8_t nfs :1, dhcp :1, config_reset:1, admin_reset:1, reserved :4;
+ 	} flags;
+ };
+ 
+@@ -67,7 +67,10 @@ static enum eeprom_validity_state validate_cib_content(struct component_identifi
+ }
+ 
+ static enum eeprom_validity_state validate_bcb_content(struct interface_configuration_block * bcb) {
+-	return compare_versions(bcb->version, IU_BCB_VERSION);
++	if (bcb->version == 2 || bcb->version == 3) {
++		return VALID;
++	}
++	return INVALID;
+ }
+ 
+ int IU_read_eeprom(void) {
+@@ -107,6 +110,20 @@ int IU_get_nfs_boot_flag(void) {
+ 	return eeprom.bcb.flags.nfs;
+ }
+ 
++int IU_get_config_reset_flag(void) {
++	if (eeprom.bcb.version == 3) {
++		return eeprom.bcb.flags.config_reset;
++	}
++	return 0;
++}
++
++int IU_get_admin_reset_flag(void) {
++	if (eeprom.bcb.version == 3) {
++		return eeprom.bcb.flags.admin_reset;
++	}
++	return 0;
++}
++
+ void IU_print_eeprom_content(void) {
+ 	printf("Interface Unit EEPROM Content:\n");
+ 	printf("  Component Identification Block:\n");
+@@ -129,4 +146,6 @@ void IU_print_eeprom_content(void) {
+ 	printf("\tflags: 0x%02x\n", (uint8_t) * ((uint8_t*) &eeprom.bcb.flags));
+ 	printf("\t\tnfs: %d\n", eeprom.bcb.flags.nfs);
+ 	printf("\t\tdhcp: %d\n", eeprom.bcb.flags.dhcp);
++	printf("\t\tconfig_reset: %d\n", eeprom.bcb.flags.config_reset);
++	printf("\t\tadmin_reset: %d\n", eeprom.bcb.flags.admin_reset);
+ }
+diff --git a/board/freescale/imx8mp_irma6r2/interface_unit.h b/board/freescale/imx8mp_irma6r2/interface_unit.h
+index 60ff24b9c5..3d784c00e3 100644
+--- a/board/freescale/imx8mp_irma6r2/interface_unit.h
++++ b/board/freescale/imx8mp_irma6r2/interface_unit.h
+@@ -16,6 +16,16 @@ int IU_set_mac(const char* mac);
+  */
+ int IU_get_nfs_boot_flag(void);
+ 
++/*
++ * Gets the config reset flag from the interface unit EEPROM, 1 if resetting config, 0 no reset.
++ */
++int IU_get_config_reset_flag(void);
++
++/*
++ * Gets the device admin reset flag from the interface unit EEPROM, 1 if resetting whole user database, 0 no reset.
++ */
++int IU_get_admin_reset_flag(void);
++
+ /*
+  * Prints out the interface unit eeprom content
+  */
+-- 
+2.25.1
+
