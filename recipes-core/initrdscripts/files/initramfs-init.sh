@@ -65,6 +65,10 @@ parse_cmdline() {
         # default to firmware a
         FIRMWARE_SUFFIX="_a"
     fi
+    NFSBOOT="no"
+    if grep -q '/dev/nfs' /proc/cmdline; then
+        NFSBOOT="yes"
+    fi
 }
 
 pvsn_wipe() {
@@ -187,6 +191,7 @@ _rj45_cable_is_cross_pair_shorted() {
 }
 
 rj45_cable_is_cross_pair_shorted() {
+    [ "$NFSBOOT" = "yes" ] && return 1
     ifconfig eth0 up
     _rj45_cable_is_cross_pair_shorted && err=0 || err=1
     ifconfig eth0 down
