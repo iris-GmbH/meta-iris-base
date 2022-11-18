@@ -151,6 +151,16 @@ is_bit_set() {
   echo $((($1 & $2) != 0))
 }
 
+print_info() {
+  [ "$(is_bit_set 0x0001 $1)" -eq 1 ] && echo -n "GOOD "
+  [ "$(is_bit_set 0x0002 $1)" -eq 1 ] && echo -n "OPEN "
+  [ "$(is_bit_set 0x0004 $1)" -eq 1 ] && echo -n "SHORT "
+  [ "$(is_bit_set 0x0008 $1)" -eq 1 ] && echo -n "XSHORT1 "
+  [ "$(is_bit_set 0x0080 $1)" -eq 1 ] && echo -n "SIM "
+  [ "$(is_bit_set 0x0100 $1)" -eq 1 ] && echo -n "XSIM1 "
+  [ "$(is_bit_set 0x0800 $1)" -eq 1 ] && echo -n "BUSY "
+}
+
 # Test if both pairs of the rj45 cable detect a cross pair short
 # Return 0: If there is a cross pair short detected
 #        1: On all other cases; errors included
@@ -172,10 +182,14 @@ _rj45_cable_is_cross_pair_shorted() {
         sleep 0.03
         pair_a=$(phytool read eth0/0x1:0x1E/0xBA1D) # Cable Diagnostics Results 0 Register
         pair_b=$(phytool read eth0/0x1:0x1E/0xBA1E) # Cable Diagnostics Results 1 Register
+        echo "A: $pair_a, B: $pair_b, retries: $retries"
         [ $((pair_a)) -ne 0 ] && [ $((pair_b)) -ne 0 ] && break
         retries=$((retries-1))
     done
     [ "$retries" -gt 0 ] || return 1
+
+    echo "A: $pair_a $(print_info "$pair_a")"
+    echo "B: $pair_b $(print_info "$pair_b")"
 
     # Stop cable diagnostic and reset
     phytool write eth0/0x1/0x0017 0x3048 # Enable link
@@ -271,10 +285,11 @@ veritysetup open ${DECRYPT_ROOT_DEV} ${VERITY_NAME} ${ROOT_HASH_DEV} ${RH}
 ${MOUNT} ${VERITY_DEV} ${ROOT_MNT} -o ro
 ${MOUNT} ${DECRYPT_USER_DATA_DEV} ${ROOT_MNT}/mnt/iris
 
-
-if rj45_cable_is_cross_pair_shorted; then
+echo "###################################### START XPair"
+if time rj45_cable_is_cross_pair_shorted; then
 	echo "### Do the factory reset.. ###"
 fi
+echo "###################################### END XPair"
 
 ${MOUNT} --move /dev ${ROOT_MNT}/dev
 ${MOUNT} --move /proc ${ROOT_MNT}/proc
