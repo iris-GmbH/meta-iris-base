@@ -229,6 +229,7 @@ DECRYPT_ROOT_DEV="/dev/mapper/${DECRYPT_NAME}"
 
 DATA_DEV="/dev/mapper/irma6lvm-userdata"
 DECRYPT_DATA_NAME="decrypted-irma6lvm-userdata"
+DECRYPT_USER_DATA_DEV="/dev/mapper/decrypted-irma6lvm-userdata"
 
 PUBKEY="/etc/iris/signing/roothash-public-key.pem"
 
@@ -237,7 +238,8 @@ debug "Select firmware${FIRMWARE_SUFFIX}"
 # Check root device
 debug "Root mnt   : ${ROOT_MNT}"
 debug "Root device: ${ROOT_DEV}"
-debug "Crypt device: ${DECRYPT_ROOT_DEV}"
+debug "Crypt rootfs device: ${DECRYPT_ROOT_DEV}"
+debug "Crypt user-data device: ${DECRYPT_USER_DATA_DEV}"
 debug "Verity device: ${VERITY_DEV}"
 
 ${MOUNT} ${KEYSTORE_DEV} ${KEYSTORE}
@@ -267,6 +269,8 @@ debug "Opening verity device: ${DECRYPT_ROOT_DEV}"
 veritysetup open ${DECRYPT_ROOT_DEV} ${VERITY_NAME} ${ROOT_HASH_DEV} ${RH}
 
 ${MOUNT} ${VERITY_DEV} ${ROOT_MNT} -o ro
+${MOUNT} ${DECRYPT_USER_DATA_DEV} ${ROOT_MNT}/mnt/iris
+
 
 if rj45_cable_is_cross_pair_shorted; then
 	echo "### Do the factory reset.. ###"
