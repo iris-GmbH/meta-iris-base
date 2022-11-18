@@ -143,6 +143,56 @@ pvsn_flash() {
     dmsetup remove /dev/mapper/decrypted-irma6lvm-userdata
 }
 
+is_bit_set() {
+  echo $((($1 & $2) != 0))
+}
+
+# Test if both pairs of the rj45 cable detect a cross pair short
+# Return 0: If there is a cross pair short detected
+#        1: On all other cases; errors included
+_rj45_cable_is_cross_pair_shorted() {
+    # Check if phy is adin1200
+    PHY_ID_ADIN1200=0x0283BC20
+    id1=$(phytool read eth0/0x1/0x0002)
+    id2=$(phytool read eth0/0x1/0x0003)
+    id=$(printf '0x%.8X\n' "$(((id1 << 16) | id2))")
+    [ "$((id))" -eq "$((PHY_ID_ADIN1200))" ] || return 1
+
+    # Start cable diagnostic
+    phytool write eth0/0x1/0x0017 0x1048 # Disbale link
+    phytool write eth0/0x1/0x0012 0x0406 # Enable diagnostic clock
+
+    retries=5
+    while [ "$retries" -gt 0 ]; do
+        phytool write eth0/0x1:0x1E/0xBA1B 0x0001 # Run diagnostic
+        sleep 0.03
+        pair_a=$(phytool read eth0/0x1:0x1E/0xBA1D) # Cable Diagnostics Results 0 Register
+        pair_b=$(phytool read eth0/0x1:0x1E/0xBA1E) # Cable Diagnostics Results 1 Register
+        [ $((pair_a)) -ne 0 ] && [ $((pair_b)) -ne 0 ] && break
+        retries=$((retries-1))
+    done
+    [ "$retries" -gt 0 ] || return 1
+
+    # Stop cable diagnostic and reset
+    phytool write eth0/0x1/0x0017 0x3048 # Enable link
+    phytool write eth0/0x1/0x0012 0x0402 # Disable diagnostic clock
+
+    # Check for cross pair short
+    XSHORT1=0x0008
+    if  [ "$(is_bit_set pair_a XSHORT1)" -eq 1 ]  &&  [ "$(is_bit_set pair_b XSHORT1)" -eq 1 ]; then
+        return 0
+    fi
+
+    return 1
+}
+
+rj45_cable_is_cross_pair_shorted() {
+    ifconfig eth0 up
+    _rj45_cable_is_cross_pair_shorted && err=0 || err=1
+    ifconfig eth0 down
+    return "$err"
+}
+
 mount_pseudo_fs
 
 # populate LVM mapper devices
@@ -212,6 +262,11 @@ debug "Opening verity device: ${DECRYPT_ROOT_DEV}"
 veritysetup open ${DECRYPT_ROOT_DEV} ${VERITY_NAME} ${ROOT_HASH_DEV} ${RH}
 
 ${MOUNT} ${VERITY_DEV} ${ROOT_MNT} -o ro
+
+if rj45_cable_is_cross_pair_shorted; then
+	echo "### Do the factory reset.. ###"
+fi
+
 ${MOUNT} --move /dev ${ROOT_MNT}/dev
 ${MOUNT} --move /proc ${ROOT_MNT}/proc
 ${MOUNT} --move /sys ${ROOT_MNT}/sys
