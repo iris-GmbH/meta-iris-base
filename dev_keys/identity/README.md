@@ -1,14 +1,48 @@
-# How to create crt/csr/key?
+# How to create pki with ca/crt/key?
 
+## Requirements
+- Package: easy-rsa
+
+## Create PKI
 ```bash
-# Create sensor.key, sensor.csr and public.pem with pvsn_create_identity_cert.sh or the following:
-$ SSL_CONFIG_FILE="pvsn_create_identity_cert.cnf"
-$ openssl ecparam -name secp384r1 -genkey -noout -out sensor_identity_snakeoil.key
-$ openssl ec -in sensor_identity_snakeoil.key -pubout -out sensor_identity_snakeoil.pubkey
-$ PRODUCT_FAMILY=irma6R2 SENSOR_SERIAL=9900010001 openssl req -new -nodes -key sensor_identity_snakeoil.key -out sensor_identity_snakeoil.csr -config "${SSL_CONFIG_FILE}"
+$ export EASYRSA=$(pwd)/certs
+$ easyrsa init-pki
+$ easyrsa build-ca
+# Enter New CA Key Passphrase: hallo00 [Enter]
+# Re-Enter New CA Key Passphrase: hallo00 [Enter]
+# Common Name: [Enter]
+$ easyrsa --subject-alt-name="DNS:irma6-DEV,IP.1:192.168.240.254,IP.2:172.16.0.10,IP.3:10.42.0.70" gen-req sensor nopass
+# Common Name: [Enter]
+$ easyrsa sign-req server sensor
+$ ln -s certs/pki/ca.crt ca_identity_snakeoil.crt
+$ ln -s certs/pki/issued/sensor.crt sensor_identity_snakeoil.crt
+$ ln -s certs/pki/private/sensor.key sensor_identity_snakeoil.key
 
-# Create self signing crt
-$ openssl x509 -signkey sensor_identity_snakeoil.key -in sensor.csr -req -days 7300 -out sensor_identity_snakeoil.crt
+$ tree certs
+certs
+└── pki
+    ├── ca.crt                                     <-- ca_identity_snakeoil.crt
+    ├── certs_by_serial
+    │   └── FE7E626D1BAA54E5897F9CD03824E38B.pem
+    ├── index.txt
+    ├── index.txt.attr
+    ├── index.txt.attr.old
+    ├── index.txt.old
+    ├── issued
+    │   └── sensor.crt                             <-- sensor_identity_snakeoil.crt
+    ├── openssl-easyrsa.cnf
+    ├── private
+    │   ├── ca.key
+    │   └── sensor.key                             <-- sensor_identity_snakeoil.key
+    ├── reqs
+    │   └── sensor.req
+    ├── revoked
+    │   ├── certs_by_serial
+    │   ├── private_by_serial
+    │   └── reqs_by_serial
+    ├── safessl-easyrsa.cnf
+    ├── serial
+    └── serial.old
 ```
 
 

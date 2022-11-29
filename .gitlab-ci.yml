@@ -1,0 +1,3 @@
+include:
+  - project: 'public-projects/yocto/iris-kas'
+    file: '.gitlab/layers-template.yml'

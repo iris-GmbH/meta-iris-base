@@ -6,8 +6,8 @@ FILESEXTRAPATHS_prepend := "${THISDIR}/${PN}:"
 wwwdir = "/var/www/swupdate"
 
 # Put reset script right after counting application
-RESET_SCRIPT="reset_upgrade_available.sh"
-RESET_SCRIPT_SYM="S92reset_upgrade_available"
+RESET_SCRIPT="power_on_selftest.sh"
+RESET_SCRIPT_SYM="S93power_on_selftest"
 
 # use git instead of quilt to apply binary patch as well
 PATCHTOOL = "git"
