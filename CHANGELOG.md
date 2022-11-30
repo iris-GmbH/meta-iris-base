@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [APR's Version Numbering](https://apr.apache.org/versioning.html).
 
-## [2.0.11-dev] (HEAD) - n/a
+## [2.0.11] - 2022-11-29
 ### Added
 - Allow end/pos1/del commands in UART terminal
 - [RDPHOEN-1402]: Add snake oil identity cert/key with root CA
@@ -20,23 +20,6 @@ and this project adheres to [APR's Version Numbering](https://apr.apache.org/ver
 
 ### Changed
 - Enable Debug-Tweaks (UART root access) on all R1 images
-
-### Deprecated
-
-
-### Removed
-
-
-### Fixed
-
-
-### Simulation only
-
-
-### Maintenance only
-
-
-### Known issues
 
 
 
