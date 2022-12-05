@@ -46,21 +46,7 @@ cable_diagnostic() {
     return 0
 }
 
-# Skip check for cross pair short on nfs boot
-if ! grep -q '/dev/nfs' /proc/cmdline; then
-    if cable_diagnostic; then
-        echo "  A: $pair_a $(print_info "$pair_a")"
-        echo "  B: $pair_b $(print_info "$pair_b")"
-
-        # 1/3 and 2/6 shorted
-        XSHORT1=0x0008
-        if [ $(("$pair_a" & "$XSHORT1")) -ne 0 ] && [ $(("$pair_b" & "$XSHORT1")) -ne 0 ]; then
-            factory_reset=1
-        fi
-    fi
-fi
-
-if [ -n "$factory_reset" ] && [ "$factory_reset" -ne 0 ]; then
+factory_reset() {
     # TODO: [APC-5256]: Remove customer certificates
     # TODO: [APC-5387]: Use HTTPS as default
 
@@ -70,4 +56,18 @@ if [ -n "$factory_reset" ] && [ "$factory_reset" -ne 0 ]; then
     rm -f /mnt/iris/counter/webserver/preferences.json
     rm -f /mnt/iris/counter/webserver/authentication.sqlite
     rm -f /mnt/iris/logging/*.sqlite
+}
+
+# Skip check for cross pair short on nfs boot
+if ! grep -q '/dev/nfs' /proc/cmdline; then
+    if cable_diagnostic; then
+        echo "  A: $pair_a $(print_info "$pair_a")"
+        echo "  B: $pair_b $(print_info "$pair_b")"
+
+        # 1/3 and 2/6 shorted
+        XSHORT1=0x0008
+        if [ $(("$pair_a" & "$XSHORT1")) -ne 0 ] && [ $(("$pair_b" & "$XSHORT1")) -ne 0 ]; then
+            factory_reset
+        fi
+    fi
 fi
