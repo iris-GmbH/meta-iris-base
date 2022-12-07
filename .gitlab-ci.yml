@@ -1,3 +1,4 @@
 include:
   - project: 'public-projects/yocto/iris-kas'
     file: '.gitlab/layers-template.yml'
+    ref: 'bugfix/jaor/fix_mergerequest_against_master_branch'
