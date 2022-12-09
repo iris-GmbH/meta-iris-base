@@ -7,7 +7,6 @@ and this project adheres to [APR's Version Numbering](https://apr.apache.org/ver
 ## [2.0.12-dev] (HEAD) - n/a
 ### Added
 
-
 ### Changed
 
 
