@@ -4,23 +4,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [APR's Version Numbering](https://apr.apache.org/versioning.html).
 
-## [2.0.11-dev] (HEAD) - n/a
+## [2.0.12-dev] (HEAD) - n/a
 ### Added
-- Allow end/pos1/del commands in UART terminal
-- [RDPHOEN-1402]: Add snake oil identity cert/key with root CA
-- [RDPHOEN-1402]: uuu: Create rw location for nginx sites-enabled
-- [RDPHOEN-1404]: Create symlink for webtls and default webserver conf symlink
-- [RDPHOEN-1327]: Save timestamp on rw partition (only R2)
-- [RDPHOEN-1327]: Add script that periodically saves the timestamp
-- [APC-5379]: Add fitImage SRK verification on update
-- [APC-5286]: Keep current and alternative firmware to be the same after a successfull update
-- [APC-5286]: Update alternative bootloader after successfull update
-- [APC-5376]: Add power on selftest after update
-- [APC-5470]: Add factory reset
-- [APC-4580]: Add predefined avahi service to publish a http service
 
 ### Changed
-- Enable Debug-Tweaks (UART root access) on all R1 images
+
 
 ### Deprecated
 
@@ -38,6 +26,25 @@ and this project adheres to [APR's Version Numbering](https://apr.apache.org/ver
 
 
 ### Known issues
+
+
+
+## [2.0.11] - 2022-11-29
+### Added
+- Allow end/pos1/del commands in UART terminal
+- [RDPHOEN-1402]: Add snake oil identity cert/key with root CA
+- [RDPHOEN-1402]: uuu: Create rw location for nginx sites-enabled
+- [RDPHOEN-1404]: Create symlink for webtls and default webserver conf symlink
+- [RDPHOEN-1327]: Save timestamp on rw partition (only R2)
+- [RDPHOEN-1327]: Add script that periodically saves the timestamp
+- [APC-5379]: Add fitImage SRK verification on update
+- [APC-5286]: Keep current and alternative firmware to be the same after a successfull update
+- [APC-5286]: Update alternative bootloader after successfull update
+- [APC-5376]: Add power on selftest after update
+- [APC-4580]: Add predefined avahi service to publish a http service
+
+### Changed
+- Enable Debug-Tweaks (UART root access) on all R1 images
 
 
 
