@@ -42,6 +42,7 @@ and this project adheres to [APR's Version Numbering](https://apr.apache.org/ver
 - [APC-5286]: Update alternative bootloader after successfull update
 - [APC-5376]: Add power on selftest after update
 - [APC-4580]: Add predefined avahi service to publish a http service
+- [APC-5470]: Add factory reset
 
 ### Changed
 - Enable Debug-Tweaks (UART root access) on all R1 images
