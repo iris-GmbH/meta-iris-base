@@ -3,9 +3,10 @@ FILESEXTRAPATHS_prepend := "${THISDIR}/files:"
 SRC_URI += " \
     file://save-rtc-loop.sh \
     file://factory-reset.sh \
+    file://factory-reset-functions \
 "
 
-RDEPENDS_${PN}_append_mx8mp = "phytool"
+RDEPENDS_${PN}_append = "phytool"
 
 do_install_append() {
 	# Remove S06checkroot.sh symlink to avoid "ro" /
@@ -15,10 +16,9 @@ do_install_append() {
 
 	install -m 0755 ${WORKDIR}/save-rtc-loop.sh ${D}${sysconfdir}/init.d
 	update-rc.d -r ${D} save-rtc-loop.sh start 45 S .
-}
 
-do_install_append_mx8mp() {
 	install -m 0755 ${WORKDIR}/factory-reset.sh ${D}${sysconfdir}/init.d
+	install -m 0755 ${WORKDIR}/factory-reset-functions ${D}${sysconfdir}/init.d
 	update-rc.d -r ${D} factory-reset.sh start 40 5 .
 }
 
