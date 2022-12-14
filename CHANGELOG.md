@@ -7,6 +7,7 @@ and this project adheres to [APR's Version Numbering](https://apr.apache.org/ver
 ## [2.0.12-dev] (HEAD) - n/a
 ### Added
 - [APC-5579]: factory-reset.sh: Add force option
+- [APC-5725]: Share factory reset script between R1 and R2
 
 
 ### Changed
