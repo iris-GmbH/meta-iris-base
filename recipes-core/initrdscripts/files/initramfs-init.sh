@@ -24,6 +24,12 @@ mount_pseudo_fs() {
     ${MOUNT} -t sysfs sysfs /sys
 }
 
+move_special_devices() {    
+    ${MOUNT} --move /dev ${ROOT_MNT}/dev
+    ${MOUNT} --move /proc ${ROOT_MNT}/proc
+    ${MOUNT} --move /sys ${ROOT_MNT}/sys    
+}
+
 debug_reboot() {
     if [ "${DEBUGSHELL}" = "yes" ]; then
         echo "enter debugshell"
@@ -58,6 +64,13 @@ parse_cmdline() {
     then
         DEBUGSHELL="yes"
     fi
+
+    # Check if NFS boot is active
+    if grep -q 'nfsroot' /proc/cmdline
+    then
+        NFSPATH=$(grep -Eo "nfsroot=[^ ]*" /proc/cmdline | tr '=' ',' | cut -d',' -f2)
+    fi
+
     if grep -q 'linuxboot_b\|firmware_b' /proc/cmdline
     then
         FIRMWARE_SUFFIX="_b"
@@ -158,6 +171,16 @@ fi
 echo "Initramfs Bootstrap..."
 parse_cmdline
 
+# If NFS is active, switchroot now
+if [ -n "${NFSPATH}" ]
+then
+    ${MOUNT} -t nfs "${NFSPATH}" ${ROOT_MNT}
+    echo "Switching root to Network File System"
+    move_special_devices
+    exec switch_root ${ROOT_MNT} ${INIT} "${CMDLINE}"
+    exit 0
+fi
+
 KEYSTORE_DEV="/dev/mapper/irma6lvm-keystore"
 KEYSTORE="/mnt/keystore"
 
@@ -212,10 +235,6 @@ debug "Opening verity device: ${DECRYPT_ROOT_DEV}"
 veritysetup open ${DECRYPT_ROOT_DEV} ${VERITY_NAME} ${ROOT_HASH_DEV} ${RH}
 
 ${MOUNT} ${VERITY_DEV} ${ROOT_MNT} -o ro
-${MOUNT} --move /dev ${ROOT_MNT}/dev
-${MOUNT} --move /proc ${ROOT_MNT}/proc
-${MOUNT} --move /sys ${ROOT_MNT}/sys
-
-#Switch to real root
-echo "Switch to root"
+move_special_devices
+echo "Switching root to verity device"
 exec switch_root ${ROOT_MNT} ${INIT} "${CMDLINE}"
