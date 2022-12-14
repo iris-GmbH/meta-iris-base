@@ -16,6 +16,7 @@ and this project adheres to [APR's Version Numbering](https://apr.apache.org/ver
 
 
 ### Removed
+- [APC-5542]: Remove netboot image
 
 
 ### Fixed
