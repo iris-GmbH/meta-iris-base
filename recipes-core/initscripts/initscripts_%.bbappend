@@ -19,6 +19,6 @@ do_install_append() {
 
 	install -m 0755 ${WORKDIR}/factory-reset.sh ${D}${sysconfdir}/init.d
 	install -m 0755 ${WORKDIR}/factory-reset-functions ${D}${sysconfdir}/init.d
-	update-rc.d -r ${D} factory-reset.sh start 40 5 .
+	update-rc.d -r ${D} factory-reset.sh start 18 5 .
 }
 
