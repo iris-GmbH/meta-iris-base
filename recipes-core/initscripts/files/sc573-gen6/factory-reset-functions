@@ -1,5 +1,6 @@
 #!/bin/sh
 
+LAZY_RESET_FLAG="/etc/counter/lazy_factory_reset"
 cable_is_shorted=0
 
 print_info() {
