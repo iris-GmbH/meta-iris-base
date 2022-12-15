@@ -22,11 +22,11 @@ cable_test_wait_for_completion() {
 }
 
 read_one_pair() {
-	# set mdi/mdix
-	if [ "$1" -eq 0 ]; then
-    	phytool write eth0/0x1/0x001F 0xA100 # Disbale auto MDI/MDI-X + set MDI
+    # set mdi/mdix
+    if [ "$1" -eq 0 ]; then
+        phytool write eth0/0x1/0x001F 0xA100 # Disbale auto MDI/MDI-X + set MDI
     else
-    	phytool write eth0/0x1/0x001F 0xE100 # Disbale auto MDI/MDI-X + set MDIX
+        phytool write eth0/0x1/0x001F 0xE100 # Disbale auto MDI/MDI-X + set MDIX
     fi
     phytool write eth0/0x1/0x001D 0x8000 # Start cable diagnostic
     cable_test_wait_for_completion || return 1
@@ -53,13 +53,15 @@ cable_diagnostic() {
     # Prepare
     phytool write eth0/0x1/0x0000 0x0100 # Disable Autonegotiation + 10Mbps
 
-	i=0
-	while [ $i -lt 20 ]; do
-		# read_one_pair 0: test pair 1/2
+    # The cable diagnostic might fail due to active link partner.
+    # Try harder if link partner is active.
+    i=0
+    while [ $i -lt 20 ]; do
+        # read_one_pair 0: test pair 1/2
         # read_one_pair 1: test pair 3/6
         pair_a=$(read_one_pair 0) && pair_b=$(read_one_pair 1) && break
-		i=$(( i + 1 ))
-	done
+        i=$(( i + 1 ))
+    done
 
     # Reset
     phytool write eth0/0x1/0x001F 0x8100 # Enable auto MDI/MDI-X
@@ -79,8 +81,8 @@ cable_diagnostic() {
 # Test if the cable pairs 1/2 and 3/6 are shorted
 # Caution: returns 0 on short, 1 otherwise
 short_detected() {
-	cable_diagnostic || return 1
-	[ "$cable_is_shorted" -eq 1 ] && return 0 || return 1
+    cable_diagnostic || return 1
+    [ "$cable_is_shorted" -eq 1 ] && return 0 || return 1
 }
 
 factory_reset() {
