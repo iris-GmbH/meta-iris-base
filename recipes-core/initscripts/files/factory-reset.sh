@@ -1,6 +1,6 @@
 #!/bin/sh
 
-. /etc/init.d/factory-reset-functions || exit 1
+. /usr/share/factory-reset/factory-reset-functions || exit 1
 [ -n "$LAZY_RESET_FLAG" ] || { echo "Error: Filename LAZY_RESET_FLAG is not set"; exit 1; }
 
 FORCE=0
