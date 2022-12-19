@@ -88,5 +88,6 @@ short_detected() {
 factory_reset() {
     echo "Factory reset!"
     rm -f /etc/counter/config_customer*
+    rm -f /etc/counter/config.yaml*
 }
 
