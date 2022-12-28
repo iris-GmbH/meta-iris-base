@@ -107,10 +107,10 @@ imx_fuse_read () {
 	count=${2}	# count = number of words to be read
 
 	ocotp_patch=$(find /sys/bus/ -name "imx-ocotp0")
-	[ -z ${ocotp_patch} ] && { log "No FUSE support!"; exit 1; }
+	[ -z "${ocotp_patch}" ] && { log "No FUSE support!"; exit 1; }
 	ocotp_file=${ocotp_patch}/nvmem
 
-	dd if=${ocotp_file} bs=4 count=${count} skip=${idx} 2>/dev/null | hexdump -e '"0x%04x\n"'
+	dd if="${ocotp_file}" bs=4 count="${count}" skip="${idx}" 2>/dev/null | hexdump -e '"0x%04x\n"'
 }
 
 
@@ -141,7 +141,7 @@ check_hab_srk() {
 
 		# decrypt image to read SRKs
 		file_decrypted="/tmp/file_decrypted"
-		openssl enc -d -aes-256-cbc -K "$KEY" -iv "$IV" -in $signed_image > "$file_decrypted"
+		openssl enc -d -aes-256-cbc -K "$KEY" -iv "$IV" -in "$signed_image" > "$file_decrypted"
 
 		# read SRKs from image
 		(cd /tmp/ && csf_parser -s "$file_decrypted" > /dev/null 2>&1)
@@ -167,7 +167,7 @@ resize_lvm() {
 	export LVM_SUPPRESS_FD_WARNINGS=1
 
 	# get new compressed/encrypted rootfs
-	rootfs_file=$(cat /tmp/sw-description | tr '\n' ' ' | grep -o '{[^}]*device = "/dev/swu_rootfs"[^}]*}' | grep -o 'filename = "[^"]*";' | cut -d'"' -f 2)
+	rootfs_file=$(< /tmp/sw-description tr '\n' ' ' | grep -o '{[^}]*device = "/dev/swu_rootfs"[^}]*}' | grep -o 'filename = "[^"]*";' | cut -d'"' -f 2)
 	rootfs_file="/tmp/$rootfs_file"
 	if [ ! -e "$rootfs_file" ]; then
 		log "Could not find new rootfs during logical volume resize!"; exit 1;
@@ -178,7 +178,7 @@ resize_lvm() {
 
 	# get new rootfs size
 	new_size=$(openssl enc -d -aes-256-cbc -K "$KEY" -iv "$IV" -in "$rootfs_file" | zcat | wc -c)
-	if [ $new_size -eq 0 ]; then
+	if [ "$new_size" -eq 0 ]; then
 		log "Could not retrieve new rootfs size during logical volume resize!"; exit 1;
 	fi
 
