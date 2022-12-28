@@ -7,6 +7,7 @@ LICENSE = "MIT"
 inherit irma6-core-image
 IMAGE_ROOTFS_SIZE ?= "8192"
 IMAGE_ROOTFS_EXTRA_SPACE_append = "${@bb.utils.contains("DISTRO_FEATURES", "systemd", " + 4096", "" ,d)}"
+IMAGE_ROOTFS_EXTRA_SPACE_append = " + 2000000"
 TOOLCHAIN_HOST_TASK += "nativesdk-cmake nativesdk-protobuf-lite nativesdk-protobuf-compiler"
 TOOLCHAIN_TARGET_TASK += "googletest"
 
