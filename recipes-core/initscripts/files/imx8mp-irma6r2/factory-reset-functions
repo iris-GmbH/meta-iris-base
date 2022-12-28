@@ -72,10 +72,8 @@ short_detected() {
 }
 
 factory_reset() {
-    # TODO: [APC-5387]: Use HTTPS as default
-
     echo "Factory reset!"
-    ln -sf /etc/nginx/sites-available/reverse_proxy_http.conf /mnt/iris/nginx/sites-enabled/default_server
+    ln -sf /etc/nginx/sites-available/reverse_proxy_https.conf /mnt/iris/nginx/sites-enabled/default_server
     rm -f /mnt/iris/counter/config_customer*
     rm -f /mnt/iris/counter/config.yaml*
     rm -f /mnt/iris/counter/webserver/preferences.json
