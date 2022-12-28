@@ -201,10 +201,18 @@ create_webserver_symlinks() {
         log "Create default webtls symlink"
         ln -sf /mnt/iris/identity /mnt/iris/webtls || exit 1
     fi
+    # if "disable_https" parameter has version 1.0, we must overwrite default_server with https
+    if [ -f "/etc/counter/config_customer.json" ]; then
+        is_old_version=$(jq '.sets.IRMA6_Customer.parameters["pa.communication.disable_https"]["version"] == "1.0"' "/etc/counter/config_customer.json")
+        if [ "$is_old_version" = "true" ]; then
+            # remove link here, the following lines will recreate link
+            rm "/mnt/iris/nginx/sites-enabled/default_server"
+        fi
+    fi
     if [ ! -L "/mnt/iris/nginx/sites-enabled/default_server" ]; then
         log "Create default webserver server conf symlink"
         mkdir -p /mnt/iris/nginx/sites-enabled || exit 1
-        ln -sf /etc/nginx/sites-available/reverse_proxy_http.conf /mnt/iris/nginx/sites-enabled/default_server  || exit 1
+        ln -sf /etc/nginx/sites-available/reverse_proxy_https.conf /mnt/iris/nginx/sites-enabled/default_server  || exit 1
     fi
 }
 
