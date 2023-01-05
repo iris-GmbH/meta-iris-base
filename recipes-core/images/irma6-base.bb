@@ -25,8 +25,6 @@ IRMA6_BASE_PACKAGES = " \
 	yaml-cpp \
 	libelf \
 	libxml2 \
-	nginx \
-	sqlite3 \
 "
 
 # IRMA6 default (Release 2) only packages

@@ -8,7 +8,7 @@ and this project adheres to [APR's Version Numbering](https://apr.apache.org/ver
 ### Added
 - [APC-5579]: factory-reset.sh: Add force option
 - [APC-5725]: Share factory reset script between R1 and R2
-
+- [DEVOPS-590]: Add FindAvahi.cmake to avahi and Findswupdate.cmake to swupdate to allow usage in cmake projects
 
 ### Changed
 
@@ -18,6 +18,7 @@ and this project adheres to [APR's Version Numbering](https://apr.apache.org/ver
 
 ### Removed
 - [APC-5542]: Remove netboot image
+- [DEVOPS-590]: Remove unconditional installing of sqlite3 and nginx
 
 
 ### Fixed
