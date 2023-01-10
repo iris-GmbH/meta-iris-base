@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: MIT
 # Copyright (C) 2022 iris-GmbH infrared & intelligent sensors
 
-FILESEXTRAPATHS_prepend := "${THISDIR}/linux-fslc-iris:"
+FILESEXTRAPATHS:prepend := "${THISDIR}/linux-fslc-iris:"
 
 SRC_URI += " \
     file://imx8mp-evk-r2_defconfig \
@@ -48,7 +48,7 @@ SRC_URI += " \
     file://0040-RDPHOEN-1314-imx8mp-irma6r2.dts-Serializer-config.patch \
 "
 
-SRC_URI_append_poky-iris-deploy = "\
+SRC_URI:append:poky-iris-deploy = "\
 	file://deploy.cfg \
 "
 
@@ -56,4 +56,4 @@ KERNEL_DEFCONFIG_imx8mpevk = "imx8mp-evk-r2_defconfig"
 KERNEL_DEFCONFIG_imx8mp-irma6r2 = "imx8mp_irma6r2_defconfig"
 
 # Don't include kernels in standard images
-RDEPENDS_${KERNEL_PACKAGE_NAME}-base = ""
+RDEPENDS:${KERNEL_PACKAGE_NAME}-base = ""

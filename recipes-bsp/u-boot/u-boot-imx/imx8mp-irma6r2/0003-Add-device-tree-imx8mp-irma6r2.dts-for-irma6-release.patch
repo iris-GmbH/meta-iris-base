@@ -24,13 +24,13 @@ index cd506c2e7a..fc4ee45c4e 100644
 --- a/arch/arm/dts/Makefile
 +++ b/arch/arm/dts/Makefile
 @@ -793,6 +793,7 @@ dtb-$(CONFIG_ARCH_IMX8M) += \
- 	imx8mq-ddr4-val.dtb \
- 	imx8mq-evk.dtb \
+ 	imx8mq-phanbell.dtb \
+ 	imx8mp-ddr4-evk.dtb \
  	imx8mp-evk.dtb \
 +	imx8mp-irma6r2.dtb \
- 	imx8mm-ab2.dtb \
- 	imx8mn-ddr4-ab2.dtb \
- 	imx8mn-ab2.dtb
+ 	imx8mp-phyboard-pollux-rdk.dtb \
+ 	imx8mp-verdin.dtb \
+ 	imx8mq-pico-pi.dtb \
 diff --git a/arch/arm/dts/imx8mp-irma6r2-u-boot.dtsi b/arch/arm/dts/imx8mp-irma6r2-u-boot.dtsi
 new file mode 100644
 index 0000000000..1e5aa03a73

@@ -6,29 +6,16 @@ LOCALVERSION = "-${IRIS_IMX_BOOT_RELEASE}"
 
 UBOOT_INITIAL_ENV = "u-boot-initial-env"
 
-FILESEXTRAPATHS_prepend := "${THISDIR}/u-boot-imx/common:"
-SRC_URI_append = "\
-	file://0001-Backport-cmd-fs-Use-part_get_info_by_dev_and_name_or.patch\
-	file://0002-Backport-part-Give-several-functions-more-useful-ret.patch\
+FILESEXTRAPATHS:prepend := "${THISDIR}/u-boot-imx/common:"
+SRC_URI:append = "\
 	file://0003-Add-HAB-image-authentication-for-FIT-Images.patch \
-	file://0004-MLK-23089-crypto-fsl_caam-add-rng-prediction-resista.patch \
-	file://0005-env-Warn-on-force-access-if-ENV_ACCESS_IGNORE_FORCE-.patch \
-	file://0006-env-Add-H_DEFAULT-flag.patch \
-	file://0007-env-Discern-environment-coming-from-external-storage.patch \
-	file://0008-env-Add-option-to-only-ever-append-environment.patch \
-	file://0009-env-Add-support-for-explicit-write-access-list.patch \
-	file://0010-env-nowhere-add-.load-ops.patch \
-	file://0011-env-Fix-warning-when-forcing-environment-without-ENV.patch \
-	file://0012-env-split-env_import_redund-into-2-functions.patch \
-	file://0013-env-increment-redund-flag-on-read-fail.patch \
-	file://0014-env-Fix-invalid-env-handling-in-env_init.patch \
 	file://0015-env-Fix-prio-on-bad-CRC-case-with-ENV_APPEND-enabled.patch \
 	file://0016-env-Invert-gd-env_valid-for-env_mmc_save.patch \
 	file://0017-imx8m-soc.c-Use-arch-specific-env_get_location.patch \
 "
 
-FILESEXTRAPATHS_prepend_imx8mpevk := "${THISDIR}/u-boot-imx/imx8mpevk:"
-SRC_URI_append_imx8mpevk = "\
+FILESEXTRAPATHS:prepend:imx8mpevk := "${THISDIR}/u-boot-imx/imx8mpevk:"
+SRC_URI:append:imx8mpevk = "\
 	file://0001-Use-partition-labels-in-environment-and-auto-detect-.patch\
 	file://0002-imx8mp-evk-Enable-secure-boot-and-FIT-image-support.patch \
 	file://0003-RDPHOEN-958-Remove-CONFIG_CMD_BOOTEFI-for-imx8mp_evk.patch \
@@ -44,8 +31,8 @@ SRC_URI_append_imx8mpevk = "\
 	file://0013-imx8mp_evk_defconfig-Configure-writeable-list-suppor.patch \
 "
 
-FILESEXTRAPATHS_prepend_imx8mp-irma6r2 := "${THISDIR}/u-boot-imx/imx8mp-irma6r2:"
-SRC_URI_append_imx8mp-irma6r2 = "\
+FILESEXTRAPATHS:prepend:imx8mp-irma6r2 := "${THISDIR}/u-boot-imx/imx8mp-irma6r2:"
+SRC_URI:append:imx8mp-irma6r2 = "\
 	file://0001-Create-board-support-files-for-irma6r2.patch \
 	file://0002-Add-defconfig-file-for-irma6r2.patch \
 	file://0003-Add-device-tree-imx8mp-irma6r2.dts-for-irma6-release.patch \
@@ -76,6 +63,6 @@ SRC_URI_append_imx8mp-irma6r2 = "\
 	file://0028-imx8mp-irma6r2-Add-check-for-when-the-device-is-lock.patch \
 "
 
-SRC_URI_append_poky-iris-deploy = "\
+SRC_URI:append:poky-iris-deploy = "\
 	file://deploy-u.cfg \
 "
