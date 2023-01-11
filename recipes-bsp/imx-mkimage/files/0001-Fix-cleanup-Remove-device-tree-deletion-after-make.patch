@@ -15,15 +15,15 @@ diff --git a/iMX8M/soc.mak b/iMX8M/soc.mak
 index 4e23da8..0df22dd 100644
 --- a/iMX8M/soc.mak
 +++ b/iMX8M/soc.mak
-@@ -156,7 +156,7 @@ u-boot.itb: $(dtbs)
- 	./$(PAD_IMAGE) u-boot-nodtb.bin $(dtbs)
- 	DEK_BLOB_LOAD_ADDR=$(DEK_BLOB_LOAD_ADDR) TEE_LOAD_ADDR=$(TEE_LOAD_ADDR) ATF_LOAD_ADDR=$(ATF_LOAD_ADDR) ./mkimage_fit_atf.sh $(dtbs) > u-boot.its
+@@ -156,7 +156,7 @@ u-boot.itb: $(dtb)
+ 	./$(PAD_IMAGE) u-boot-nodtb.bin $(dtb)
+ 	BL32=$(TEE) DEK_BLOB_LOAD_ADDR=$(DEK_BLOB_LOAD_ADDR) TEE_LOAD_ADDR=$(TEE_LOAD_ADDR) ATF_LOAD_ADDR=$(ATF_LOAD_ADDR) ../$(SOC_DIR)/mkimage_fit_atf.sh $(dtb) > u-boot.its
  	./mkimage_uboot -E -p 0x3000 -f u-boot.its u-boot.itb
--	@rm -f u-boot.its $(dtbs)
+-	@rm -f u-boot.its $(dtb)
 +	@rm -f u-boot.its
  
- dtbs_ddr3l = valddr3l.dtb
- $(dtbs_ddr3l):
+ dtb_ddr3l = valddr3l.dtb
+ $(dtb_ddr3l):
 -- 
 2.35.1
 
