@@ -1,0 +1,30 @@
+From 3af880a5d43b419650e4252097e74450487eb7f3 Mon Sep 17 00:00:00 2001
+From: Ian Dannapel <ian.dannapel@iris-sensing.com>
+Date: Thu, 12 Jan 2023 13:20:22 +0100
+Subject: [PATCH] Print ic-version on addr 0x23
+
+---
+ drivers/media/i2c/epc660.c | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/drivers/media/i2c/epc660.c b/drivers/media/i2c/epc660.c
+index 1ffe6f37a448..d91627a73fc2 100644
+--- a/drivers/media/i2c/epc660.c
++++ b/drivers/media/i2c/epc660.c
+@@ -482,6 +482,13 @@ static int epc660_video_probe(struct i2c_client *client)
+ 	ret = reg_read_byte(client, EPC660_REG_IC_VERSION);
+ 	if (ret < 0) {
+ 		dev_err(&client->dev, "cannot read reg ic version\n");
++		client->addr = 0x23;
++		ret = reg_read_byte(client, EPC660_REG_IC_VERSION);
++		if (ret < 0) {
++			dev_err(&client->dev, "cannot read reg ic version 0x23\n");
++		} else {
++			dev_err(&client->dev, "ic_version on x23: %02x\n",(ret & 0xff));
++		}
+ 		goto ei2c;
+ 	};
+ 	epc660->ic_version = (u8)(ret & 0xff);
+-- 
+2.34.1
+
