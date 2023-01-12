@@ -43,7 +43,7 @@ IRMA6_EXTRA_PACKAGES = " \
 	nftables \
 "
 # IRMA6R2 SoC specific packages (not included in qemu)
-IRMA6_EXTRA_PACKAGES:append_mx8mp = " \
+IRMA6_EXTRA_PACKAGES:append:mx8mp-nxp-bsp = " \
 	keyctl-caam \
 	util-linux-blockdev \
 	keyutils \
@@ -87,12 +87,12 @@ python () {
     # Add task R2 only for ext4 builds
     image_fstypes = d.getVar('IMAGE_FSTYPES')
     compat_machines = (d.getVar('MACHINEOVERRIDES') or "").split(":")
-    if 'mx8mp' in compat_machines and 'ext4' in image_fstypes:
+    if 'mx8mp-nxp-bsp' in compat_machines and 'ext4' in image_fstypes:
         bb.build.addtask('do_generate_dmverity_hashes', 'do_image_complete', 'do_image_ext4', d)
 }
 
 # Generate dm-verity root hash for R2
-DEPENDS:append_mx8mp = " cryptsetup-native gzip-native bc-native xxd-native openssl-native"
+DEPENDS:append:mx8mp-nxp-bsp = " cryptsetup-native gzip-native bc-native xxd-native openssl-native"
 do_generate_dmverity_hashes () {
     blockdev=$(mktemp)
     paddeddev=$(mktemp)
@@ -142,12 +142,12 @@ do_generate_dmverity_hashes () {
 
 # The rootfs on R2 is read-only, so the timestamp must be saved in a r/w location
 # Skip writing of "default" timestamp in /etc/timestamp (as this file will never be used)
-ROOTFS_POSTPROCESS_COMMAND:remove_mx8mp = "rootfs_update_timestamp"
+ROOTFS_POSTPROCESS_COMMAND:remove:mx8mp-nxp-bsp = "rootfs_update_timestamp"
 
 # Set timestamp file. /etc/default/timestamp will be sourced by the init-scripts
 add_default_timestamp_location(){
     echo "TIMESTAMP_FILE=/mnt/iris/timestamp" > ${IMAGE_ROOTFS}${sysconfdir}/default/timestamp
 }
-ROOTFS_POSTPROCESS_COMMAND:append_mx8mp = "add_default_timestamp_location; "
+ROOTFS_POSTPROCESS_COMMAND:append:mx8mp-nxp-bsp = "add_default_timestamp_location; "
 
 inherit irma6-firmware-zip
