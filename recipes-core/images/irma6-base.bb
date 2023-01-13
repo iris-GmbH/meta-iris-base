@@ -53,7 +53,7 @@ IRMA6_EXTRA_PACKAGES:append:mx8mp-nxp-bsp = " \
 "
 
 # IRMA6 Release 1 only packages
-IRMA6_EXTRA_PACKAGES_sc57x = " \
+IRMA6_EXTRA_PACKAGES:sc57x = " \
 "
 
 IMAGE_INSTALL:append = " \
