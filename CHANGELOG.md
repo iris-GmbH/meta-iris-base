@@ -9,6 +9,7 @@ and this project adheres to [APR's Version Numbering](https://apr.apache.org/ver
 - [APC-5579]: factory-reset.sh: Add force option
 - [APC-5725]: Share factory reset script between R1 and R2
 - [DEVOPS-590]: Add FindAvahi.cmake to avahi and Findswupdate.cmake to swupdate to allow usage in cmake projects
+- [APC-5893]: respect EPC660 specified reset timings
 
 ### Changed
 
