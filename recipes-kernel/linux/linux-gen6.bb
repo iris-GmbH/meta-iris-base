@@ -35,7 +35,7 @@ require recipes-kernel/linux/linux-yocto.inc
 
 BRANCH = "fix/iada/APC-5893_imager_not_found"
 LINUX_VERSION ?= "4.14.239"
-SRCREV="4a7a9f7e1ea10dcf83937e878e290b50e7cfe241"
+SRCREV="3b58c323113d71721892799faaffdf527a25bda2"
 
 SRC_URI = "git://github.com/iris-GmbH/linux-gen6.git;protocol=https;bareclone=1;branch=${BRANCH};depth=1"
 
