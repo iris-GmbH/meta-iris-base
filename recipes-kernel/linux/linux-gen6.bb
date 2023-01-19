@@ -33,9 +33,9 @@
 inherit kernel
 require recipes-kernel/linux/linux-yocto.inc
 
-BRANCH = "develop"
+BRANCH = "fix/iada/APC-5893_imager_not_found"
 LINUX_VERSION ?= "4.14.239"
-SRCREV="8433edb6b2e1ff1ae6769364c7fc11f1f0d0992e"
+SRCREV="4a7a9f7e1ea10dcf83937e878e290b50e7cfe241"
 
 SRC_URI = "git://github.com/iris-GmbH/linux-gen6.git;protocol=https;bareclone=1;branch=${BRANCH};depth=1"
 
