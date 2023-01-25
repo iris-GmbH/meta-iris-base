@@ -82,5 +82,5 @@ factory_reset() {
     rm -f /mnt/iris/counter/webserver/authentication.sqlite
     rm -f /mnt/iris/logging/*.sqlite
     rm -f /mnt/iris/chrony/chrony.conf
-    rm -f /mnt/iris/customer
+    rm -rf /mnt/iris/customer
 }
