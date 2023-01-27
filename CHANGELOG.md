@@ -11,6 +11,7 @@ and this project adheres to [APR's Version Numbering](https://apr.apache.org/ver
 - [DEVOPS-590]: Add FindAvahi.cmake to avahi and Findswupdate.cmake to swupdate to allow usage in cmake projects
 - [APC-5893]: respect EPC660 specified reset timings
 - [APC-5574]: remove customer folder on factory reset
+- [APC-5792]: Release 2: Default to https in flashall.uuu, swuimage and factory reset script
 
 ### Changed
 
