@@ -24,6 +24,7 @@ and this project adheres to [APR's Version Numbering](https://apr.apache.org/ver
 
 
 ### Fixed
+- [APC-5954]: Fix RTC clkout disable when clock register is skipped
 
 
 ### Simulation only
