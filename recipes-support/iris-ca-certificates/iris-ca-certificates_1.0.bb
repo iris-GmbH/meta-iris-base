@@ -12,4 +12,9 @@ do_install() {
     fi
     install -d ${D}${sysconfdir}/iris/ca-certificates
     install -m 0644 ${SWUPDATE_CA_CERT} ${D}${sysconfdir}/iris/ca-certificates/swupdate-ca.crt
+
+    if [ ! -e "${DOWNLOAD_SNAKEOIL_CRT}" ]; then
+        bbfatal "Error: DOWNLOAD_SNAKEOIL_CRT: ${DOWNLOAD_SNAKEOIL_CRT} does not exist!"
+    fi
+    install -m 0644 ${DOWNLOAD_SNAKEOIL_CRT} ${D}${sysconfdir}/iris/ca-certificates/download.crt
 }
