@@ -25,6 +25,7 @@ IRMA6_BASE_PACKAGES = " \
 	yaml-cpp \
 	libelf \
 	libxml2 \
+	openssl-bin \
 "
 
 # IRMA6 default (Release 2) only packages
