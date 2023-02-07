@@ -9,7 +9,7 @@ IMAGENAME = "${@ d.getVar('PN').replace('-swuimage','')}"
 FITIMAGENAME = "irma6-fitimage"
 
 # The following line forces the usage of the "files" directory next to this .inc file even if it is required from another layer
-FILESEXTRAPATHS_prepend := "${@os.path.dirname(d.getVar('FILE'))}/files:"
+FILESEXTRAPATHS:prepend := "${@os.path.dirname(d.getVar('FILE'))}/files:"
 
 SRC_URI = " \
     file://sw-description \
@@ -47,7 +47,7 @@ python() {
         raise bb.parse.SkipRecipe('swupdate images can only be build for machines that use this UPDATE_PROCEDURE')
 }
 
-python do_swuimage_prepend () {
+python do_swuimage:prepend () {
     import json
     print(d.getVar('IMAGE_LINK_NAME'))
     # read rootfs / irma6 version from meta file

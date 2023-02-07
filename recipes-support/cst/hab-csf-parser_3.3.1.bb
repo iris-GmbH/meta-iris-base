@@ -3,7 +3,7 @@ AUTHOR = "NXP"
 HOMEPAGE = "http://www.nxp.com"
 LICENSE = "CLOSED"
 
-FILES_${PN} += "${bindir}/csf_parser"
+FILES:${PN} += "${bindir}/csf_parser"
 
 SRC_URI = "https://iris-devops-imx-cst-public-693612562064.s3.eu-central-1.amazonaws.com/cst-${PV}.tgz \
     file://0001-Makefile-Enable-cross-compilation.patch;patchdir=${WORKDIR}/cst-${PV}/code/hab_csf_parser \
