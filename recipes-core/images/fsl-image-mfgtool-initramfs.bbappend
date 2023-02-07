@@ -7,7 +7,7 @@ CORE_IMAGE_BASE_INSTALL:append = " \
 "
 
 # IRMA6R2 SoC specific packages (not included in qemu)
-CORE_IMAGE_BASE_INSTALL:append_mx8mp = " \
+CORE_IMAGE_BASE_INSTALL:append:mx8mp = " \
    keyctl-caam \
    util-linux-blockdev \
    keyutils \
