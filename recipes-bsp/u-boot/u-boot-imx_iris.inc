@@ -27,8 +27,8 @@ SRC_URI:append = "\
 	file://0017-imx8m-soc.c-Use-arch-specific-env_get_location.patch \
 "
 
-FILESEXTRAPATHS:prepend_imx8mpevk := "${THISDIR}/u-boot-imx/imx8mpevk:"
-SRC_URI:append_imx8mpevk = "\
+FILESEXTRAPATHS:prepend:imx8mpevk := "${THISDIR}/u-boot-imx/imx8mpevk:"
+SRC_URI:append:imx8mpevk = "\
 	file://0001-Use-partition-labels-in-environment-and-auto-detect-.patch\
 	file://0002-imx8mp-evk-Enable-secure-boot-and-FIT-image-support.patch \
 	file://0003-RDPHOEN-958-Remove-CONFIG_CMD_BOOTEFI-for-imx8mp_evk.patch \
@@ -44,8 +44,8 @@ SRC_URI:append_imx8mpevk = "\
 	file://0013-imx8mp_evk_defconfig-Configure-writeable-list-suppor.patch \
 "
 
-FILESEXTRAPATHS:prepend_imx8mp-irma6r2 := "${THISDIR}/u-boot-imx/imx8mp-irma6r2:"
-SRC_URI:append_imx8mp-irma6r2 = "\
+FILESEXTRAPATHS:prepend:imx8mp-irma6r2 := "${THISDIR}/u-boot-imx/imx8mp-irma6r2:"
+SRC_URI:append:imx8mp-irma6r2 = "\
 	file://0001-Create-board-support-files-for-irma6r2.patch \
 	file://0002-Add-defconfig-file-for-irma6r2.patch \
 	file://0003-Add-device-tree-imx8mp-irma6r2.dts-for-irma6-release.patch \
