@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: MIT
 # Copyright (C) 2021 iris-GmbH infrared & intelligent sensors
 
-FILESEXTRAPATHS_prepend := "${THISDIR}/${BPN}:"
+FILESEXTRAPATHS:prepend := "${THISDIR}/${BPN}:"
 
 # set fixed srcrev for offline builds
 SRCREV = "c372d6caddd5945952822e5a619493fdb74a6410"
@@ -35,8 +35,8 @@ SRC_URI += " \
 
 # add the file containing the u-boot version string to the sysroot,
 # so that we can consume it within other recipes.
-FILES_${PN}-dev += "${datadir}/uboot.release"
-do_install_append() {
+FILES:${PN}-dev += "${datadir}/uboot.release"
+do_install:append() {
     install -d ${D}/${datadir}
     install ${B}/include/config/uboot.release ${D}${datadir}/uboot.release
 }
