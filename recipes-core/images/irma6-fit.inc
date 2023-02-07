@@ -15,9 +15,9 @@ RESCUE_NAME_FULL ?= "${RESCUE_NAME}-${MACHINE}.cpio.gz"
 KERNEL_DEVICETREE:imx8mpevk = "freescale/imx8mp-evk.dtb"
 
 # Define load addresses for imx8mp hardware
-ITS_KERNEL_LOAD_ADDR:mx8mp = "0x40480000"
-ITS_KERNEL_ENTRY_ADDR:mx8mp = "0x40480000"
-FITLOADADDR:mx8mp = "0x48000000"
+ITS_KERNEL_LOAD_ADDR:mx8mp-nxp-bsp = "0x40480000"
+ITS_KERNEL_ENTRY_ADDR:mx8mp-nxp-bsp = "0x40480000"
+FITLOADADDR:mx8mp-nxp-bsp = "0x48000000"
 
 # include checking of HAB/CST related variables
 inherit irma6-signing-variable-check

@@ -4,7 +4,7 @@
 require irma6-initrdscripts.inc
 
 # IRMA6R2 SoC specific packages (not included in qemu)
-RDEPENDS:${PN}:append:mx8mp = " \
+RDEPENDS:${PN}:append:mx8mp-nxp-bsp = " \
     keyctl-caam \
     util-linux-blockdev \
     keyutils \

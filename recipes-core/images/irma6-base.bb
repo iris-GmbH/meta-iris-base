@@ -42,7 +42,7 @@ IRMA6_EXTRA_PACKAGES = " \
 	nftables \
 "
 # IRMA6R2 SoC specific packages (not included in qemu)
-IRMA6_EXTRA_PACKAGES:append:mx8mp = " \
+IRMA6_EXTRA_PACKAGES:append:mx8mp-nxp-bsp = " \
 	keyctl-caam \
 	util-linux-blockdev \
 	keyutils \
@@ -91,7 +91,7 @@ python () {
 }
 
 # Generate dm-verity root hash for R2
-DEPENDS:append:mx8mp = " cryptsetup-native gzip-native bc-native xxd-native openssl-native"
+DEPENDS:append:mx8mp-nxp-bsp = " cryptsetup-native gzip-native bc-native xxd-native openssl-native"
 do_generate_dmverity_hashes () {
     blockdev=$(mktemp)
     paddeddev=$(mktemp)
