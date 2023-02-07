@@ -6,7 +6,7 @@ require recipes-core/images/image-fit.inc
 
 COMPATIBLE_MACHINE = "mx8"
 
-FILESEXTRAPATHS_prepend := "${THISDIR}/files:"
+FILESEXTRAPATHS:prepend := "${THISDIR}/files:"
 
 KERNEL_SIGN_SUFFIX = "signed"
 RESCUE_NAME_FULL ?= "${RESCUE_NAME}-${MACHINE}.cpio.gz"
@@ -23,7 +23,7 @@ FITLOADADDR_mx8mp = "0x48000000"
 inherit irma6-signing-variable-check
 addtask do_signing_variable_check before do_assemble_fit
 
-do_assemble_fit_prepend() {
+do_assemble_fit:prepend() {
 	if [ -z "${FITLOADADDR}" ]; then
 		FITLOADADDR=0x48000000
 		bbwarn "Set FITLOADADDR to ${FITLOADADDR}"
