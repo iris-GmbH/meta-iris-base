@@ -7,7 +7,7 @@ LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/MIT;md5=0835ade698e0bcf8506ecda
 FILES:${PN} = "${sysconfdir}/iris/ca-certificates"
 
 # Release 1 is limited to a subset
-do_install_sc57x () {
+do_install:sc57x () {
     install -d ${D}${sysconfdir}/iris/ca-certificates
     if [ ! -e "${DOWNLOAD_CRT}" ]; then
         bbfatal "Error: DOWNLOAD_CRT: ${DOWNLOAD_CRT} does not exist!"

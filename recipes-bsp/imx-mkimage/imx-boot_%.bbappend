@@ -5,7 +5,7 @@ inherit irma6-bootloader-version
 PV = "${IRIS_IMX_BOOT_RELEASE}"
 
 FILESEXTRAPATHS:prepend := "${THISDIR}/files:"
-SRC_URI:append_imx8mp-irma6r2 = " \
+SRC_URI:append:imx8mp-irma6r2 = " \
     file://0001-Add-imx8mp-irma6r2-SOC-based-on-imx8mp-with-DDR4-fir.patch \
 "
 SRC_URI:append = " \
@@ -13,7 +13,7 @@ SRC_URI:append = " \
     file://0002-MLK-24913-iMX8MP-Update-the-atf-load-address-to-0x97.patch \
 "
 
-SOC_TARGET_imx8mp-irma6r2 = "iMX8MPI6R2"
+SOC_TARGET:imx8mp-irma6r2 = "iMX8MPI6R2"
 
 python __anonymous () {
     if d.getVar('HAB_ENABLE', True):
