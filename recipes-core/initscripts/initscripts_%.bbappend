@@ -1,4 +1,4 @@
-FILESEXTRAPATHS_prepend := "${THISDIR}/files:"
+FILESEXTRAPATHS:prepend := "${THISDIR}/files:"
 
 SRC_URI += " \
     file://save-rtc-loop.sh \
@@ -8,14 +8,14 @@ SRC_URI += " \
     file://timestamp \
 "
 
-RDEPENDS_${PN}_append = " phytool"
+RDEPENDS:${PN}:append = " phytool"
 
-FILES_${PN} += " \
+FILES:${PN} += " \
 	${datadir}/factory-reset/factory-reset-functions \
 	${bindir}/factory-reset.sh \
 "
 
-do_install_append() {
+do_install:append() {
 	# Remove S06checkroot.sh symlink to avoid "ro" /
 	# remounting when using nfs boot and expecting rw access
 	# from prior mounting in the initramfs init script.

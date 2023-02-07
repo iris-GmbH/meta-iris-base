@@ -3,7 +3,7 @@ AUTHOR = "NXP"
 HOMEPAGE = "http://www.nxp.com"
 LICENSE = "CLOSED"
 
-FILES_${PN} += " \
+FILES:${PN} += " \
     ${bindir}/createSRKFuses \
     ${bindir}/createSRKTable \
     "
@@ -15,7 +15,7 @@ SRC_URI[sha256sum] = "1efdddda50cf36bc1e48d78a9601ba33db0cc2203ff1086c4b373f94b9
 
 
 S = "${WORKDIR}/cst-${PV}/code/hab_srktool_scripts"
-RDEPENDS_${PN} += "bash perl"
+RDEPENDS:${PN} += "bash perl"
 
 do_install() {
     install -d ${D}${bindir}

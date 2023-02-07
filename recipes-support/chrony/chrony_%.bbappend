@@ -7,7 +7,7 @@ DEPENDS += " \
 	gnutls \
 "
 
-do_configure_prepend() {
+do_configure:prepend() {
     export PKG_CONFIG="/usr/bin/pkg-config"
     export PKG_CONFIG_PATH="${WORKDIR}/recipe-sysroot/usr/lib/pkgconfig/"
     export alias shell='/bin/sh'

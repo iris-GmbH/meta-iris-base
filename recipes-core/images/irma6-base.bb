@@ -6,7 +6,7 @@ IMAGE_LINGUAS = " "
 LICENSE = "MIT"
 inherit irma6-core-image
 IMAGE_ROOTFS_SIZE ?= "8192"
-IMAGE_ROOTFS_EXTRA_SPACE_append = "${@bb.utils.contains("DISTRO_FEATURES", "systemd", " + 4096", "" ,d)}"
+IMAGE_ROOTFS_EXTRA_SPACE:append = "${@bb.utils.contains("DISTRO_FEATURES", "systemd", " + 4096", "" ,d)}"
 TOOLCHAIN_HOST_TASK += "nativesdk-cmake nativesdk-protobuf-lite nativesdk-protobuf-compiler"
 TOOLCHAIN_TARGET_TASK += "googletest"
 
@@ -42,7 +42,7 @@ IRMA6_EXTRA_PACKAGES = " \
 	nftables \
 "
 # IRMA6R2 SoC specific packages (not included in qemu)
-IRMA6_EXTRA_PACKAGES_append_mx8mp = " \
+IRMA6_EXTRA_PACKAGES:append_mx8mp = " \
 	keyctl-caam \
 	util-linux-blockdev \
 	keyutils \
@@ -55,13 +55,13 @@ IRMA6_EXTRA_PACKAGES_append_mx8mp = " \
 IRMA6_EXTRA_PACKAGES_sc57x = " \
 "
 
-IMAGE_INSTALL_append = " \
+IMAGE_INSTALL:append = " \
 	${IRMA6_BASE_PACKAGES} \
 	${IRMA6_EXTRA_PACKAGES} \
 "
 
 # Include swupdate in image if swupdate is part of the update procedure
-IMAGE_INSTALL_append = " ${@bb.utils.contains('UPDATE_PROCEDURE', 'swupdate', 'swupdate swupdate-www', '', d)}"
+IMAGE_INSTALL:append = " ${@bb.utils.contains('UPDATE_PROCEDURE', 'swupdate', 'swupdate swupdate-www', '', d)}"
 
 # this cannot be done directly in the os-release recipe, due to yocto's buttom-up approach
 # os-release does not know how the final image will be named, as the IMAGE_NAME variable is out of scope
@@ -91,7 +91,7 @@ python () {
 }
 
 # Generate dm-verity root hash for R2
-DEPENDS_append_mx8mp = " cryptsetup-native gzip-native bc-native xxd-native openssl-native"
+DEPENDS:append_mx8mp = " cryptsetup-native gzip-native bc-native xxd-native openssl-native"
 do_generate_dmverity_hashes () {
     blockdev=$(mktemp)
     paddeddev=$(mktemp)

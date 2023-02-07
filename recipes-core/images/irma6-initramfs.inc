@@ -4,13 +4,13 @@
 # use recipe from meta-secure-imx as base
 require recipes-core/images/crypt-image-initramfs.inc
 
-INITRAMFS_COMMON_PACKAGES_remove = " \
+INITRAMFS_COMMON_PACKAGES:remove = " \
     u-boot-env \
     libubootenv-bin \
     initramfs-init \
 "
 
-INITRAMFS_COMMON_PACKAGES_append = " \
+INITRAMFS_COMMON_PACKAGES:append = " \
     ${INITSCRIPT_PACKAGE} \
 "
 
