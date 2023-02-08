@@ -1,4 +1,4 @@
-FILESEXTRAPATHS_prepend := "${THISDIR}/files:"
+FILESEXTRAPATHS:prepend := "${THISDIR}/files:"
 
 SRC_URI += " \
     file://save-rtc-loop.sh \
@@ -8,14 +8,14 @@ SRC_URI += " \
     file://timestamp \
 "
 
-RDEPENDS_${PN}_append = " phytool"
+RDEPENDS:${PN}:append = " phytool"
 
-FILES_${PN} += " \
+FILES:${PN} += " \
 	${datadir}/factory-reset/factory-reset-functions \
 	${bindir}/factory-reset.sh \
 "
 
-do_install_append() {
+do_install:append() {
 	# Remove S06checkroot.sh symlink to avoid "ro" /
 	# remounting when using nfs boot and expecting rw access
 	# from prior mounting in the initramfs init script.
@@ -30,7 +30,7 @@ do_install_append() {
 	update-rc.d -r ${D} factory-reset start 18 5 .
 }
 
-do_install:append:mx8mp() {
+do_install:append:mx8mp-nxp-bsp() {
     # Set timestamp file. /etc/default/timestamp will be sourced by the init-scripts
     install -D -m 0644 ${WORKDIR}/timestamp ${D}${sysconfdir}/default/timestamp
 }
