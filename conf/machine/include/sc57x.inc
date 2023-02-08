@@ -7,7 +7,7 @@ MACHINE_EXTRA_RRECOMMENDS = " kernel-modules kernel-devicetree"
 
 EXTRA_IMAGEDEPENDS += "u-boot"
 
-include conf/machine/include/tune-cortexa5.inc
+include conf/machine/include/arm/armv7a/tune-cortexa5.inc
 DEFAULTTUNE="cortexa5thf-neon"
 
 IMAGE_FSTYPES += "tar.bz2 jffs2 jffs2.sum"
