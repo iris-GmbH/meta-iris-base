@@ -1,1 +1,1 @@
-PACKAGECONFIG_remove += "x11"
+PACKAGECONFIG:remove += "x11"
