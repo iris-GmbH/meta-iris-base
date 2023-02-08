@@ -4,10 +4,10 @@ DESCRIPTION = "Provide iris ca certificates"
 SECTION = "support"
 LICENSE = "MIT"
 LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/MIT;md5=0835ade698e0bcf8506ecda2f7b4f302"
-FILES_${PN} = "${sysconfdir}/iris/ca-certificates"
+FILES:${PN} = "${sysconfdir}/iris/ca-certificates"
 
 # Release 1 is limited to a subset
-do_install_sc57x () {
+do_install:sc57x () {
     install -d ${D}${sysconfdir}/iris/ca-certificates
     if [ ! -e "${DOWNLOAD_CRT}" ]; then
         bbfatal "Error: DOWNLOAD_CRT: ${DOWNLOAD_CRT} does not exist!"
