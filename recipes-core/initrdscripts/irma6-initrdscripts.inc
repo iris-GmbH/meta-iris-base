@@ -8,7 +8,7 @@ LIC_FILES_CHKSUM = "file://${COREBASE}/meta/COPYING.MIT;md5=3da9cfbcb788c80a0384
 SCRIPTFILE ?= "initramfs-init.sh"
 SRC_URI = "file://${SCRIPTFILE}"
 
-RDEPENDS_${PN} = " \
+RDEPENDS:${PN} = " \
     busybox \
     util-linux-mount \
     util-linux-findfs \
@@ -36,4 +36,4 @@ do_install() {
 
 inherit allarch
 
-FILES_${PN} = "/dev ${base_sbindir}/init"
+FILES:${PN} = "/dev ${base_sbindir}/init"

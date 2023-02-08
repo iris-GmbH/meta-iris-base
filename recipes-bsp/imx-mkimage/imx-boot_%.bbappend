@@ -4,16 +4,16 @@
 inherit irma6-bootloader-version
 PV = "${IRIS_IMX_BOOT_RELEASE}"
 
-FILESEXTRAPATHS_prepend := "${THISDIR}/files:"
-SRC_URI_append_imx8mp-irma6r2 = " \
+FILESEXTRAPATHS:prepend := "${THISDIR}/files:"
+SRC_URI:append:imx8mp-irma6r2 = " \
     file://0001-Add-imx8mp-irma6r2-SOC-based-on-imx8mp-with-DDR4-fir.patch \
 "
-SRC_URI_append = " \
+SRC_URI:append = " \
     file://0001-Fix-cleanup-Remove-device-tree-deletion-after-make.patch \
     file://0002-MLK-24913-iMX8MP-Update-the-atf-load-address-to-0x97.patch \
 "
 
-SOC_TARGET_imx8mp-irma6r2 = "iMX8MPI6R2"
+SOC_TARGET:imx8mp-irma6r2 = "iMX8MPI6R2"
 
 python __anonymous () {
     if d.getVar('HAB_ENABLE', True):
@@ -209,14 +209,14 @@ do_sign_uboot() {
     fi
 }
 
-do_install_append() {
+do_install:append() {
     if [ "${HAB_ENABLE}" = "1" ];then
         set_imxboot_target
         install -m 0644 ${S}/${BOOT_CONFIG_MACHINE}-${IMAGE_IMXBOOT_TARGET}.signed ${D}/boot/
     fi
 }
 
-do_deploy_append() {
+do_deploy:append() {
     if [ "${HAB_ENABLE}" = "1" ];then
         # copy flash.bin.signed to deploy dir and create a symlink imx-boot.signed
         set_imxboot_target
