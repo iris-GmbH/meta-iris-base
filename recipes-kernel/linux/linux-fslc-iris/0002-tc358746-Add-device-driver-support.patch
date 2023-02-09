@@ -1,7 +1,7 @@
-From 33e3fb1a0e91e14cf4c92dc7be35e371e5cf2411 Mon Sep 17 00:00:00 2001
+From 113fe8fd6b48700e37adfce17200dc64acd1026f Mon Sep 17 00:00:00 2001
 From: Ian Dannapel <ian.dannapel@iris-sensing.com>
 Date: Fri, 1 Apr 2022 09:08:10 +0200
-Subject: [PATCH 02/33] tc358746: Add device driver support
+Subject: [PATCH] tc358746: Add device driver support
 
 - Adding support for the TC358746 bridge. The Bridge can receive images on
 the parallel input port and send it to the host using the CSI-TX unit.
@@ -20,17 +20,17 @@ Signed-off-by: Ian Dannapel <ian.dannapel@iris-sensing.com>
 ---
  drivers/media/i2c/Kconfig         |   12 +
  drivers/media/i2c/Makefile        |    1 +
- drivers/media/i2c/tc358746.c      | 1909 +++++++++++++++++++++++++++++
+ drivers/media/i2c/tc358746.c      | 1900 +++++++++++++++++++++++++++++
  drivers/media/i2c/tc358746_regs.h |  208 ++++
- 4 files changed, 2130 insertions(+)
+ 4 files changed, 2121 insertions(+)
  create mode 100644 drivers/media/i2c/tc358746.c
  create mode 100644 drivers/media/i2c/tc358746_regs.h
 
 diff --git a/drivers/media/i2c/Kconfig b/drivers/media/i2c/Kconfig
-index 6a29bf41231b..4001fad3eaf8 100644
+index 0b4481ffbbe1..988c397f17b8 100644
 --- a/drivers/media/i2c/Kconfig
 +++ b/drivers/media/i2c/Kconfig
-@@ -363,6 +363,18 @@ config VIDEO_TC358743_CEC
+@@ -385,6 +385,18 @@ config VIDEO_TC358743_CEC
  	  When selected the tc358743 will support the optional
  	  HDMI CEC feature.
  
@@ -50,23 +50,23 @@ index 6a29bf41231b..4001fad3eaf8 100644
  	tristate "Texas Instruments TVP514x video decoder"
  	depends on VIDEO_V4L2 && I2C
 diff --git a/drivers/media/i2c/Makefile b/drivers/media/i2c/Makefile
-index 6bd37fd81c82..d5cbcc50b979 100644
+index 15bf60054dfd..c744707a14e8 100644
 --- a/drivers/media/i2c/Makefile
 +++ b/drivers/media/i2c/Makefile
-@@ -110,6 +110,7 @@ obj-$(CONFIG_VIDEO_I2C)		+= video-i2c.o
+@@ -118,6 +118,7 @@ obj-$(CONFIG_VIDEO_I2C)		+= video-i2c.o
  obj-$(CONFIG_VIDEO_ML86V7667)	+= ml86v7667.o
  obj-$(CONFIG_VIDEO_OV2659)	+= ov2659.o
  obj-$(CONFIG_VIDEO_TC358743)	+= tc358743.o
 +obj-$(CONFIG_VIDEO_TC358746)	+= tc358746.o
+ obj-$(CONFIG_VIDEO_HI556)	+= hi556.o
+ obj-$(CONFIG_VIDEO_IMX208)	+= imx208.o
  obj-$(CONFIG_VIDEO_IMX214)	+= imx214.o
- obj-$(CONFIG_VIDEO_IMX258)	+= imx258.o
- obj-$(CONFIG_VIDEO_IMX274)	+= imx274.o
 diff --git a/drivers/media/i2c/tc358746.c b/drivers/media/i2c/tc358746.c
 new file mode 100644
-index 000000000000..2bbfacf16dbd
+index 000000000000..94bf616d03f0
 --- /dev/null
 +++ b/drivers/media/i2c/tc358746.c
-@@ -0,0 +1,1909 @@
+@@ -0,0 +1,1900 @@
 +// SPDX-License-Identifier: GPL-2.0-only
 +/*
 + * tc358746 - Parallel to CSI-2 bridge
@@ -1242,7 +1242,7 @@ index 000000000000..2bbfacf16dbd
 +/* --------------- pad ops --------------- */
 +
 +static int tc358746_enum_mbus_code(struct v4l2_subdev *sd,
-+				   struct v4l2_subdev_pad_config *cfg,
++				   struct v4l2_subdev_state *sd_state,
 +				   struct v4l2_subdev_mbus_code_enum *code)
 +{
 +	if (code->index >= ARRAY_SIZE(tc358746_formats))
@@ -1255,14 +1255,14 @@ index 000000000000..2bbfacf16dbd
 +
 +static struct v4l2_mbus_framefmt *
 +__tc358746_get_pad_format(struct v4l2_subdev *sd,
-+			  struct v4l2_subdev_pad_config *cfg,
++			  struct v4l2_subdev_state *sd_state,
 +			  unsigned int pad, u32 which)
 +{
 +	struct tc358746_state *state = to_state(sd);
 +
 +	switch (which) {
 +	case V4L2_SUBDEV_FORMAT_TRY:
-+		return v4l2_subdev_get_try_format(sd, cfg, pad);
++		return v4l2_subdev_get_try_format(sd, sd_state, pad);
 +	case V4L2_SUBDEV_FORMAT_ACTIVE:
 +		return &state->fmt;
 +	default:
@@ -1271,7 +1271,7 @@ index 000000000000..2bbfacf16dbd
 +}
 +
 +static int tc358746_get_fmt(struct v4l2_subdev *sd,
-+		struct v4l2_subdev_pad_config *cfg,
++		struct v4l2_subdev_state *sd_state,
 +		struct v4l2_subdev_format *format)
 +{
 +	struct tc358746_state *state = to_state(sd);
@@ -1288,7 +1288,7 @@ index 000000000000..2bbfacf16dbd
 +}
 +
 +static int tc358746_set_fmt(struct v4l2_subdev *sd,
-+			    struct v4l2_subdev_pad_config *cfg,
++			    struct v4l2_subdev_state *sd_state,
 +			    struct v4l2_subdev_format *format)
 +{
 +	struct tc358746_state *state = to_state(sd);
@@ -1305,9 +1305,9 @@ index 000000000000..2bbfacf16dbd
 +		return -ENOTCONN;
 +
 +	if (pad->flags == MEDIA_PAD_FL_SOURCE)
-+		return tc358746_get_fmt(sd, cfg, format);
++		return tc358746_get_fmt(sd, sd_state, format);
 +
-+	mbusformat = __tc358746_get_pad_format(sd, cfg, format->pad,
++	mbusformat = __tc358746_get_pad_format(sd, sd_state, format->pad,
 +					       format->which);
 +	if (!mbusformat)
 +		return -EINVAL;
@@ -1451,11 +1451,11 @@ index 000000000000..2bbfacf16dbd
 +	struct v4l2_subdev *ps_sd = media_entity_to_v4l2_subdev(remote->entity);
 +	struct tc358746_state *state = to_state(sd);
 +	struct v4l2_ctrl *ctrl;
-+	
++
 +	v4l2_dbg(1, debug, sd, "Local flags:  0x%08lx & 0x%08x\n", local->flags, MEDIA_PAD_FL_SOURCE);
 +	v4l2_dbg(1, debug, sd, "Remote flags: 0x%08lx\n", remote->flags);
 +	v4l2_dbg(1, debug, sd, "      flags:  0x%08x\n", flags);
-+	
++
 +	if (local->flags == remote->flags)
 +		return 0;
 +
@@ -1684,7 +1684,7 @@ index 000000000000..2bbfacf16dbd
 +		ret = fwnode_graph_parse_endpoint(fw_node, &fw_ep);
 +		if (ret)
 +			return -EINVAL;
-+		
++
 +		v4l2_info(sd, "fwnode id: %d port: %d\n", fw_ep.id, fw_ep.port);
 +
 +		/* Get downstream endpoint */
@@ -1810,16 +1810,7 @@ index 000000000000..2bbfacf16dbd
 +
 +	i2c_wr16_and_or(&state->sd, CONFCTL, confctl_mask, confctl_val);
 +
-+
-+	asd = kzalloc(sizeof(*asd), GFP_KERNEL);
-+	if (!asd) {
-+		ret = -ENOMEM;
-+		goto err;
-+	}
-+
-+	ret = v4l2_async_notifier_add_fwnode_remote_subdev(&state->notifier, ep, asd);
-+	if (ret)
-+		goto err;
++	asd = v4l2_async_notifier_add_fwnode_remote_subdev(&state->notifier, ep, struct v4l2_async_subdev);
 +
 +	fwnode_handle_put(ep);
 +
@@ -2191,5 +2182,5 @@ index 000000000000..9232d00d0e92
 +
 +#endif
 -- 
-2.25.1
+2.39.1
 
