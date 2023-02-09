@@ -1,20 +1,37 @@
-From f367ea4c188278f2ebdec20aaacb5cfda767642b Mon Sep 17 00:00:00 2001
+From 891d2d42484880d41b25551de3c315ba70a63225 Mon Sep 17 00:00:00 2001
 From: Ian Dannapel <ian.dannapel@iris-sensing.com>
 Date: Fri, 13 May 2022 15:27:16 +0200
-Subject: [PATCH 03/33] imx8mp-evk.dts: Add epc660 and tc358746 nodes to dts
+Subject: [PATCH] imx8mp-evk.dts: Add epc660 and tc358746 nodes to dts
+
+Remove dtb from Makefile which depends on the previous ov5640 camera
+node being present in the -evk devicetree
 
 Signed-off-by: Ian Dannapel <ian.dannapel@iris-sensing.com>
 ---
- arch/arm64/boot/dts/freescale/imx8mp-evk.dts | 87 ++++++++++++++------
- 1 file changed, 63 insertions(+), 24 deletions(-)
+ arch/arm64/boot/dts/freescale/Makefile       |  2 +-
+ arch/arm64/boot/dts/freescale/imx8mp-evk.dts | 81 +++++++++++++++-----
+ 2 files changed, 61 insertions(+), 22 deletions(-)
 
+diff --git a/arch/arm64/boot/dts/freescale/Makefile b/arch/arm64/boot/dts/freescale/Makefile
+index 9a7319c6b4e3..21724f244dd5 100644
+--- a/arch/arm64/boot/dts/freescale/Makefile
++++ b/arch/arm64/boot/dts/freescale/Makefile
+@@ -109,7 +109,7 @@ dtb-$(CONFIG_ARCH_MXC) += imx8mp-evk.dtb imx8mp-evk-rm67191.dtb imx8mp-evk-it626
+ 			  imx8mp-evk-basler-ov2775.dtb imx8mp-evk-dual-basler.dtb \
+ 			  imx8mp-evk-dual-ov2775.dtb imx8mp-evk-spdif-lb.dtb \
+ 			  imx8mp-evk-sof-wm8960.dtb imx8mp-evk-dsp.dtb \
+-			  imx8mp-evk-os08a20-ov5640.dtb imx8mp-evk-os08a20.dtb \
++			  imx8mp-evk-os08a20.dtb \
+ 			  imx8mp-evk-dual-os08a20.dtb \
+ 			  imx8mp-evk-iqaudio-dacplus.dtb imx8mp-evk-iqaudio-dacpro.dtb imx8mp-evk-hifiberry-dacplus.dtb \
+ 			  imx8mp-evk-hifiberry-dac2.dtb \
 diff --git a/arch/arm64/boot/dts/freescale/imx8mp-evk.dts b/arch/arm64/boot/dts/freescale/imx8mp-evk.dts
-index c7e15842933f..f607db073ea4 100644
+index c451d4b2872b..83da01155a5e 100644
 --- a/arch/arm64/boot/dts/freescale/imx8mp-evk.dts
 +++ b/arch/arm64/boot/dts/freescale/imx8mp-evk.dts
-@@ -204,6 +204,13 @@
- 				    100>;
- 		default-brightness-level = <80>;
+@@ -190,6 +190,13 @@ usb3_data_ss: endpoint {
+ 			};
+ 		};
  	};
 +
 +	clk_serialize: clock_serialize {
@@ -25,15 +42,19 @@ index c7e15842933f..f607db073ea4 100644
 +	};
  };
  
- &aud2htx {
-@@ -494,32 +501,62 @@
+ &flexspi {
+@@ -518,29 +525,59 @@ it6263_in: endpoint {
  		};
  	};
  
 -	ov5640_0: ov5640_mipi@3c {
 -		compatible = "ovti,ov5640";
 -		reg = <0x3c>;
--		pinctrl-names = "default";
++	epc660_mipi: epc660_mipi@22 {
++		compatible = "epc660";
++		reg = <0x22>;
++		status = "okay";
+ 		pinctrl-names = "default";
 -		pinctrl-0 = <&pinctrl_csi0_pwn>, <&pinctrl_csi0_rst>, <&pinctrl_csi_mclk>;
 -		clocks = <&clk IMX8MP_CLK_IPP_DO_CLKO2>;
 -		clock-names = "xclk";
@@ -42,23 +63,12 @@ index c7e15842933f..f607db073ea4 100644
 -		assigned-clock-rates = <24000000>;
 -		csi_id = <0>;
 -		powerdown-gpios = <&gpio2 11 GPIO_ACTIVE_HIGH>;
--		reset-gpios = <&gpio1 6 GPIO_ACTIVE_LOW>;
++		pinctrl-0 = <&pinctrl_csi0_rst>, <&pinctrl_csi_mclk>;
+ 		reset-gpios = <&gpio1 6 GPIO_ACTIVE_LOW>;
 -		mclk = <24000000>;
 -		mclk_source = <0>;
 -		mipi_csi;
-+	epc660_mipi: epc660_mipi@22 {
-+		compatible = "epc660";
-+		reg = <0x22>;
- 		status = "okay";
-+ 		pinctrl-names = "default";
-+		pinctrl-0 = <&pinctrl_csi0_rst>, <&pinctrl_csi_mclk>;
-+ 		reset-gpios = <&gpio1 6 GPIO_ACTIVE_LOW>;
- 
--		port {
--			ov5640_mipi_0_ep: endpoint {
--				remote-endpoint = <&mipi_csi0_ep>;
--				data-lanes = <1 2>;
--				clock-lanes = <0>;
++
 +		#address-cells = <1>;
 +		#size-cells = <0>;
 +
@@ -72,21 +82,24 @@ index c7e15842933f..f607db073ea4 100644
 +				field-even-active = <0>;
 +				pclk-sample = <1>;
 +				remote-endpoint = <&tc358748_parallel_in>;
- 			};
- 		};
- 	};
++			};
++		};
++	};
 +
 +	tc358748_adapter: csi-bridge@e {
 +		compatible = "toshiba,tc358746";
 +		reg = <0x0e>;
-+		status = "okay";
-+		
+ 		status = "okay";
+ 
+-		port {
+-			ov5640_mipi_0_ep: endpoint {
+-				remote-endpoint = <&mipi_csi0_ep>;
 +		clocks = <&clk_serialize>;
 +		default-input = <0>;
-+		
++
 +		#address-cells = <1>;
 +		#size-cells = <0>;
-+ 
++
 +		port@0 {
 +			reg = <0>;
 +			tc358748_parallel_in: endpoint {
@@ -101,16 +114,14 @@ index c7e15842933f..f607db073ea4 100644
 +		port@1 {
 +			reg = <1>;
 +			tc358748_mipi_out: endpoint {
-+ 				data-lanes = <1 2>;
+ 				data-lanes = <1 2>;
+-				clock-lanes = <0>;
 +				link-frequencies = /bits/ 64 <216000000>;
 +				remote-endpoint = <&mipi_csi0_ep>;
-+ 			};
-+ 		};
-+ 	};
- };
- 
- &i2c3 {
-@@ -1289,11 +1326,13 @@
+ 			};
+ 		};
+ 	};
+@@ -1330,11 +1367,13 @@ &mipi_csi_0 {
  	port@0 {
  		reg = <0>;
  		mipi_csi0_ep: endpoint {
@@ -128,5 +139,5 @@ index c7e15842933f..f607db073ea4 100644
  	};
  };
 -- 
-2.25.1
+2.39.1
 

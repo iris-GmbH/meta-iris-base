@@ -1,7 +1,7 @@
-From 41ba462e85703d1c31d73e70305e1dfee2ca94c9 Mon Sep 17 00:00:00 2001
+From ff140866e567225c8bd96567ffdea3b40960e872 Mon Sep 17 00:00:00 2001
 From: Ian Dannapel <ian.dannapel@iris-sensing.com>
 Date: Fri, 1 Apr 2022 09:05:57 +0200
-Subject: [PATCH 01/33] epc660: Add device driver support
+Subject: [PATCH] epc660: Add device driver support
 
 - copied & adapted from https://github.com/iris-GmbH/linux-gen6/commit/cd9b44db816f06c20501a830c5ed589f55f6170a
 
@@ -10,18 +10,18 @@ Signed-off-by: Ian Dannapel <ian.dannapel@iris-sensing.com>
 ---
  drivers/media/i2c/Kconfig           |   6 +
  drivers/media/i2c/Makefile          |   1 +
- drivers/media/i2c/epc660.c          | 725 ++++++++++++++++++++++++++++
+ drivers/media/i2c/epc660.c          | 719 ++++++++++++++++++++++++++++
  include/media/i2c/epc660_sequence.h | 258 ++++++++++
- 4 files changed, 990 insertions(+)
+ 4 files changed, 984 insertions(+)
  create mode 100644 drivers/media/i2c/epc660.c
  create mode 100644 include/media/i2c/epc660_sequence.h
 
 diff --git a/drivers/media/i2c/Kconfig b/drivers/media/i2c/Kconfig
-index fcffcc31d168..6a29bf41231b 100644
+index 2620f36c52c6..0b4481ffbbe1 100644
 --- a/drivers/media/i2c/Kconfig
 +++ b/drivers/media/i2c/Kconfig
-@@ -566,6 +566,12 @@ config VIDEO_APTINA_PLL
- config VIDEO_SMIAPP_PLL
+@@ -730,6 +730,12 @@ config VIDEO_APTINA_PLL
+ config VIDEO_CCS_PLL
  	tristate
  
 +config VIDEO_EPC660
@@ -30,11 +30,11 @@ index fcffcc31d168..6a29bf41231b 100644
 +	help
 +	  This driver supports EPC660 cameras from Espros
 +
- config VIDEO_IMX214
- 	tristate "Sony IMX214 sensor support"
- 	depends on GPIOLIB && I2C && VIDEO_V4L2 && VIDEO_V4L2_SUBDEV_API
+ config VIDEO_HI556
+ 	tristate "Hynix Hi-556 sensor support"
+ 	depends on I2C && VIDEO_V4L2
 diff --git a/drivers/media/i2c/Makefile b/drivers/media/i2c/Makefile
-index beb170b002dc..6bd37fd81c82 100644
+index ecf74f1d1e92..15bf60054dfd 100644
 --- a/drivers/media/i2c/Makefile
 +++ b/drivers/media/i2c/Makefile
 @@ -7,6 +7,7 @@ obj-$(CONFIG_VIDEO_ET8EK8)	+= et8ek8/
@@ -47,10 +47,10 @@ index beb170b002dc..6bd37fd81c82 100644
  obj-$(CONFIG_VIDEO_TDA7432) += tda7432.o
 diff --git a/drivers/media/i2c/epc660.c b/drivers/media/i2c/epc660.c
 new file mode 100644
-index 000000000000..1ffe6f37a448
+index 000000000000..f682aff37fc6
 --- /dev/null
 +++ b/drivers/media/i2c/epc660.c
-@@ -0,0 +1,725 @@
+@@ -0,0 +1,719 @@
 +/*
 + * Driver for EPC660 ToF image sensor from Espros
 + *
@@ -70,10 +70,7 @@ index 000000000000..1ffe6f37a448
 +#include <linux/of.h>
 +#include <linux/of_graph.h>
 +#include <linux/gpio/consumer.h>
-+#include <media/soc_camera.h>
-+#include <media/drv-intf/soc_mediabus.h>
 +#include <media/v4l2-subdev.h>
-+#include <media/v4l2-clk.h>
 +#include <media/v4l2-ctrls.h>
 +#include <media/v4l2-fwnode.h>
 +#include <asm/uaccess.h>
@@ -120,7 +117,6 @@ index 000000000000..1ffe6f37a448
 +	struct v4l2_ctrl *pixel_rate;
 +	struct v4l2_ctrl *hblank;
 +	struct v4l2_rect rect; /* Sensor window */
-+	struct v4l2_clk *clk;
 +	const struct epc660_datafmt *fmt;
 +	const struct epc660_datafmt *fmts;
 +	struct media_pad pad;
@@ -281,7 +277,7 @@ index 000000000000..1ffe6f37a448
 +}
 +
 +static int epc660_get_fmt(struct v4l2_subdev *sd,
-+			  struct v4l2_subdev_pad_config *cfg,
++			  struct v4l2_subdev_state *sd_state,
 +			  struct v4l2_subdev_format *format)
 +{
 +	struct v4l2_mbus_framefmt *mf = &format->format;
@@ -298,7 +294,7 @@ index 000000000000..1ffe6f37a448
 +}
 +
 +static int epc660_set_fmt(struct v4l2_subdev *sd,
-+			  struct v4l2_subdev_pad_config *cfg,
++			  struct v4l2_subdev_state *sd_state,
 +			  struct v4l2_subdev_format *format)
 +{
 +	struct v4l2_mbus_framefmt *mf = &format->format;
@@ -344,7 +340,7 @@ index 000000000000..1ffe6f37a448
 +}
 +
 +static int epc660_enum_mbus_code(struct v4l2_subdev *sd,
-+				 struct v4l2_subdev_pad_config *cfg,
++				 struct v4l2_subdev_state *sd_state,
 +				 struct v4l2_subdev_mbus_code_enum *code)
 +{
 +	struct i2c_client *client = v4l2_get_subdevdata(sd);
@@ -678,7 +674,7 @@ index 000000000000..1ffe6f37a448
 +		where:
 +		- t_HSYNC = line_width / f_PCLK
 +		- line_width = 2*160 (considering a hbinned capture)
-+	hblank = (2 * 26.042µs - 320 / 24Mhz) * 24Mhz = 930 
++	hblank = (2 * 26.042µs - 320 / 24Mhz) * 24Mhz = 930
 +	*/
 +	hblank = 930;
 +	epc660->hblank =
@@ -697,8 +693,6 @@ index 000000000000..1ffe6f37a448
 +
 +	epc660->rect.width = EPC660_MAX_WIDTH;
 +	epc660->rect.height = EPC660_MAX_HEIGHT;
-+
-+	epc660->clk = 0;
 +
 +	epc660->nrst_gpio =
 +		devm_gpiod_get_optional(&client->dev, "reset", GPIOD_OUT_HIGH);
@@ -737,7 +731,7 @@ index 000000000000..1ffe6f37a448
 +		return -EINVAL;
 +	}
 +
-+	ret = v4l2_async_register_subdev_sensor_common(&epc660->subdev);
++	ret = v4l2_async_register_subdev_sensor(&epc660->subdev);
 +	if (ret) {
 +		dev_err(&client->dev, "error registering subdev");
 +		v4l2_ctrl_handler_free(&epc660->hdl);
@@ -754,7 +748,7 @@ index 000000000000..1ffe6f37a448
 +
 +	gpiod_put(epc660->nrst_gpio);
 +
-+	v4l2_device_unregister_subdev(&epc660->subdev);
++	v4l2_async_unregister_subdev(&epc660->subdev);
 +	v4l2_ctrl_handler_free(&epc660->hdl);
 +
 +	return 0;
@@ -1041,5 +1035,5 @@ index 000000000000..e3434ade82fa
 +
 +#endif 	/* _EPC660_SEQUENCE_H */
 -- 
-2.25.1
+2.39.1
 
