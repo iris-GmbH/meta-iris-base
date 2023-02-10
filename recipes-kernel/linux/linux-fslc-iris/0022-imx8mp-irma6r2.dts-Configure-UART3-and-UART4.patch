@@ -1,0 +1,70 @@
+From 9dbebb512fe498b57a1354845480289366b1aef8 Mon Sep 17 00:00:00 2001
+From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+Date: Fri, 11 Mar 2022 11:59:52 +0100
+Subject: [PATCH] imx8mp-irma6r2.dts: Configure UART3 and UART4
+
+- Enable UART4 and also add pinctl
+- Remove CTS/RTS from UART3 (not connected on irma6r2)
+  and change pinctl to match irma6r2
+
+Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+---
+ .../boot/dts/freescale/imx8mp-irma6r2.dts     | 26 +++++++++++++------
+ 1 file changed, 18 insertions(+), 8 deletions(-)
+
+diff --git a/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts b/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
+index 17b2c87908da..f00013f24742 100644
+--- a/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
++++ b/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
+@@ -431,7 +431,7 @@ gpio@21 {
+ };
+ 
+ &uart2 {
+-	/* console */
++	/* A53 */
+ 	pinctrl-names = "default";
+ 	pinctrl-0 = <&pinctrl_uart2>;
+ 	status = "okay";
+@@ -464,11 +464,16 @@ &usb_dwc3_0 {
+ };
+ 
+ &uart3 {
++	/* uC (IU) */
+ 	pinctrl-names = "default";
+ 	pinctrl-0 = <&pinctrl_uart3>;
+-	assigned-clocks = <&clk IMX8MP_CLK_UART3>;
+-	assigned-clock-parents = <&clk IMX8MP_SYS_PLL1_80M>;
+-	fsl,uart-has-rtscts;
++	status = "okay";
++};
++
++&uart4 {
++	/* M7 */
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_uart4>;
+ 	status = "okay";
+ };
+ 
+@@ -667,10 +672,15 @@ MX8MP_IOMUXC_GPIO1_IO14__USB2_PWR		0x10
+ 
+ 	pinctrl_uart3: uart3grp {
+ 		fsl,pins = <
+-			MX8MP_IOMUXC_ECSPI1_SCLK__UART3_DCE_RX		0x140
+-			MX8MP_IOMUXC_ECSPI1_MOSI__UART3_DCE_TX		0x140
+-			MX8MP_IOMUXC_ECSPI1_SS0__UART3_DCE_RTS		0x140
+-			MX8MP_IOMUXC_ECSPI1_MISO__UART3_DCE_CTS		0x140
++			MX8MP_IOMUXC_UART3_RXD__UART3_DCE_RX	0x49
++			MX8MP_IOMUXC_UART3_TXD__UART3_DCE_TX	0x49
++		>;
++	};
++
++	pinctrl_uart4: uart4grp {
++		fsl,pins = <
++			MX8MP_IOMUXC_UART4_RXD__UART4_DCE_RX	0x49
++			MX8MP_IOMUXC_UART4_TXD__UART4_DCE_TX	0x49
+ 		>;
+ 	};
+ 
+-- 
+2.39.1
+
