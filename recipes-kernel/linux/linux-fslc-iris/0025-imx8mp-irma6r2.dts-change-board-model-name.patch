@@ -1,0 +1,26 @@
+From 66b6856d4fdeba01d11d86cfde1a488104827a38 Mon Sep 17 00:00:00 2001
+From: Ian Dannapel <ian.dannapel@iris-sensing.com>
+Date: Mon, 4 Apr 2022 13:21:10 +0200
+Subject: [PATCH] imx8mp-irma6r2.dts: change board model name
+
+Signed-off-by: Ian Dannapel <ian.dannapel@iris-sensing.com>
+---
+ arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts b/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
+index 926b57e7158d..a9d5073e5483 100644
+--- a/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
++++ b/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
+@@ -9,7 +9,7 @@
+ #include "imx8mp.dtsi"
+ 
+ / {
+-	model = "NXP i.MX8MPlus EVK board";
++	model = "IRMA6 Release2 i.MX8MPlus DDR4 board";
+ 	compatible = "fsl,imx8mp-evk", "fsl,imx8mp";
+ 
+ 	chosen {
+-- 
+2.39.1
+
