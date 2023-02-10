@@ -1,0 +1,74 @@
+From 330a40ed4bf640eca84e0cc7025668c1db69277e Mon Sep 17 00:00:00 2001
+From: Erik Schumacher <erik.schumacher@iris-sensing.com>
+Date: Thu, 26 Jan 2023 15:04:08 +0100
+Subject: [PATCH] rtc-pcf8563: Skip registering of clkout for RTC
+
+Calling clk_disable_unused() later might hang in rtc pcf8563
+is_prepared() function. We don't use the clkout so we don't need to
+register the clock. So it is more or less a hot fix.
+
+If the clkout register is skipped, disable clkout by writing to the
+i2c register.
+
+Signed-off-by: Erik Schumacher <erik.schumacher@iris-sensing.com>
+---
+ .../boot/dts/freescale/imx8mp-irma6r2.dts     |  1 +
+ drivers/rtc/rtc-pcf8563.c                     | 21 ++++++++++++++++++-
+ 2 files changed, 21 insertions(+), 1 deletion(-)
+
+diff --git a/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts b/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
+index f65125f8ef67..93c582b2cf62 100644
+--- a/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
++++ b/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
+@@ -350,6 +350,7 @@ rtc: rtc@51 {
+ 		compatible = "nxp,pcf8563";
+ 		reg = <0x51>;
+ 		#clock-cells = <0>;
++		skip-register-clkout;
+ 	};
+ };
+ 
+diff --git a/drivers/rtc/rtc-pcf8563.c b/drivers/rtc/rtc-pcf8563.c
+index c8bddfb94129..fe22fe024617 100644
+--- a/drivers/rtc/rtc-pcf8563.c
++++ b/drivers/rtc/rtc-pcf8563.c
+@@ -528,6 +528,7 @@ static int pcf8563_probe(struct i2c_client *client,
+ 	struct pcf8563 *pcf8563;
+ 	int err;
+ 	unsigned char buf;
++	bool clkout_used = false;
+ 
+ 	dev_dbg(&client->dev, "%s\n", __func__);
+ 
+@@ -588,9 +589,27 @@ static int pcf8563_probe(struct i2c_client *client,
+ 
+ #ifdef CONFIG_COMMON_CLK
+ 	/* register clk in common clk framework */
+-	pcf8563_clkout_register_clk(pcf8563);
++	if (!of_property_read_bool(
++			client->dev.of_node, "skip-register-clkout")) {
++		pcf8563_clkout_register_clk(pcf8563);
++		clkout_used = true;
++	}
+ #endif
+ 
++	if (!clkout_used) {
++		/*
++		 * Disable clkout as we are not using it
++		 * Set bit 7 in PCF8563_REG_CLKO to 0
++		 */
++		buf = 0x00;
++		err = pcf8563_write_block_data(client, PCF8563_REG_CLKO, 1,
++				&buf);
++		if (err < 0) {
++			dev_err(&client->dev, "%s: write error\n", __func__);
++			return err;
++		}
++	}
++
+ 	return 0;
+ }
+ 
+-- 
+2.39.1
+
