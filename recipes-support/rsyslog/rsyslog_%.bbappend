@@ -7,7 +7,7 @@ SRC_URI:append := " \
 	file://rsyslog.conf \
 "
 
-FILES:${PN}:append += " \
+FILES:${PN}:append = " \
 		${sysconfdir} \
 		${sysconfdir}/rsyslog.conf \
 		"
