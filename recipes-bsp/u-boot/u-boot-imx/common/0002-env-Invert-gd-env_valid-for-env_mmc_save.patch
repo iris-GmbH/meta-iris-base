@@ -1,4 +1,4 @@
-From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From d6953a051c1fda5212affa422925763f5481d22c Mon Sep 17 00:00:00 2001
 From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
 Date: Tue, 14 Jun 2022 20:45:14 +0200
 Subject: [PATCH] env: Invert gd->env_valid for env_mmc_save
@@ -22,10 +22,10 @@ Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/env/mmc.c b/env/mmc.c
-index 7833404cd1..e6b51a1ffa 100644
+index f7da22a058..17fddca730 100644
 --- a/env/mmc.c
 +++ b/env/mmc.c
-@@ -227,7 +227,7 @@ static int env_mmc_save(void)
+@@ -244,7 +244,7 @@ static int env_mmc_save(void)
  	ret = 0;
  
  #ifdef CONFIG_ENV_OFFSET_REDUND
@@ -35,5 +35,5 @@ index 7833404cd1..e6b51a1ffa 100644
  
  fini:
 -- 
-2.36.1
+2.39.0
 
