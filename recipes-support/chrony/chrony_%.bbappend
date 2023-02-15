@@ -5,7 +5,7 @@ SRC_URI:append := " \
 	file://chrony.conf \
 "
 
-FILES:${PN}:append += " \
+FILES:${PN}:append = " \
 		${sysconfdir} \
 		${sysconfdir}/default \
 		${sysconfdir}/default/chrony.conf \
