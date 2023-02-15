@@ -1,15 +1,116 @@
-From 278e26f47d575fb5dc2a8e5ed9bd1432f3aa094a Mon Sep 17 00:00:00 2001
+From 3edf07a62bf5646381c785bd3c375030cc433498 Mon Sep 17 00:00:00 2001
 From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
-Date: Mon, 7 Mar 2022 21:39:15 +0100
-Subject: [PATCH 05/13] ddr4: update training timing files for 1600MHz and
- 533MHz
+Date: Mon, 13 Feb 2023 11:11:31 +0100
+Subject: [PATCH] imx8mp-irma6r2: Adapt board support files for irma6r2 for our
+ needs
 
 Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
 ---
- board/freescale/imx8mp_irma6r2/ddr4_timing.c | 1250 ++++++++++++++++++
- 1 file changed, 1250 insertions(+)
+ arch/arm/mach-imx/imx8m/Kconfig               |   11 +
+ board/freescale/imx8mp_irma6r2/Kconfig        |    8 +-
+ board/freescale/imx8mp_irma6r2/MAINTAINERS    |   11 +-
+ board/freescale/imx8mp_irma6r2/Makefile       |    8 +-
+ board/freescale/imx8mp_irma6r2/ddr4_timing.c  | 1250 +++++++++++++++++
+ .../freescale/imx8mp_irma6r2/imx8mp_irma6r2.c |  123 +-
+ include/configs/imx8mp_irma6r2.h              |   33 +-
+ 7 files changed, 1369 insertions(+), 75 deletions(-)
  create mode 100644 board/freescale/imx8mp_irma6r2/ddr4_timing.c
 
+diff --git a/arch/arm/mach-imx/imx8m/Kconfig b/arch/arm/mach-imx/imx8m/Kconfig
+index a225a9784f..3182754b84 100644
+--- a/arch/arm/mach-imx/imx8m/Kconfig
++++ b/arch/arm/mach-imx/imx8m/Kconfig
+@@ -251,6 +251,16 @@ config TARGET_IMX8MP_DDR4_EVK
+ 	select ARCH_MISC_INIT
+ 	select SPL_CRYPTO if SPL
+ 
++config TARGET_IMX8MP_IRMA6R2
++	bool "imx8mp DDR4 IRMA6 Release2 board"
++	select IMX8MP
++	select SUPPORT_SPL
++	select IMX8M_DDR4
++	select FSL_CAAM
++	select FSL_BLOB
++	select ARCH_MISC_INIT
++	select SPL_CRYPTO if SPL
++
+ config TARGET_PICO_IMX8MQ
+ 	bool "Support Technexion Pico iMX8MQ"
+ 	select BINMAN
+@@ -355,6 +365,7 @@ source "board/freescale/imx8mm_evk/Kconfig"
+ source "board/freescale/imx8mm_val/Kconfig"
+ source "board/freescale/imx8mn_evk/Kconfig"
+ source "board/freescale/imx8mp_evk/Kconfig"
++source "board/freescale/imx8mp_irma6r2/Kconfig"
+ source "board/gateworks/venice/Kconfig"
+ source "board/google/imx8mq_phanbell/Kconfig"
+ source "board/kontron/pitx_imx8m/Kconfig"
+diff --git a/board/freescale/imx8mp_irma6r2/Kconfig b/board/freescale/imx8mp_irma6r2/Kconfig
+index e290170785..69f0676fd6 100644
+--- a/board/freescale/imx8mp_irma6r2/Kconfig
++++ b/board/freescale/imx8mp_irma6r2/Kconfig
+@@ -1,16 +1,16 @@
+-if TARGET_IMX8MP_EVK || TARGET_IMX8MP_DDR4_EVK
++if TARGET_IMX8MP_IRMA6R2
+ 
+ config SYS_BOARD
+-	default "imx8mp_evk"
++	default "imx8mp_irma6r2"
+ 
+ config SYS_VENDOR
+ 	default "freescale"
+ 
+ config SYS_CONFIG_NAME
+-	default "imx8mp_evk"
++	default "imx8mp_irma6r2"
+ 
+ config IMX_CONFIG
+-	default "board/freescale/imx8mp_evk/imximage-8mp-lpddr4.cfg"
++	default "board/freescale/imx8mp_irma6r2/imximage-8mp-lpddr4.cfg"
+ 
+ source "board/freescale/common/Kconfig"
+ 
+diff --git a/board/freescale/imx8mp_irma6r2/MAINTAINERS b/board/freescale/imx8mp_irma6r2/MAINTAINERS
+index 2759652cc4..ba37a11019 100644
+--- a/board/freescale/imx8mp_irma6r2/MAINTAINERS
++++ b/board/freescale/imx8mp_irma6r2/MAINTAINERS
+@@ -1,6 +1,7 @@
+-i.MX8MP EVK BOARD
+-M:	Peng Fan <peng.fan@nxp.com>
++imx8mp DDR4 IRMA6 Release2 board
++M:	Michael Glembotzki <michael.glembotzki@iris-sensing.com>
++M:	Erik Schumacher <erik.schumacher@iris-sensing.com>
+ S:	Maintained
+-F:	board/freescale/imx8mp_evk/
+-F:	include/configs/imx8mp_evk.h
+-F:	configs/imx8mp_evk_defconfig
++F:	board/freescale/imx8mp_irma6r2/
++F:	include/configs/imx8mp_irma6r2.h
++F:	configs/imx8mp_irma6r2_defconfig
+diff --git a/board/freescale/imx8mp_irma6r2/Makefile b/board/freescale/imx8mp_irma6r2/Makefile
+index 1421e46628..d72fe0c253 100644
+--- a/board/freescale/imx8mp_irma6r2/Makefile
++++ b/board/freescale/imx8mp_irma6r2/Makefile
+@@ -1,17 +1,13 @@
+ #
++# Copyright (C) 2022 iris-GmbH infrared & intelligent sensors
+ # Copyright 2019 NXP
+ #
+ # SPDX-License-Identifier:      GPL-2.0+
+ #
+ 
+-obj-y += imx8mp_evk.o
++obj-y += imx8mp_irma6r2.o
+ 
+ ifdef CONFIG_SPL_BUILD
+ obj-y += spl.o
+-ifdef CONFIG_IMX8M_LPDDR4_FREQ0_3200MTS
+-obj-y += lpddr4_timing_ndm.o
+-else
+-obj-$(CONFIG_IMX8M_LPDDR4) += lpddr4_timing.o
+ obj-$(CONFIG_IMX8M_DDR4) += ddr4_timing.o
+ endif
+-endif
 diff --git a/board/freescale/imx8mp_irma6r2/ddr4_timing.c b/board/freescale/imx8mp_irma6r2/ddr4_timing.c
 new file mode 100644
 index 0000000000..c0c7248827
@@ -1266,6 +1367,244 @@ index 0000000000..c0c7248827
 +	.fsp_table = { 3200, 1066, },
 +};
 +
+diff --git a/board/freescale/imx8mp_irma6r2/imx8mp_irma6r2.c b/board/freescale/imx8mp_irma6r2/imx8mp_irma6r2.c
+index 868c79390a..aa448ec926 100644
+--- a/board/freescale/imx8mp_irma6r2/imx8mp_irma6r2.c
++++ b/board/freescale/imx8mp_irma6r2/imx8mp_irma6r2.c
+@@ -431,12 +431,14 @@ static int setup_eqos(void)
+ 	struct iomuxc_gpr_base_regs *gpr =
+ 		(struct iomuxc_gpr_base_regs *)IOMUXC_GPR_BASE_ADDR;
+ 
+-	/* set INTF as RGMII, enable RGMII TXC clock */
++	/* set INTF as RMII */
+ 	clrsetbits_le32(&gpr->gpr[1],
+-			IOMUXC_GPR_GPR1_GPR_ENET_QOS_INTF_SEL_MASK, BIT(16));
+-	setbits_le32(&gpr->gpr[1], BIT(19) | BIT(21));
++			IOMUXC_GPR_GPR1_GPR_ENET_QOS_INTF_SEL_MASK, BIT(18));
+ 
+-	return set_clk_eqos(ENET_125MHZ);
++	/* GPR_ENET_QOS_CLK_GEN_EN (Bit19), IOMUXC_GPR_ENET_QOS_CLK_TX_CLK_SEL (Bit20)=1 loopback*/
++	setbits_le32(&gpr->gpr[1], BIT(19) | BIT(20));
++
++	return set_clk_eqos(ENET_50MHZ);
+ }
+ 
+ #if CONFIG_IS_ENABLED(NET)
+@@ -488,50 +490,77 @@ int board_init(void)
+ 	return 0;
+ }
+ 
+-void board_autolocate_boot_partitions(void)
++void board_autogenerate_bootcmd (void)
+ {
+-	/* TODO (RDPHOEN-1080, ERSC):
+-	   - read bootable flag in GPT, what if no partition is bootable?
+-	   - what to do with the changed (and maybe saved) env values?
+-	   - what to do, if boot/rootfs not found?
+-	*/
+-	u32 dev_no = env_get_ulong("emmc_dev", 10, 2);
+-	char firmware = 'a'; // assume A for now
+-	char mmcroot[32];
+-	char partboot[32];
+-	char partbootfull[32];
+-	char partrootfull[32];
+-	struct disk_partition part_info;
+-
+-	printf("Active firmware: %c - Locating partitions ...\n", firmware);
+-
+-	sprintf(partboot, "linuxboot_%c", firmware);
+-	sprintf(partbootfull, "%d#%s", dev_no, partboot);
+-	sprintf(partrootfull, "%d#rootfs_%c", dev_no, firmware);
+-	int partnumboot = part_get_info_by_dev_and_name_or_num("mmc", partbootfull, 0, &part_info, 1);
+-
+-	if (partnumboot < 0) {
+-		printf(" !! Could not locate linux boot partition!\n");
+-	} else if (!part_info.bootable) {
+-		printf(" !! Found linux boot partition, but partition is not marked bootable!\n");
+-	} else {
+-		printf(" Found linux boot at %d\n", partnumboot);
+-	}
+-
+-	int partnumroot = part_get_info_by_dev_and_name_or_num("mmc", partrootfull, 0, &part_info, 1);
+-	if (partnumroot < 0) {
+-		printf(" !! Could not locate linux rootfs partition!\n");
+-	} else {
+-		printf(" Found linux rootfs at %d\n", partnumroot);
+-	}
+-
+-	env_set("mmcpart", partboot);
+-	env_set_ulong("mmcdev", dev_no);
++    int firmware_env = env_get_ulong("firmware", 10, 0);
++    char *firmware;
++    char *altfirmware;
++    char bootcmd[50];
++    char altbootcmd[50];
++    char partboot[20];
++    char altpartboot[20];
++    int upgrade_available = env_get_ulong("upgrade_available", 10, 0);
++    int ustate = env_get_ulong("ustate", 10, 0);
++
++#if DEBUG
++    printf("Active firmware: %d. ustate: %d \n", firmware_env, ustate);
++#endif
+ 
+-	/* Set mmcblk env */
+-	sprintf(mmcroot, "/dev/mmcblk%dp%d rootwait rw",
+-		mmc_map_to_kernel_blk(dev_no), partnumroot);
+-	env_set("mmcroot", mmcroot);
++    if ( (upgrade_available == 1) && ( ustate == 1) )
++    {
++        /* Change the boot firmware:  */
++        if (firmware_env == 1 ){
++            firmware = "a";
++            altfirmware = "b";
++            firmware_env = 0;
++        }
++        /* Contains [if (firmware_env == 0) ] and all other -invalid- numbers --> set the default firmware_env value to 0 */
++        else {
++            firmware = "b";
++            altfirmware = "a";
++            firmware_env = 1;
++        }
++
++        /* firmware value is responsibly set by bootloader for further boot events */
++        env_set_ulong("firmware", firmware_env);
++        /* Save the state  of having changed boot firmware */
++        ustate = 2;
++        env_set_ulong("ustate", ustate);
++        /* Store both values in ROM / eMMC */
++        env_save();
++#if DEBUG
++        printf("#1 Active firmware_env set to: %ld resp. %d. firmware: %s; altfirmware: %s. ustate: %ld \n", env_get_ulong("firmware", 10, 0), firmware_env, firmware, altfirmware, env_get_ulong("ustate", 10, 0) );
++#endif
++    }
++    else /* In all other cases --> boot from actual firmware and just initialize "altfirmware"/"firmware" according to "firmware_env" */
++    {
++        if (firmware_env == 1 ){
++            firmware = "b";
++            altfirmware = "a";
++        }
++        /* Contains [if (firmware_env == 0) ] and all other -invalid- numbers */
++        else {
++            firmware = "a";
++            altfirmware = "b";
++        }
++#if DEBUG
++        printf("#2 Active firmware set to: %ld resp. %s; altfirmware: %s. ustate: %ld \n", env_get_ulong("firmware", 10, 0), firmware, altfirmware, env_get_ulong("ustate", 10, 0) );
++#endif
++    }
++
++    /* Combine the (alt)bootcmd according to the change of variable "firmware" */
++    snprintf(partboot, sizeof(partboot), "linuxboot_%s", firmware);
++    snprintf(altpartboot, sizeof(altpartboot), "linuxboot_%s", altfirmware);
++    /* "reset;" as a security desgin pattern "so that any failure of the bootcmd does not leave you
++    in an insecure U-Boot console environment." -- http://trac.gateworks.com/wiki/secure_boot  */
++    snprintf(bootcmd, sizeof(bootcmd), "setenv mmcpart %s; run fitboot; reset;", partboot);
++    snprintf(altbootcmd, sizeof(altbootcmd), "setenv mmcpart %s; run fitboot; reset;", altpartboot);
++#if DEBUG
++    printf("partboot: %s  ... altpartboot: %s \n", partboot, altpartboot);
++    printf("bootcmd: %s . altbootcmd: %s \n", bootcmd, altbootcmd);
++#endif
++    env_set("bootcmd", bootcmd);
++    env_set("altbootcmd", altbootcmd);
+ }
+ 
+ int board_late_init(void)
+@@ -544,7 +573,7 @@ int board_late_init(void)
+ 	env_set("board_rev", "iMX8MP");
+ #endif
+ 
+-	board_autolocate_boot_partitions();
++	board_autogenerate_bootcmd();
+ 	return 0;
+ }
+ 
+diff --git a/include/configs/imx8mp_irma6r2.h b/include/configs/imx8mp_irma6r2.h
+index 3b29fa88b7..d109533770 100644
+--- a/include/configs/imx8mp_irma6r2.h
++++ b/include/configs/imx8mp_irma6r2.h
+@@ -3,8 +3,8 @@
+  * Copyright 2019 NXP
+  */
+ 
+-#ifndef __IMX8MP_EVK_H
+-#define __IMX8MP_EVK_H
++#ifndef __IMX8MP_IRMA6R2_H
++#define __IMX8MP_IRMA6R2_H
+ 
+ #include <linux/sizes.h>
+ #include <linux/stringify.h>
+@@ -50,7 +50,8 @@
+ #if defined(CONFIG_CMD_NET)
+ #define CONFIG_ETHPRIME                 "eth1" /* Set eqos to primary since we use its MDIO */
+ 
+-#define CONFIG_FEC_XCV_TYPE             RGMII
++#define CONFIG_RMII
++#define CONFIG_FEC_XCV_TYPE             RMII
+ #define CONFIG_FEC_MXC_PHYADDR          1
+ 
+ #define DWC_NET_PHYADDR			1
+@@ -87,13 +88,22 @@
+ 	"initrd_addr=0x43800000\0" \
+ 	"initrd_high=0xffffffffffffffff\0" \
+ 	"emmc_dev=2\0"\
+-	"sd_dev=1\0"
+-
++	"sd_dev=1\0" \
++	"firmware=0\0" \
++	"upgrade_available=0\0" \
++	"ustate=0\0"
+ 
+ #ifdef CONFIG_NAND_BOOT
+ #define MFG_NAND_PARTITION "mtdparts=gpmi-nand:64m(nandboot),16m(nandfit),32m(nandkernel),16m(nanddtb),8m(nandtee),-(nandrootfs)"
+ #endif
+ 
++/* Limit write access to a minimum*/
++#define CONFIG_ENV_FLAGS_LIST_STATIC \
++       "upgrade_available:dw," \
++       "bootcount:dw," \
++       "ustate:dw," \
++       "firmware:dw"
++
+ /* Initial environment variables */
+ #if defined(CONFIG_NAND_BOOT)
+ #define CONFIG_EXTRA_ENV_SETTINGS \
+@@ -135,6 +145,7 @@
+ 	"mmcroot=" CONFIG_MMCROOT " rootwait rw\0" \
+ 	"mmcautodetect=yes\0" \
+ 	"mmcargs=setenv bootargs ${jh_clk} ${mcore_clk} console=${console} root=${mmcroot}\0 " \
++	"mmcargs=setenv bootargs ${jh_clk} ${mcore_clk} console=${console} root=${mmcroot} ${mmcpart}\0 " \
+ 	"loadbootscript=fatload mmc ${mmcdev}#${mmcpart} ${loadaddr} ${script};\0" \
+ 	"bootscript=echo Running bootscript from mmc ...; " \
+ 		"source\0" \
+@@ -143,6 +154,8 @@
+ 	"fit_img=fitImage.signed\0" \
+ 	"fit_addr=0x48000000\0" \
+ 	"fitboot=fatload mmc ${mmcdev}#${mmcpart} ${fit_addr} ${fit_img}; run mmcargs; bootm ${fit_addr}\0" \
++	"netfitboot=dhcp ${fit_addr} ${fit_img}; run netargs; bootm ${fit_addr}\0" \
++	"nfsroot=/srv/nfs\0" \
+ 	"mmcboot=echo Booting from mmc ...; " \
+ 		"run mmcargs; " \
+ 		"if test ${boot_fit} = yes || test ${boot_fit} = try; then " \
+@@ -188,16 +201,10 @@
+ 
+ #define CONFIG_MMCROOT			"/dev/mmcblk1p2"  /* USDHC2 */
+ 
+-/* Totally 6GB DDR */
++/* Totally 512MB DDR */
+ #define CONFIG_SYS_SDRAM_BASE		0x40000000
+ #define PHYS_SDRAM			0x40000000
+-#define PHYS_SDRAM_SIZE			0xC0000000	/* 3 GB */
+-#define PHYS_SDRAM_2			0x100000000
+-#ifdef CONFIG_TARGET_IMX8MP_DDR4_EVK
+-#define PHYS_SDRAM_2_SIZE		0x40000000	/* 1 GB */
+-#else
+-#define PHYS_SDRAM_2_SIZE		0xC0000000	/* 3 GB */
+-#endif
++#define PHYS_SDRAM_SIZE		0x20000000	/* 512MB */
+ 
+ #define CONFIG_MXC_UART_BASE		UART2_BASE_ADDR
+ 
 -- 
-2.35.1
+2.39.0
 
