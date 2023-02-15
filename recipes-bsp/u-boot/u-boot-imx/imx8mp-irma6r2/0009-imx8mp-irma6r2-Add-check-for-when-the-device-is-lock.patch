@@ -1,8 +1,8 @@
-From 2031147dd87254fd84a224c564b33a1253a2f7e9 Mon Sep 17 00:00:00 2001
+From 3602424b29fe656f8d41b8d7214fea229249744a Mon Sep 17 00:00:00 2001
 From: "philipp.schoewe" <Philipp.Schoewe@iris-sensing.com>
 Date: Tue, 16 Aug 2022 08:41:20 +0200
-Subject: [PATCH 1/1] imx8mp-irma6r2: Add check for when the device is locked
- to not nfs boot
+Subject: [PATCH] imx8mp-irma6r2: Add check for when the device is locked to
+ not nfs boot
 
 Signed-off-by: philipp.schoewe <Philipp.Schoewe@iris-sensing.com>
 ---
@@ -10,18 +10,18 @@ Signed-off-by: philipp.schoewe <Philipp.Schoewe@iris-sensing.com>
  1 file changed, 16 insertions(+), 1 deletion(-)
 
 diff --git a/board/freescale/imx8mp_irma6r2/imx8mp_irma6r2.c b/board/freescale/imx8mp_irma6r2/imx8mp_irma6r2.c
-index 6b5d01c4b7..b3c2c271d6 100644
+index e3d9b15b02..3af9db0961 100644
 --- a/board/freescale/imx8mp_irma6r2/imx8mp_irma6r2.c
 +++ b/board/freescale/imx8mp_irma6r2/imx8mp_irma6r2.c
-@@ -25,6 +25,7 @@
- #include <mmc.h>
- #include "bootcount.h"
+@@ -31,6 +31,7 @@
+ #include <linux/arm-smccc.h>
  #include "interface_unit.h"
+ #include <mmc.h>
 +#include <fuse.h>
  
  DECLARE_GLOBAL_DATA_PTR;
  
-@@ -519,6 +520,16 @@ int board_init(void)
+@@ -494,6 +495,16 @@ int board_init(void)
  	return 0;
  }
  
@@ -38,7 +38,7 @@ index 6b5d01c4b7..b3c2c271d6 100644
  void board_autogenerate_bootcmd (void)
  {
      int firmware_env = env_get_ulong("firmware", 10, 0);
-@@ -582,7 +593,11 @@ void board_autogenerate_bootcmd (void)
+@@ -557,7 +568,11 @@ void board_autogenerate_bootcmd (void)
  	if (IU_read_eeprom() == 0) {
  		IU_print_eeprom_content();
  		IU_set_mac("eth1addr");
@@ -52,5 +52,5 @@ index 6b5d01c4b7..b3c2c271d6 100644
  	
  	if (nfs_boot) {
 -- 
-2.25.1
+2.39.0
 
