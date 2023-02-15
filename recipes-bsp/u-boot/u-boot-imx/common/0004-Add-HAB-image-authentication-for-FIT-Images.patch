@@ -1,4 +1,4 @@
-From 3c19f2b58449b8fc1e05079a943da6dab85654c6 Mon Sep 17 00:00:00 2001
+From 2a2a487a75f9719061112e3c5543377359d90722 Mon Sep 17 00:00:00 2001
 From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
 Date: Thu, 14 Apr 2022 22:45:04 +0200
 Subject: [PATCH] Add HAB image authentication for FIT Images
@@ -9,10 +9,10 @@ Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
  1 file changed, 16 insertions(+), 1 deletion(-)
 
 diff --git a/cmd/bootm.c b/cmd/bootm.c
-index 03ea3b8998..53c903d909 100644
+index 0c5585b123..e65664eeed 100644
 --- a/cmd/bootm.c
 +++ b/cmd/bootm.c
-@@ -161,8 +161,14 @@ int do_bootm(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
+@@ -163,8 +163,14 @@ int do_bootm(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
  	}
  
  #else
@@ -28,7 +28,7 @@ index 03ea3b8998..53c903d909 100644
  #if defined(CONFIG_LEGACY_IMAGE_FORMAT)
  	case IMAGE_FORMAT_LEGACY:
  		if (authenticate_image(image_load_addr,
-@@ -176,6 +182,15 @@ int do_bootm(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
+@@ -178,6 +184,15 @@ int do_bootm(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
  	case IMAGE_FORMAT_ANDROID:
  		/* Do this authentication in boota command */
  		break;
@@ -45,5 +45,5 @@ index 03ea3b8998..53c903d909 100644
  	default:
  		printf("Not valid image format for Authentication, Please check\n");
 -- 
-2.34.1
+2.39.0
 

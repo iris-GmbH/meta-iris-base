@@ -1,4 +1,4 @@
-From ec853d051e5ee44f57108cab364cc14e864ccaf6 Mon Sep 17 00:00:00 2001
+From 29ca69e8dbc1502807111706cf5f3cc9b4e7914a Mon Sep 17 00:00:00 2001
 From: "philipp.schoewe" <Philipp.Schoewe@iris-sensing.com>
 Date: Fri, 8 Jul 2022 14:20:18 +0200
 Subject: [PATCH] imx8mp-irma6r2: Add IU EEPROM readout for configuring mac
@@ -6,12 +6,12 @@ Subject: [PATCH] imx8mp-irma6r2: Add IU EEPROM readout for configuring mac
 
 ---
  board/freescale/imx8mp_irma6r2/Makefile       |   2 +
- board/freescale/imx8mp_irma6r2/i2c_memory.c   |  63 +++++++++
+ board/freescale/imx8mp_irma6r2/i2c_memory.c   |  64 +++++++++
  board/freescale/imx8mp_irma6r2/i2c_memory.h   |  11 ++
- .../freescale/imx8mp_irma6r2/imx8mp_irma6r2.c |  27 +++-
- .../freescale/imx8mp_irma6r2/interface_unit.c | 132 ++++++++++++++++++
+ .../freescale/imx8mp_irma6r2/imx8mp_irma6r2.c |  30 +++-
+ .../freescale/imx8mp_irma6r2/interface_unit.c | 133 ++++++++++++++++++
  .../freescale/imx8mp_irma6r2/interface_unit.h |  24 ++++
- 6 files changed, 252 insertions(+), 7 deletions(-)
+ 6 files changed, 257 insertions(+), 7 deletions(-)
  create mode 100644 board/freescale/imx8mp_irma6r2/i2c_memory.c
  create mode 100644 board/freescale/imx8mp_irma6r2/i2c_memory.h
  create mode 100644 board/freescale/imx8mp_irma6r2/interface_unit.c
@@ -32,12 +32,13 @@ index d72fe0c253..304a81bd52 100644
  obj-y += spl.o
 diff --git a/board/freescale/imx8mp_irma6r2/i2c_memory.c b/board/freescale/imx8mp_irma6r2/i2c_memory.c
 new file mode 100644
-index 0000000000..e76b4ada48
+index 0000000000..f383992ca7
 --- /dev/null
 +++ b/board/freescale/imx8mp_irma6r2/i2c_memory.c
-@@ -0,0 +1,63 @@
+@@ -0,0 +1,64 @@
 +#include "i2c_memory.h"
 +#include <i2c.h>
++#include <dm/uclass.h>
 +
 +/**
 + * write_memory - write the content into EEPROM/FRAM
@@ -72,19 +73,19 @@ index 0000000000..e76b4ada48
 +/**
 + * read_memory - read the EEPROM/FRAM content into memory
 + */
-+int read_memory(unsigned int bus, uint8_t chip, unsigned int addr,
++int read_memory(unsigned int busnum, uint8_t chip, unsigned int addr,
 +		uint8_t *buffer, int len) {
-+	struct udevice* _bus;
++	struct udevice* bus;
 +	struct udevice* i2c_dev = NULL;
 +	int ret;
 +
-+	ret = uclass_get_device_by_seq(UCLASS_I2C, bus, &_bus);
++	ret = uclass_get_device_by_seq(UCLASS_I2C, busnum, &bus);
 +	if (ret) {
-+		printf("%s: Can't find bus\n", __func__);
++		printf("%s: Can't find bus: %d\n", __func__, busnum);
 +		return -EINVAL;
 +	}
 +
-+	ret = dm_i2c_probe(_bus, chip, 0, &i2c_dev);
++	ret = dm_i2c_probe(bus, chip, 0, &i2c_dev);
 +	if (ret) {
 +		printf("%s: Can't find device id=0x%x\n",
 +			__func__, addr);
@@ -117,25 +118,38 @@ index 0000000000..c88f93496a
 +
 +#endif /* BOARD_IMX8MP_I2C_MEMORY_H_ */
 diff --git a/board/freescale/imx8mp_irma6r2/imx8mp_irma6r2.c b/board/freescale/imx8mp_irma6r2/imx8mp_irma6r2.c
-index 0ee39d23b6..42cc2956c0 100644
+index aa448ec926..e3d9b15b02 100644
 --- a/board/freescale/imx8mp_irma6r2/imx8mp_irma6r2.c
 +++ b/board/freescale/imx8mp_irma6r2/imx8mp_irma6r2.c
-@@ -24,6 +24,7 @@
+@@ -1,5 +1,6 @@
+ // SPDX-License-Identifier: GPL-2.0+
+ /*
++ * Copyright 2022 iris GmbH
+  * Copyright 2019 NXP
+  */
+ 
+@@ -28,10 +29,13 @@
  #include <dwc3-uboot.h>
- #include <mmc.h>
- #include "bootcount.h"
+ #include <imx_sip.h>
+ #include <linux/arm-smccc.h>
 +#include "interface_unit.h"
+ #include <mmc.h>
  
  DECLARE_GLOBAL_DATA_PTR;
  
-@@ -576,13 +577,25 @@ void board_autogenerate_bootcmd (void)
++#define DEBUG 0
++
+ #define UART_PAD_CTRL	(PAD_CTL_DSE6 | PAD_CTL_FSEL1)
+ #define WDOG_PAD_CTRL	(PAD_CTL_DSE6 | PAD_CTL_ODE | PAD_CTL_PUE | PAD_CTL_PE)
+ 
+@@ -548,13 +552,25 @@ void board_autogenerate_bootcmd (void)
  #endif
      }
  
 -    /* Combine the (alt)bootcmd according to the change of variable "firmware" */
 -    snprintf(partboot, sizeof(partboot), "linuxboot_%s", firmware);
 -    snprintf(altpartboot, sizeof(altpartboot), "linuxboot_%s", altfirmware);
--    /* "reset;" as a security desgin pattern "so that any failure of the bootcmd does not leave you 
+-    /* "reset;" as a security desgin pattern "so that any failure of the bootcmd does not leave you
 -    in an insecure U-Boot console environment." -- http://trac.gateworks.com/wiki/secure_boot  */
 -    snprintf(bootcmd, sizeof(bootcmd), "setenv mmcpart %s; run fitboot; reset;", partboot);
 -    snprintf(altbootcmd, sizeof(altbootcmd), "setenv mmcpart %s; run fitboot; reset;", altpartboot);
@@ -163,12 +177,13 @@ index 0ee39d23b6..42cc2956c0 100644
      printf("bootcmd: %s . altbootcmd: %s \n", bootcmd, altbootcmd);
 diff --git a/board/freescale/imx8mp_irma6r2/interface_unit.c b/board/freescale/imx8mp_irma6r2/interface_unit.c
 new file mode 100644
-index 0000000000..ae499dc144
+index 0000000000..88c5b1fe80
 --- /dev/null
 +++ b/board/freescale/imx8mp_irma6r2/interface_unit.c
-@@ -0,0 +1,132 @@
+@@ -0,0 +1,133 @@
 +#include "interface_unit.h"
 +#include <common.h>
++#include <net.h>
 +#include <command.h>
 +#include <linux/ctype.h>
 +#include "i2c_memory.h"
@@ -330,5 +345,5 @@ index 0000000000..60ff24b9c5
 +
 +#endif /* BOARD_IMX8MP_INTERFACE_UNIT_EEPROM_H_ */
 -- 
-2.25.1
+2.39.0
 
