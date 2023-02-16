@@ -32,6 +32,7 @@ RDEPENDS_${PN} += " \
 	jq \
 	libubootenv-bin \
 	swupdate-lualoader \
+	openssl-bin \
 "
 
 FILES_${PN} += " \

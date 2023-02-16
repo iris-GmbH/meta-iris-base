@@ -25,15 +25,14 @@ IRMA6_BASE_PACKAGES = " \
 	yaml-cpp \
 	libelf \
 	libxml2 \
+	iris-ca-certificates \
 "
 
 # IRMA6 default (Release 2) only packages
 IRMA6_EXTRA_PACKAGES = " \
 	lvm2 \
 	cryptsetup \
-	openssl-bin \
 	libubootenv-bin \
-	iris-ca-certificates \
 	iris-signing \
 	rsyslog \
 	chrony \
