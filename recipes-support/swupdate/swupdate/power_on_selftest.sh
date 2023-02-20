@@ -96,6 +96,7 @@ reset_uboot_envs() {
 	rm "$TMP_ENV_FILE"
 }
 
+{
 # Check if everything is still ok after update on reboot
 PENDING_UPDATE=$(fw_printenv upgrade_available | awk -F'=' '{print $2}')
 if [ "$PENDING_UPDATE" = "1" ]; then
@@ -110,3 +111,4 @@ if [ -f "$ALTERNATIVE_FW_UPDATE_FLAG" ]; then
 	update_alternative_firmware && log "Alternative firmware update complete" || log "Alternative firmware update failed"
 	rm "$ALTERNATIVE_FW_UPDATE_FLAG"
 fi
+} &
