@@ -162,6 +162,15 @@ check_hab_srk() {
 	log "SRK verification passed"
 }
 
+check_identity() {
+	SENSOR_KEY="/mnt/iris/identity/sensor.key"
+	SENSOR_CRT="/mnt/iris/identity/sensor.crt"
+
+	if ! [ -f "$SENSOR_KEY" ] || ! [ -f "$SENSOR_CRT" ]; then
+		log "Device has no identity certificate or key"; exit 1;
+	fi
+}
+
 resize_lvm() {
 	# suppress lvm tool warnings regarding closing of all file descriptors
 	export LVM_SUPPRESS_FD_WARNINGS=1
@@ -222,6 +231,7 @@ if [ "$1" = "preinst" ]; then
 	set_device_names
 	mount_keystore
 	check_hab_srk
+	check_identity
 	resize_lvm
 	unlock_device
 	get_bootdev_name
