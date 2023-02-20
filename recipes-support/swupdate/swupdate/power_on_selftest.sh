@@ -4,7 +4,7 @@ TAG=$0
 
 log() {
 	logger -t "$TAG" "$1"
-	echo "$TAG $1"
+	echo "$TAG $1" > /dev/kmsg
 }
 
 exists() {
