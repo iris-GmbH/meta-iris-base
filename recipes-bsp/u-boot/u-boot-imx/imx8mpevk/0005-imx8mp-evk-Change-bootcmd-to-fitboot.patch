@@ -1,7 +1,7 @@
-From 75787e13832c6fb4b74c7e6a4f34a7ea73ce3690 Mon Sep 17 00:00:00 2001
+From 72775bf702de49db0ce530a987ea7b352334d6c6 Mon Sep 17 00:00:00 2001
 From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
 Date: Tue, 19 Apr 2022 15:03:59 +0200
-Subject: [PATCH 6/6] imx8mp-evk: Change bootcmd to fitboot
+Subject: [PATCH] imx8mp-evk: Change bootcmd to fitboot
 
 Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
 ---
@@ -9,15 +9,15 @@ Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
  1 file changed, 1 insertion(+), 11 deletions(-)
 
 diff --git a/include/configs/imx8mp_evk.h b/include/configs/imx8mp_evk.h
-index 592d09a896..ebe8432a64 100644
+index 08fbfd4dcd..3b29fa88b7 100644
 --- a/include/configs/imx8mp_evk.h
 +++ b/include/configs/imx8mp_evk.h
-@@ -149,17 +149,7 @@
+@@ -174,17 +174,7 @@
+ 				"echo WARN: Cannot load the DT; " \
  			"fi; " \
- 		"fi;\0"
- 
--#define CONFIG_BOOTCOMMAND \
--	   "mmc dev ${mmcdev}; if mmc rescan; then " \
+ 		"fi;\0" \
+-	"bsp_bootcmd=echo Running BSP bootcmd ...; " \
+-		"mmc dev ${mmcdev}; if mmc rescan; then " \
 -		   "if run loadbootscript; then " \
 -			   "run bootscript; " \
 -		   "else " \
@@ -27,10 +27,10 @@ index 592d09a896..ebe8432a64 100644
 -			   "fi; " \
 -		   "fi; " \
 -	   "fi;"
-+#define CONFIG_BOOTCOMMAND "run fitboot;"
++	"bsp_bootcmd=run fitboot;"
+ #endif
  
  /* Link Definitions */
- #define CONFIG_LOADADDR			0x40480000
 -- 
-2.34.1
+2.39.0
 

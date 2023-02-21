@@ -6,14 +6,8 @@ PV = "${IRIS_IMX_BOOT_RELEASE}"
 
 FILESEXTRAPATHS:prepend := "${THISDIR}/files:"
 SRC_URI:append:imx8mp-irma6r2 = " \
-    file://0001-Add-imx8mp-irma6r2-SOC-based-on-imx8mp-with-DDR4-fir.patch \
+    file://0001-Use-imx8mp-irma6r2.dtb-instead-of-imx8mp-ddr4-evk.dt.patch \
 "
-SRC_URI:append = " \
-    file://0001-Fix-cleanup-Remove-device-tree-deletion-after-make.patch \
-    file://0002-MLK-24913-iMX8MP-Update-the-atf-load-address-to-0x97.patch \
-"
-
-SOC_TARGET:imx8mp-irma6r2 = "iMX8MPI6R2"
 
 python __anonymous () {
     if d.getVar('HAB_ENABLE', True):
@@ -38,27 +32,27 @@ do_compile() {
     for target in ${IMXBOOT_TARGETS}; do
         compile_${SOC_FAMILY}
         if [ "$target" = "flash_linux_m4_no_v2x" ]; then
-            # Special target build for i.MX 8DXL with V2X off
-            bbnote "building ${SOC_TARGET} - ${REV_OPTION} V2X=NO ${target}"
-            make SOC=${SOC_TARGET} ${REV_OPTION} V2X=NO dtbs=${UBOOT_DTB_NAME} flash_linux_m4
+           # Special target build for i.MX 8DXL with V2X off
+           bbnote "building ${IMX_BOOT_SOC_TARGET} - ${REV_OPTION} V2X=NO ${target}"
+           make SOC=${IMX_BOOT_SOC_TARGET} ${REV_OPTION} V2X=NO dtbs=${UBOOT_DTB_NAME} flash_linux_m4
         else
-            bbnote "building ${SOC_TARGET} - ${REV_OPTION} ${target}"
-            make SOC=${SOC_TARGET} ${REV_OPTION} dtbs=${UBOOT_DTB_NAME} ${target} > ${S}/hab_info1.txt 2>&1
+           bbnote "building ${IMX_BOOT_SOC_TARGET} - ${REV_OPTION} ${target}"
+           make SOC=${IMX_BOOT_SOC_TARGET} ${REV_OPTION} dtbs=${UBOOT_DTB_NAME} ${target} > ${S}/hab_info1.txt 2>&1
         fi
 
         if [ "${HAB_ENABLE}" = "1" ];then
-            case ${SOC_TARGET} in
-              "iMX8MPI6R2")
+            case ${MACHINE} in
+              "imx8mp-irma6r2")
                 print_cmd=print_fit_hab_ddr4
                 ;;
-              "iMX8MP")
+              "imx8mp-lpddr4-evk")
                 print_cmd=print_fit_hab
                 ;;
               *)
-                bberror "HAB signing is not supported yet for ${SOC_TARGET}!"
+                bberror "HAB signing is not supported yet for ${MACHINE}!"
                 ;;
             esac
-            make SOC=${SOC_TARGET} $print_cmd > ${S}/hab_info2.txt
+            make SOC=iMX8MP $print_cmd > ${S}/hab_info2.txt
         fi
 
         if [ -e "${BOOT_STAGING}/flash.bin" ]; then
