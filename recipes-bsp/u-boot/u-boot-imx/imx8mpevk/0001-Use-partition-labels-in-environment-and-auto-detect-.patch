@@ -1,20 +1,21 @@
-From 855c37b3ba8dfa757f389c168d166bc6f607bc77 Mon Sep 17 00:00:00 2001
+From a9bf17fbd6ccfa396103b95e5ebcd88bddf025f6 Mon Sep 17 00:00:00 2001
 From: Erik Schumacher <erik.schumacher@iris-sensing.com>
 Date: Tue, 14 Dec 2021 11:53:31 +0100
 Subject: [PATCH] Use partition labels in environment and auto detect mmc
  partitions
 
 Signed-off-by: Erik Schumacher <Erik.Schumacher@iris-sensing.com>
+Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
 ---
  board/freescale/imx8mp_evk/imx8mp_evk.c | 47 +++++++++++++++++++++++++
- include/configs/imx8mp_evk.h            |  9 ++---
- 2 files changed, 50 insertions(+), 6 deletions(-)
+ include/configs/imx8mp_evk.h            |  7 ++--
+ 2 files changed, 50 insertions(+), 4 deletions(-)
 
 diff --git a/board/freescale/imx8mp_evk/imx8mp_evk.c b/board/freescale/imx8mp_evk/imx8mp_evk.c
-index 1569c398e9..c274577311 100644
+index c183dc9f4b..868c79390a 100644
 --- a/board/freescale/imx8mp_evk/imx8mp_evk.c
 +++ b/board/freescale/imx8mp_evk/imx8mp_evk.c
-@@ -499,6 +499,52 @@ int board_init(void)
+@@ -488,6 +488,52 @@ int board_init(void)
  	return 0;
  }
  
@@ -31,14 +32,14 @@ index 1569c398e9..c274577311 100644
 +	char partboot[32];
 +	char partbootfull[32];
 +	char partrootfull[32];
-+	disk_partition_t part_info;
++	struct disk_partition part_info;
 +
 +	printf("Active firmware: %c - Locating partitions ...\n", firmware);
 +
 +	sprintf(partboot, "linuxboot_%c", firmware);
 +	sprintf(partbootfull, "%d#%s", dev_no, partboot);
 +	sprintf(partrootfull, "%d#rootfs_%c", dev_no, firmware);
-+	int partnumboot = part_get_info_by_dev_and_name_or_num("mmc", partbootfull, 0, &part_info);
++	int partnumboot = part_get_info_by_dev_and_name_or_num("mmc", partbootfull, 0, &part_info, 1);
 +
 +	if (partnumboot < 0) {
 +		printf(" !! Could not locate linux boot partition!\n");
@@ -48,7 +49,7 @@ index 1569c398e9..c274577311 100644
 +		printf(" Found linux boot at %d\n", partnumboot);
 +	}
 +
-+	int partnumroot = part_get_info_by_dev_and_name_or_num("mmc", partrootfull, 0, &part_info);
++	int partnumroot = part_get_info_by_dev_and_name_or_num("mmc", partrootfull, 0, &part_info, 1);
 +	if (partnumroot < 0) {
 +		printf(" !! Could not locate linux rootfs partition!\n");
 +	} else {
@@ -67,7 +68,7 @@ index 1569c398e9..c274577311 100644
  int board_late_init(void)
  {
  #ifdef CONFIG_ENV_IS_IN_MMC
-@@ -509,6 +555,7 @@ int board_late_init(void)
+@@ -498,6 +544,7 @@ int board_late_init(void)
  	env_set("board_rev", "iMX8MP");
  #endif
  
@@ -76,37 +77,28 @@ index 1569c398e9..c274577311 100644
  }
  
 diff --git a/include/configs/imx8mp_evk.h b/include/configs/imx8mp_evk.h
-index 933dbde5cd..c9872cae75 100644
+index a26c651dcf..94035d74c9 100644
 --- a/include/configs/imx8mp_evk.h
 +++ b/include/configs/imx8mp_evk.h
-@@ -105,15 +105,14 @@
- 	"initrd_addr=0x43800000\0"		\
- 	"initrd_high=0xffffffffffffffff\0" \
+@@ -132,15 +132,14 @@
+ 	"fdtfile=" CONFIG_DEFAULT_FDT_FILE "\0" \
+ 	"bootm_size=0x10000000\0" \
  	"mmcdev="__stringify(CONFIG_SYS_MMC_ENV_DEV)"\0" \
--	"mmcpart=" __stringify(CONFIG_SYS_MMC_IMG_LOAD_PART) "\0" \
+-	"mmcpart=1\0" \
  	"mmcroot=" CONFIG_MMCROOT " rootwait rw\0" \
  	"mmcautodetect=yes\0" \
- 	"mmcargs=setenv bootargs ${jh_clk} console=${console} root=${mmcroot}\0 " \
--	"loadbootscript=fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${script};\0" \
+ 	"mmcargs=setenv bootargs ${jh_clk} ${mcore_clk} console=${console} root=${mmcroot}\0 " \
+-	"loadbootscript=fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${bsp_script};\0" \
 +	"loadbootscript=fatload mmc ${mmcdev}#${mmcpart} ${loadaddr} ${script};\0" \
  	"bootscript=echo Running bootscript from mmc ...; " \
  		"source\0" \
 -	"loadimage=fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${image}\0" \
--	"loadfdt=fatload mmc ${mmcdev}:${mmcpart} ${fdt_addr} ${fdt_file}\0" \
+-	"loadfdt=fatload mmc ${mmcdev}:${mmcpart} ${fdt_addr_r} ${fdtfile}\0" \
 +	"loadimage=fatload mmc ${mmcdev}#${mmcpart} ${loadaddr} ${image}\0" \
 +	"loadfdt=fatload mmc ${mmcdev}#${mmcpart} ${fdt_addr} ${fdt_file}\0" \
  	"mmcboot=echo Booting from mmc ...; " \
  		"run mmcargs; " \
  		"if test ${boot_fit} = yes || test ${boot_fit} = try; then " \
-@@ -209,8 +208,6 @@
- #define CONFIG_SYS_FSL_USDHC_NUM	2
- #define CONFIG_SYS_FSL_ESDHC_ADDR	0
- 
--#define CONFIG_SYS_MMC_IMG_LOAD_PART	1
--
- #ifdef CONFIG_FSL_FSPI
- #define FSL_FSPI_FLASH_SIZE		SZ_32M
- #define FSL_FSPI_FLASH_NUM		1
 -- 
-2.35.1
+2.39.0
 
