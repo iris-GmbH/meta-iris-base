@@ -1,7 +1,7 @@
-From f0e9254925e2627cb21203ea108ad105553118ad Mon Sep 17 00:00:00 2001
+From 97303a45b704a198c7b3915c0025fbc8a8f303c7 Mon Sep 17 00:00:00 2001
 From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
 Date: Tue, 19 Apr 2022 11:32:41 +0200
-Subject: [PATCH 4/6] imx8mp-evk: Add cmd for booting signed fitImage
+Subject: [PATCH] imx8mp-evk: Add cmd for booting signed fitImage
 
 Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
 ---
@@ -9,10 +9,10 @@ Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
  1 file changed, 3 insertions(+)
 
 diff --git a/include/configs/imx8mp_evk.h b/include/configs/imx8mp_evk.h
-index 933dbde5cd..6afa3fe777 100644
+index 94035d74c9..08fbfd4dcd 100644
 --- a/include/configs/imx8mp_evk.h
 +++ b/include/configs/imx8mp_evk.h
-@@ -114,6 +114,9 @@
+@@ -140,6 +140,9 @@
  		"source\0" \
  	"loadimage=fatload mmc ${mmcdev}#${mmcpart} ${loadaddr} ${image}\0" \
  	"loadfdt=fatload mmc ${mmcdev}#${mmcpart} ${fdt_addr} ${fdt_file}\0" \
@@ -23,5 +23,5 @@ index 933dbde5cd..6afa3fe777 100644
  		"run mmcargs; " \
  		"if test ${boot_fit} = yes || test ${boot_fit} = try; then " \
 -- 
-2.34.1
+2.39.0
 
