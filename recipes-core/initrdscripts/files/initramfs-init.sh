@@ -156,6 +156,21 @@ pvsn_flash() {
     dmsetup remove /dev/mapper/decrypted-irma6lvm-userdata
 }
 
+emergency_switch() {
+    pending_update=$(fw_printenv upgrade_available | awk -F'=' '{print $2}')
+    if [ "$pending_update" = "1" ]; then
+        echo "Update pending, let bootcount switch firmware..."; exit 1;   
+    fi
+
+    firmware=$(fw_printenv firmware | awk -F'=' '{print $2}')
+    if [ "$firmware" = "1" ] || [ "$firmware" = "0" ]; then
+        firmware=$(( firmware^1 ))
+        fw_setenv firmware "$firmware"
+        echo "Switched to firmware: $firmware"
+    fi
+    exit 1;
+}
+
 mount_pseudo_fs
 
 # populate LVM mapper devices
@@ -234,7 +249,7 @@ ${UMOUNT} ${KEYSTORE}
 debug "Opening verity device: ${DECRYPT_ROOT_DEV}"
 veritysetup open ${DECRYPT_ROOT_DEV} ${VERITY_NAME} ${ROOT_HASH_DEV} ${RH}
 
-${MOUNT} ${VERITY_DEV} ${ROOT_MNT} -o ro
+${MOUNT} ${VERITY_DEV} ${ROOT_MNT} -o ro || emergency_switch
 move_special_devices
 echo "Switching root to verity device"
 exec switch_root ${ROOT_MNT} ${INIT} "${CMDLINE}"
