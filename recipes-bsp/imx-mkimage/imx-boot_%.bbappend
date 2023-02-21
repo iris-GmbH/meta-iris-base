@@ -179,7 +179,9 @@ sign_uboot_common() {
     sld_csf_off=$(hex2dec $sld_csf_off)
     blocks_spl="$(cat ${S}/hab_info1.txt | grep -w "spl hab block" | cut -f2) \"${fn}\""
     blocks_fit1="$(cat ${S}/hab_info1.txt | grep -w "sld hab block" | cut -f2) \"${fn}\", \\"
-    blocks_fit2="$(cat ${S}/hab_info2.txt | tail -n 4 | while read line; do echo "$line \"${fn}\", \\"; done)"
+
+    fit2_lines=${@bb.utils.contains('MACHINE_FEATURES', 'optee', '4', '3', d)}
+    blocks_fit2="$(cat ${S}/hab_info2.txt | tail -n "$fit2_lines" | while read line; do echo "$line \"${fn}\", \\"; done)"
     blocks_fit=$(printf '%s\n%s' "$blocks_fit1" "${blocks_fit2%???}")
 
     # Create csf_spl.txt and csf_fit.txt
