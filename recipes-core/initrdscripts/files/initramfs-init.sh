@@ -177,12 +177,6 @@ mount_pseudo_fs
 vgchange -a y
 vgmknodes
 
-# check if we are in provisioning and need to encrypt the volumes
-echo "Provisioning check..."
-if [ -e "/dev/mapper/irma6lvm-pvsn_rootfs" ]; then
-    pvsn_flash
-fi
-
 echo "Initramfs Bootstrap..."
 parse_cmdline
 
@@ -195,6 +189,13 @@ then
     exec switch_root ${ROOT_MNT} ${INIT} "${CMDLINE}"
     exit 0
 fi
+
+# check if we are in provisioning and need to encrypt the volumes
+echo "Provisioning check..."
+if [ -e "/dev/mapper/irma6lvm-pvsn_rootfs" ]; then
+    pvsn_flash
+fi
+
 
 KEYSTORE_DEV="/dev/mapper/irma6lvm-keystore"
 KEYSTORE="/mnt/keystore"
