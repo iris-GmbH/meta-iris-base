@@ -251,7 +251,11 @@ ${UMOUNT} ${KEYSTORE}
 debug "Opening verity device: ${DECRYPT_ROOT_DEV}"
 veritysetup open ${DECRYPT_ROOT_DEV} ${VERITY_NAME} ${ROOT_HASH_DEV} ${RH}
 
-${MOUNT} ${VERITY_DEV} ${ROOT_MNT} -o ro || emergency_switch
+if ! ${MOUNT} ${VERITY_DEV} ${ROOT_MNT} -o ro 
+then
+    echo "Mount root device failed"
+    emergency_switch
+fi
 move_special_devices
 echo "Switching root to verity device"
 exec switch_root ${ROOT_MNT} ${INIT} "${CMDLINE}"
