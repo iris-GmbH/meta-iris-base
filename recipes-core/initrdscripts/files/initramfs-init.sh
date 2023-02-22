@@ -163,10 +163,11 @@ emergency_switch() {
     fi
 
     firmware=$(fw_printenv firmware | awk -F'=' '{print $2}')
-    if [ "$firmware" = "1" ] || [ "$firmware" = "0" ]; then
+    if [ "$firmware" -eq 1 ] || [ "$firmware" -eq 0 ]; then
         firmware=$(( firmware^1 ))
         fw_setenv firmware "$firmware"
-        echo "Switched to firmware: $firmware"
+        sync
+        echo "Emergency firmware switch to: $firmware"
     fi
     exit 1;
 }
