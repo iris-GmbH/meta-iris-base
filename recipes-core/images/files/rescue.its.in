@@ -25,7 +25,6 @@
 			arch = "TARGET_ARCH";
 			compression = "none";
 			load = <0x43000000>;
-			entry = <0x43000000>;
 			hash {
 				algo = "sha256";
 			};
