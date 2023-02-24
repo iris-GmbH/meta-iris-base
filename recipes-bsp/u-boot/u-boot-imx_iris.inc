@@ -8,6 +8,7 @@ UBOOT_INITIAL_ENV = "u-boot-initial-env"
 
 FILESEXTRAPATHS:prepend := "${THISDIR}/u-boot-imx/common:"
 SRC_URI:append = "\
+	file://fw_env.config \
 	file://0001-env-Fix-prio-on-bad-CRC-case-with-ENV_APPEND-enabled.patch \
 	file://0002-env-Invert-gd-env_valid-for-env_mmc_save.patch \
 	file://0003-imx8m-soc.c-Use-arch-specific-env_get_location.patch \
