@@ -157,15 +157,15 @@ pvsn_flash() {
 }
 
 emergency_switch() {
-    pending_update=$(fw_printenv upgrade_available | awk -F'=' '{print $2}')
+    pending_update=$(/usr/bin/fw_printenv upgrade_available | awk -F'=' '{print $2}')
     if [ "$pending_update" = "1" ]; then
         echo "Update pending, let bootcount switch firmware..."; exit 1;   
     fi
 
-    firmware=$(fw_printenv firmware | awk -F'=' '{print $2}')
+    firmware=$(/usr/bin/fw_printenv firmware | awk -F'=' '{print $2}')
     if [ "$firmware" -eq 1 ] || [ "$firmware" -eq 0 ]; then
         firmware=$(( firmware^1 ))
-        fw_setenv firmware "$firmware"
+        /usr/bin/fw_printenv firmware "$firmware"
         sync
         echo "Emergency firmware switch to: $firmware"
     fi
@@ -229,7 +229,8 @@ ${MOUNT} ${KEYSTORE_DEV} ${KEYSTORE}
 
 if ! /usr/bin/openssl dgst -sha256 -verify "${PUBKEY}" -signature "${ROOT_HASH_SIGNATURE}" "${ROOT_HASH}"
 then
-    exit 1
+    echo "Root hash signature invalid"
+    emergency_switch
 fi
 RH=$(cat "${ROOT_HASH}")
 
