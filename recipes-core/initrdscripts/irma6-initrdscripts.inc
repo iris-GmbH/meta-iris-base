@@ -21,6 +21,7 @@ RDEPENDS_${PN} = " \
     iris-signing \
     e2fsprogs-mke2fs \
     nfs-utils \
+    libubootenv-bin \
 "
 
 S = "${WORKDIR}"

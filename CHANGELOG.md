@@ -14,6 +14,7 @@ and this project adheres to [APR's Version Numbering](https://apr.apache.org/ver
 - [APC-5792]: Release 2: Default to https in flashall.uuu, swuimage and factory reset script
 - [APC-5942]: Add openssl-bin and download.crt
 - [APC-5994]: swupdate: Check if sensor has identity crt/key before updating
+- [APC-5993]: Add emergency fw A/B switch in case of fs corruption
 
 
 ### Changed
