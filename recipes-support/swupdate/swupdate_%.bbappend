@@ -33,6 +33,7 @@ RDEPENDS:${PN} += " \
 	libubootenv-bin \
 	swupdate-lualoader \
 	openssl-bin \
+	nginx \
 "
 
 FILES:${PN} += " \
