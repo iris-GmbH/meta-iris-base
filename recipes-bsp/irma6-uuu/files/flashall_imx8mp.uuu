@@ -7,7 +7,7 @@ SDPS: boot -f flash.bin.signed
 FB: ucmd if env exists emmc_ack; then ; else setenv emmc_ack 0; fi;
 FB: ucmd setenv emmc_cmd mmc partconf ${emmc_dev} ${emmc_ack} 1 0
 FB: ucmd if test "${emmc_skip_fb}" != "yes"; then run emmc_cmd; fi
-FB: ucmd setenv emmc_cmd mmc bootbus ${emmc_dev} 2 2 1;
+FB: ucmd setenv emmc_cmd mmc bootbus ${emmc_dev} 2 1 1;
 FB: ucmd if test "${emmc_skip_fb}" != "yes"; then run emmc_cmd; fi
 
 # Load kernel and boot from initramfs

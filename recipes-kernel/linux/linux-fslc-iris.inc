@@ -52,4 +52,4 @@ KERNEL_DEFCONFIG:imx8mpevk = "imx8mp-evk-r2_defconfig"
 KERNEL_DEFCONFIG:imx8mp-irma6r2 = "imx8mp_irma6r2_defconfig"
 
 # Don't include kernels in standard images
-RDEPENDS:${KERNEL_PACKAGE_NAME}-base = ""
+RRECOMMENDS:${KERNEL_PACKAGE_NAME}-base = ""
