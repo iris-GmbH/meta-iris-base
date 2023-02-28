@@ -4,8 +4,6 @@
 FILESEXTRAPATHS:prepend := "${THISDIR}/linux-fslc-iris:"
 
 SRC_URI += " \
-    file://imx8mp-evk-r2_defconfig \
-    file://imx8mp_irma6r2_defconfig \
     file://0001-epc660-Add-device-driver-support.patch \
     file://0002-tc358746-Add-device-driver-support.patch \
     file://0003-imx8mp-evk.dts-Add-epc660-and-tc358746-nodes-to-dts.patch \
@@ -47,9 +45,6 @@ SRC_URI += " \
 SRC_URI:append:poky-iris-deploy = "\
 	file://deploy.cfg \
 "
-
-KERNEL_DEFCONFIG:imx8mp-lpddr4-evk = "imx8mp-evk-r2_defconfig"
-KERNEL_DEFCONFIG:imx8mp-irma6r2 = "imx8mp_irma6r2_defconfig"
 
 # Don't include kernels in standard images
 RRECOMMENDS:${KERNEL_PACKAGE_NAME}-base = ""
