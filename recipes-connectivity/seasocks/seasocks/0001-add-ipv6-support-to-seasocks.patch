@@ -1,0 +1,109 @@
+From 319cfe25b3ef290a63b8fa734619a16d22ca1946 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Christian=20M=C3=BCller?= <christian.multer@irisgmbh.de>
+Date: Wed, 22 Apr 2020 08:45:22 +0200
+Subject: [PATCH] add ipv6 support to seasocks
+
+---
+ src/main/c/Server.cpp        | 50 ++++++++++++++++++++++++++++++++++++
+ src/main/c/seasocks/Server.h | 12 +++++++--
+ 2 files changed, 60 insertions(+), 2 deletions(-)
+
+diff --git a/src/main/c/Server.cpp b/src/main/c/Server.cpp
+index eb244c0..0a07896 100644
+--- a/src/main/c/Server.cpp
++++ b/src/main/c/Server.cpp
+@@ -213,6 +213,10 @@ bool Server::startListening(int port) {
+     return startListening(INADDR_ANY, port);
+ }
+ 
++bool Server::startListening6(int port) {
++    return startListening(in6addr_any, port);
++}
++
+ bool Server::startListening(uint32_t ipInHostOrder, int port) {
+     if (_epollFd == -1 || _eventFd == -1) {
+         LS_ERROR(_logger, "Unable to serve, did not initialize properly.");
+@@ -258,6 +262,52 @@ bool Server::startListening(uint32_t ipInHostOrder, int port) {
+     return true;
+ }
+ 
++bool Server::startListening(in6_addr host, int port) {
++    if (_epollFd == -1 || _eventFd == -1) {
++        LS_ERROR(_logger, "Unable to serve, did not initialize properly.");
++        return false;
++    }
++
++    auto port16 = static_cast<uint16_t>(port);
++    if (port != port16) {
++        LS_ERROR(_logger, "Invalid port: " << port);
++        return false;
++    }
++    _listenSock = socket(AF_INET6, SOCK_STREAM, 0);
++    if (_listenSock == -1) {
++        LS_ERROR(_logger, "Unable to create listen socket: " << getLastError());
++        return false;
++    }
++    if (!configureSocket(_listenSock)) {
++        return false;
++    }
++    
++    sockaddr_in6 sock;
++    memset(&sock, 0, sizeof(sock));
++    sock.sin6_port = htons(port16);
++    sock.sin6_addr = host;
++    sock.sin6_family = AF_INET6;
++    if (bind(_listenSock, reinterpret_cast<const sockaddr*>(&sock), sizeof(sock)) == -1) {
++        LS_ERROR(_logger, "Unable to bind socket: " << getLastError());
++        return false;
++    }
++    if (listen(_listenSock, 5) == -1) {
++        LS_ERROR(_logger, "Unable to listen on socket: " << getLastError());
++        return false;
++    }
++    epoll_event event = { EPOLLIN, { this } };
++    if (epoll_ctl(_epollFd, EPOLL_CTL_ADD, _listenSock, &event) == -1) {
++        LS_ERROR(_logger, "Unable to add listen socket to epoll: " << getLastError());
++        return false;
++    }
++
++    char buf[1024];
++    ::gethostname(buf, sizeof(buf));
++    LS_INFO(_logger, "Listening on http://" << buf << ":" << port << "/");
++
++    return true;
++}
++
+ bool Server::startListeningUnix(const char* socketPath) {
+     struct sockaddr_un sock;
+ 
+diff --git a/src/main/c/seasocks/Server.h b/src/main/c/seasocks/Server.h
+index 63e54ab..d134bf5 100644
+--- a/src/main/c/seasocks/Server.h
++++ b/src/main/c/seasocks/Server.h
+@@ -63,14 +63,22 @@ public:
+     // Returns whether exiting was expected.
+     bool serve(const char* staticPath, int port);
+ 
+-    // Starts listening on a given interface (in host order) and port.
++    // Starts listening on a given interface and port on ipv4 and ipv6 socket
++    // Returns true if all was ok.
++    bool startListening(in6_addr host, int port);
++
++    // Starts listening on a given interface and port on ipv4 only socket
+     // Returns true if all was ok.
+     bool startListening(uint32_t ipInHostOrder, int port);
+ 
+-    // Starts listening on a port on all interfaces.
++    // Starts listening on a port on all interfaces on ipv4 only socket
+     // Returns true if all was ok.
+     bool startListening(int port);
+ 
++    // Starts listening on a port on all interfaces on ipv4 and ipv6 socket
++    // Returns true if all was ok.
++    bool startListening6(int port);
++
+     // Starts listening on a unix domain socket.
+     // Returns true if all was ok.
+     bool startListeningUnix(const char* socketPath);
+-- 
+2.38.1
