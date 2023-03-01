@@ -48,7 +48,7 @@ SRC_URI:append:poky-iris-deploy = "\
 	file://deploy.cfg \
 "
 
-KERNEL_DEFCONFIG:imx8mpevk = "imx8mp-evk-r2_defconfig"
+KERNEL_DEFCONFIG:imx8mp-lpddr4-evk = "imx8mp-evk-r2_defconfig"
 KERNEL_DEFCONFIG:imx8mp-irma6r2 = "imx8mp_irma6r2_defconfig"
 
 # Don't include kernels in standard images
