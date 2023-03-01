@@ -17,8 +17,8 @@ SRC_URI:append = "\
 	file://0006-MLK-19053-crypto-caam-RNG4-TRNG-errata.patch \
 "
 
-FILESEXTRAPATHS:prepend:imx8mpevk := "${THISDIR}/u-boot-imx/imx8mpevk:"
-SRC_URI:append:imx8mpevk = "\
+FILESEXTRAPATHS:prepend:imx8mp-lpddr4-evk := "${THISDIR}/u-boot-imx/imx8mp-lpddr4-evk:"
+SRC_URI:append:imx8mp-lpddr4-evk = "\
 	file://0001-Use-partition-labels-in-environment-and-auto-detect-.patch \
 	file://0002-imx8mp-evk-Enable-secure-boot-and-FIT-image-support.patch \
 	file://0003-Remove-CONFIG_CMD_BOOTEFI-for-imx8mp_evk_defconfig.patch \
