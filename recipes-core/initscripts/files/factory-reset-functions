@@ -1,0 +1,11 @@
+#!/bin/sh
+
+short_detected() {
+	echo "Error: $0 not implemented"
+	return 1
+}
+
+factory_reset() {
+	echo "Error: $0 not implemented"
+	return 1
+}

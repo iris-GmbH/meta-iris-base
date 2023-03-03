@@ -20,6 +20,7 @@ SRC_URI_append := " \
 	file://bootloader_update.lua \
 	file://0001-RDPHOEN-1221-Formatting-index.html.patch \
 	file://0002-RDPHOEN-1221-SWUpdate-Webinterface-CI-rework.patch \
+	file://Findswupdate.cmake \
 "
 
 DEPENDS += " \
@@ -31,6 +32,7 @@ RDEPENDS_${PN} += " \
 	jq \
 	libubootenv-bin \
 	swupdate-lualoader \
+	openssl-bin \
 "
 
 FILES_${PN} += " \
@@ -75,4 +77,7 @@ do_install_append () {
 	fi
 	install -d $(basename -- ${D}${SWUPDATE_HW_COMPATIBILITY_FILE})
 	echo "${MACHINE} ${SWU_HW_VERSION}" > ${D}${SWUPDATE_HW_COMPATIBILITY_FILE}
+
+	install -d ${D}${datadir}/cmake/Modules
+	install -m 644 ${WORKDIR}/Findswupdate.cmake ${D}${datadir}/cmake/Modules
 }

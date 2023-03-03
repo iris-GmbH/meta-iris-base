@@ -20,7 +20,7 @@ PIDFILE=/run/chrony/chronyd.pid
 
 # copy default config, if custom one does not exist
 if [ ! -f $CFG_FILE ]; then
-	mkdir /mnt/iris/chrony
+	mkdir -p /mnt/iris/chrony
 	cp $DEFAULT_CFG $CFG_FILE
 fi
 

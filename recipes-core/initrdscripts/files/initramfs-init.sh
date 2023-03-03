@@ -24,6 +24,12 @@ mount_pseudo_fs() {
     ${MOUNT} -t sysfs sysfs /sys
 }
 
+move_special_devices() {    
+    ${MOUNT} --move /dev ${ROOT_MNT}/dev
+    ${MOUNT} --move /proc ${ROOT_MNT}/proc
+    ${MOUNT} --move /sys ${ROOT_MNT}/sys    
+}
+
 debug_reboot() {
     if [ "${DEBUGSHELL}" = "yes" ]; then
         echo "enter debugshell"
@@ -58,6 +64,13 @@ parse_cmdline() {
     then
         DEBUGSHELL="yes"
     fi
+
+    # Check if NFS boot is active
+    if grep -q 'nfsroot' /proc/cmdline
+    then
+        NFSPATH=$(grep -Eo "nfsroot=[^ ]*" /proc/cmdline | tr '=' ',' | cut -d',' -f2)
+    fi
+
     if grep -q 'linuxboot_b\|firmware_b' /proc/cmdline
     then
         FIRMWARE_SUFFIX="_b"
@@ -143,11 +156,40 @@ pvsn_flash() {
     dmsetup remove /dev/mapper/decrypted-irma6lvm-userdata
 }
 
+emergency_switch() {
+    pending_update=$(/usr/bin/fw_printenv upgrade_available | awk -F'=' '{print $2}')
+    if [ "$pending_update" = "1" ]; then
+        echo "Update pending, let bootcount switch firmware..."; exit 1;   
+    fi
+
+    firmware=$(/usr/bin/fw_printenv firmware | awk -F'=' '{print $2}')
+    if [ "$firmware" -eq 1 ] || [ "$firmware" -eq 0 ]; then
+        firmware=$(( firmware^1 ))
+        /usr/bin/fw_printenv firmware "$firmware"
+        sync
+        echo "Emergency firmware switch to: $firmware"
+    fi
+    exit 1;
+}
+
 mount_pseudo_fs
 
 # populate LVM mapper devices
 vgchange -a y
 vgmknodes
+
+echo "Initramfs Bootstrap..."
+parse_cmdline
+
+# If NFS is active, switchroot now
+if [ -n "${NFSPATH}" ]
+then
+    ${MOUNT} -t nfs "${NFSPATH}" ${ROOT_MNT}
+    echo "Switching root to Network File System"
+    move_special_devices
+    exec switch_root ${ROOT_MNT} ${INIT} "${CMDLINE}"
+    exit 0
+fi
 
 # check if we are in provisioning and need to encrypt the volumes
 echo "Provisioning check..."
@@ -155,8 +197,6 @@ if [ -e "/dev/mapper/irma6lvm-pvsn_rootfs" ]; then
     pvsn_flash
 fi
 
-echo "Initramfs Bootstrap..."
-parse_cmdline
 
 KEYSTORE_DEV="/dev/mapper/irma6lvm-keystore"
 KEYSTORE="/mnt/keystore"
@@ -189,7 +229,8 @@ ${MOUNT} ${KEYSTORE_DEV} ${KEYSTORE}
 
 if ! /usr/bin/openssl dgst -sha256 -verify "${PUBKEY}" -signature "${ROOT_HASH_SIGNATURE}" "${ROOT_HASH}"
 then
-    exit 1
+    echo "Root hash signature invalid"
+    emergency_switch
 fi
 RH=$(cat "${ROOT_HASH}")
 
@@ -211,11 +252,11 @@ ${UMOUNT} ${KEYSTORE}
 debug "Opening verity device: ${DECRYPT_ROOT_DEV}"
 veritysetup open ${DECRYPT_ROOT_DEV} ${VERITY_NAME} ${ROOT_HASH_DEV} ${RH}
 
-${MOUNT} ${VERITY_DEV} ${ROOT_MNT} -o ro
-${MOUNT} --move /dev ${ROOT_MNT}/dev
-${MOUNT} --move /proc ${ROOT_MNT}/proc
-${MOUNT} --move /sys ${ROOT_MNT}/sys
-
-#Switch to real root
-echo "Switch to root"
+if ! ${MOUNT} ${VERITY_DEV} ${ROOT_MNT} -o ro 
+then
+    echo "Mount root device failed"
+    emergency_switch
+fi
+move_special_devices
+echo "Switching root to verity device"
 exec switch_root ${ROOT_MNT} ${INIT} "${CMDLINE}"

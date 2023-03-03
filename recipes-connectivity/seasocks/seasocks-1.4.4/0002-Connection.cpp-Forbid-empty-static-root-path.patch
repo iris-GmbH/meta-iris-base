@@ -1,0 +1,28 @@
+From 9fa5e98a0906e80ac79c05b034f1e9696b1c6090 Mon Sep 17 00:00:00 2001
+From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+Date: Sun, 18 Sep 2022 16:00:51 +0200
+Subject: [PATCH] Connection.cpp: Forbid empty static root path
+
+Without this fix, "/" is used as the default location for the root path!
+
+Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+---
+ src/main/c/Connection.cpp | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/src/main/c/Connection.cpp b/src/main/c/Connection.cpp
+index 1539a4b..29e804b 100644
+--- a/src/main/c/Connection.cpp
++++ b/src/main/c/Connection.cpp
+@@ -1157,6 +1157,9 @@ std::list<Connection::Range> Connection::processRangesForStaticData(const std::l
+ }
+ 
+ bool Connection::sendStaticData() {
++    if (_server.getStaticPath().empty()) {
++        return send404();
++    }
+     // TODO: fold this into the handler way of doing things.
+     std::string path = _server.getStaticPath() + getRequestUri();
+     auto rangeHeader = getHeader("Range");
+-- 
+2.38.1

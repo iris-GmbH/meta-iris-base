@@ -4,6 +4,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [APR's Version Numbering](https://apr.apache.org/versioning.html).
 
+## [2.0.12] - 2023-03-03
+### Added
+- [APC-5579]: factory-reset.sh: Add force option
+- [APC-5725]: Share factory reset script between R1 and R2
+- [DEVOPS-590]: Add FindAvahi.cmake to avahi and Findswupdate.cmake to swupdate to allow usage in cmake projects
+- [APC-5893]: respect EPC660 specified reset timings
+- [APC-5574]: remove customer folder on factory reset
+- [APC-5792]: Release 2: Default to https in flashall.uuu, swuimage and factory reset script
+- [APC-5942]: Add openssl-bin and download.crt
+- [APC-5994]: swupdate: Check if sensor has identity crt/key before updating
+- [APC-5993]: Add emergency fw A/B switch in case of fs corruption
+
+### Removed
+- [APC-5542]: Remove netboot image
+- [DEVOPS-590]: Remove unconditional installing of sqlite3 and nginx
+
+### Fixed
+- [APC-5954]: Fix RTC clkout disable when clock register is skipped
+
+
 ## [2.0.11] - 2022-11-29
 ### Added
 - Allow end/pos1/del commands in UART terminal
@@ -17,6 +37,7 @@ and this project adheres to [APR's Version Numbering](https://apr.apache.org/ver
 - [APC-5286]: Update alternative bootloader after successfull update
 - [APC-5376]: Add power on selftest after update
 - [APC-4580]: Add predefined avahi service to publish a http service
+- [APC-5470]: Add factory reset
 
 ### Changed
 - Enable Debug-Tweaks (UART root access) on all R1 images

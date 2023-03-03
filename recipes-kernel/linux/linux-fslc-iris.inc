@@ -40,12 +40,13 @@ SRC_URI += " \
     file://0032-imx8mp-irma6r2.dts-Change-memory-range-for-dsp.patch \
     file://0033-imx8mp-irma6r2.dts-Add-csi_mclk-to-pinctrl.patch \
     file://0034-imx8mp-irma6r2.dts-Add-kernel-driver-for-eth0-ADIn1200-PHY.patch \
-    file://0035-RDPHOEN-1218-Skip-registering-of-clkout-for-RTC.patch \
+    file://0035-rtc-pcf8563-Skip-registering-of-clkout-for-RTC.patch \
     file://0036-imx8mp-irma6r2.dts-Adjust-EPC660-TC358746-reset-pins.patch \
     file://0037-RDPHOEN-1295-Increase-critical-thermal-point.patch \
     file://0038-RDPHOEN-1314-Fix-MIPI-settings-on-tc358746.patch \
     file://0039-RDPHOEN-1314-imx8mp-evk.dts-Serializer-config.patch \
     file://0040-RDPHOEN-1314-imx8mp-irma6r2.dts-Serializer-config.patch \
+    file://0041-epc660-respect-reset-timings.patch \
 "
 
 SRC_URI_append_poky-iris-deploy = "\

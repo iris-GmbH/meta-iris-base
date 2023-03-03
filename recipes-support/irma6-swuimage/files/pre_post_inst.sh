@@ -107,10 +107,10 @@ imx_fuse_read () {
 	count=${2}	# count = number of words to be read
 
 	ocotp_patch=$(find /sys/bus/ -name "imx-ocotp0")
-	[ -z ${ocotp_patch} ] && { log "No FUSE support!"; exit 1; }
+	[ -z "${ocotp_patch}" ] && { log "No FUSE support!"; exit 1; }
 	ocotp_file=${ocotp_patch}/nvmem
 
-	dd if=${ocotp_file} bs=4 count=${count} skip=${idx} 2>/dev/null | hexdump -e '"0x%04x\n"'
+	dd if="${ocotp_file}" bs=4 count="${count}" skip="${idx}" 2>/dev/null | hexdump -e '"0x%04x\n"'
 }
 
 
@@ -141,7 +141,7 @@ check_hab_srk() {
 
 		# decrypt image to read SRKs
 		file_decrypted="/tmp/file_decrypted"
-		openssl enc -d -aes-256-cbc -K "$KEY" -iv "$IV" -in $signed_image > "$file_decrypted"
+		openssl enc -d -aes-256-cbc -K "$KEY" -iv "$IV" -in "$signed_image" > "$file_decrypted"
 
 		# read SRKs from image
 		(cd /tmp/ && csf_parser -s "$file_decrypted" > /dev/null 2>&1)
@@ -162,12 +162,21 @@ check_hab_srk() {
 	log "SRK verification passed"
 }
 
+check_identity() {
+	SENSOR_KEY="/mnt/iris/identity/sensor.key"
+	SENSOR_CRT="/mnt/iris/identity/sensor.crt"
+
+	if ! [ -f "$SENSOR_KEY" ] || ! [ -f "$SENSOR_CRT" ]; then
+		log "Device has no identity certificate or key"; exit 1;
+	fi
+}
+
 resize_lvm() {
 	# suppress lvm tool warnings regarding closing of all file descriptors
 	export LVM_SUPPRESS_FD_WARNINGS=1
 
 	# get new compressed/encrypted rootfs
-	rootfs_file=$(cat /tmp/sw-description | tr '\n' ' ' | grep -o '{[^}]*device = "/dev/swu_rootfs"[^}]*}' | grep -o 'filename = "[^"]*";' | cut -d'"' -f 2)
+	rootfs_file=$(< /tmp/sw-description tr '\n' ' ' | grep -o '{[^}]*device = "/dev/swu_rootfs"[^}]*}' | grep -o 'filename = "[^"]*";' | cut -d'"' -f 2)
 	rootfs_file="/tmp/$rootfs_file"
 	if [ ! -e "$rootfs_file" ]; then
 		log "Could not find new rootfs during logical volume resize!"; exit 1;
@@ -178,7 +187,7 @@ resize_lvm() {
 
 	# get new rootfs size
 	new_size=$(openssl enc -d -aes-256-cbc -K "$KEY" -iv "$IV" -in "$rootfs_file" | zcat | wc -c)
-	if [ $new_size -eq 0 ]; then
+	if [ "$new_size" -eq 0 ]; then
 		log "Could not retrieve new rootfs size during logical volume resize!"; exit 1;
 	fi
 
@@ -201,10 +210,18 @@ create_webserver_symlinks() {
         log "Create default webtls symlink"
         ln -sf /mnt/iris/identity /mnt/iris/webtls || exit 1
     fi
+    # if "disable_https" parameter has version 1.0, we must overwrite default_server with https
+    if [ -f "/mnt/iris/counter/config_customer.json" ]; then
+        is_old_version=$(jq '.sets.IRMA6_Customer.parameters["pa.communication.disable_https"]["version"] == "1.0"' "/mnt/iris/counter/config_customer.json")
+        if [ "$is_old_version" = "true" ]; then
+            # remove link here, the following lines will recreate link
+            rm "/mnt/iris/nginx/sites-enabled/default_server"
+        fi
+    fi
     if [ ! -L "/mnt/iris/nginx/sites-enabled/default_server" ]; then
         log "Create default webserver server conf symlink"
         mkdir -p /mnt/iris/nginx/sites-enabled || exit 1
-        ln -sf /etc/nginx/sites-available/reverse_proxy_http.conf /mnt/iris/nginx/sites-enabled/default_server  || exit 1
+        ln -sf /etc/nginx/sites-available/reverse_proxy_https.conf /mnt/iris/nginx/sites-enabled/default_server  || exit 1
     fi
 }
 
@@ -214,6 +231,7 @@ if [ "$1" = "preinst" ]; then
 	set_device_names
 	mount_keystore
 	check_hab_srk
+	check_identity
 	resize_lvm
 	unlock_device
 	get_bootdev_name
