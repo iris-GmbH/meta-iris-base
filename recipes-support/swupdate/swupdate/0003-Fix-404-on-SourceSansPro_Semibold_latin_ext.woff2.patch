@@ -1,0 +1,31 @@
+From baae39806e7071a7697df18f4aa59048cb52cae4 Mon Sep 17 00:00:00 2001
+From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+Date: Tue, 7 Mar 2023 13:04:27 +0100
+Subject: [PATCH] Fix: 404 on SourceSansPro_Semibold_latin_ext.woff2
+
+---
+ examples/www/v2/css/override.css | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/examples/www/v2/css/override.css b/examples/www/v2/css/override.css
+index c85a94e..89040e7 100644
+--- a/examples/www/v2/css/override.css
++++ b/examples/www/v2/css/override.css
+@@ -5,12 +5,12 @@
+  @font-face {
+   font-family: 'Source Sans Pro';
+   font-weight: 300;
+-  src: url(webfonts/SourceSansPro_Light_latin_ext.woff2) format('woff2');
++  src: url(../webfonts/SourceSansPro_Light_latin_ext.woff2) format('woff2');
+ }
+ @font-face {
+   font-family: 'Source Sans Pro';
+   font-weight: 600;
+-  src: url(webfonts/SourceSansPro_Semibold_latin_ext.woff2) format('woff2');
++  src: url(../webfonts/SourceSansPro_Semibold_latin_ext.woff2) format('woff2');
+ }
+ 
+  body {
+-- 
+2.39.2
+
