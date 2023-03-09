@@ -165,7 +165,7 @@ emergency_switch() {
     firmware=$(/usr/bin/fw_printenv firmware | awk -F'=' '{print $2}')
     if [ "$firmware" -eq 1 ] || [ "$firmware" -eq 0 ]; then
         firmware=$(( firmware^1 ))
-        /usr/bin/fw_printenv firmware "$firmware"
+        /usr/bin/fw_setenv firmware "$firmware"
         sync
         echo "Emergency firmware switch to: $firmware"
     fi
