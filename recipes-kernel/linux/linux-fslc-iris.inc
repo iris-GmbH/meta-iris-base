@@ -40,6 +40,7 @@ SRC_URI += " \
     file://0034-imx8mp-evk.dts-Serializer-config.patch \
     file://0035-imx8mp-irma6r2.dts-Serializer-config.patch \
     file://0036-epc660-respect-reset-timings.patch \
+    file://0037-imx8mp-evk.dts-imx8mp-irma6r2.dts-Disable-VPU-GPU.patch \
 "
 
 SRC_URI:append:poky-iris-deploy = "\
