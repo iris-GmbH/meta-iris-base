@@ -110,8 +110,15 @@ getParameter(){
 echo "Network Configuration Script"
 createIpFromMAC
 
-# Convert config to single line json so we can regex it with sed
 CUSTOMERNETWORKFILE="/etc/counter/config_customer.json"
+if [ ! -f "$CUSTOMERNETWORKFILE" ]; then
+    echo "$0: Can not read $CUSTOMERNETWORKFILE"
+    createCustomerAdapter
+    createServiceAdapter
+    exit 0
+fi
+
+# Convert config to single line json so we can regex it with sed
 json=`cat $CUSTOMERNETWORKFILE | tr '\n' ' '`
 
 echo "Configuration:"
