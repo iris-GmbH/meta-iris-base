@@ -6,10 +6,13 @@ and this project adheres to [APR's Version Numbering](https://apr.apache.org/ver
 
 ## [2.0.14-dev] (HEAD) - n/a
 ### Added
-
+- [APC-5918](https://jira.iris-sensing.net/browse/APC-5918): Add jsoncpp patch to fix SDK build
 
 ### Changed
-
+- [APC-5918](https://jira.iris-sensing.net/browse/APC-5918): Update this layer to kirkstone, including refactoring of various recipes
+- [APC-5922](https://jira.iris-sensing.net/browse/APC-5922): linux-fslc-imx updated to 5.15
+- [APC-5928](https://jira.iris-sensing.net/browse/APC-5928): u-boot-imx updated to 2022.04
+- [APC-5925](https://jira.iris-sensing.net/browse/APC-5925): Minor tweaks to reduce firmware size of R1
 
 ### Deprecated
 
@@ -19,6 +22,7 @@ and this project adheres to [APR's Version Numbering](https://apr.apache.org/ver
 
 ### Fixed
 - Fix: Use default timestamp file on first boot
+- [APC-6119](https://jira.iris-sensing.net/browse/APC-6119): Fix defconfig handling in linux-fslc-imx kernel recipe
 
 ### Simulation only
 
