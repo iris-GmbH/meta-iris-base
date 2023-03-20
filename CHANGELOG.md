@@ -6,6 +6,7 @@ and this project adheres to [APR's Version Numbering](https://apr.apache.org/ver
 
 ## [2.0.14-dev] (HEAD) - n/a
 ### Added
+- [APC-6160]: chrony: Add NTS certificate to chrony.conf
 
 
 ### Changed
