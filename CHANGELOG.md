@@ -19,6 +19,7 @@ and this project adheres to [APR's Version Numbering](https://apr.apache.org/ver
 
 ### Fixed
 - [APC-6103]: rsyslog: include rw config with mode option
+- [APC-5926]: Remove deprecated unit addresses from fitimage signing
 
 
 ### Simulation only
