@@ -5,6 +5,7 @@ SRC_URI += " \
     file://factory-reset.sh \
     file://factory-reset-functions \
     file://factory-reset.init \
+    file://timestamp \
 "
 
 RDEPENDS_${PN}_append = " phytool"
@@ -29,3 +30,7 @@ do_install_append() {
 	update-rc.d -r ${D} factory-reset start 18 5 .
 }
 
+do_install:append:mx8mp-nxp-bsp() {
+    # Set timestamp file. /etc/default/timestamp will be sourced by the init-scripts
+    install -D -m 0644 ${WORKDIR}/timestamp ${D}${sysconfdir}/default/timestamp
+}

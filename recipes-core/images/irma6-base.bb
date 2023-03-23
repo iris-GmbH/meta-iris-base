@@ -139,14 +139,4 @@ do_generate_dmverity_hashes () {
     rm "${blockdev}" "${paddeddev}" "${hashdev}"
 }
 
-# The rootfs on R2 is read-only, so the timestamp must be saved in a r/w location
-# Skip writing of "default" timestamp in /etc/timestamp (as this file will never be used)
-ROOTFS_POSTPROCESS_COMMAND_remove_mx8mp = "rootfs_update_timestamp"
-
-# Set timestamp file. /etc/default/timestamp will be sourced by the init-scripts
-add_default_timestamp_location(){
-    echo "TIMESTAMP_FILE=/mnt/iris/timestamp" > ${IMAGE_ROOTFS}${sysconfdir}/default/timestamp
-}
-ROOTFS_POSTPROCESS_COMMAND_append_mx8mp = "add_default_timestamp_location; "
-
 inherit irma6-firmware-zip
