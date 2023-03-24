@@ -16,22 +16,25 @@ if [ -z "${INIT}" ];then
 fi
 
 mount_pseudo_fs() {
-    debug "Mount pseudo fs"
     ${MOUNT} -t devtmpfs none /dev
     ${MOUNT} -t tmpfs tmp /tmp
     ${MOUNT} -t tmpfs tmp /run
     ${MOUNT} -t proc proc /proc
     ${MOUNT} -t sysfs sysfs /sys
+    ${MOUNT} -t tmpfs tmp /var/volatile
+    mkdir -p /var/volatile/log
+    debug "Mount pseudo fs"
 }
 
 move_special_devices() {    
     ${MOUNT} --move /dev ${ROOT_MNT}/dev
     ${MOUNT} --move /proc ${ROOT_MNT}/proc
-    ${MOUNT} --move /sys ${ROOT_MNT}/sys    
+    ${MOUNT} --move /sys ${ROOT_MNT}/sys
+    ${MOUNT} --move /var/volatile ${ROOT_MNT}/var/volatile
 }
 
 debug() {
-    echo "${@}"
+    echo "$(date): ${@}" | tee -a "/var/volatile/log/initramfs.log"
 }
 
 parse_cmdline() {
@@ -138,12 +141,17 @@ emergency_switch() {
 
     firmware=$(/usr/bin/fw_printenv firmware | awk -F'=' '{print $2}')
     if [ "$firmware" -eq 1 ] || [ "$firmware" -eq 0 ]; then
-        firmware=$(( firmware^1 ))
-        /usr/bin/fw_setenv firmware "$firmware"
+        new_firmware=$(( firmware^1 ))
+        /usr/bin/fw_setenv firmware "$new_firmware"
+        debug "Error: Emergency firmware switch from $firmware to $new_firmware"
+
+        ${MOUNT} "/dev/mapper/decrypted-irma6lvm-userdata" "/mnt/iris"
+        mkdir -p /mnt/iris/log
+        cat /var/volatile/log/initramfs.log >> /mnt/iris/log/initramfs.log
+        ${UMOUNT} "/mnt/iris"
         sync
-        debug "Emergency firmware switch to: $firmware"
     fi
-    exit 1;
+    exit 1
 }
 
 mount_pseudo_fs
