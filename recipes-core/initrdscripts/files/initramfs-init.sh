@@ -227,13 +227,6 @@ debug "Verity device: ${VERITY_DEV}"
 
 ${MOUNT} ${KEYSTORE_DEV} ${KEYSTORE}
 
-if ! /usr/bin/openssl dgst -sha256 -verify "${PUBKEY}" -signature "${ROOT_HASH_SIGNATURE}" "${ROOT_HASH}"
-then
-    echo "Root hash signature invalid"
-    emergency_switch
-fi
-RH=$(cat "${ROOT_HASH}")
-
 # Add Black key to keyring
 caam-keygen import $KEYSTORE/caam/volumeKey.bb volumeKey
 keyctl padd logon logkey: @us < $KEYSTORE/caam/volumeKey
@@ -246,6 +239,13 @@ debug "Unlocking encrypted device: ${DATA_DEV}"
 dmsetup create ${DECRYPT_DATA_NAME} --table "0 $(blockdev --getsz ${DATA_DEV}) \
     crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 ${DATA_DEV} 0 1 sector_size:4096"
 vgmknodes
+
+if ! /usr/bin/openssl dgst -sha256 -verify "${PUBKEY}" -signature "${ROOT_HASH_SIGNATURE}" "${ROOT_HASH}"
+then
+    echo "Root hash signature invalid"
+    emergency_switch
+fi
+RH=$(cat "${ROOT_HASH}")
 
 ${UMOUNT} ${KEYSTORE}
 
