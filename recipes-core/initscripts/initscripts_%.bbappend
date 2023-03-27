@@ -30,7 +30,7 @@ do_install_append() {
 	update-rc.d -r ${D} factory-reset start 18 5 .
 }
 
-do_install:append:mx8mp-nxp-bsp() {
+do_install:append:mx8mp() {
     # Set timestamp file. /etc/default/timestamp will be sourced by the init-scripts
     install -D -m 0644 ${WORKDIR}/timestamp ${D}${sysconfdir}/default/timestamp
 }
