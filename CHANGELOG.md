@@ -7,6 +7,7 @@ and this project adheres to [APR's Version Numbering](https://apr.apache.org/ver
 ## [2.0.14-dev] (HEAD) - n/a
 ### Added
 - [APC-5918](https://jira.iris-sensing.net/browse/APC-5918): Add jsoncpp patch to fix SDK build
+- [APC-6277](https://jira.iris-sensing.net/browse/APC-6277): Allow update via swupdate only if installed firmware has version 2.1.5 or higher
 
 ### Changed
 - [APC-5918](https://jira.iris-sensing.net/browse/APC-5918): Update this layer to kirkstone, including refactoring of various recipes
