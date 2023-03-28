@@ -210,6 +210,10 @@ create_webserver_symlinks() {
         log "Create default webtls symlink"
         ln -sf /mnt/iris/identity /mnt/iris/webtls || exit 1
     fi
+	if [ ! -L "/mnt/iris/nts" ]; then
+        log "Create default chrony symlink"
+        ln -sf /mnt/iris/identity /mnt/iris/nts || exit 1
+    fi
     # if "disable_https" parameter has version 1.0, we must overwrite default_server with https
     if [ -f "/mnt/iris/counter/config_customer.json" ]; then
         is_old_version=$(jq '.sets.IRMA6_Customer.parameters["pa.communication.disable_https"]["version"] == "1.0"' "/mnt/iris/counter/config_customer.json")
