@@ -20,6 +20,7 @@ and this project adheres to [APR's Version Numbering](https://apr.apache.org/ver
 
 ### Fixed
 - Fix: Use default timestamp file on first boot
+- [APC-6279]: Run lvresize when updating alternative firmware in power on selftest
 
 ### Simulation only
 
