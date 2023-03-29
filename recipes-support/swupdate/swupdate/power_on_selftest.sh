@@ -98,6 +98,7 @@ prepare_alternative_fw_update() {
 	mount /dev/mapper/irma6lvm-keystore /mnt/keystore
 	if ! cmp -s /mnt/keystore/rootfs_a_roothash /mnt/keystore/rootfs_b_roothash; then
 		touch "$ALTERNATIVE_FW_UPDATE_FLAG"
+		sync
 	fi
 	umount /mnt/keystore
 }
@@ -115,14 +116,13 @@ reset_uboot_envs() {
 PENDING_UPDATE=$(fw_printenv upgrade_available | awk -F'=' '{print $2}')
 if [ "$PENDING_UPDATE" = "1" ]; then
 	power_on_selftest
-	prepare_alternative_fw_update
 	reset_uboot_envs
+	prepare_alternative_fw_update
 	log "Firmware update successful complete"
 fi
 
 # Update the alternative firmware after success
 if [ -f "$ALTERNATIVE_FW_UPDATE_FLAG" ]; then
-	update_alternative_firmware && log "Alternative firmware update complete" || log "Alternative firmware update failed"
-	rm "$ALTERNATIVE_FW_UPDATE_FLAG"
+	update_alternative_firmware && rm "$ALTERNATIVE_FW_UPDATE_FLAG" && log "Alternative firmware update complete" || log "Alternative firmware update failed"
 fi
 } &
