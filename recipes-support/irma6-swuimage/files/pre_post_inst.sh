@@ -191,18 +191,9 @@ resize_lvm() {
 		log "Could not retrieve new rootfs size during logical volume resize!"; exit 1;
 	fi
 
-	# mount over read-only /etc/lvm to modify config
-	if ! grep -qs /etc/lvm /proc/mounts; then
-		mkdir -p /tmp/etc/lvm
-		mount --bind /tmp/etc/lvm /etc/lvm
-	fi
-
 	log "Resize rootfs logical volume: ${cur_size} to ${new_size}"
-	lvresize --force --yes --quiet -L "$new_size"B "$ROOT_DEV" 2> /dev/null
+	lvresize --autobackup n --force --yes --quiet -L "$new_size"B "$ROOT_DEV" 2> /dev/null
 	vgmknodes
-
-	umount /etc/lvm
-	rm -R /tmp/etc
 }
 
 create_webserver_symlinks() {

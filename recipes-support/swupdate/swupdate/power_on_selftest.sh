@@ -64,26 +64,16 @@ update_alternative_firmware() {
 	[ "$err" -eq 0 ] || return "$err"
 
 	# Resize the rootfs volume before copying
-	# mount over read-only /etc/lvm to modify config
-	if ! grep -qs /etc/lvm /proc/mounts; then
-		mkdir -p /tmp/etc/lvm
-		mount --bind /tmp/etc/lvm /etc/lvm
-	fi
-
 	# Read new volume size from current rootfs volume (trim leading spaces from lvs output), compare with size of alternative rootfs volume
 	new_size=$(lvs "/dev/mapper/irma6lvm-rootfs_${CUR_FW_SUFFIX}" -o LV_SIZE --noheadings --units B --nosuffix | sed 's/^ *//g')
 	alt_size=$(lvs "/dev/mapper/irma6lvm-rootfs_${ALT_FW_SUFFIX}" -o LV_SIZE --noheadings --units B --nosuffix | sed 's/^ *//g')
 
 	# Resize alternate rootfs volume
 	if [ "$new_size" != "$alt_size" ]; then
-		lvresize --force --yes --quiet -L "$new_size"B "/dev/mapper/irma6lvm-rootfs_${ALT_FW_SUFFIX}" 2> /dev/null || \
+		lvresize --autobackup n --force --yes --quiet -L "$new_size"B "/dev/mapper/irma6lvm-rootfs_${ALT_FW_SUFFIX}" 2> /dev/null || \
 			{ log "Error: Failed to resize alternative rootfs volume"; err=1; }
 	fi
 	vgmknodes
-
-	# lvm resize cleanup
-	umount /etc/lvm
-	rm -R /tmp/etc
 
 	[ "$err" -eq 0 ] || return "$err"
 
