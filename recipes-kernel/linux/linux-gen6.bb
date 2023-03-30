@@ -55,9 +55,9 @@ PV = "${LINUX_VERSION}+git${SRCPV}"
 # => workaraound -> run make xy_defconfig to override the prior .config/defconfig
 
 # -> xy_defconfig has to be present below arch/arm/configs in kernel-source
-KBUILD_DEFCONFIG_sc572-gen6 = "sc572-gen6_defconfig"
-KBUILD_DEFCONFIG_sc573-gen6 = "sc573-gen6_defconfig"
-KBUILD_DEFCONFIG_sc573-gen6-4dvein = "sc573-gen6-4dvein_defconfig"
+KBUILD_DEFCONFIG:sc572-gen6 = "sc572-gen6_defconfig"
+KBUILD_DEFCONFIG:sc573-gen6 = "sc573-gen6_defconfig"
+KBUILD_DEFCONFIG:sc573-gen6-4dvein = "sc573-gen6-4dvein_defconfig"
 
 do_makedefconfig() {
 	#equal to make ARCH=arm xy_defconfig

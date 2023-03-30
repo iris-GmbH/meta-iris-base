@@ -4,16 +4,10 @@
 inherit irma6-bootloader-version
 PV = "${IRIS_IMX_BOOT_RELEASE}"
 
-FILESEXTRAPATHS_prepend := "${THISDIR}/files:"
-SRC_URI_append_imx8mp-irma6r2 = " \
-    file://0001-Add-imx8mp-irma6r2-SOC-based-on-imx8mp-with-DDR4-fir.patch \
+FILESEXTRAPATHS:prepend := "${THISDIR}/files:"
+SRC_URI:append:imx8mp-irma6r2 = " \
+    file://0001-Use-imx8mp-irma6r2.dtb-instead-of-imx8mp-ddr4-evk.dt.patch \
 "
-SRC_URI_append = " \
-    file://0001-Fix-cleanup-Remove-device-tree-deletion-after-make.patch \
-    file://0002-MLK-24913-iMX8MP-Update-the-atf-load-address-to-0x97.patch \
-"
-
-SOC_TARGET_imx8mp-irma6r2 = "iMX8MPI6R2"
 
 python __anonymous () {
     if d.getVar('HAB_ENABLE', True):
@@ -38,27 +32,27 @@ do_compile() {
     for target in ${IMXBOOT_TARGETS}; do
         compile_${SOC_FAMILY}
         if [ "$target" = "flash_linux_m4_no_v2x" ]; then
-            # Special target build for i.MX 8DXL with V2X off
-            bbnote "building ${SOC_TARGET} - ${REV_OPTION} V2X=NO ${target}"
-            make SOC=${SOC_TARGET} ${REV_OPTION} V2X=NO dtbs=${UBOOT_DTB_NAME} flash_linux_m4
+           # Special target build for i.MX 8DXL with V2X off
+           bbnote "building ${IMX_BOOT_SOC_TARGET} - ${REV_OPTION} V2X=NO ${target}"
+           make SOC=${IMX_BOOT_SOC_TARGET} ${REV_OPTION} V2X=NO dtbs=${UBOOT_DTB_NAME} flash_linux_m4
         else
-            bbnote "building ${SOC_TARGET} - ${REV_OPTION} ${target}"
-            make SOC=${SOC_TARGET} ${REV_OPTION} dtbs=${UBOOT_DTB_NAME} ${target} > ${S}/hab_info1.txt 2>&1
+           bbnote "building ${IMX_BOOT_SOC_TARGET} - ${REV_OPTION} ${target}"
+           make SOC=${IMX_BOOT_SOC_TARGET} ${REV_OPTION} dtbs=${UBOOT_DTB_NAME} ${target} > ${S}/hab_info1.txt 2>&1
         fi
 
         if [ "${HAB_ENABLE}" = "1" ];then
-            case ${SOC_TARGET} in
-              "iMX8MPI6R2")
+            case ${MACHINE} in
+              "imx8mp-irma6r2")
                 print_cmd=print_fit_hab_ddr4
                 ;;
-              "iMX8MP")
+              "imx8mp-lpddr4-evk")
                 print_cmd=print_fit_hab
                 ;;
               *)
-                bberror "HAB signing is not supported yet for ${SOC_TARGET}!"
+                bberror "HAB signing is not supported yet for ${MACHINE}!"
                 ;;
             esac
-            make SOC=${SOC_TARGET} $print_cmd > ${S}/hab_info2.txt
+            make SOC=iMX8MP $print_cmd > ${S}/hab_info2.txt
         fi
 
         if [ -e "${BOOT_STAGING}/flash.bin" ]; then
@@ -185,7 +179,9 @@ sign_uboot_common() {
     sld_csf_off=$(hex2dec $sld_csf_off)
     blocks_spl="$(cat ${S}/hab_info1.txt | grep -w "spl hab block" | cut -f2) \"${fn}\""
     blocks_fit1="$(cat ${S}/hab_info1.txt | grep -w "sld hab block" | cut -f2) \"${fn}\", \\"
-    blocks_fit2="$(cat ${S}/hab_info2.txt | tail -n 4 | while read line; do echo "$line \"${fn}\", \\"; done)"
+
+    fit2_lines=${@bb.utils.contains('MACHINE_FEATURES', 'optee', '4', '3', d)}
+    blocks_fit2="$(cat ${S}/hab_info2.txt | tail -n "$fit2_lines" | while read line; do echo "$line \"${fn}\", \\"; done)"
     blocks_fit=$(printf '%s\n%s' "$blocks_fit1" "${blocks_fit2%???}")
 
     # Create csf_spl.txt and csf_fit.txt
@@ -209,14 +205,14 @@ do_sign_uboot() {
     fi
 }
 
-do_install_append() {
+do_install:append() {
     if [ "${HAB_ENABLE}" = "1" ];then
         set_imxboot_target
         install -m 0644 ${S}/${BOOT_CONFIG_MACHINE}-${IMAGE_IMXBOOT_TARGET}.signed ${D}/boot/
     fi
 }
 
-do_deploy_append() {
+do_deploy:append() {
     if [ "${HAB_ENABLE}" = "1" ];then
         # copy flash.bin.signed to deploy dir and create a symlink imx-boot.signed
         set_imxboot_target

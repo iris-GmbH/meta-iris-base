@@ -7,7 +7,7 @@ SDPS: boot -f flash.bin.signed
 FB: ucmd if env exists emmc_ack; then ; else setenv emmc_ack 0; fi;
 FB: ucmd setenv emmc_cmd mmc partconf ${emmc_dev} ${emmc_ack} 1 0
 FB: ucmd if test "${emmc_skip_fb}" != "yes"; then run emmc_cmd; fi
-FB: ucmd setenv emmc_cmd mmc bootbus ${emmc_dev} 2 2 1;
+FB: ucmd setenv emmc_cmd mmc bootbus ${emmc_dev} 2 1 1;
 FB: ucmd if test "${emmc_skip_fb}" != "yes"; then run emmc_cmd; fi
 
 # Load kernel and boot from initramfs
@@ -62,15 +62,16 @@ FBK: ucmd sh -c '. /tmp/hashsums; echo "((($SIZE_ROOTFSVERITY/(4*1024*1024)) + (
 # Create LVM
 FBK: ucmd mmc=`cat /tmp/mmcdev`; pvcreate -ff -y /dev/mmcblk${mmc}p5
 FBK: ucmd mmc=`cat /tmp/mmcdev`; vgcreate irma6lvm /dev/mmcblk${mmc}p5
-# Use "--zero n" to skip the check if the first 4kB are zeroed. TODO: Zeroing should be done!
-FBK: ucmd lvcreate --zero n -n rootfs_a -L "$(cat /tmp/size_rootfs)"B irma6lvm
-FBK: ucmd lvcreate --zero n -n rootfs_a_hash -L "$(cat /tmp/size_rootfsverity)"B irma6lvm
-FBK: ucmd lvcreate --zero n -n rootfs_b -L "$(cat /tmp/size_rootfs)"B irma6lvm
-FBK: ucmd lvcreate --zero n -n rootfs_b_hash -L "$(cat /tmp/size_rootfsverity)"B irma6lvm
-FBK: ucmd lvcreate --zero n -n userdata -L 512MB irma6lvm
-FBK: ucmd lvcreate --zero n -n staticdata -L 128MB irma6lvm
-FBK: ucmd lvcreate --zero n -n staticdata_hash -L 8MB irma6lvm
-FBK: ucmd lvcreate --zero n -n keystore -L 128MB irma6lvm
+# start udev daemon so lvm can synchronize devices
+FBK: ucmd /etc/init.d/udev start
+FBK: ucmd lvcreate -y -n rootfs_a -L "$(cat /tmp/size_rootfs)"B irma6lvm
+FBK: ucmd lvcreate -y -n rootfs_a_hash -L "$(cat /tmp/size_rootfsverity)"B irma6lvm
+FBK: ucmd lvcreate -y -n rootfs_b -L "$(cat /tmp/size_rootfs)"B irma6lvm
+FBK: ucmd lvcreate -y -n rootfs_b_hash -L "$(cat /tmp/size_rootfsverity)"B irma6lvm
+FBK: ucmd lvcreate -y -n userdata -L 512MB irma6lvm
+FBK: ucmd lvcreate -y -n staticdata -L 128MB irma6lvm
+FBK: ucmd lvcreate -y -n staticdata_hash -L 8MB irma6lvm
+FBK: ucmd lvcreate -y -n keystore -L 128MB irma6lvm
 FBK: ucmd vgchange -a y
 FBK: ucmd vgmknodes
 

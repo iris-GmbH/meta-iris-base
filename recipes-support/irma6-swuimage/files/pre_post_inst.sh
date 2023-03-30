@@ -10,8 +10,21 @@ log() {
 	logger -t "$TAG" "$1"
 }
 
+log_to_website() {
+	# SWUpdate captures stdout and displays it on the website
+	echo "$1"
+	log "$1"
+}
+
 exists() {
 	command -v "$1" >/dev/null 2>&1 || { log "ERROR: $1 not found"; exit 1; }
+}
+
+check_installed_version() {
+	localversion=$(sed -ne '/^VERSION=/s/^VERSION=[^0-9]*\([0-9]\+.[0-9]\+.[0-9]\+\)[^0-9]*.*/\1/p' /etc/os-release)
+	# Hack for Dunfell-Kirkstone Power Safe Update: check if installed firmware is at least $minimalversion
+	minimalversion="2.1.5"
+	printf '%s\n%s\n' "$minimalversion" "$localversion" | sort --check=quiet --version-sort || { log_to_website "This update requires at least firmware version $minimalversion to be installed."; exit 1; }
 }
 
 cmds_exist () {
@@ -221,6 +234,7 @@ create_webserver_symlinks() {
 }
 
 if [ "$1" = "preinst" ]; then
+	check_installed_version
 	cmds_exist
 	parse_cmdline
 	set_device_names

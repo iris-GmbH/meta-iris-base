@@ -27,7 +27,7 @@ the client program only."
 
 HOMEPAGE = "https://chrony.tuxfamily.org/"
 SECTION = "net"
-LICENSE = "GPL-2.0"
+LICENSE = "GPL-2.0-only"
 LIC_FILES_CHKSUM = "file://COPYING;md5=751419260aa954499f7abaabaa882bbe"
 
 SRC_URI = "https://download.tuxfamily.org/chrony/chrony-${PV}.tar.gz \
@@ -36,7 +36,7 @@ SRC_URI = "https://download.tuxfamily.org/chrony/chrony-${PV}.tar.gz \
     file://arm_eabi.patch \
 "
 
-SRC_URI_append_libc-musl = " \
+SRC_URI:append:libc-musl = " \
     file://0001-Fix-compilation-with-musl.patch \
 "
 SRC_URI[sha256sum] = "273f9fd15c328ed6f3a5f6ba6baec35a421a34a73bb725605329b1712048db9a"
@@ -50,7 +50,7 @@ inherit update-rc.d systemd
 # Add chronyd user if privdrop packageconfig is selected
 inherit ${@bb.utils.contains('PACKAGECONFIG', 'privdrop', 'useradd', '', d)}
 USERADD_PACKAGES = "${@bb.utils.contains('PACKAGECONFIG', 'privdrop', '${PN}', '', d)}"
-USERADD_PARAM_${PN} += "${@bb.utils.contains('PACKAGECONFIG', 'privdrop', '--system -d / -M --shell /bin/nologin chronyd;', '', d)}"
+USERADD_PARAM:${PN} += "${@bb.utils.contains('PACKAGECONFIG', 'privdrop', '--system -d / -M --shell /bin/nologin chronyd;', '', d)}"
 
 # Configuration options:
 # - For command line editing support in chronyc, you may specify either
@@ -128,20 +128,20 @@ do_install() {
     sed -i 's!^EnvironmentFile=.*!EnvironmentFile=-${sysconfdir}/default/chronyd!' ${D}${systemd_unitdir}/system/chronyd.service
 }
 
-FILES_${PN} = "${sbindir}/chronyd ${sysconfdir} ${localstatedir}/lib/chrony ${localstatedir}"
-CONFFILES_${PN} = "${sysconfdir}/chrony.conf"
+FILES:${PN} = "${sbindir}/chronyd ${sysconfdir} ${localstatedir}/lib/chrony ${localstatedir}"
+CONFFILES:${PN} = "${sysconfdir}/chrony.conf"
 INITSCRIPT_NAME = "chronyd"
 INITSCRIPT_PARAMS = "defaults"
 SYSTEMD_PACKAGES = "${PN}"
-SYSTEMD_SERVICE_${PN} = "chronyd.service"
+SYSTEMD_SERVICE:${PN} = "chronyd.service"
 
 # It's probably a bad idea to run chrony and another time daemon on
 # the same system.  systemd includes the SNTP client 'timesyncd', which
 # will be disabled by chronyd.service, however it will remain on the rootfs
 # wasting 150 kB unless you put 'PACKAGECONFIG:remove:pn-systemd = "timesyncd"'
 # in a conf file or bbappend somewhere.
-RCONFLICTS_${PN} = "ntp ntimed"
+RCONFLICTS:${PN} = "ntp ntimed"
 
 # Separate the client program into its own package
 PACKAGES =+ "chronyc"
-FILES_chronyc = "${bindir}/chronyc"
+FILES:chronyc = "${bindir}/chronyc"

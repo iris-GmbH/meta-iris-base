@@ -5,9 +5,9 @@ SRC_URI += "file://mdev.conf"
 SRC_URI += "${@'file://enable_watchdog.cfg file://devmem.cfg' if d.getVar('IRMA6_RELEASE') != 1 else ''}"
 SRC_URI += "file://busybox_watchdog.sh"
 
-FILESEXTRAPATHS_prepend := "${THISDIR}/${PN}:"
+FILESEXTRAPATHS:prepend := "${THISDIR}/${PN}:"
 
-FILES_${PN} += "${sysconfdir}/init.d/busybox_watchdog.sh \
+FILES:${PN} += "${sysconfdir}/init.d/busybox_watchdog.sh \
                 ${sysconfdir}/rc5.d/S01watchdog \
                "
 
@@ -15,7 +15,7 @@ FILES_${PN} += "${sysconfdir}/init.d/busybox_watchdog.sh \
 initd="${D}${sysconfdir}/init.d"
 rc5d="${D}${sysconfdir}/rc5.d"
 
-do_install_append() {
+do_install:append() {
     if [ "${IRMA6_RELEASE}" -ne 1 ]
     then
         install -d ${initd}

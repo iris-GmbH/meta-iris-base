@@ -1,0 +1,30 @@
+From 245fb17e2429fccea3b322d98ffe7f7ecac4552e Mon Sep 17 00:00:00 2001
+From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+Date: Thu, 31 Mar 2022 16:59:16 +0200
+Subject: [PATCH] imx8mp-irma6r2.dts: Set DRAM size to 1x512MiB
+
+For series production we use 512MiB DRAM. The 512MiB DRAM configuration also
+works for 1GiB DRAMs.
+
+Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+---
+ arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts | 3 +--
+ 1 file changed, 1 insertion(+), 2 deletions(-)
+
+diff --git a/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts b/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
+index a6e511a51983..5220a6e4b1eb 100644
+--- a/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
++++ b/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
+@@ -30,8 +30,7 @@ status {
+ 
+ 	memory@40000000 {
+ 		device_type = "memory";
+-		reg = <0x0 0x40000000 0 0xc0000000>,
+-		      <0x1 0x00000000 0 0xc0000000>;
++		reg = <0x0 0x40000000 0 0x20000000>;
+ 	};
+ 
+ 	reg_usdhc2_vmmc: regulator-usdhc2 {
+-- 
+2.39.1
+
