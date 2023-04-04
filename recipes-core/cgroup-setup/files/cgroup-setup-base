@@ -1,0 +1,7 @@
+#!/bin/sh
+
+mount -t cgroup -o net_cls none /sys/fs/cgroup/
+mkdir /sys/fs/cgroup/external_network /sys/fs/cgroup/internal_network
+echo "0x100001" > /sys/fs/cgroup/external_network/net_cls.classid
+echo "0x100002" > /sys/fs/cgroup/internal_network/net_cls.classid
+
