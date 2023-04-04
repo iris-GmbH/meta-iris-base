@@ -30,27 +30,6 @@ move_special_devices() {
     ${MOUNT} --move /sys ${ROOT_MNT}/sys    
 }
 
-debug_reboot() {
-    if [ "${DEBUGSHELL}" = "yes" ]; then
-        echo "enter debugshell"
-        /bin/sh
-    else
-        # wait 5 seconds then reboot
-        echo "Reboot in 5 seconds..." > /dev/console
-        sleep 5
-        reboot -f
-    fi
-}
-
-error_exit() {
-    echo "ERROR: ${*}" > /dev/console
-    debug_reboot
-}
-
-error() {
-    echo "Error: ${*}"
-}
-
 debug() {
     echo "${@}"
 }
@@ -59,11 +38,6 @@ parse_cmdline() {
     #Parse kernel cmdline to extract base device path
     CMDLINE="$(cat /proc/cmdline)"
     debug "Kernel cmdline: $CMDLINE"
-
-    if grep -q debugshell /proc/cmdline
-    then
-        DEBUGSHELL="yes"
-    fi
 
     # Check if NFS boot is active
     if grep -q 'nfsroot' /proc/cmdline
