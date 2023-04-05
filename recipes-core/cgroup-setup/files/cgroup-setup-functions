@@ -1,0 +1,41 @@
+#!/bin/sh
+
+CLASSID_EXTERNAL="0x100001"
+CLASSID_INTERNAL="0x100002"
+
+init_cgroup_pid() {
+    # Usage:
+    #   $1 - name
+    #   $2 - pid
+    #   $3 - class id
+    #   $4 - number of processes to allow
+    binary_name="$1"
+    mkdir "/sys/fs/cgroup/$binary_name"
+    echo "$2" >> "/sys/fs/cgroup/$binary_name/cgroup.procs"
+    echo "$3" > "/sys/fs/cgroup/$binary_name/net_cls.classid"
+    echo "$4" > "/sys/fs/cgroup/$binary_name/pids.max"
+}
+
+init_cgroup() {
+    # Usage:
+    #   $1 - binary path, used as process name
+    #   $2 - class id
+    #   $3 - if set: 0 = use calculated process_count, > 0 = set this number
+    binary_name=$(basename "$1")
+    mkdir "/sys/fs/cgroup/$binary_name"
+    echo "$2" > "/sys/fs/cgroup/$binary_name/net_cls.classid"
+    process_count=0
+    if [ -x "$1" ];
+    then
+        for p in $(pidof "$1");
+        do
+            echo "$p" >> "/sys/fs/cgroup/$binary_name/cgroup.procs"
+            process_count=$((process_count + 1))
+        done
+    fi
+    if [ -n "$3" ];
+    then
+        [ "$3" -eq 0 ] && echo "$process_count" > "/sys/fs/cgroup/$binary_name/pids.max"
+        [ "$3" -gt 0 ] && echo "$3" > "/sys/fs/cgroup/$binary_name/pids.max"
+    fi
+}
