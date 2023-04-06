@@ -34,7 +34,7 @@ move_special_devices() {
 }
 
 debug() {
-    echo "$(date): ${@}" | tee -a "/var/volatile/log/initramfs.log"
+    echo "$(date): ${*}" | tee -a "/var/volatile/log/initramfs.log"
 }
 
 parse_cmdline() {
