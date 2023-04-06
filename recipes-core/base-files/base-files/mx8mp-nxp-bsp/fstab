@@ -8,5 +8,5 @@ tmpfs                /run                 tmpfs      mode=0755,nodev,nosuid,stri
 /mnt/iris/counter    /etc/counter         none       defaults,bind         0  0
 /mnt/iris/dropbear   /etc/dropbear        none       defaults,bind         0  0
 
-# /var/volatile is mounted in the initamfs
+# /var/volatile is mounted in the initramfs
 # tmpfs                /var/volatile        tmpfs      defaults              0  0
