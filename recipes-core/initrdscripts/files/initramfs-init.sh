@@ -16,54 +16,31 @@ if [ -z "${INIT}" ];then
 fi
 
 mount_pseudo_fs() {
-    debug "Mount pseudo fs"
     ${MOUNT} -t devtmpfs none /dev
     ${MOUNT} -t tmpfs tmp /tmp
     ${MOUNT} -t tmpfs tmp /run
     ${MOUNT} -t proc proc /proc
     ${MOUNT} -t sysfs sysfs /sys
+    ${MOUNT} -t tmpfs tmp /var/volatile
+    mkdir -p /var/volatile/log
+    debug "Mount pseudo fs"
 }
 
 move_special_devices() {    
     ${MOUNT} --move /dev ${ROOT_MNT}/dev
     ${MOUNT} --move /proc ${ROOT_MNT}/proc
-    ${MOUNT} --move /sys ${ROOT_MNT}/sys    
-}
-
-debug_reboot() {
-    if [ "${DEBUGSHELL}" = "yes" ]; then
-        echo "enter debugshell"
-        /bin/sh
-    else
-        # wait 5 seconds then reboot
-        echo "Reboot in 5 seconds..." > /dev/console
-        sleep 5
-        reboot -f
-    fi
-}
-
-error_exit() {
-    echo "ERROR: ${*}" > /dev/console
-    debug_reboot
-}
-
-error() {
-    echo "Error: ${*}"
+    ${MOUNT} --move /sys ${ROOT_MNT}/sys
+    ${MOUNT} --move /var/volatile ${ROOT_MNT}/var/volatile
 }
 
 debug() {
-    echo "${@}"
+    echo "$(date): ${*}" | tee -a "/var/volatile/log/initramfs.log"
 }
 
 parse_cmdline() {
     #Parse kernel cmdline to extract base device path
     CMDLINE="$(cat /proc/cmdline)"
     debug "Kernel cmdline: $CMDLINE"
-
-    if grep -q debugshell /proc/cmdline
-    then
-        DEBUGSHELL="yes"
-    fi
 
     # Check if NFS boot is active
     if grep -q 'nfsroot' /proc/cmdline
@@ -99,7 +76,7 @@ pvsn_wipe() {
 
 # provisioning flash procedure
 pvsn_flash() {
-    echo "Initramfs provisioning flash routine started..."
+    debug "Initramfs provisioning flash routine started..."
     ROOT_DEV="/dev/mapper/irma6lvm-pvsn_rootfs"
     DATA_DEV="/dev/mapper/irma6lvm-pvsn_userdata"
 
@@ -159,17 +136,22 @@ pvsn_flash() {
 emergency_switch() {
     pending_update=$(/usr/bin/fw_printenv upgrade_available | awk -F'=' '{print $2}')
     if [ "$pending_update" = "1" ]; then
-        echo "Update pending, let bootcount switch firmware..."; exit 1;   
+        debug "Update pending, let bootcount switch firmware..."; exit 1;
     fi
 
     firmware=$(/usr/bin/fw_printenv firmware | awk -F'=' '{print $2}')
     if [ "$firmware" -eq 1 ] || [ "$firmware" -eq 0 ]; then
-        firmware=$(( firmware^1 ))
-        /usr/bin/fw_setenv firmware "$firmware"
+        new_firmware=$(( firmware^1 ))
+        /usr/bin/fw_setenv firmware "$new_firmware"
+        debug "Error: Emergency firmware switch from $firmware to $new_firmware"
+
+        ${MOUNT} "/dev/mapper/decrypted-irma6lvm-userdata" "/mnt/iris"
+        mkdir -p /mnt/iris/log
+        cat /var/volatile/log/initramfs.log >> /mnt/iris/log/initramfs.log
+        ${UMOUNT} "/mnt/iris"
         sync
-        echo "Emergency firmware switch to: $firmware"
     fi
-    exit 1;
+    exit 1
 }
 
 mount_pseudo_fs
@@ -178,21 +160,21 @@ mount_pseudo_fs
 vgchange -a y
 vgmknodes
 
-echo "Initramfs Bootstrap..."
+debug "Initramfs Bootstrap..."
 parse_cmdline
 
 # If NFS is active, switchroot now
 if [ -n "${NFSPATH}" ]
 then
     ${MOUNT} -t nfs "${NFSPATH}" ${ROOT_MNT}
-    echo "Switching root to Network File System"
+    debug "Switching root to Network File System"
     move_special_devices
     exec switch_root ${ROOT_MNT} ${INIT} "${CMDLINE}"
     exit 0
 fi
 
 # check if we are in provisioning and need to encrypt the volumes
-echo "Provisioning check..."
+debug "Provisioning check..."
 if [ -e "/dev/mapper/irma6lvm-pvsn_rootfs" ]; then
     pvsn_flash
 fi
@@ -227,13 +209,6 @@ debug "Verity device: ${VERITY_DEV}"
 
 ${MOUNT} ${KEYSTORE_DEV} ${KEYSTORE}
 
-if ! /usr/bin/openssl dgst -sha256 -verify "${PUBKEY}" -signature "${ROOT_HASH_SIGNATURE}" "${ROOT_HASH}"
-then
-    echo "Root hash signature invalid"
-    emergency_switch
-fi
-RH=$(cat "${ROOT_HASH}")
-
 # Add Black key to keyring
 caam-keygen import $KEYSTORE/caam/volumeKey.bb volumeKey
 keyctl padd logon logkey: @us < $KEYSTORE/caam/volumeKey
@@ -247,6 +222,13 @@ dmsetup create ${DECRYPT_DATA_NAME} --table "0 $(blockdev --getsz ${DATA_DEV}) \
     crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 ${DATA_DEV} 0 1 sector_size:4096"
 vgmknodes
 
+if ! /usr/bin/openssl dgst -sha256 -verify "${PUBKEY}" -signature "${ROOT_HASH_SIGNATURE}" "${ROOT_HASH}"
+then
+    debug "Root hash signature invalid"
+    emergency_switch
+fi
+RH=$(cat "${ROOT_HASH}")
+
 ${UMOUNT} ${KEYSTORE}
 
 debug "Opening verity device: ${DECRYPT_ROOT_DEV}"
@@ -254,9 +236,9 @@ veritysetup open ${DECRYPT_ROOT_DEV} ${VERITY_NAME} ${ROOT_HASH_DEV} ${RH}
 
 if ! ${MOUNT} ${VERITY_DEV} ${ROOT_MNT} -o ro 
 then
-    echo "Mount root device failed"
+    debug "Mount root device failed"
     emergency_switch
 fi
+debug "Switching root to verity device"
 move_special_devices
-echo "Switching root to verity device"
 exec switch_root ${ROOT_MNT} ${INIT} "${CMDLINE}"
