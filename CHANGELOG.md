@@ -10,7 +10,7 @@ and this project adheres to [APR's Version Numbering](https://apr.apache.org/ver
 - [APC-5918](https://jira.iris-sensing.net/browse/APC-5918): Add jsoncpp patch to fix SDK build
 - [APC-6277](https://jira.iris-sensing.net/browse/APC-6277): Allow update via swupdate only if installed firmware has version 2.1.5 or higher
 - [APC-6101]: Add persistent logging support for initramfs's emergency switch
-
+- [APC-5533]: Add recipe for tdewolff's minify tool for web formats
 
 ### Changed
 - [APC-5918](https://jira.iris-sensing.net/browse/APC-5918): Update this layer to kirkstone, including refactoring of various recipes
