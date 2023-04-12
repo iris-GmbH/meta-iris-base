@@ -4,7 +4,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [APR's Version Numbering](https://apr.apache.org/versioning.html).
 
-## [2.0.13] 2 2023-03-23
+## [2.0.15] - 2023-04-12
+### Fixed
+- Possible error during factory reset fixed
+
+
+## [2.0.14] - 2023-04-05
+### Fixed
+- imx repos moved from codeaurora to github
+
+
+
+## [2.0.13] - 2023-03-23
 ### Fixed
 - [APC-6103]: rsyslog: include rw config with mode option
 - [APC-5926]: Remove deprecated unit addresses from fitimage signing
