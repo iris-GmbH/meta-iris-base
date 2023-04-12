@@ -73,7 +73,6 @@ short_detected() {
 
 factory_reset() {
     echo "Factory reset!"
-    ln -sf /etc/nginx/sites-available/reverse_proxy_https.conf /mnt/iris/nginx/sites-enabled/default_server
     rm -f /mnt/iris/counter/config_customer*
     rm -f /mnt/iris/counter/config.yaml*
     rm -f /mnt/iris/counter/webserver/preferences.json
@@ -81,4 +80,8 @@ factory_reset() {
     rm -f /mnt/iris/logging/*.sqlite
     rm -f /mnt/iris/chrony/chrony.conf
     rm -rf /mnt/iris/customer
+    rm -rf /mnt/iris/log
+    # Set default symlinks
+    ln -sf /etc/nginx/sites-available/reverse_proxy_https.conf /mnt/iris/nginx/sites-enabled/default_server
+    ln -sf /mnt/iris/identity /mnt/iris/webtls
 }
