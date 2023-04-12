@@ -11,6 +11,7 @@ and this project adheres to [APR's Version Numbering](https://apr.apache.org/ver
 - [APC-6277](https://jira.iris-sensing.net/browse/APC-6277): Allow update via swupdate only if installed firmware has version 2.1.5 or higher
 - [APC-6101]: Add persistent logging support for initramfs's emergency switch
 - [APC-5533]: Add recipe for tdewolff's minify tool for web formats
+- [APC-6322]: Add epc660 and serializer reset patches for 2kV surge test
 
 ### Changed
 - [APC-5918](https://jira.iris-sensing.net/browse/APC-5918): Update this layer to kirkstone, including refactoring of various recipes
