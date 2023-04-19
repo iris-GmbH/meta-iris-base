@@ -42,6 +42,8 @@ SRC_URI += " \
     file://0036-epc660-respect-reset-timings.patch \
     file://0037-imx8mp-evk.dts-imx8mp-irma6r2.dts-Disable-VPU-GPU.patch \
     file://0038-lm75.c-Defer-probe-if-i2c-communication-fails-with-E.patch \
+    file://0039-epc660-reload-fw-after-hw-reset.patch \
+    file://0040-tc358746-Use-gpio-reset-instead-of-sotware-reset.patch \
 "
 
 SRC_URI:append:poky-iris-deploy = "\
