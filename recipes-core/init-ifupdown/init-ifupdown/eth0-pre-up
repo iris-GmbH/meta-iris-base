@@ -171,7 +171,7 @@ if parameterExists "pa\.communication\.netmask"; then
 fi
 if parameterExists "pa\.communication\.gateway"; then
    CUSTOMERGATEWAY=$(getIpAddress "pa\.communication\.gateway")
-   echo "  pa.communication.gateway:" $CUSTOMERGATEWAY
+   echo "  pa.communication.gateway:" "$CUSTOMERGATEWAY"
 fi
 if parameterExists "pa\.communication\.dhcp_usecustomoption61"; then
    CUSTOMDHCP61ACIVATED=$(getParameter "pa\.communication\.dhcp_usecustomoption61")
