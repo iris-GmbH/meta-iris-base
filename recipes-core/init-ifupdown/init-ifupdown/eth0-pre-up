@@ -64,7 +64,7 @@ setDhcpOption61Argument(){
 	     echo "Custom client identifier results in malformed hex string: \"$clientIdentifier\". Custom option is not used."
 		 return 0
 	  fi
-	  CUSTOMDHCP61ARGUMENT=`echo "-x 0x3d:00$clientIdentifier"`
+	  CUSTOMDHCP61ARGUMENT=$(echo "-x 0x3d:00$clientIdentifier")
 	  return 1
    fi
 }
