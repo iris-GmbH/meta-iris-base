@@ -79,7 +79,7 @@ setToDHCPMode(){
       echo "DHCP Client is already running"
    else
       setDhcpOption61Argument
-      udhcpc -R -b -p /var/run/udhcpc.eth0.pid -i eth0 $CUSTOMDHCP61ARGUMENT
+      udhcpc -R -b -p /var/run/udhcpc.eth0.pid -i eth0 "$CUSTOMDHCP61ARGUMENT"
    fi
 }
 
