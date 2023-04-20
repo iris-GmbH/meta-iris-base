@@ -59,7 +59,7 @@ setDhcpOption61Argument(){
 		 return 0
 	  fi
 	  
-	  clientIdentifier=$(echo -n "$clientIdentifier" | hexdump  -v -e '/1 "%02X"')
+	  clientIdentifier=$(printf "%s" "$clientIdentifier" | hexdump  -v -e '/1 "%02X"')
       if ! [[ $clientIdentifier =~ ^[0-9A-Fa-f] ]] ; then
 	     echo "Custom client identifier results in malformed hex string: \"$clientIdentifier\". Custom option is not used."
 		 return 0
