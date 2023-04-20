@@ -179,7 +179,7 @@ if parameterExists "pa\.communication\.dhcp_usecustomoption61"; then
 fi
 if parameterExists "pa\.communication\.dhcp_customoption61clientidentifier"; then
    CUSTOMDHCP61CLIENTIDENTIFIER=$(getParameter "pa\.communication\.dhcp_customoption61clientidentifier")
-   echo "  pa.communication.dhcp_customoption61clientidentifier:" $CUSTOMDHCP61CLIENTIDENTIFIER
+   echo "  pa.communication.dhcp_customoption61clientidentifier:" "$CUSTOMDHCP61CLIENTIDENTIFIER"
 fi
 createCustomerAdapter
 createServiceAdapter   
