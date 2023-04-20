@@ -53,7 +53,7 @@ createServiceAdapter(){
 CUSTOMDHCP61ARGUMENT=""
 setDhcpOption61Argument(){
    if [ "$CUSTOMDHCP61ACIVATED" = true ]; then
-	  clientIdentifier=`echo -n $CUSTOMDHCP61CLIENTIDENTIFIER | sed 's/\(^.\)\|\(.$\)//g'`
+	 clientIdentifier=$(printf "%s" "$CUSTOMDHCP61CLIENTIDENTIFIER" | sed '(s/\(^.\)\|\(.$\)//g')
 	  if [ ! "$clientIdentifier" ]; then
 		 echo "Custom DHCP option 61 is enabled but custom client identifier is empty. Custom option is not used."
 		 return 0
