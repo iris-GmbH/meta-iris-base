@@ -163,7 +163,7 @@ CUSTOMDHCP61ACIVATED=""
 CUSTOMDHCP61CLIENTIDENTIFIER=""
 if parameterExists "pa\.communication\.ipaddr"; then
    CUSTOMERIP=$(getIpAddress "pa\.communication\.ipaddr")
-   echo "  pa.communication.ipaddr:" $CUSTOMERIP
+   echo "  pa.communication.ipaddr:" "$CUSTOMERIP"
 fi
 if parameterExists "pa\.communication\.netmask"; then
    CUSTOMERNETMASK=$(getIpAddress "pa\.communication\.netmask")
