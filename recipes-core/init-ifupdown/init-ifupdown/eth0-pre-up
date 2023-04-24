@@ -53,19 +53,19 @@ createServiceAdapter(){
 CUSTOMDHCP61ARGUMENT=""
 setDhcpOption61Argument(){
    if [ "$CUSTOMDHCP61ACIVATED" = true ]; then
-	 clientIdentifier=$(printf "%s" "$CUSTOMDHCP61CLIENTIDENTIFIER" | sed '(s/\(^.\)\|\(.$\)//g')
-	  if [ ! "$clientIdentifier" ]; then
-		 echo "Custom DHCP option 61 is enabled but custom client identifier is empty. Custom option is not used."
-		 return 0
-	  fi
-	  
-	  clientIdentifier=$(printf "%s" "$clientIdentifier" | hexdump  -v -e '/1 "%02X"')
-      if ! expr "$clientIdentifier" : "^[0-9A-Fa-f]" > /dev/null ; then
-	     echo "Custom client identifier results in malformed hex string: \"$clientIdentifier\". Custom option is not used."
-		 return 0
-	  fi
-	  CUSTOMDHCP61ARGUMENT=$(echo "-x 0x3d:00$clientIdentifier")
-	  return 1
+      # removes the quotes at the beginning and the end with sed
+      clientIdentifier=$(printf "%s" "$CUSTOMDHCP61CLIENTIDENTIFIER" | sed 's/\(^.\)\|\(.$\)//g' )
+      if [ ! "$clientIdentifier" ]; then
+         echo "Custom DHCP option 61 is enabled but custom client identifier is empty. Custom option is not used."
+         return
+      fi
+      clientIdentifier=$(printf "%s" "$clientIdentifier" | hexdump  -v -e '/1 "%02X"')
+      if ! expr "$clientIdentifier" : "[0-9A-Fa-f]" > /dev/null ; then
+         echo "Custom client identifier results in malformed hex string: \"$clientIdentifier\". Custom option is not used."
+         return
+      fi
+      CUSTOMDHCP61ARGUMENT=$(echo "-x 0x3d:00$clientIdentifier")
+      return
    fi
 }
 
