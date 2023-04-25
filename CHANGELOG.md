@@ -12,6 +12,7 @@ and this project adheres to [APR's Version Numbering](https://apr.apache.org/ver
 - [APC-6101]: Add persistent logging support for initramfs's emergency switch
 - [APC-5533]: Add recipe for tdewolff's minify tool for web formats
 - [APC-6322]: Add epc660 and serializer reset patches for 2kV surge test
+- [APC-6158]: Added the option to use a custom DHCP option 61 client identifier.
 
 ### Changed
 - [APC-5918](https://jira.iris-sensing.net/browse/APC-5918): Update this layer to kirkstone, including refactoring of various recipes

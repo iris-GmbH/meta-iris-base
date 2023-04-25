@@ -50,6 +50,25 @@ createServiceAdapter(){
    fi
 }
 
+CUSTOMDHCP61ARGUMENT=""
+setDhcpOption61Argument(){
+   if [ "$CUSTOMDHCP61ACIVATED" = true ]; then
+      # removes the quotes at the beginning and the end with sed
+      clientIdentifier=$(printf "%s" "$CUSTOMDHCP61CLIENTIDENTIFIER" | sed 's/\(^.\)\|\(.$\)//g' )
+      if [ ! "$clientIdentifier" ]; then
+         echo "Custom DHCP option 61 is enabled but custom client identifier is empty. Custom option is not used."
+         return
+      fi
+      clientIdentifier=$(printf "%s" "$clientIdentifier" | hexdump  -v -e '/1 "%02X"')
+      if ! expr "$clientIdentifier" : "[0-9A-Fa-f]" > /dev/null ; then
+         echo "Custom client identifier results in malformed hex string: \"$clientIdentifier\". Custom option is not used."
+         return
+      fi
+      CUSTOMDHCP61ARGUMENT=$(echo "-x 0x3d:00$clientIdentifier")
+      return
+   fi
+}
+
 setToDHCPMode(){
    # Do not modify interface when running from nfs
    if grep -q "root=/dev/nfs" /proc/cmdline
@@ -59,7 +78,8 @@ setToDHCPMode(){
    elif [ -f "/var/run/udhcpc.eth0.pid" ]; then
       echo "DHCP Client is already running"
    else
-      udhcpc -R -b -p /var/run/udhcpc.eth0.pid -i eth0
+      setDhcpOption61Argument
+      udhcpc -R -b -p /var/run/udhcpc.eth0.pid -i eth0 "$CUSTOMDHCP61ARGUMENT"
    fi
 }
 
@@ -139,9 +159,11 @@ fi
 CUSTOMERIP=""
 CUSTOMERNETMASK=""
 CUSTOMERGATEWAY=""
+CUSTOMDHCP61ACIVATED=""
+CUSTOMDHCP61CLIENTIDENTIFIER=""
 if parameterExists "pa\.communication\.ipaddr"; then
    CUSTOMERIP=$(getIpAddress "pa\.communication\.ipaddr")
-   echo "  pa.communication.ipaddr:" $CUSTOMERIP
+   echo "  pa.communication.ipaddr:" "$CUSTOMERIP"
 fi
 if parameterExists "pa\.communication\.netmask"; then
    CUSTOMERNETMASK=$(getIpAddress "pa\.communication\.netmask")
@@ -149,8 +171,15 @@ if parameterExists "pa\.communication\.netmask"; then
 fi
 if parameterExists "pa\.communication\.gateway"; then
    CUSTOMERGATEWAY=$(getIpAddress "pa\.communication\.gateway")
-   echo "  pa.communication.gateway:" $CUSTOMERGATEWAY
+   echo "  pa.communication.gateway:" "$CUSTOMERGATEWAY"
 fi
-
+if parameterExists "pa\.communication\.dhcp_usecustomoption61"; then
+   CUSTOMDHCP61ACIVATED=$(getParameter "pa\.communication\.dhcp_usecustomoption61")
+   echo "  pa.communication.dhcp_usecustomoption61:" "$CUSTOMDHCP61ACIVATED"
+fi
+if parameterExists "pa\.communication\.dhcp_customoption61clientidentifier"; then
+   CUSTOMDHCP61CLIENTIDENTIFIER=$(getParameter "pa\.communication\.dhcp_customoption61clientidentifier")
+   echo "  pa.communication.dhcp_customoption61clientidentifier:" "$CUSTOMDHCP61CLIENTIDENTIFIER"
+fi
 createCustomerAdapter
 createServiceAdapter   
