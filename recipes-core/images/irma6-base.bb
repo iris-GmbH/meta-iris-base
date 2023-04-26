@@ -49,6 +49,7 @@ IRMA6_EXTRA_PACKAGES:append:mx8mp-nxp-bsp = " \
 	mmc-utils \
 	dosfstools \
 	e2fsprogs-mke2fs \
+	libgpiod-tools \
 "
 
 # IRMA6 Release 1 only packages
