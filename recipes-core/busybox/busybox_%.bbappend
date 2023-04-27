@@ -25,5 +25,8 @@ do_install:append() {
         install -m 0755 ${WORKDIR}/busybox_watchdog.sh ${initd}/
         ln -s -r ${initd}/busybox_watchdog.sh ${rc5d}/S01watchdog
     fi
-}   
+}
+
+# Override busybox.inc - start mdev init script at rcS and rc5
+INITSCRIPT_PARAMS:${PN}-mdev = "start 04 S 5 ."
 
