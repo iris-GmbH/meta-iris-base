@@ -1,0 +1,17 @@
+Add i2c, gpio and userdata group
+
+Used by mdev/udev to assign /dev nodes to the matching group
+
+Index: base-passwd-3.5.26/group.master
+===================================================================
+--- base-passwd-3.5.26.orig/group.master
++++ base-passwd-3.5.26/group.master
+@@ -38,5 +38,8 @@ plugdev:*:46:
+ staff:*:50:
+ games:*:60:
+ shutdown:*:70:
++i2c:*:80:
++gpio:*:81:
++irma_userdata:*:99:
+ users:*:100:
+ nogroup:*:65534:
