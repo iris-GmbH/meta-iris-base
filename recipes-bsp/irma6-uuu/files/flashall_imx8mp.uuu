@@ -124,6 +124,7 @@ FBK: ucmd ln -sr /mnt/iris/identity /mnt/iris/nts
 FBK: ucmd mkdir -p /mnt/iris/nginx/sites-enabled
 FBK: ucmd ln -s /etc/nginx/sites-available/reverse_proxy_https.conf /mnt/iris/nginx/sites-enabled/default_server
 FBK: ucmd mkdir -p /mnt/iris/counter
+FBK: ucmd mkdir -p /mnt/iris/irma6webserver
 FBK: ucmd mkdir -p /mnt/iris/dropbear
 FBK: ucmd umount /mnt/iris
 FBK: ucmd dmsetup remove decrypted-irma6lvm-userdata

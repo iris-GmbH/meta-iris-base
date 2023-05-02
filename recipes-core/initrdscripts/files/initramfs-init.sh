@@ -107,6 +107,7 @@ pvsn_flash() {
     mount -t ext4 /dev/mapper/decrypted-irma6lvm-userdata /mnt/userdata
     mount -t ext4 /dev/mapper/irma6lvm-pvsn_userdata /mnt/pvsn_userdata
     mkdir -p /mnt/userdata/counter
+    mkdir -p /mnt/userdata/irma6webserver
     cp -R /mnt/pvsn_userdata/* /mnt/userdata
     umount /mnt/userdata
     umount /mnt/pvsn_userdata
