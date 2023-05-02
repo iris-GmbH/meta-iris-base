@@ -75,8 +75,9 @@ factory_reset() {
     echo "Factory reset!"
     rm -f /mnt/iris/counter/config_customer*
     rm -f /mnt/iris/counter/config.yaml*
-    rm -f /mnt/iris/counter/webserver/preferences.json
-    rm -f /mnt/iris/counter/webserver/authentication.sqlite
+    rm -rf /mnt/iris/counter/webserver # delete possible traces of old location
+    rm -f /mnt/iris/irma6webserver/preferences.json
+    rm -f /mnt/iris/irma6webserver/authentication.sqlite
     rm -f /mnt/iris/logging/*.sqlite
     rm -f /mnt/iris/chrony/chrony.conf
     rm -rf /mnt/iris/customer

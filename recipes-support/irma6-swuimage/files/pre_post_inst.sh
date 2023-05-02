@@ -209,6 +209,15 @@ resize_lvm() {
 	vgmknodes
 }
 
+copy_irma6webserver_config() {
+    # If old webserver dir exists, copy to new location, no matter what
+    # Old location will be deleted after successfull power on selftest
+    if [ -d "/mnt/iris/counter/webserver" ]; then
+        rm -rf "/mnt/iris/irma6webserver"
+        cp -a "/mnt/iris/counter/webserver" "/mnt/iris/irma6webserver"
+    fi
+}
+
 create_webserver_symlinks() {
     if [ ! -L "/mnt/iris/webtls" ]; then
         log "Create default webtls symlink"
@@ -257,5 +266,6 @@ if [ "$1" = "postinst" ]; then
 	verify_roothash_signature
 	remove_symlinks
 	umount_keystore
+	copy_irma6webserver_config
 	exit 0
 fi
