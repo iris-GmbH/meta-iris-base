@@ -40,6 +40,7 @@ IRMA6_EXTRA_PACKAGES = " \
 	hab-csf-parser \
 	hab-srktool-scripts \
 	nftables \
+	libcap-bin \
 "
 # IRMA6R2 SoC specific packages (not included in qemu)
 IRMA6_EXTRA_PACKAGES:append:mx8mp-nxp-bsp = " \

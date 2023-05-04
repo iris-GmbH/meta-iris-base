@@ -32,7 +32,7 @@ power_on_selftest() {
 			retries=$((retries-1))
 		done
 		if [ "$retries" -eq 0 ]; then
-			log "[FAILED] power on self test"; reboot; exit 1;
+			log "[FAILED] power on self test"; exit 1;
 		fi
 	done
 	log "[PASSED] power on self test"
