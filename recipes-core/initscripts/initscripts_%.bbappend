@@ -6,6 +6,7 @@ SRC_URI += " \
     file://factory-reset-functions \
     file://factory-reset.init \
     file://timestamp \
+    file://set-mount-permissions.sh \
 "
 
 RDEPENDS:${PN}:append = " phytool"
@@ -28,6 +29,9 @@ do_install:append() {
 	install -D -m 0755 ${WORKDIR}/factory-reset.sh ${D}${bindir}/factory-reset.sh
 	install -D -m 0755 ${WORKDIR}/factory-reset.init ${D}${sysconfdir}/init.d/factory-reset
 	update-rc.d -r ${D} factory-reset start 18 5 .
+
+	install -m 0755 ${WORKDIR}/set-mount-permissions.sh ${D}${sysconfdir}/init.d
+	update-rc.d -r ${D} set-mount-permissions.sh start 40 S .
 }
 
 do_install:append:mx8mp-nxp-bsp() {
