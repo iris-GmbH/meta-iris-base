@@ -16,6 +16,9 @@ exists() {
 
 ALTERNATIVE_FW_UPDATE_FLAG=/mnt/iris/alternative_fw_needs_update
 
+# lock file can be used by other init scripts for synchronization
+LOCK_FILE=/tmp/selftest.lock
+
 power_on_selftest() {
 	# Check that all necessary tools are available and running
 	tools="nginx WebInterfaceServer swupdate count_von_count i6ls"
@@ -112,6 +115,8 @@ reset_uboot_envs() {
 }
 
 {
+touch $LOCK_FILE
+
 # Check if everything is still ok after update on reboot
 PENDING_UPDATE=$(fw_printenv upgrade_available | awk -F'=' '{print $2}')
 if [ "$PENDING_UPDATE" = "1" ]; then
@@ -125,4 +130,7 @@ fi
 if [ -f "$ALTERNATIVE_FW_UPDATE_FLAG" ]; then
 	update_alternative_firmware && rm "$ALTERNATIVE_FW_UPDATE_FLAG" && log "Alternative firmware update complete" || log "Alternative firmware update failed"
 fi
+
+rm $LOCK_FILE
+
 } &
