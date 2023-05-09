@@ -1,6 +1,8 @@
 # SPDX-License-Identifier: MIT
 # Copyright (C) 2022 iris-GmbH infrared & intelligent sensors
 
+FILESEXTRAPATHS:prepend := "${THISDIR}/${PN}:"
+
 DEPENDS += " \
 	pkgconfig \
 	nettle \
