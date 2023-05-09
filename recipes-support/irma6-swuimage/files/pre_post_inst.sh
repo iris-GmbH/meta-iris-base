@@ -209,12 +209,18 @@ resize_lvm() {
 	vgmknodes
 }
 
-copy_irma6webserver_config() {
+move_userdata_config() {
     # If old webserver dir exists, copy to new location, no matter what
     # Old location will be deleted after successfull power on selftest
     if [ -d "/mnt/iris/counter/webserver" ]; then
         rm -rf "/mnt/iris/irma6webserver"
         cp -a "/mnt/iris/counter/webserver" "/mnt/iris/irma6webserver"
+    fi
+
+    # Move uuid file if it is present
+    if [ -f "/mnt/iris/uuid" ]; then
+        cp -a "/mnt/iris/uuid" "/mnt/iris/counter/uuid"
+        rm -f "/mnt/iris/uuid"
     fi
 }
 
@@ -266,6 +272,6 @@ if [ "$1" = "postinst" ]; then
 	verify_roothash_signature
 	remove_symlinks
 	umount_keystore
-	copy_irma6webserver_config
+	move_userdata_config
 	exit 0
 fi
