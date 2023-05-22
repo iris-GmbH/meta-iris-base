@@ -28,3 +28,9 @@ do_install:append() {
 	install -d ${D}${datadir}/cmake/Modules
 	install -m 644 ${WORKDIR}/FindAvahi.cmake ${D}${datadir}/cmake/Modules
 }
+
+# Override useradd/groupadd parameters to use fixed UIDs/GIDs
+GROUPADD_PARAM:avahi-daemon = "--system --gid 120 avahi"
+USERADD_PARAM:avahi-daemon = "--system --home /run/avahi-daemon \
+                              --no-create-home --shell /bin/false \
+                              --gid 120 --uid 120 avahi"

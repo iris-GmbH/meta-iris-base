@@ -93,6 +93,10 @@ update_alternative_firmware() {
 	cp "/mnt/keystore/rootfs_${CUR_FW_SUFFIX}_roothash.signature" "/mnt/keystore/rootfs_${ALT_FW_SUFFIX}_roothash.signature" || \
 		{ log "Error: Failed to copy alternative roothash.signature"; err=1; }
 	umount /mnt/keystore
+
+	# Delete obsolete directories that were migrated in pre_post_install script
+	rm -rf "/mnt/iris/counter/webserver"
+
 	return "$err";
 }
 

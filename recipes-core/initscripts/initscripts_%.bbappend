@@ -8,6 +8,10 @@ SRC_URI += " \
     file://timestamp \
 "
 
+SRC_URI:append:mx8mp-nxp-bsp = " \
+    file://set-mount-permissions.sh \
+"
+
 RDEPENDS:${PN}:append = " phytool"
 
 FILES:${PN} += " \
@@ -33,4 +37,7 @@ do_install:append() {
 do_install:append:mx8mp-nxp-bsp() {
     # Set timestamp file. /etc/default/timestamp will be sourced by the init-scripts
     install -D -m 0644 ${WORKDIR}/timestamp ${D}${sysconfdir}/default/timestamp
+
+    install -m 0755 ${WORKDIR}/set-mount-permissions.sh ${D}${sysconfdir}/init.d
+    update-rc.d -r ${D} set-mount-permissions.sh start 40 S .
 }

@@ -21,6 +21,7 @@ and this project adheres to [APR's Version Numbering](https://apr.apache.org/ver
 - [APC-5928](https://jira.iris-sensing.net/browse/APC-5928): u-boot-imx updated to 2022.04
 - [APC-5925](https://jira.iris-sensing.net/browse/APC-5925): Minor tweaks to reduce firmware size of R1
 - [APC-6296](https://jira.iris-sensing.net/browse/APC-6296): Add rsyslog tls configuration
+- [APC-6357](https://jira.iris-sensing.net/browse/APC-6357): Support for non-root user execution, fix scripts and add users/groups (R2 only)
 
 ### Deprecated
 
