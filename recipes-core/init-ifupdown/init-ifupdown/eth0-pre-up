@@ -161,6 +161,7 @@ CUSTOMERNETMASK=""
 CUSTOMERGATEWAY=""
 CUSTOMDHCP61ACIVATED=""
 CUSTOMDHCP61CLIENTIDENTIFIER=""
+DHCPOPTION42=""
 if parameterExists "pa\.communication\.ipaddr"; then
    CUSTOMERIP=$(getIpAddress "pa\.communication\.ipaddr")
    echo "  pa.communication.ipaddr:" "$CUSTOMERIP"
@@ -180,6 +181,10 @@ fi
 if parameterExists "pa\.communication\.dhcp_customoption61clientidentifier"; then
    CUSTOMDHCP61CLIENTIDENTIFIER=$(getParameter "pa\.communication\.dhcp_customoption61clientidentifier")
    echo "  pa.communication.dhcp_customoption61clientidentifier:" "$CUSTOMDHCP61CLIENTIDENTIFIER"
+fi
+if parameterExists "pa\.communication\.dhcp_useoption42"; then                                                           
+   DHCPOPTION42=$(getParameter "pa\.communication\.dhcp_useoption42")                                                      
+   echo " pa.communication.dhcp_useoption42:" "$DHCPOPTION42"
 fi
 createCustomerAdapter
 createServiceAdapter   
