@@ -6,6 +6,7 @@ SRC_URI += " \
     file://factory-reset-functions \
     file://factory-reset.init \
     file://timestamp \
+    file://set-hostname.sh \
 "
 
 SRC_URI:append:mx8mp-nxp-bsp = " \
@@ -32,6 +33,9 @@ do_install:append() {
 	install -D -m 0755 ${WORKDIR}/factory-reset.sh ${D}${bindir}/factory-reset.sh
 	install -D -m 0755 ${WORKDIR}/factory-reset.init ${D}${sysconfdir}/init.d/factory-reset
 	update-rc.d -r ${D} factory-reset start 18 5 .
+
+	install -D -m 0755 ${WORKDIR}/set-hostname.sh ${D}${sysconfdir}/init.d/set-hostname
+	update-rc.d -r ${D} set-hostname start 40 S .
 }
 
 do_install:append:mx8mp-nxp-bsp() {
