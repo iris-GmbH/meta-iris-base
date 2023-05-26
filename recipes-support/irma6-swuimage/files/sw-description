@@ -17,6 +17,7 @@ software =
             sha256 = "$swupdate_get_sha256(@@SWU_FITIMAGE@@)";
             ivt = "@@SWU_IVT@@";
             encrypted = true;
+            installed-directly = true;
         },
         {
             filename = "@@SWU_ROOTHASH@@";
@@ -47,6 +48,7 @@ software =
             sha256 = "$swupdate_get_sha256(@@SWU_ROOTFS@@)";
             ivt = "@@SWU_IVT@@";
             encrypted = true;
+            installed-directly = true;
         },
         {
             filename = "@@SWU_BOOTLOADER_ENV@@";
