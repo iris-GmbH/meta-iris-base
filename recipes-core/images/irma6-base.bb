@@ -20,7 +20,6 @@ IRMA6_BASE_PACKAGES = " \
 	libavahi-client \
 	libavahi-common \
 	libavahi-core \
-	protobuf-lite \
 	zlib \
 	yaml-cpp \
 	libelf \
@@ -30,6 +29,7 @@ IRMA6_BASE_PACKAGES = " \
 
 # IRMA6 default (Release 2) only packages
 IRMA6_EXTRA_PACKAGES = " \
+    protobuf-lite \
 	lvm2 \
 	cryptsetup \
 	libubootenv-bin \
