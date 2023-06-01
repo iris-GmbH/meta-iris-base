@@ -18,7 +18,7 @@ if [ -n "$ntpsrv_list" ] ; then
 		#-p: The -p option is used to specify the address of the NTP server to query.
 		# &: This ampersand symbol at the end of the command is used to run the command in the background.
 		# It allows the script or program to continue executing without waiting for the ntpd command to finish.
-		$NTPDIR ntpd -g -n -p "$i" &
+		$NTPDIR ntpd -g -p "$i"
 		done
 	else
 		echo "The ntpsrv list is empty."

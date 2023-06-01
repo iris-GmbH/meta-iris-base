@@ -10,7 +10,7 @@ if [ -n "$ntpsrv_list" ] ; then
 	# Iterate over the server addresses and pass them to chronyc
 	for server in $ntpsrv_list; do
 		echo "Add ntp server $server."
-		sudo chronyc add server "$server" prefer
+		chronyc add server "$server" prefer
 	done
 else
 		echo "The ntpsrv list is empty."
