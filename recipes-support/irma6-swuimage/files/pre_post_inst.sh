@@ -28,7 +28,7 @@ check_installed_version() {
 }
 
 cmds_exist () {
-	exists veritysetup
+	exists dmsetup
 	exists sfdisk
 	exists jq
 	exists openssl

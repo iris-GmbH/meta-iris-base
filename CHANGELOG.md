@@ -22,6 +22,7 @@ and this project adheres to [APR's Version Numbering](https://apr.apache.org/ver
 - [APC-5925](https://jira.iris-sensing.net/browse/APC-5925): Minor tweaks to reduce firmware size of R1
 - [APC-6296](https://jira.iris-sensing.net/browse/APC-6296): Add rsyslog tls configuration
 - [APC-6357](https://jira.iris-sensing.net/browse/APC-6357): Support for non-root user execution, fix scripts and add users/groups (R2 only)
+- [APC-5571](https://jira.iris-sensing.net/browse/APC-5571): Clean up recipes and image installs, move scripts from meta-iris to this layer
 
 ### Deprecated
 

@@ -14,41 +14,15 @@ PV = "${DISTRO_VERSION}"
 inherit irma6-versioning
 
 IRMA6_BASE_PACKAGES = " \
-	libstdc++ \
-	libssl \
-	avahi-daemon \
-	libavahi-client \
-	libavahi-common \
-	libavahi-core \
-	protobuf-lite \
-	zlib \
-	yaml-cpp \
-	libelf \
-	libxml2 \
 	iris-ca-certificates \
 "
 
 # IRMA6 default (Release 2) only packages
 IRMA6_EXTRA_PACKAGES = " \
-	lvm2 \
-	cryptsetup \
-	libubootenv-bin \
 	iris-signing \
 	rsyslog \
 	chrony \
-	chronyc \
-	hab-csf-parser \
-	hab-srktool-scripts \
 	nftables \
-"
-# IRMA6R2 SoC specific packages (not included in qemu)
-IRMA6_EXTRA_PACKAGES:append:mx8mp-nxp-bsp = " \
-	keyctl-caam \
-	util-linux-blockdev \
-	keyutils \
-	mmc-utils \
-	dosfstools \
-	e2fsprogs-mke2fs \
 "
 
 # IRMA6 Release 1 only packages
