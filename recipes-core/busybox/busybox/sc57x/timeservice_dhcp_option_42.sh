@@ -5,7 +5,7 @@ BUSYBOX_PATH="/bin/busybox"
 ntpsrv_list=$1
 
 if [ -n "$ntpsrv_list" ] ; then
-	echo "The ntpsrv list is not empty - starting ntpd"
+	echo "The ntpsrv list for starting ntpd - script timeservice_dhcp_option_42.sh"
 
 	# Replace IP addresses with "-p ip" using sed
 	ntpsrv_list_with_peer_param=$(echo "$ntpsrv_list" | sed 's/\([0-9]\{1,3\}\.\)\{3\}[0-9]\{1,3\}/-p &/g')
@@ -14,5 +14,5 @@ if [ -n "$ntpsrv_list" ] ; then
 	#-p: The -p option is used to specify the address of the NTP server to query.
 	$BUSYBOX_PATH ntpd -g $ntpsrv_list_with_peer_param
 else
-	echo "The ntpsrv list is empty- nothing to do"
+	echo "The ntpsrv list from dhcp option 42 is empty- nothing to do - script timeservice_dhcp_option_42.sh"
 fi
