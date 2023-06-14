@@ -36,6 +36,7 @@ and this project adheres to [APR's Version Numbering](https://apr.apache.org/ver
 - [APC-6279]: Run lvresize when updating alternative firmware in power on selftest
 - [APC-6119](https://jira.iris-sensing.net/browse/APC-6119): Fix defconfig handling in linux-fslc-imx kernel recipe
 - [APC-6374](https://jira.iris-sensing.net/browse/APC-6374): Enable device correct shutdown
+- [APC-6679](https://jira.iris-sensing.net/browse/APC-6679): Fix permissions of identity keys
 
 ### Simulation only
 
