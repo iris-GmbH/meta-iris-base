@@ -15,6 +15,7 @@ and this project adheres to [APR's Version Numbering](https://apr.apache.org/ver
 - [APC-6158]: Added the option to use a custom DHCP option 61 client identifier.
 - [APC-6296]: power_on_selftest.sh: Add shared lockfile
 - [APC-6513]: Added the ability get ntp server list from DHCP server via option 42 and starting the daemon
+- [APC-6679](https://jira.iris-sensing.net/browse/APC-6679): Add irma\_identity group
 
 ### Changed
 - [APC-5918](https://jira.iris-sensing.net/browse/APC-5918): Update this layer to kirkstone, including refactoring of various recipes
