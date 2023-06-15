@@ -6,12 +6,13 @@ Index: base-passwd-3.5.26/group.master
 ===================================================================
 --- base-passwd-3.5.26.orig/group.master
 +++ base-passwd-3.5.26/group.master
-@@ -38,5 +38,8 @@ plugdev:*:46:
+@@ -38,5 +38,9 @@ plugdev:*:46:
  staff:*:50:
  games:*:60:
  shutdown:*:70:
 +i2c:*:80:
 +gpio:*:81:
++irma_identity:*:98:
 +irma_userdata:*:99:
  users:*:100:
  nogroup:*:65534:
