@@ -131,7 +131,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 
 
-## version/2.0.8 2022-09-07
+## version/2.0.8 - 2022-09-07
 ### Added
 - [RDPHOEN-1281]: Copy snake oil identity key/cert with uuu for dev usage
 - [RDPHOEN-1348]: Enforce major updates
