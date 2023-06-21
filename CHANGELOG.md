@@ -15,6 +15,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - [APC-6296]: power_on_selftest.sh: Add shared lockfile
 - [APC-6513]: Added the ability get ntp server list from DHCP server via option 42 and starting the daemon
 - [APC-6679](https://jira.iris-sensing.net/browse/APC-6679): Add irma\_identity group
+- [APC-6689](https://jira.iris-sensing.net/browse/APC-6689): Add powerfail manager kernel module
 
 ### Changed
 - [APC-5918](https://jira.iris-sensing.net/browse/APC-5918): Update this layer to kirkstone, including refactoring of various recipes
