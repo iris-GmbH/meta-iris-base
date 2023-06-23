@@ -3,7 +3,33 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [APR's Version Numbering](https://apr.apache.org/versioning.html)
 
-## version/2.0.16-dev (HEAD) - n/a
+## version/2.0.17-dev (HEAD) - n/a
+### Added
+
+
+### Changed
+
+
+### Deprecated
+
+
+### Removed
+
+
+### Fixed
+
+
+### Simulation only
+
+
+### Maintenance only
+
+
+### Known issues
+
+
+
+## version/2.0.16 - 2023-06-23
 ### Added
 - [APC-6160]: chrony: Add NTS certificate to chrony.conf
 - [APC-5918](https://jira.iris-sensing.net/browse/APC-5918): Add jsoncpp patch to fix SDK build
@@ -26,12 +52,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - [APC-6357](https://jira.iris-sensing.net/browse/APC-6357): Support for non-root user execution, fix scripts and add users/groups (R2 only)
 - [APC-5571](https://jira.iris-sensing.net/browse/APC-5571): Clean up recipes and image installs, move scripts from meta-iris to this layer
 
-### Deprecated
-
-
-### Removed
-
-
 ### Fixed
 - Fix: Use default timestamp file on first boot
 - [APC-6279]: Run lvresize when updating alternative firmware in power on selftest
@@ -39,23 +59,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - [APC-6374](https://jira.iris-sensing.net/browse/APC-6374): Enable device correct shutdown
 - [APC-6679](https://jira.iris-sensing.net/browse/APC-6679): Fix permissions of identity keys
 
-### Simulation only
-
-
-### Maintenance only
-
-
-### Known issues
-
 
 ## version/2.0.15 - 2023-04-12
 ### Fixed
 - Possible error during factory reset fixed
 
+
 ## version/2.0.14 - 2023-04-05
 ### Fixed
 - imx repos moved from codeaurora to github
-
 
 
 ## version/2.0.13 - 2023-03-23
@@ -103,33 +115,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Enable Debug-Tweaks (UART root access) on all R1 images
 
 
-
 ## version/2.0.10 - 2022-10-13
 ### Added
 - [RDPHOEN-1364]: Add nftables firewall userspace application
 - [RDPHOEN-1364]: Add ip addr syntax validation when setting static ip
 
-
 ### Changed
-- [RDPHOEN-1314]: Revert "Use only one MIPI lane on R2"
 - [RDPHOEN-1357]: Adjust hs-settle MIPI configuration
 
-
 ### Fixed
-- [RDPHOEN-1314]: Fix tc358746 serializer configuration
+- [RDPHOEN-1314](Revert "Use only one MIPI lane on R2"): Fix tc358746 serializer configuration
 - [RDPHOEN-1371]: swupdate: Bind swupdate to localhost
-
 
 ### Removed
 - [RDPHOEN-1326]: Remove kernel-modules
 
 
-
 ## version/2.0.9 - 2022-09-09
 ### Changed
-- [RDPHOEN-1314]: Revert "Disable PWM clock for serializer on R2"
-- [RDPHOEN-1314]: Use only one MIPI lane on R2 (with PWM and minor corrections)
-
+- [RDPHOEN-1314](Revert "Use only one MIPI lane on R2"): Use only one MIPI lane on R2 (with PWM and minor corrections)
 
 
 ## version/2.0.8 - 2022-09-07
@@ -138,17 +142,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - [RDPHOEN-1348]: Enforce major updates
 
 
-
 ## version/2.0.7 - 2022-08-26
 ### Fixed
 - swupdate: pre_post_inst.sh: Don't rely on the default iv and use the new one passed by the sw-description
 
 
-
 ## version/2.0.6 - 2022-08-30
 ### Changed
-- [RDPHOEN-1314]: Disable PWM clock for serializer on R2
-
+- [RDPHOEN-1314](Revert "Use only one MIPI lane on R2"): Disable PWM clock for serializer on R2
 
 ### Fixed
 - [RDPHOEN-1299]: Fix r/w access on netfitboot
@@ -156,18 +157,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - [RDPHOEN-1289]: set persistent path for dropbear rsa host key (IRMA 6 Release 2)
 
 
-
 ## version/2.0.5 - 2022-08-26
 ### Changed
 - Do not deploy production swupdate key to rootfs
-
 
 
 ## version/2.0.4 - 2022-08-24
 ### Added
 - [RDPHOEN-957]: Add script for IP configuration (eth:0.0 .. DHCP or static customer IP retrieved from customer configuration; eth:0.1 service IP 172.16.x.y calculated from MAC address)
 - [RDPHOEN-1034/1035/1036]: Add support for irma6-r2 machine, including patches for bootloader, boot image creation and kernel
-- [RDPHOEN-1067] Added R2 support in cloud Jenkins 
+- [RDPHOEN-1067] Added R2 support in cloud Jenkins
 - [DEVOPS-491] CST tool mirror and correct licensing
 - [APC-4501] Added backport of chrony recipe for NTS support introduced with v4.0
 - [APC-4244]: Add nginx and sqlite3 as required by the new password protection of the webinterface
@@ -231,7 +230,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - [RDPHOEN-1152]: Disable u-boot console and boot delay for deploy build
 - [RDPHOEN-1295]: Increase critical CPU temperature for R2 to 105 degree celsius
 
-
 ### Removed
 - [RDPHOEN-958]: Removing the bootloader code configuration CONFIG_CMD_BOOTEFI for imx8mpevk and imx8mp-irma6r2, as (u)efi isn't used
 - [RDPHOEN-1179]: Remove mfgtool unneeded dependency to speed up build time
@@ -243,11 +241,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - [RDPHOEN-1150]: Fix fsl-dsp devicetree node in linux-fslc, place reserved memory region inside RAM bounds
 
 
-
 ## version/2.0.3 - 2022-03-23
 ### Added
 - Add swupdate image creation recipe
-
 
 
 ## version/2.0.2 - 2022-01-25
@@ -255,23 +251,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - [APC-3693][APC-3971] libmosquitto and libmosquittopp removed
 
 
-
 ## version/2.0.1 - 2021-06-10
 ### Added
 - add multiconfigs for QEMU images
 
-
 ### Changed
 - prepare layer for upcoming CI
-
 
 ### Fixed
 - gcc: Backport bugfix for bug 101510: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=101510
 
 
-
 ## version/2.0.0 - 2021-07-16
-### Changed 
+### Changed
 - bump linux kernel version to 4.14.233. updating the linux kernel. in the process backported patches do no longer apply.
 
 ### Fixed
@@ -286,3 +278,5 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## version/1.0.0 - 2021-05-28
 ### Added
 - This is the initial release of meta-iris-base, a yocto meta-layer which contains all recipes in order to build the Iris base Linux image
+
+
