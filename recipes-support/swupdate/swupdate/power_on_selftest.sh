@@ -16,6 +16,9 @@ exists() {
 
 ALTERNATIVE_FW_UPDATE_FLAG=/mnt/iris/alternative_fw_needs_update
 
+# lock file can be used by other init scripts for synchronization
+LOCK_FILE=/tmp/selftest.lock
+
 power_on_selftest() {
 	# Check that all necessary tools are available and running
 	tools="nginx WebInterfaceServer swupdate count_von_count i6ls"
@@ -63,6 +66,20 @@ update_alternative_firmware() {
 	rm -r /tmp/cur_fitimage_dev /tmp/alt_fitimage_dev
 	[ "$err" -eq 0 ] || return "$err"
 
+	# Resize the rootfs volume before copying
+	# Read new volume size from current rootfs volume (trim leading spaces from lvs output), compare with size of alternative rootfs volume
+	new_size=$(lvs "/dev/mapper/irma6lvm-rootfs_${CUR_FW_SUFFIX}" -o LV_SIZE --noheadings --units B --nosuffix | sed 's/^ *//g')
+	alt_size=$(lvs "/dev/mapper/irma6lvm-rootfs_${ALT_FW_SUFFIX}" -o LV_SIZE --noheadings --units B --nosuffix | sed 's/^ *//g')
+
+	# Resize alternate rootfs volume
+	if [ "$new_size" != "$alt_size" ]; then
+		lvresize --autobackup n --force --yes --quiet -L "$new_size"B "/dev/mapper/irma6lvm-rootfs_${ALT_FW_SUFFIX}" 2> /dev/null || \
+			{ log "Error: Failed to resize alternative rootfs volume"; err=1; }
+	fi
+	vgmknodes
+
+	[ "$err" -eq 0 ] || return "$err"
+
 	# Update alternative rootfs and rootfs hashtree volumes
 	dd if="/dev/mapper/irma6lvm-rootfs_${CUR_FW_SUFFIX}" of="/dev/mapper/irma6lvm-rootfs_${ALT_FW_SUFFIX}" bs=10M >/dev/null 2>&1 || \
 		{ log "Error: Failed to copy alternative rootfs"; err=1; return "$err"; }
@@ -76,6 +93,10 @@ update_alternative_firmware() {
 	cp "/mnt/keystore/rootfs_${CUR_FW_SUFFIX}_roothash.signature" "/mnt/keystore/rootfs_${ALT_FW_SUFFIX}_roothash.signature" || \
 		{ log "Error: Failed to copy alternative roothash.signature"; err=1; }
 	umount /mnt/keystore
+
+	# Delete obsolete directories that were migrated in pre_post_install script
+	rm -rf "/mnt/iris/counter/webserver"
+
 	return "$err";
 }
 
@@ -84,6 +105,7 @@ prepare_alternative_fw_update() {
 	mount /dev/mapper/irma6lvm-keystore /mnt/keystore
 	if ! cmp -s /mnt/keystore/rootfs_a_roothash /mnt/keystore/rootfs_b_roothash; then
 		touch "$ALTERNATIVE_FW_UPDATE_FLAG"
+		sync
 	fi
 	umount /mnt/keystore
 }
@@ -97,18 +119,22 @@ reset_uboot_envs() {
 }
 
 {
+touch $LOCK_FILE
+
 # Check if everything is still ok after update on reboot
 PENDING_UPDATE=$(fw_printenv upgrade_available | awk -F'=' '{print $2}')
 if [ "$PENDING_UPDATE" = "1" ]; then
 	power_on_selftest
-	prepare_alternative_fw_update
 	reset_uboot_envs
+	prepare_alternative_fw_update
 	log "Firmware update successful complete"
 fi
 
 # Update the alternative firmware after success
 if [ -f "$ALTERNATIVE_FW_UPDATE_FLAG" ]; then
-	update_alternative_firmware && log "Alternative firmware update complete" || log "Alternative firmware update failed"
-	rm "$ALTERNATIVE_FW_UPDATE_FLAG"
+	update_alternative_firmware && rm "$ALTERNATIVE_FW_UPDATE_FLAG" && log "Alternative firmware update complete" || log "Alternative firmware update failed"
 fi
+
+rm $LOCK_FILE
+
 } &

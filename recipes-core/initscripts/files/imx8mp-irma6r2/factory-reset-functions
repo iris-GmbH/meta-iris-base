@@ -75,13 +75,18 @@ factory_reset() {
     echo "Factory reset!"
     rm -f /mnt/iris/counter/config_customer*
     rm -f /mnt/iris/counter/config.yaml*
-    rm -f /mnt/iris/counter/webserver/preferences.json
-    rm -f /mnt/iris/counter/webserver/authentication.sqlite
+    rm -rf /mnt/iris/counter/webserver # delete possible traces of old location
+    rm -f /mnt/iris/irma6webserver/preferences.json
+    rm -f /mnt/iris/irma6webserver/authentication.sqlite
     rm -f /mnt/iris/logging/*.sqlite
     rm -f /mnt/iris/chrony/chrony.conf
     rm -rf /mnt/iris/customer
     rm -rf /mnt/iris/log
+    rm -f /mnt/iris/*.conf /mnt/iris/*.conf.bak # syslog-remotes.conf
+    rm -f /mnt/iris/rsyslog/*.conf /mnt/iris/rsyslog/*.conf.bak
     # Set default symlinks
     ln -sf /etc/nginx/sites-available/reverse_proxy_https.conf /mnt/iris/nginx/sites-enabled/default_server
     ln -sf /mnt/iris/identity /mnt/iris/webtls
+    ln -sf /mnt/iris/identity /mnt/iris/nts
+    ln -sf /mnt/iris/identity /mnt/iris/syslogtls
 }

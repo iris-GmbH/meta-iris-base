@@ -1,6 +1,6 @@
 # recipe to patch avahi-core sources and to change the avahi-daemon.conf
 
-FILESEXTRAPATHS_prepend := "${THISDIR}/${PN}:"
+FILESEXTRAPATHS:prepend := "${THISDIR}/${PN}:"
 
 # fixes RDV-2762
 # patch taken from https://github.com/lathiat/avahi/pull/115
@@ -14,7 +14,7 @@ SRC_URI += "\
 
 target_path = "/etc/avahi"
 
-do_install_append() {
+do_install:append() {
     if [ ! -d ${target_path} ]; then
 		install -d ${D}/${target_path}
 	fi
@@ -28,3 +28,9 @@ do_install_append() {
 	install -d ${D}${datadir}/cmake/Modules
 	install -m 644 ${WORKDIR}/FindAvahi.cmake ${D}${datadir}/cmake/Modules
 }
+
+# Override useradd/groupadd parameters to use fixed UIDs/GIDs
+GROUPADD_PARAM:avahi-daemon = "--system --gid 120 avahi"
+USERADD_PARAM:avahi-daemon = "--system --home /run/avahi-daemon \
+                              --no-create-home --shell /bin/false \
+                              --gid 120 --uid 120 avahi"

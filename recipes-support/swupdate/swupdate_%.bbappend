@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: MIT
 # Copyright (C) 2022 iris-GmbH infrared & intelligent sensors
 
-FILESEXTRAPATHS_prepend := "${THISDIR}/${PN}:"
+FILESEXTRAPATHS:prepend := "${THISDIR}/${PN}:"
 
 wwwdir = "/var/www/swupdate"
 
@@ -12,7 +12,7 @@ RESET_SCRIPT_SYM="S93power_on_selftest"
 # use git instead of quilt to apply binary patch as well
 PATCHTOOL = "git"
 
-SRC_URI_append := " \
+SRC_URI:append := " \
 	file://defconfig \
 	file://${RESET_SCRIPT} \
 	file://swupdate.sh \
@@ -28,15 +28,28 @@ DEPENDS += " \
 	bc-native \
 "
 
-RDEPENDS_${PN} += " \
+RDEPENDS:${PN} += " \
 	util-linux-sfdisk \
 	jq \
 	libubootenv-bin \
 	swupdate-lualoader \
 	openssl-bin \
+	nginx \
+	lvm2 \
+	mmc-utils \
 "
 
-FILES_${PN} += " \
+# Include more RDEPENDS for pre_post_inst.sh in swuimage, but only for real hardware
+RDEPENDS:${PN}:append:mx8mp-nxp-bsp = " \
+	hab-csf-parser \
+	hab-srktool-scripts \
+	keyctl-caam \
+	util-linux-blockdev \
+	keyutils \
+	cryptsetup \
+"
+
+FILES:${PN} += " \
 	${SWUPDATE_HW_COMPATIBILITY_FILE} \
 	${sysconfdir}/init.d/${RESET_SCRIPT} \
 	${sysconfdir}/rc5.d/${RESET_SCRIPT_SYM} \
@@ -45,7 +58,7 @@ FILES_${PN} += " \
 
 SWU_HW_VERSION ?= "${@'0.0' if not d.getVar('HW_VERSION') else d.getVar('HW_VERSION')}"
 
-do_install_append () {
+do_install:append () {
 	install -d ${D}${sysconfdir}/init.d
 	install -d ${D}${sysconfdir}/rc5.d
 	install -m 0755 ${WORKDIR}/${RESET_SCRIPT} ${D}${sysconfdir}/init.d

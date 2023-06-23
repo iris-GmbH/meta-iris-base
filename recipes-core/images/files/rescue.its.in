@@ -20,7 +20,7 @@
 		};
 		fdt {
 			description = "Flattened Device Tree blob";
-			data = /incbin/("DEPLOY_DIR_IMAGE/KERNEL_DEVICETREE");
+			data = /incbin/("DEPLOY_DIR_IMAGE/KERNEL_DTB_FILE");
 			type = "flat_dt";
 			arch = "TARGET_ARCH";
 			compression = "none";

@@ -6,24 +6,25 @@ require recipes-core/images/image-fit.inc
 
 COMPATIBLE_MACHINE = "mx8"
 
-FILESEXTRAPATHS_prepend := "${THISDIR}/files:"
+FILESEXTRAPATHS:prepend := "${THISDIR}/files:"
 
 KERNEL_SIGN_SUFFIX = "signed"
 RESCUE_NAME_FULL ?= "${RESCUE_NAME}-${MACHINE}.cpio.gz"
 
 # Overwrite KERNEL_DEVICETREE as it is a multiline variable defined in meta-freescale/conf/machine
-KERNEL_DEVICETREE_imx8mpevk = "freescale/imx8mp-evk.dtb"
+KERNEL_DTB_FILE = "${KERNEL_DEVICETREE}"
+KERNEL_DTB_FILE:imx8mp-lpddr4-evk = "freescale/imx8mp-evk.dtb"
 
 # Define load addresses for imx8mp hardware
-ITS_KERNEL_LOAD_ADDR_mx8mp = "0x40480000"
-ITS_KERNEL_ENTRY_ADDR_mx8mp = "0x40480000"
-FITLOADADDR_mx8mp = "0x48000000"
+ITS_KERNEL_LOAD_ADDR:mx8mp-nxp-bsp = "0x40400000"
+ITS_KERNEL_ENTRY_ADDR:mx8mp-nxp-bsp = "0x40400000"
+FITLOADADDR:mx8mp-nxp-bsp = "0x48000000"
 
 # include checking of HAB/CST related variables
 inherit irma6-signing-variable-check
 addtask do_signing_variable_check before do_assemble_fit
 
-do_assemble_fit_prepend() {
+do_assemble_fit:prepend() {
 	if [ -z "${FITLOADADDR}" ]; then
 		FITLOADADDR=0x48000000
 		bbwarn "Set FITLOADADDR to ${FITLOADADDR}"
@@ -57,7 +58,7 @@ do_assemble_fit() {
 	echo "STAGING_KERNEL_BUILDDIR" ${STAGING_KERNEL_BUILDDIR}
 	echo "KERNEL_SRC_PATH" ${KERNEL_SRC_PATH}
 	export DEPLOY_DIR_IMAGE=${DEPLOY_DIR_IMAGE}
-	export KERNEL_DEVICETREE=${KERNEL_DEVICETREE}
+	export KERNEL_DTB_FILE=${KERNEL_DTB_FILE}
 	export RESCUE_NAME_FULL=${RESCUE_NAME_FULL}
 	export FITIMAGE_DESCRIPTION="${FITIMAGE_DESCRIPTION}"
 	export FITIMAGE_RUNNING_VERSION=${FITIMAGE_RUNNING_VERSION}
@@ -89,7 +90,7 @@ do_assemble_fit() {
 	sed -i "s|TARGET_ARCH|$TARGET_ARCH|g" rescue.its
 	sed -i "s|KERNEL_IMAGETYPE|$KERNEL_IMAGETYPE|g" rescue.its
 	sed -i "s|KERNEL_COMPRESSION|$KERNEL_COMPRESSION|g" rescue.its
-	sed -i "s|KERNEL_DEVICETREE|$(basename $KERNEL_DEVICETREE)|g" rescue.its
+	sed -i "s|KERNEL_DTB_FILE|$(basename $KERNEL_DTB_FILE)|g" rescue.its
 	sed -i "s|ITS_KERNEL_LOAD_ADDR|$ITS_KERNEL_LOAD_ADDR|g" rescue.its
 	sed -i "s|ITS_KERNEL_ENTRY_ADDR|$ITS_KERNEL_ENTRY_ADDR|g" rescue.its
 	cat rescue.its

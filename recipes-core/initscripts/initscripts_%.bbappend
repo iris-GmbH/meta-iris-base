@@ -1,20 +1,26 @@
-FILESEXTRAPATHS_prepend := "${THISDIR}/files:"
+FILESEXTRAPATHS:prepend := "${THISDIR}/files:"
 
 SRC_URI += " \
     file://save-rtc-loop.sh \
     file://factory-reset.sh \
     file://factory-reset-functions \
     file://factory-reset.init \
+    file://timestamp \
+    file://set-hostname.sh \
 "
 
-RDEPENDS_${PN}_append = " phytool"
+SRC_URI:append:mx8mp-nxp-bsp = " \
+    file://set-mount-permissions.sh \
+"
 
-FILES_${PN} += " \
+RDEPENDS:${PN}:append = " phytool"
+
+FILES:${PN} += " \
 	${datadir}/factory-reset/factory-reset-functions \
 	${bindir}/factory-reset.sh \
 "
 
-do_install_append() {
+do_install:append() {
 	# Remove S06checkroot.sh symlink to avoid "ro" /
 	# remounting when using nfs boot and expecting rw access
 	# from prior mounting in the initramfs init script.
@@ -27,5 +33,15 @@ do_install_append() {
 	install -D -m 0755 ${WORKDIR}/factory-reset.sh ${D}${bindir}/factory-reset.sh
 	install -D -m 0755 ${WORKDIR}/factory-reset.init ${D}${sysconfdir}/init.d/factory-reset
 	update-rc.d -r ${D} factory-reset start 18 5 .
+
+	install -D -m 0755 ${WORKDIR}/set-hostname.sh ${D}${sysconfdir}/init.d/set-hostname
+	update-rc.d -r ${D} set-hostname start 40 S .
 }
 
+do_install:append:mx8mp-nxp-bsp() {
+    # Set timestamp file. /etc/default/timestamp will be sourced by the init-scripts
+    install -D -m 0644 ${WORKDIR}/timestamp ${D}${sysconfdir}/default/timestamp
+
+    install -m 0755 ${WORKDIR}/set-mount-permissions.sh ${D}${sysconfdir}/init.d
+    update-rc.d -r ${D} set-mount-permissions.sh start 40 S .
+}

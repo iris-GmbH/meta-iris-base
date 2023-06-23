@@ -1,0 +1,10 @@
+#!/bin/sh
+
+TIMESTAMP_FILE=/mnt/iris/timestamp
+DEFAULT_TIMESTAMP_FILE=/etc/timestamp
+
+# Use default timestamp file on first boot, if timestamp file is missing
+if [ -f "$DEFAULT_TIMESTAMP_FILE" ] && [ ! -f "$TIMESTAMP_FILE" ];
+then
+	cp "$DEFAULT_TIMESTAMP_FILE" "$TIMESTAMP_FILE"
+fi

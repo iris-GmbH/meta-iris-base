@@ -10,12 +10,25 @@ log() {
 	logger -t "$TAG" "$1"
 }
 
+log_to_website() {
+	# SWUpdate captures stdout and displays it on the website
+	echo "$1"
+	log "$1"
+}
+
 exists() {
 	command -v "$1" >/dev/null 2>&1 || { log "ERROR: $1 not found"; exit 1; }
 }
 
+check_installed_version() {
+	localversion=$(sed -ne '/^VERSION=/s/^VERSION=[^0-9]*\([0-9]\+.[0-9]\+.[0-9]\+\)[^0-9]*.*/\1/p' /etc/os-release)
+	# Hack for Dunfell-Kirkstone Power Safe Update: check if installed firmware is at least $minimalversion
+	minimalversion="2.1.5"
+	printf '%s\n%s\n' "$minimalversion" "$localversion" | sort --check=quiet --version-sort || { log_to_website "This update requires at least firmware version $minimalversion to be installed."; exit 1; }
+}
+
 cmds_exist () {
-	exists veritysetup
+	exists dmsetup
 	exists sfdisk
 	exists jq
 	exists openssl
@@ -191,24 +204,34 @@ resize_lvm() {
 		log "Could not retrieve new rootfs size during logical volume resize!"; exit 1;
 	fi
 
-	# mount over read-only /etc/lvm to modify config
-	if ! grep -qs /etc/lvm /proc/mounts; then
-		mkdir -p /tmp/etc/lvm
-		mount --bind /tmp/etc/lvm /etc/lvm
-	fi
-
 	log "Resize rootfs logical volume: ${cur_size} to ${new_size}"
-	lvresize --force --yes --quiet -L "$new_size"B "$ROOT_DEV" 2> /dev/null
+	lvresize --autobackup n --force --yes --quiet -L "$new_size"B "$ROOT_DEV" 2> /dev/null
 	vgmknodes
+}
 
-	umount /etc/lvm
-	rm -R /tmp/etc
+move_userdata_config() {
+    # If old webserver dir exists, copy to new location, no matter what
+    # Old location will be deleted after successfull power on selftest
+    if [ -d "/mnt/iris/counter/webserver" ]; then
+        rm -rf "/mnt/iris/irma6webserver"
+        cp -a "/mnt/iris/counter/webserver" "/mnt/iris/irma6webserver"
+    fi
+
+    # Move uuid file if it is present
+    if [ -f "/mnt/iris/uuid" ]; then
+        cp -a "/mnt/iris/uuid" "/mnt/iris/counter/uuid"
+        rm -f "/mnt/iris/uuid"
+    fi
 }
 
 create_webserver_symlinks() {
     if [ ! -L "/mnt/iris/webtls" ]; then
         log "Create default webtls symlink"
         ln -sf /mnt/iris/identity /mnt/iris/webtls || exit 1
+    fi
+	if [ ! -L "/mnt/iris/nts" ]; then
+        log "Create default chrony symlink"
+        ln -sf /mnt/iris/identity /mnt/iris/nts || exit 1
     fi
     # if "disable_https" parameter has version 1.0, we must overwrite default_server with https
     if [ -f "/mnt/iris/counter/config_customer.json" ]; then
@@ -226,6 +249,7 @@ create_webserver_symlinks() {
 }
 
 if [ "$1" = "preinst" ]; then
+	check_installed_version
 	cmds_exist
 	parse_cmdline
 	set_device_names
@@ -248,5 +272,6 @@ if [ "$1" = "postinst" ]; then
 	verify_roothash_signature
 	remove_symlinks
 	umount_keystore
+	move_userdata_config
 	exit 0
 fi

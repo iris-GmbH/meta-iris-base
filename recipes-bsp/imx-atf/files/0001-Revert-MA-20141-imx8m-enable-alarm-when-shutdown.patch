@@ -1,0 +1,86 @@
+From 50d459335207b196653f2595ef321f66037c0b58 Mon Sep 17 00:00:00 2001
+From: Ian Dannapel <ian.dannapel@iris-sensing.com>
+Date: Mon, 22 May 2023 13:02:46 +0200
+Subject: [PATCH] Revert "MA-20141 imx8m: enable alarm when shutdown"
+
+This reverts commit cc5f3575c801897eeda40e486de3f9a517a1b460
+because it introduced a poweroff bug, which restarted the device
+instead of shutting down.
+
+Signed-off-by: Ian Dannapel <ian.dannapel@iris-sensing.com>
+---
+ plat/imx/imx8m/imx8m_psci_common.c           | 2 +-
+ plat/imx/imx8m/imx8mm/include/platform_def.h | 2 --
+ plat/imx/imx8m/imx8mn/include/platform_def.h | 2 --
+ plat/imx/imx8m/imx8mp/include/platform_def.h | 2 --
+ plat/imx/imx8m/imx8mq/include/platform_def.h | 2 --
+ 5 files changed, 1 insertion(+), 9 deletions(-)
+
+diff --git a/plat/imx/imx8m/imx8m_psci_common.c b/plat/imx/imx8m/imx8m_psci_common.c
+index 4c84557ba..23d4cca97 100644
+--- a/plat/imx/imx8m/imx8m_psci_common.c
++++ b/plat/imx/imx8m/imx8m_psci_common.c
+@@ -249,7 +249,7 @@ int imx_system_reset2(int is_vendor, int reset_type, u_register_t cookie)
+ void __dead2 imx_system_off(void)
+ {
+ 	mmio_write_32(IMX_SNVS_BASE + SNVS_LPCR, SNVS_LPCR_SRTC_ENV |
+-			SNVS_LPCR_DP_EN | SNVS_LPCR_TOP | SNVS_LPCR_LPTA_EN | SNVS_LPCR_LPWUI_EN);
++			SNVS_LPCR_DP_EN | SNVS_LPCR_TOP);
+ 
+ 	while (1)
+ 		;
+diff --git a/plat/imx/imx8m/imx8mm/include/platform_def.h b/plat/imx/imx8m/imx8mm/include/platform_def.h
+index 7691e2c90..afc7f157a 100644
+--- a/plat/imx/imx8m/imx8mm/include/platform_def.h
++++ b/plat/imx/imx8m/imx8mm/include/platform_def.h
+@@ -157,8 +157,6 @@
+ 
+ #define SNVS_LPCR			U(0x38)
+ #define SNVS_LPCR_SRTC_ENV		BIT(0)
+-#define SNVS_LPCR_LPTA_EN		BIT(1)
+-#define SNVS_LPCR_LPWUI_EN		BIT(3)
+ #define SNVS_LPCR_DP_EN			BIT(5)
+ #define SNVS_LPCR_TOP			BIT(6)
+ 
+diff --git a/plat/imx/imx8m/imx8mn/include/platform_def.h b/plat/imx/imx8m/imx8mn/include/platform_def.h
+index d2d2104d8..8fc0e92b2 100644
+--- a/plat/imx/imx8m/imx8mn/include/platform_def.h
++++ b/plat/imx/imx8m/imx8mn/include/platform_def.h
+@@ -135,8 +135,6 @@
+ 
+ #define SNVS_LPCR			U(0x38)
+ #define SNVS_LPCR_SRTC_ENV		BIT(0)
+-#define SNVS_LPCR_LPTA_EN		BIT(1)
+-#define SNVS_LPCR_LPWUI_EN		BIT(3)
+ #define SNVS_LPCR_DP_EN			BIT(5)
+ #define SNVS_LPCR_TOP			BIT(6)
+ 
+diff --git a/plat/imx/imx8m/imx8mp/include/platform_def.h b/plat/imx/imx8m/imx8mp/include/platform_def.h
+index 8a1f3bcdc..47f801a6c 100644
+--- a/plat/imx/imx8m/imx8mp/include/platform_def.h
++++ b/plat/imx/imx8m/imx8mp/include/platform_def.h
+@@ -171,8 +171,6 @@
+ 
+ #define SNVS_LPCR			U(0x38)
+ #define SNVS_LPCR_SRTC_ENV		BIT(0)
+-#define SNVS_LPCR_LPTA_EN		BIT(1)
+-#define SNVS_LPCR_LPWUI_EN		BIT(3)
+ #define SNVS_LPCR_DP_EN			BIT(5)
+ #define SNVS_LPCR_TOP			BIT(6)
+ 
+diff --git a/plat/imx/imx8m/imx8mq/include/platform_def.h b/plat/imx/imx8m/imx8mq/include/platform_def.h
+index 9f54145e9..aad797dd0 100644
+--- a/plat/imx/imx8m/imx8mq/include/platform_def.h
++++ b/plat/imx/imx8m/imx8mq/include/platform_def.h
+@@ -127,8 +127,6 @@
+ 
+ #define SNVS_LPCR			U(0x38)
+ #define SNVS_LPCR_SRTC_ENV		BIT(0)
+-#define SNVS_LPCR_LPTA_EN		BIT(1)
+-#define SNVS_LPCR_LPWUI_EN		BIT(3)
+ #define SNVS_LPCR_DP_EN			BIT(5)
+ #define SNVS_LPCR_TOP			BIT(6)
+ 
+-- 
+2.34.1
+
