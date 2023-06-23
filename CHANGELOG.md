@@ -3,6 +3,32 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [APR's Version Numbering](https://apr.apache.org/versioning.html)
 
+## version/2.0.17-dev (HEAD) - n/a
+### Added
+
+
+### Changed
+
+
+### Deprecated
+
+
+### Removed
+
+
+### Fixed
+
+
+### Simulation only
+
+
+### Maintenance only
+
+
+### Known issues
+
+
+
 ## version/2.0.16 - 2023-06-23
 ### Added
 - [APC-6160]: chrony: Add NTS certificate to chrony.conf
