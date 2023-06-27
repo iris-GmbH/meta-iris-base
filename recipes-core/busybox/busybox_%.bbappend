@@ -1,14 +1,17 @@
-SRC_URI += "file://fragment.cfg"
-SRC_URI += "file://arp.cfg"
-SRC_URI += "file://ntpd.cfg"
-SRC_URI += "file://mdev.conf"
-SRC_URI += "${@'file://enable_watchdog.cfg file://devmem.cfg' if d.getVar('IRMA6_RELEASE') != 1 else ''}"
-SRC_URI += "file://busybox_watchdog.sh"
 SRC_URI += " \
 			file://50default \
 			file://read_usedhcpoption42_script.sh \
 			file://timeservice_dhcp_option_42.sh \
+			file://mdev.conf \
+			file://fragments.cfg \
+			file://busybox_watchdog.sh \
 "
+
+# R2 only fragments
+SRC_URI += "${@'file://fragments-R2.cfg' if d.getVar('IRMA6_RELEASE') != 1 else ''}"
+
+# R2 only maintenance fragments
+SRC_URI += "${@'file://fragments-maintenance-R2.cfg' if d.getVar('DISTRO', True) == 'poky-iris-maintenance' and d.getVar('IRMA6_RELEASE') != 1 else ''}"
 
 FILESEXTRAPATHS:prepend := "${THISDIR}/${PN}:"
 
