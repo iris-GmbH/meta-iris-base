@@ -121,10 +121,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - [RDPHOEN-1364]: Add ip addr syntax validation when setting static ip
 
 ### Changed
+- [RDPHOEN-1314]: Revert "Use only one MIPI lane on R2"
 - [RDPHOEN-1357]: Adjust hs-settle MIPI configuration
 
 ### Fixed
-- [RDPHOEN-1314](Revert "Use only one MIPI lane on R2"): Fix tc358746 serializer configuration
+- [RDPHOEN-1314]: Fix tc358746 serializer configuration
 - [RDPHOEN-1371]: swupdate: Bind swupdate to localhost
 
 ### Removed
@@ -133,7 +134,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## version/2.0.9 - 2022-09-09
 ### Changed
-- [RDPHOEN-1314](Revert "Use only one MIPI lane on R2"): Use only one MIPI lane on R2 (with PWM and minor corrections)
+- [RDPHOEN-1314]: Revert "Disable PWM clock for serializer on R2"
+- [RDPHOEN-1314]: Use only one MIPI lane on R2 (with PWM and minor corrections)
 
 
 ## version/2.0.8 - 2022-09-07
@@ -149,7 +151,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## version/2.0.6 - 2022-08-30
 ### Changed
-- [RDPHOEN-1314](Revert "Use only one MIPI lane on R2"): Disable PWM clock for serializer on R2
+- [RDPHOEN-1314]: Disable PWM clock for serializer on R2
 
 ### Fixed
 - [RDPHOEN-1299]: Fix r/w access on netfitboot
