@@ -21,7 +21,7 @@ mount_pseudo_fs() {
     ${MOUNT} -t tmpfs tmp /run
     ${MOUNT} -t proc proc /proc
     ${MOUNT} -t sysfs sysfs /sys
-    ${MOUNT} -t tmpfs tmp /var/volatile
+    ${MOUNT} -t tmpfs tmpfs /var/volatile
     mkdir -p /var/volatile/log
     debug "Mount pseudo fs"
 }
