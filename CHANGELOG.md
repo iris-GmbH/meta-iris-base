@@ -32,32 +32,32 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## version/2.0.16 - 2023-06-23
 ### Added
 - [APC-6160]: chrony: Add NTS certificate to chrony.conf
-- [APC-5918](https://jira.iris-sensing.net/browse/APC-5918): Add jsoncpp patch to fix SDK build
-- [APC-6277](https://jira.iris-sensing.net/browse/APC-6277): Allow update via swupdate only if installed firmware has version 2.1.5 or higher
+- [APC-5918]: Add jsoncpp patch to fix SDK build
+- [APC-6277]: Allow update via swupdate only if installed firmware has version 2.1.5 or higher
 - [APC-6101]: Add persistent logging support for initramfs's emergency switch
 - [APC-5533]: Add recipe for tdewolff's minify tool for web formats
 - [APC-6322]: Add epc660 and serializer reset patches for 2kV surge test
 - [APC-6158]: Added the option to use a custom DHCP option 61 client identifier.
 - [APC-6296]: power_on_selftest.sh: Add shared lockfile
 - [APC-6513]: Added the ability get ntp server list from DHCP server via option 42 and starting the daemon
-- [APC-6679](https://jira.iris-sensing.net/browse/APC-6679): Add irma\_identity group
-- [APC-6689](https://jira.iris-sensing.net/browse/APC-6689): Add powerfail manager kernel module
+- [APC-6679]: Add irma\_identity group
+- [APC-6689]: Add powerfail manager kernel module
 
 ### Changed
-- [APC-5918](https://jira.iris-sensing.net/browse/APC-5918): Update this layer to kirkstone, including refactoring of various recipes
-- [APC-5922](https://jira.iris-sensing.net/browse/APC-5922): linux-fslc-imx updated to 5.15
-- [APC-5928](https://jira.iris-sensing.net/browse/APC-5928): u-boot-imx updated to 2022.04
-- [APC-5925](https://jira.iris-sensing.net/browse/APC-5925): Minor tweaks to reduce firmware size of R1
-- [APC-6296](https://jira.iris-sensing.net/browse/APC-6296): Add rsyslog tls configuration
-- [APC-6357](https://jira.iris-sensing.net/browse/APC-6357): Support for non-root user execution, fix scripts and add users/groups (R2 only)
-- [APC-5571](https://jira.iris-sensing.net/browse/APC-5571): Clean up recipes and image installs, move scripts from meta-iris to this layer
+- [APC-5918]: Update this layer to kirkstone, including refactoring of various recipes
+- [APC-5922]: linux-fslc-imx updated to 5.15
+- [APC-5928]: u-boot-imx updated to 2022.04
+- [APC-5925]: Minor tweaks to reduce firmware size of R1
+- [APC-6296]: Add rsyslog tls configuration
+- [APC-6357]: Support for non-root user execution, fix scripts and add users/groups (R2 only)
+- [APC-5571]: Clean up recipes and image installs, move scripts from meta-iris to this layer
 
 ### Fixed
 - Fix: Use default timestamp file on first boot
 - [APC-6279]: Run lvresize when updating alternative firmware in power on selftest
-- [APC-6119](https://jira.iris-sensing.net/browse/APC-6119): Fix defconfig handling in linux-fslc-imx kernel recipe
-- [APC-6374](https://jira.iris-sensing.net/browse/APC-6374): Enable device correct shutdown
-- [APC-6679](https://jira.iris-sensing.net/browse/APC-6679): Fix permissions of identity keys
+- [APC-6119]: Fix defconfig handling in linux-fslc-imx kernel recipe
+- [APC-6374]: Enable device correct shutdown
+- [APC-6679]: Fix permissions of identity keys
 
 
 ## version/2.0.15 - 2023-04-12
