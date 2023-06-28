@@ -121,7 +121,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - [RDPHOEN-1364]: Add ip addr syntax validation when setting static ip
 
 ### Changed
-- [RDPHOEN-1314]: Revert "Use only one MIPI lane on R2"
+- [RDPHOEN-1314]: Revert &quot;Use only one MIPI lane on R2&quot;
 - [RDPHOEN-1357]: Adjust hs-settle MIPI configuration
 
 ### Fixed
@@ -134,7 +134,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## version/2.0.9 - 2022-09-09
 ### Changed
-- [RDPHOEN-1314]: Revert "Disable PWM clock for serializer on R2"
+- [RDPHOEN-1314]: Revert &quot;Disable PWM clock for serializer on R2&quot;
 - [RDPHOEN-1314]: Use only one MIPI lane on R2 (with PWM and minor corrections)
 
 
@@ -217,7 +217,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - [APC-4848]: Add rsyslog integration for IRMA 6 R2.
 - [APC-4836]: Add chrony integration for IRMA 6 R2.
 - [APC-4836] Disable internal snvs rtc on r2.
-- [RDPHOEN-1040]: Add "sync" command in uuu flash script
+- [RDPHOEN-1040]: Add &quot;sync&quot; command in uuu flash script
 - [RDPHOEN-1084]: Add config fragment for kernel and u-boot
 - [RDPHOEN-1273]: Add encryption of logical volumes to initramfs to use valid black key blobs
 - [RDPHOEN-1270]: Add check for when the device is locked to not nfs boot
