@@ -7,6 +7,13 @@ ntpsrv_list=$1
 if [ -n "$ntpsrv_list" ] ; then
 	echo "The ntpsrv list for starting ntpd - script timeservice_dhcp_option_42.sh"
 
+	# Checking if ntpd processes are already running and kill it/them
+	NTP_PID=$(pgrep -f "/bin/busybox ntpd")
+	if [ -n "$NTP_PID" ]; then
+    	echo "ntpd is running with PIDs: $NTP_PID - kill it"
+    	kill $NTP_PID
+	fi
+
 	# Replace IP addresses with "-p ip" using sed
 	ntpsrv_list_with_peer_param=$(echo "$ntpsrv_list" | sed 's/\([0-9]\{1,3\}\.\)\{3\}[0-9]\{1,3\}/-p &/g')
 

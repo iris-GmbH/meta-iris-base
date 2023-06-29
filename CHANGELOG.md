@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 
 ### Changed
-
+- [APC-6765]: Checking for already running ntp processed (R1) and reload sources with chronyc (R2)
 
 ### Deprecated
 
