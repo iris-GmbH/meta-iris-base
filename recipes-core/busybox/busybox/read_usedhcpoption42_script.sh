@@ -39,7 +39,7 @@ fi
 
 if [ "$DHCPUSEOPTION42" = true ]; then
     echo "DHCP USE OPTION 42: true - Starting ntp daemon!"
-    /etc/udhcpc.d/dhcp_option_42/timeservice_dhcp_option_42.sh "$ntpsrv_list" &
+    /etc/udhcpc.d/dhcp_option_42/timeservice_dhcp_option_42.sh "$ntpsrv_list"
     
 else
     echo "DHCP USE OPTION 42: false. Nothing to do!"
