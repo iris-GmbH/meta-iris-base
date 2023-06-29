@@ -23,7 +23,7 @@ if [ -n "$ntpsrv_list" ] ; then
 	done
 	
 	# Run chronyc reload sources to synchronize system time
-	chronyc reload sources
+	chronyc reload sources &
 
 else
 	echo "The ntpsrv list from dhcp server via option 42 is empty - nothing to do!."
