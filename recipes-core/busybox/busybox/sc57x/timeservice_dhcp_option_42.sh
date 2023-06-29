@@ -10,8 +10,8 @@ if [ -n "$ntpsrv_list" ] ; then
 	# Checking if ntpd processes are already running and kill it/them
 	NTP_PID=$(pgrep -f "/bin/busybox ntpd")
 	if [ -n "$NTP_PID" ]; then
-    	echo "ntpd is running with PIDs: $NTP_PID - kill it"
-    	kill $NTP_PID
+		echo "ntpd is running with PIDs: $NTP_PID - kill it"
+		kill $NTP_PID
 	fi
 
 	# Replace IP addresses with "-p ip" using sed
