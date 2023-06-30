@@ -61,6 +61,8 @@ static irqreturn_t resume_after_power_failure(int irq, void *dev_id)
     if (task_alive(app_task)) {
         dev_info(&dev, "Power failed! PID %d was paused for 50ms\n", app_task->pid);
         send_sig(SIGCONT, app_task, 1);
+    } else {
+        return IRQ_HANDLED;
     }
 
     // trigger simulation IRQ
@@ -84,6 +86,8 @@ static irqreturn_t powerfail_interrupt_handler(int irq, void *dev_id)
 
     if (task_alive(app_task)) {
         send_sig(SIGSTOP, app_task, 1);
+    } else {
+        return IRQ_HANDLED;
     }
 
     return IRQ_WAKE_THREAD;
