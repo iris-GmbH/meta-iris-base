@@ -142,8 +142,8 @@ static int powerfail_request(struct gpio_chip *gc, unsigned int offset)
         return ret;
     }
 
-    // update power status
-    power_status = gpio_get_value(POWERSTATUS_PIN);
+    // set power status to enable IRQ handlers if power started in a bad state
+    power_status = true;
 
     ret = gpio_to_irq(POWERSTATUS_PIN);
     if (ret < 0) {
