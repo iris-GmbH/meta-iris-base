@@ -10,13 +10,8 @@
 #include <linux/gpio.h>
 #include <linux/interrupt.h>
 #include <linux/delay.h>
-#include <linux/workqueue.h>
-#include <linux/poll.h>
-#include <linux/cdev.h>
 #include <linux/device.h>
 #include <linux/sched.h>
-#include <linux/wait.h>
-#include <linux/irqdomain.h>
 #include <linux/irq_sim.h>
 
 #define DEVICE_NAME "powerfail-manager"
