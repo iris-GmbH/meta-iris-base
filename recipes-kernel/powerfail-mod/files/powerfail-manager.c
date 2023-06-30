@@ -135,6 +135,8 @@ static int powerfail_request(struct gpio_chip *gc, unsigned int offset)
         return -EBUSY;
     }
 
+    app_task = current;
+
     ret = gpio_direction_input(POWERSTATUS_PIN);
     if (ret < 0) {
         dev_err(&dev, "Failed to set GPIO pin direction: %d\n", ret);;
@@ -156,8 +158,6 @@ static int powerfail_request(struct gpio_chip *gc, unsigned int offset)
         dev_err(&dev, "Failed to request IRQ: %d\n", ret);
         return ret;
     }
-
-    app_task = current;
 
     dev_info(&dev, "Started Power Fail Manager for PID: %d\n", app_task->pid);
     return 0;
@@ -183,13 +183,13 @@ static int __init powerfail_init(void)
     ret = gpio_request(POWERSTATUS_PIN, "powerstatus_gpio");
     if (ret < 0) {
         dev_err(&dev, "Failed to request power status pin\n");
-        return ret;
+        goto device_err;
     }
 
     ret = gpiochip_add_data(&powerfail_gc, NULL);
     if (ret < 0) {
         dev_err(&dev, "Failed to add gpio chip\n");
-        return ret;
+        goto gpio_err;
     }
 
     /* Create simulation IRQ domain to notify app in case of power failure */
@@ -197,17 +197,25 @@ static int __init powerfail_init(void)
     if (IS_ERR(irq_sim_domain)){
         dev_err(&dev, "Failed to add simulated IRQ\n");
         ret = PTR_ERR(irq_sim_domain);
-        return ret;
+        goto gpiochip_err;
     }
 
     dev_info(&dev, "Driver loaded\n");
+    return 0;
+
+gpiochip_err:
+    gpiochip_remove(&powerfail_gc);
+gpio_err:
+    gpio_free(POWERSTATUS_PIN);
+device_err:
+    device_unregister(&dev);
     return ret;
 }
 
 static void __exit powerfail_exit(void)
 {
-    gpio_free(POWERSTATUS_PIN);
     gpiochip_remove(&powerfail_gc);
+    gpio_free(POWERSTATUS_PIN);
     device_unregister(&dev);
     pr_info("powerfail-manager: Driver unloaded\n");
 }
