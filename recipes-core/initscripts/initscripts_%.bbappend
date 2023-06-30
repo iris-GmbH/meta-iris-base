@@ -11,6 +11,7 @@ SRC_URI += " \
 
 SRC_URI:append:mx8mp-nxp-bsp = " \
     file://set-mount-permissions.sh \
+    file://switch-log-location.sh \
 "
 
 RDEPENDS:${PN}:append = " phytool"
@@ -44,4 +45,8 @@ do_install:append:mx8mp-nxp-bsp() {
 
     install -m 0755 ${WORKDIR}/set-mount-permissions.sh ${D}${sysconfdir}/init.d
     update-rc.d -r ${D} set-mount-permissions.sh start 40 S .
+
+    # switch-log-location.sh should be called after all other devices are mounted (S03mountall.sh)
+    install -m 0755 ${WORKDIR}/switch-log-location.sh ${D}${sysconfdir}/init.d
+    update-rc.d -r ${D} switch-log-location.sh start 4 S .
 }
