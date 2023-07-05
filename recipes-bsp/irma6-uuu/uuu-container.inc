@@ -33,6 +33,7 @@ FITIMAGEUUU = "irma6-fitimage-uuu.itb.signed"
 
 # set output directory and file names
 UUU_DEPLOY_DIR = "${DEPLOYDIR}/${PN}"
+UUU_DEPLOY_TAR = "${DEPLOYDIR}/${PN}-container.tar.gz"
 
 FLASHBINDEPLOY = "flash.bin.signed"
 HASHSUMS = "hashsums"
@@ -105,6 +106,9 @@ do_deploy () {
 
     size_rootfsverity="$(stat --printf=%s ${UUU_DEPLOY_DIR}/${ROOTFSVERITYDEPLOY})"
     echo "SIZE_ROOTFSVERITY=\"$size_rootfsverity\"" >> ${UUU_DEPLOY_DIR}/${HASHSUMS}
+
+    cd ${DEPLOYDIR} && tar -czv ${PN} -f ${UUU_DEPLOY_TAR}
+    rm -rf ${UUU_DEPLOY_DIR}
 }
 
 addtask do_deploy after do_install
