@@ -130,8 +130,13 @@ touch $LOCK_FILE
 PENDING_UPDATE=$(fw_printenv upgrade_available | awk -F'=' '{print $2}')
 if [ "$PENDING_UPDATE" = "1" ]; then
 	power_on_selftest
+
+	# Run reset_uboot_envs first as (in the case of a perfectly timed power cut)
+	# creating the ALTERNATIVE_FW_UPDATE_FLAG first will trigger
+	# update_alternative_firmware on the next reboot which might brick the device
 	reset_uboot_envs
 	prepare_alternative_fw_update
+
 	log "Firmware update successful complete"
 fi
 
