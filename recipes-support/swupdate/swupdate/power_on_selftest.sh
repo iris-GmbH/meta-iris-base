@@ -111,9 +111,14 @@ prepare_alternative_fw_update() {
 }
 
 reset_uboot_envs() {
-	# Use a temp file to write u-boot-env's in one go
 	TMP_ENV_FILE="/tmp/reset_update_envs"
-	printf "bootcount=0\nupgrade_available=\nustate=\n" > "$TMP_ENV_FILE"
+
+	# Always set firmware to the current one, if self test is passed
+	# Default to firmware=0 if value is invalid
+	grep -q 'linuxboot_b\|firmware_b' /proc/cmdline && firmware=1 || firmware=0
+	printf "bootcount=0\nupgrade_available=\nustate=\nfirmware=%s\n" "$firmware" > "$TMP_ENV_FILE"
+
+	# Use a temp file to write u-boot-env's in one go
 	fw_setenv -s "$TMP_ENV_FILE"
 	rm "$TMP_ENV_FILE"
 }
