@@ -44,6 +44,7 @@ SRC_URI += " \
     file://0038-lm75.c-Defer-probe-if-i2c-communication-fails-with-E.patch \
     file://0039-epc660-reload-fw-after-hw-reset.patch \
     file://0040-tc358746-Use-gpio-reset-instead-of-sotware-reset.patch \
+    file://0041-EPC660-Update-sequencer-code-to-V14-Datasheet-V2.20.patch \
 "
 
 SRC_URI:append:poky-iris-deploy = "\
