@@ -5,6 +5,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## version/2.0.17-dev (HEAD) - n/a
 ### Added
+- [APC-6781]: Updated EPC660 sequencer file to v14 (R1 & R2)
 
 
 ### Changed
