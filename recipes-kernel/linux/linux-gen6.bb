@@ -35,7 +35,7 @@ require recipes-kernel/linux/linux-yocto.inc
 
 BRANCH = "develop"
 LINUX_VERSION ?= "4.14.239"
-SRCREV="8433edb6b2e1ff1ae6769364c7fc11f1f0d0992e"
+SRCREV="5fee84b6e58d46bc799480d48867bdd86c71e09d"
 
 SRC_URI = "git://github.com/iris-GmbH/linux-gen6.git;protocol=https;bareclone=1;branch=${BRANCH};depth=1"
 
