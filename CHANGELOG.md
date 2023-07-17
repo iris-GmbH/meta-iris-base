@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - [APC-6721]: Switch log file location
 - [APC-6709]: Add a virtual gpiochip to the power manager module
 - [APC-6781]: Updated EPC660 sequencer file to v14 (R1 & R2)
+- [APC-5893]: R1: Include epc660 reset fix
 
 
 ### Changed
