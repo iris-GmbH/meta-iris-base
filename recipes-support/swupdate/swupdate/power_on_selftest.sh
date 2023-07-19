@@ -111,9 +111,14 @@ prepare_alternative_fw_update() {
 }
 
 reset_uboot_envs() {
-	# Use a temp file to write u-boot-env's in one go
 	TMP_ENV_FILE="/tmp/reset_update_envs"
-	printf "bootcount=0\nupgrade_available=\nustate=\n" > "$TMP_ENV_FILE"
+
+	# Always set firmware to the current one, if self test is passed
+	# Default to firmware=0 if value is invalid
+	grep -q 'linuxboot_b\|firmware_b' /proc/cmdline && firmware=1 || firmware=0
+	printf "bootcount=0\nupgrade_available=\nustate=\nfirmware=%s\n" "$firmware" > "$TMP_ENV_FILE"
+
+	# Use a temp file to write u-boot-env's in one go
 	fw_setenv -s "$TMP_ENV_FILE"
 	rm "$TMP_ENV_FILE"
 }
@@ -125,8 +130,13 @@ touch $LOCK_FILE
 PENDING_UPDATE=$(fw_printenv upgrade_available | awk -F'=' '{print $2}')
 if [ "$PENDING_UPDATE" = "1" ]; then
 	power_on_selftest
+
+	# Run reset_uboot_envs first as (in the case of a perfectly timed power cut)
+	# creating the ALTERNATIVE_FW_UPDATE_FLAG first will trigger
+	# update_alternative_firmware on the next reboot which might brick the device
 	reset_uboot_envs
 	prepare_alternative_fw_update
+
 	log "Firmware update successful complete"
 fi
 
