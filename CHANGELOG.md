@@ -3,31 +3,15 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [APR's Version Numbering](https://apr.apache.org/versioning.html)
 
-## version/2.0.17-dev (HEAD) - n/a
+## version/2.0.17 - 2023-07-19
 ### Added
 - [APC-6781]: Updated EPC660 sequencer file to v14 (R1 & R2)
-
 
 ### Changed
 - [APC-6765]: Checking for already running ntp processed (R1) and reload sources with chronyc (R2)
 
-### Deprecated
-
-
-### Removed
-
-
 ### Fixed
 - [APC-6769]: selftest: Always set the ubootenv firmware after a successful boot
-
-### Simulation only
-
-
-### Maintenance only
-
-
-### Known issues
-
 
 
 ## version/2.0.16 - 2023-06-23
