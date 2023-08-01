@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Added
 - [APC-6721]: Switch log file location
 - [APC-6709]: Add a virtual gpiochip to the power manager module
+- [APC-6813]: Remove device_flags on factory reset
 
 ### Changed
 
