@@ -85,6 +85,7 @@ factory_reset() {
     rm -f /mnt/iris/*.conf /mnt/iris/*.conf.bak # syslog-remotes.conf
     rm -f /mnt/iris/rsyslog/*.conf /mnt/iris/rsyslog/*.conf.bak
     rm -f /mnt/iris/switch_log_location
+    rm -rf /mnt/iris/device_flags
     # Set default symlinks
     ln -sf /etc/nginx/sites-available/reverse_proxy_https.conf /mnt/iris/nginx/sites-enabled/default_server
     ln -sf /mnt/iris/identity /mnt/iris/webtls
