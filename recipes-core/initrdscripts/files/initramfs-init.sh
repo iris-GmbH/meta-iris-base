@@ -87,9 +87,10 @@ pvsn_flash() {
 
     # Generate black key blobs
     caam-keygen create volumeKey ccm -s 32
+    keyctl padd logon logkey: @us < $KEYSTORE/caam/volumeKey
+    ${UMOUNT} ${KEYSTORE}
 
     # Setup encrypted partitions
-    keyctl padd logon logkey: @us < /mnt/keystore/caam/volumeKey
     dmsetup -v create decrypted-irma6lvm-rootfs_a --table "0 $(blockdev --getsz /dev/mapper/irma6lvm-rootfs_a) crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 /dev/mapper/irma6lvm-rootfs_a 0 1 sector_size:4096"
     dmsetup -v create decrypted-irma6lvm-rootfs_b --table "0 $(blockdev --getsz /dev/mapper/irma6lvm-rootfs_b) crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 /dev/mapper/irma6lvm-rootfs_b 0 1 sector_size:4096"
     dmsetup -v create decrypted-irma6lvm-userdata --table "0 $(blockdev --getsz /dev/mapper/irma6lvm-userdata) crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 /dev/mapper/irma6lvm-userdata 0 1 sector_size:4096"
@@ -145,8 +146,6 @@ emergency_switch() {
         new_firmware=$(( firmware^1 ))
         /usr/bin/fw_setenv firmware "$new_firmware"
         debug "Error: Emergency firmware switch from $firmware to $new_firmware"
-
-        ${MOUNT} "/dev/mapper/decrypted-irma6lvm-userdata" "/mnt/iris"
         mkdir -p /mnt/iris/log
         cat /var/volatile/log/initramfs.log >> /mnt/iris/log/initramfs.log
         ${UMOUNT} "/mnt/iris"
@@ -195,8 +194,8 @@ VERITY_DEV="/dev/mapper/${VERITY_NAME}"
 DECRYPT_NAME="decrypted-irma6lvm-rootfs${FIRMWARE_SUFFIX}"
 DECRYPT_ROOT_DEV="/dev/mapper/${DECRYPT_NAME}"
 
-DATA_DEV="/dev/mapper/irma6lvm-userdata"
-DECRYPT_DATA_NAME="decrypted-irma6lvm-userdata"
+DATA_DEV="/dev/mapper/irma6lvm-userdata${FIRMWARE_SUFFIX}"
+DECRYPT_DATA_NAME="decrypted-irma6lvm-userdata${FIRMWARE_SUFFIX}"
 
 PUBKEY="/etc/iris/signing/roothash-public-key.pem"
 
@@ -208,11 +207,11 @@ debug "Root device: ${ROOT_DEV}"
 debug "Crypt device: ${DECRYPT_ROOT_DEV}"
 debug "Verity device: ${VERITY_DEV}"
 
+# Add black key to keyring
 ${MOUNT} ${KEYSTORE_DEV} ${KEYSTORE}
-
-# Add Black key to keyring
 caam-keygen import $KEYSTORE/caam/volumeKey.bb volumeKey
 keyctl padd logon logkey: @us < $KEYSTORE/caam/volumeKey
+${UMOUNT} ${KEYSTORE}
 
 debug "Unlocking encrypted device: ${ROOT_DEV}" 
 dmsetup create ${DECRYPT_NAME} --table "0 $(blockdev --getsz ${ROOT_DEV}) \
@@ -223,14 +222,14 @@ dmsetup create ${DECRYPT_DATA_NAME} --table "0 $(blockdev --getsz ${DATA_DEV}) \
     crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 ${DATA_DEV} 0 1 sector_size:4096"
 vgmknodes
 
+${MOUNT} -t ext4 "/dev/mapper/decrypted-irma6lvm-userdata${FIRMWARE_SUFFIX}" "/mnt/iris"
+
 if ! /usr/bin/openssl dgst -sha256 -verify "${PUBKEY}" -signature "${ROOT_HASH_SIGNATURE}" "${ROOT_HASH}"
 then
     debug "Root hash signature invalid"
     emergency_switch
 fi
 RH=$(cat "${ROOT_HASH}")
-
-${UMOUNT} ${KEYSTORE}
 
 debug "Opening verity device: ${DECRYPT_ROOT_DEV}"
 veritysetup open ${DECRYPT_ROOT_DEV} ${VERITY_NAME} ${ROOT_HASH_DEV} ${RH}
