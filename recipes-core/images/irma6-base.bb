@@ -14,7 +14,6 @@ TOOLCHAIN_HOST_TASK += " \
     nativesdk-protobuf-compiler \
     nativesdk-ccache \
     nativesdk-python3-gcovr \
-    nativesdk-git \
 "
 TOOLCHAIN_TARGET_TASK += "googletest"
 
