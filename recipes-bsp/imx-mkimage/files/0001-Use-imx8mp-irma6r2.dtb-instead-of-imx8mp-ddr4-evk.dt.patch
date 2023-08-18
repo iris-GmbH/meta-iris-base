@@ -4,6 +4,9 @@ Date: Tue, 14 Feb 2023 17:20:03 +0100
 Subject: [PATCH] Use imx8mp-irma6r2.dtb instead of imx8mp-ddr4-evk.dtb
 
 Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+
+Upstream-Status: Inappropriate [configuration]
+Signed-off-by: Jasper Orschulko <Jasper.Orschulko@iris-sensing.com>
 ---
  iMX8M/soc.mak | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
