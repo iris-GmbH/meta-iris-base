@@ -37,6 +37,7 @@ RDEPENDS:${PN} += " \
 	nginx \
 	lvm2 \
 	mmc-utils \
+	rsync \
 "
 
 # Include more RDEPENDS for pre_post_inst.sh in swuimage, but only for real hardware
