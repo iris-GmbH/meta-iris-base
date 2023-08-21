@@ -88,11 +88,18 @@ pvsn_flash() {
     # Generate black key blobs
     caam-keygen create volumeKey ccm -s 32
 
+    # create userdata A/B mirrors
+    /etc/init.d/udev start # we need udev to create volumes cleanly
+    lvrename -y -A n /dev/irma6lvm/userdata userdata_a # rename userdata created in pvsn
+    lvcreate --yes -n userdata_b -L 512MB irma6lvm
+    vgmknodes
+
     # Setup encrypted partitions
     keyctl padd logon logkey: @us < /mnt/keystore/caam/volumeKey
     dmsetup -v create decrypted-irma6lvm-rootfs_a --table "0 $(blockdev --getsz /dev/mapper/irma6lvm-rootfs_a) crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 /dev/mapper/irma6lvm-rootfs_a 0 1 sector_size:4096"
     dmsetup -v create decrypted-irma6lvm-rootfs_b --table "0 $(blockdev --getsz /dev/mapper/irma6lvm-rootfs_b) crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 /dev/mapper/irma6lvm-rootfs_b 0 1 sector_size:4096"
-    dmsetup -v create decrypted-irma6lvm-userdata --table "0 $(blockdev --getsz /dev/mapper/irma6lvm-userdata) crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 /dev/mapper/irma6lvm-userdata 0 1 sector_size:4096"
+    dmsetup -v create decrypted-irma6lvm-userdata_a --table "0 $(blockdev --getsz /dev/mapper/irma6lvm-userdata_a) crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 /dev/mapper/irma6lvm-userdata_a 0 1 sector_size:4096"
+    dmsetup -v create decrypted-irma6lvm-userdata_b --table "0 $(blockdev --getsz /dev/mapper/irma6lvm-userdata_b) crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 /dev/mapper/irma6lvm-userdata_b 0 1 sector_size:4096"
     vgmknodes
 
     # Copy rootfs
@@ -100,19 +107,27 @@ pvsn_flash() {
     dd if=/dev/mapper/irma6lvm-rootfs_a of=/dev/mapper/irma6lvm-rootfs_b
     sync
 
-    # Mount and copy userdata
-    mkfs.ext4 /dev/mapper/decrypted-irma6lvm-userdata
-    mkdir -p /mnt/pvsn_userdata
-    mkdir -p /mnt/userdata
-    mount -t ext4 /dev/mapper/decrypted-irma6lvm-userdata /mnt/userdata
-    mount -t ext4 /dev/mapper/irma6lvm-pvsn_userdata /mnt/pvsn_userdata
-    mkdir -p /mnt/userdata/counter
-    mkdir -p /mnt/userdata/irma6webserver
-    cp -R /mnt/pvsn_userdata/* /mnt/userdata
-    umount /mnt/userdata
-    umount /mnt/pvsn_userdata
-    rm -R /mnt/pvsn_userdata
-    rm -R /mnt/userdata
+    # Mount and copy userdata A/B
+    MOUNTP_USERDATA_A="/mnt/userdata_a"
+    MOUNTP_USERDATA_B="/mnt/userdata_b"
+    MOUNTP_USERDATA_PVSN="/mnt/pvsn_userdata"
+    mkfs.ext4 /dev/mapper/decrypted-irma6lvm-userdata_a
+    mkfs.ext4 /dev/mapper/decrypted-irma6lvm-userdata_b
+    mkdir -p $MOUNTP_USERDATA_PVSN
+    mkdir -p $MOUNTP_USERDATA_A
+    mkdir -p $MOUNTP_USERDATA_B
+
+    mount -t ext4 /dev/mapper/irma6lvm-pvsn_userdata $MOUNTP_USERDATA_PVSN
+    mount -t ext4 /dev/mapper/decrypted-irma6lvm-userdata_a $MOUNTP_USERDATA_A
+    mount -t ext4 /dev/mapper/decrypted-irma6lvm-userdata_b $MOUNTP_USERDATA_B
+
+    mkdir -p $MOUNTP_USERDATA_A/counter
+    mkdir -p $MOUNTP_USERDATA_A/irma6webserver
+    cp -R $MOUNTP_USERDATA_PVSN/* $MOUNTP_USERDATA_A
+    cp -R $MOUNTP_USERDATA_A/* $MOUNTP_USERDATA_B
+
+    rm -rf $MOUNTP_USERDATA_PVSN
+    umount $MOUNTP_USERDATA_PVSN
     sync
 
     # Secure erase logical volumes
@@ -129,9 +144,12 @@ pvsn_flash() {
     vgmknodes
 
     # Close decrypted devices
+    umount $MOUNTP_USERDATA_A
+    umount $MOUNTP_USERDATA_B
     dmsetup remove /dev/mapper/decrypted-irma6lvm-rootfs_a
     dmsetup remove /dev/mapper/decrypted-irma6lvm-rootfs_b
-    dmsetup remove /dev/mapper/decrypted-irma6lvm-userdata
+    dmsetup remove /dev/mapper/decrypted-irma6lvm-userdata_a
+    dmsetup remove /dev/mapper/decrypted-irma6lvm-userdata_b
 }
 
 emergency_switch() {
@@ -146,7 +164,7 @@ emergency_switch() {
         /usr/bin/fw_setenv firmware "$new_firmware"
         debug "Error: Emergency firmware switch from $firmware to $new_firmware"
 
-        ${MOUNT} "/dev/mapper/decrypted-irma6lvm-userdata" "/mnt/iris"
+        ${MOUNT} "/dev/mapper/${DECRYPT_DATA_NAME}" "/mnt/iris"
         mkdir -p /mnt/iris/log
         cat /var/volatile/log/initramfs.log >> /mnt/iris/log/initramfs.log
         ${UMOUNT} "/mnt/iris"
@@ -195,8 +213,9 @@ VERITY_DEV="/dev/mapper/${VERITY_NAME}"
 DECRYPT_NAME="decrypted-irma6lvm-rootfs${FIRMWARE_SUFFIX}"
 DECRYPT_ROOT_DEV="/dev/mapper/${DECRYPT_NAME}"
 
-DATA_DEV="/dev/mapper/irma6lvm-userdata"
-DECRYPT_DATA_NAME="decrypted-irma6lvm-userdata"
+DATA_DEV="/dev/mapper/irma6lvm-userdata${FIRMWARE_SUFFIX}"
+DECRYPT_DATA_NAME="decrypted-irma6lvm-userdata${FIRMWARE_SUFFIX}"
+DECRYPT_DATA_LINK="/dev/mapper/decrypted-irma6lvm-userdata"
 
 PUBKEY="/etc/iris/signing/roothash-public-key.pem"
 
@@ -222,6 +241,8 @@ debug "Unlocking encrypted device: ${DATA_DEV}"
 dmsetup create ${DECRYPT_DATA_NAME} --table "0 $(blockdev --getsz ${DATA_DEV}) \
     crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 ${DATA_DEV} 0 1 sector_size:4096"
 vgmknodes
+
+ln -s "/dev/mapper/${DECRYPT_DATA_NAME}" "${DECRYPT_DATA_LINK}" # symlink for /etc/fstab
 
 if ! /usr/bin/openssl dgst -sha256 -verify "${PUBKEY}" -signature "${ROOT_HASH_SIGNATURE}" "${ROOT_HASH}"
 then
