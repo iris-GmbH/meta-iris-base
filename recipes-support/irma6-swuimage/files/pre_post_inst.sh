@@ -60,6 +60,9 @@ set_device_names() {
 	KEY=$(cut -d' ' -f1 < /mnt/iris/swupdate/encryption.key)
 	# use iv from new sw-description
 	IV=$(grep ivt /tmp/sw-description | cut -d'"' -f2 | head -1)
+
+	# suppress lvm tool warnings regarding closing of all file descriptors
+	export LVM_SUPPRESS_FD_WARNINGS=1
 }
 
 unlock_device() {
@@ -138,8 +141,8 @@ check_hab_srk() {
 	# check if secure boot is activated
 	boot_cfg=$(imx_fuse_read 7 1)
 	if [ "$(( 0x02000000 & boot_cfg ))" -eq 0 ]; then
- 		log "Secure boot is not activated, skipping SRK fuses verification"
- 		return
+		log "Secure boot is not activated, skipping SRK fuses verification"
+		return
 	fi
 
 	# read SRK fuses
@@ -185,9 +188,6 @@ check_identity() {
 }
 
 resize_lvm() {
-	# suppress lvm tool warnings regarding closing of all file descriptors
-	export LVM_SUPPRESS_FD_WARNINGS=1
-
 	# get new compressed/encrypted rootfs
 	rootfs_file=$(< /tmp/sw-description tr '\n' ' ' | grep -o '{[^}]*device = "/dev/swu_rootfs"[^}]*}' | grep -o 'filename = "[^"]*";' | cut -d'"' -f 2)
 	rootfs_file="/tmp/$rootfs_file"
@@ -210,46 +210,86 @@ resize_lvm() {
 }
 
 move_userdata_config() {
-    # If old webserver dir exists, copy to new location, no matter what
-    # Old location will be deleted after successfull power on selftest
-    if [ -d "/mnt/iris/counter/webserver" ]; then
-        rm -rf "/mnt/iris/irma6webserver"
-        cp -a "/mnt/iris/counter/webserver" "/mnt/iris/irma6webserver"
-    fi
+	# If old webserver dir exists, copy to new location, no matter what
+	# Old location will be deleted after successfull power on selftest
+	if [ -d "/mnt/iris/counter/webserver" ]; then
+		rm -rf "/mnt/iris/irma6webserver"
+		cp -a "/mnt/iris/counter/webserver" "/mnt/iris/irma6webserver"
+	fi
 
-    # Move uuid file if it is present
-    if [ -f "/mnt/iris/uuid" ]; then
-        cp -a "/mnt/iris/uuid" "/mnt/iris/counter/uuid"
-        rm -f "/mnt/iris/uuid"
-    fi
+	# Move uuid file if it is present
+	if [ -f "/mnt/iris/uuid" ]; then
+		cp -a "/mnt/iris/uuid" "/mnt/iris/counter/uuid"
+		rm -f "/mnt/iris/uuid"
+	fi
 }
 
 create_webserver_symlinks() {
-    if [ ! -L "/mnt/iris/webtls" ]; then
-        log "Create default webtls symlink"
-        ln -sf /mnt/iris/identity /mnt/iris/webtls || exit 1
-    fi
+	if [ ! -L "/mnt/iris/webtls" ]; then
+		log "Create default webtls symlink"
+		ln -sf /mnt/iris/identity /mnt/iris/webtls || exit 1
+	fi
 	if [ ! -L "/mnt/iris/nts" ]; then
-        log "Create default chrony symlink"
-        ln -sf /mnt/iris/identity /mnt/iris/nts || exit 1
-    fi
-    # if "disable_https" parameter has version 1.0, we must overwrite default_server with https
-    if [ -f "/mnt/iris/counter/config_customer.json" ]; then
-        is_old_version=$(jq '.sets.IRMA6_Customer.parameters["pa.communication.disable_https"]["version"] == "1.0"' "/mnt/iris/counter/config_customer.json")
-        if [ "$is_old_version" = "true" ]; then
-            # remove link here, the following lines will recreate link
-            rm "/mnt/iris/nginx/sites-enabled/default_server"
-        fi
-    fi
-    if [ ! -L "/mnt/iris/nginx/sites-enabled/default_server" ]; then
-        log "Create default webserver server conf symlink"
-        mkdir -p /mnt/iris/nginx/sites-enabled || exit 1
-        ln -sf /etc/nginx/sites-available/reverse_proxy_https.conf /mnt/iris/nginx/sites-enabled/default_server  || exit 1
-    fi
+		log "Create default chrony symlink"
+		ln -sf /mnt/iris/identity /mnt/iris/nts || exit 1
+	fi
+	# if "disable_https" parameter has version 1.0, we must overwrite default_server with https
+	if [ -f "/mnt/iris/counter/config_customer.json" ]; then
+		is_old_version=$(jq '.sets.IRMA6_Customer.parameters["pa.communication.disable_https"]["version"] == "1.0"' "/mnt/iris/counter/config_customer.json")
+		if [ "$is_old_version" = "true" ]; then
+			# remove link here, the following lines will recreate link
+			rm "/mnt/iris/nginx/sites-enabled/default_server"
+		fi
+	fi
+	if [ ! -L "/mnt/iris/nginx/sites-enabled/default_server" ]; then
+		log "Create default webserver server conf symlink"
+		mkdir -p /mnt/iris/nginx/sites-enabled || exit 1
+		ln -sf /etc/nginx/sites-available/reverse_proxy_https.conf /mnt/iris/nginx/sites-enabled/default_server  || exit 1
+	fi
 }
+
+create_userdata_mirror(){
+	if ! lvs "/dev/irma6lvm/userdata${FIRMWARE_SUFFIX}" > /dev/null 2>&1; then
+		# create alt userdata volume, if needed
+		lvcreate -y --autobackup n -n "userdata${FIRMWARE_SUFFIX}" -L 512MB irma6lvm > /dev/null 2>&1
+		dmsetup -v create decrypted-irma6lvm-userdata${FIRMWARE_SUFFIX} --table \
+			"0 $(blockdev --getsz /dev/mapper/irma6lvm-userdata${FIRMWARE_SUFFIX}) \
+			crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 /dev/mapper/irma6lvm-userdata${FIRMWARE_SUFFIX} 0 1 sector_size:4096"
+		mkfs.ext4 /dev/mapper/decrypted-irma6lvm-userdata${FIRMWARE_SUFFIX} > /dev/null 2>&1
+	else
+		# decrypt existing alternative userdata
+		dmsetup -v create decrypted-irma6lvm-userdata${FIRMWARE_SUFFIX} --table \
+			"0 $(blockdev --getsz /dev/mapper/irma6lvm-userdata${FIRMWARE_SUFFIX}) \
+			crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 /dev/mapper/irma6lvm-userdata${FIRMWARE_SUFFIX} 0 1 sector_size:4096"
+	fi
+
+	# sync A and B, because alternative fw needs current config
+	err=0
+	mkdir -p /tmp/userdata${FIRMWARE_SUFFIX}
+	mount -t ext4 /dev/mapper/decrypted-irma6lvm-userdata${FIRMWARE_SUFFIX} /tmp/userdata${FIRMWARE_SUFFIX} || err=1
+	cp -r /mnt/iris/* /tmp/userdata${FIRMWARE_SUFFIX} || err=1
+	
+	umount /tmp/userdata${FIRMWARE_SUFFIX}
+	rm -rf /tmp/userdata${FIRMWARE_SUFFIX}
+	dmsetup remove decrypted-irma6lvm-userdata${FIRMWARE_SUFFIX}
+
+	if ! [ "$err" -eq 0 ] ; then
+		exit "$err"
+	fi
+}
+
+pending_update() {
+	PENDING_UPDATE=$(fw_printenv upgrade_available | awk -F'=' '{print $2}')
+	if [ "$PENDING_UPDATE" = "1" ]; then
+		log_to_website "Update pending, device reboot required"
+		exit 1
+	fi
+}
+
 
 if [ "$1" = "preinst" ]; then
 	check_installed_version
+	pending_update
 	cmds_exist
 	parse_cmdline
 	set_device_names
@@ -273,5 +313,6 @@ if [ "$1" = "postinst" ]; then
 	remove_symlinks
 	umount_keystore
 	move_userdata_config
+	create_userdata_mirror
 	exit 0
 fi
