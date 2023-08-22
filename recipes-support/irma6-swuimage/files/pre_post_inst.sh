@@ -251,11 +251,11 @@ create_webserver_symlinks() {
 create_userdata_mirror(){
 	if ! lvs "/dev/irma6lvm/userdata${FIRMWARE_SUFFIX}" > /dev/null 2>&1; then
 		# create alt userdata volume, if needed
-		lvcreate -y --autobackup n -n "userdata${FIRMWARE_SUFFIX}" -L 512MB irma6lvm
+		lvcreate -y --autobackup n -n "userdata${FIRMWARE_SUFFIX}" -L 512MB irma6lvm > /dev/null 2>&1
 		dmsetup -v create decrypted-irma6lvm-userdata${FIRMWARE_SUFFIX} --table \
 			"0 $(blockdev --getsz /dev/mapper/irma6lvm-userdata${FIRMWARE_SUFFIX}) \
 			crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 /dev/mapper/irma6lvm-userdata${FIRMWARE_SUFFIX} 0 1 sector_size:4096"
-		mkfs.ext4 /dev/mapper/decrypted-irma6lvm-userdata${FIRMWARE_SUFFIX}
+		mkfs.ext4 /dev/mapper/decrypted-irma6lvm-userdata${FIRMWARE_SUFFIX} > /dev/null 2>&1
 	else
 		# decrypt existing alternative userdata
 		dmsetup -v create decrypted-irma6lvm-userdata${FIRMWARE_SUFFIX} --table \
