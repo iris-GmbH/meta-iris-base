@@ -10,6 +10,9 @@ $ make savedefconfig
 $ cp defconfig configs/imx8mp_irma6r2_defconfig
 
 Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+
+Upstream-Status: Inappropriate [configuration]
+Signed-off-by: Jasper Orschulko <Jasper.Orschulko@iris-sensing.com>
 ---
  configs/imx8mp_irma6r2_defconfig | 147 +++++++++++++++++++++++++++++++
  1 file changed, 147 insertions(+)
