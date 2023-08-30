@@ -202,6 +202,12 @@ start_alt_fw_update(){
 	fi
 }
 
+# skip on NFS boot to avoid unecessary reboots
+if findmnt / -t nfs4 > /dev/null; then
+	log "skipped because of NFS boot"
+	exit 0
+fi
+
 get_firmware_bootpath
 
 # Check if everything is still ok after update on reboot
