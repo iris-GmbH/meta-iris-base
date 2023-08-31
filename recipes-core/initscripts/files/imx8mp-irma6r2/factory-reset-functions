@@ -71,6 +71,19 @@ short_detected() {
 	[ "$cable_is_shorted" -eq 1 ] && return 0 || return 1
 }
 
+reset_systemtime() {
+    date_string=$(cat /etc/timestamp)
+    year=$(echo "$date_string" | cut -c 1-4)
+    month=$(echo "$date_string" | cut -c 5-6)
+    day=$(echo "$date_string" | cut -c 7-8)
+    hour=$(echo "$date_string" | cut -c 9-10)
+    minute=$(echo "$date_string" | cut -c 11-12)
+    second=$(echo "$date_string" | cut -c 13-14)
+    date -s "$year-$month-$day $hour:$minute:$second"
+    hwclock --systohc
+    rm -f /mnt/iris/timestamp
+}
+
 factory_reset() {
     echo "Factory reset!"
     rm -f /mnt/iris/counter/config_customer*
@@ -90,4 +103,5 @@ factory_reset() {
     ln -sf /mnt/iris/identity /mnt/iris/webtls
     ln -sf /mnt/iris/identity /mnt/iris/nts
     ln -sf /mnt/iris/identity /mnt/iris/syslogtls
+    reset_systemtime
 }
