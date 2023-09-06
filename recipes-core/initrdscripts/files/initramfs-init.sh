@@ -78,7 +78,6 @@ pvsn_wipe() {
 pvsn_flash() {
     debug "Initramfs provisioning flash routine started..."
     ROOT_DEV="/dev/mapper/irma6lvm-pvsn_rootfs"
-    DATA_DEV="/dev/mapper/irma6lvm-pvsn_userdata"
 
     # Mount keystore
     KEYSTORE_DEV="/dev/mapper/irma6lvm-keystore"
@@ -164,7 +163,7 @@ emergency_switch() {
         /usr/bin/fw_setenv firmware "$new_firmware"
         debug "Error: Emergency firmware switch from $firmware to $new_firmware"
 
-        ${MOUNT} "/dev/mapper/${DECRYPT_DATA_NAME}" "/mnt/iris"
+        ${MOUNT} "/dev/mapper/${DECRYPT_USERDATA_NAME}" "/mnt/iris"
         mkdir -p /mnt/iris/log
         cat /var/volatile/log/initramfs.log >> /mnt/iris/log/initramfs.log
         ${UMOUNT} "/mnt/iris"
@@ -213,9 +212,13 @@ VERITY_DEV="/dev/mapper/${VERITY_NAME}"
 DECRYPT_NAME="decrypted-irma6lvm-rootfs${FIRMWARE_SUFFIX}"
 DECRYPT_ROOT_DEV="/dev/mapper/${DECRYPT_NAME}"
 
-DATA_DEV="/dev/mapper/irma6lvm-userdata${FIRMWARE_SUFFIX}"
-DECRYPT_DATA_NAME="decrypted-irma6lvm-userdata${FIRMWARE_SUFFIX}"
-DECRYPT_DATA_LINK="/dev/mapper/decrypted-irma6lvm-userdata"
+USERDATA_DEV="/dev/mapper/irma6lvm-userdata${FIRMWARE_SUFFIX}"
+DECRYPT_USERDATA_NAME="decrypted-irma6lvm-userdata${FIRMWARE_SUFFIX}"
+DECRYPT_USERDATA_LINK="/dev/mapper/decrypted-irma6lvm-userdata"
+
+#datastore
+DATASTORE_DEV="/dev/mapper/irma6lvm-datastore"
+DECRYPT_DATASTORE_NAME="decrypted-irma6lvm-datastore"
 
 PUBKEY="/etc/iris/signing/roothash-public-key.pem"
 
@@ -237,12 +240,17 @@ debug "Unlocking encrypted device: ${ROOT_DEV}"
 dmsetup create ${DECRYPT_NAME} --table "0 $(blockdev --getsz ${ROOT_DEV}) \
     crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 ${ROOT_DEV} 0 1 sector_size:4096"
 
-debug "Unlocking encrypted device: ${DATA_DEV}"
-dmsetup create ${DECRYPT_DATA_NAME} --table "0 $(blockdev --getsz ${DATA_DEV}) \
-    crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 ${DATA_DEV} 0 1 sector_size:4096"
+debug "Unlocking encrypted device: ${USERDATA_DEV}"
+dmsetup create ${DECRYPT_USERDATA_NAME} --table "0 $(blockdev --getsz ${USERDATA_DEV}) \
+    crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 ${USERDATA_DEV} 0 1 sector_size:4096"
+
+debug "Unlocking encrypted device: ${DATASTORE_DEV}"
+dmsetup create ${DECRYPT_DATASTORE_NAME} --table "0 $(blockdev --getsz ${DATASTORE_DEV}) \
+    crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 ${DATASTORE_DEV} 0 1 sector_size:4096"
+
 vgmknodes
 
-ln -s "/dev/mapper/${DECRYPT_DATA_NAME}" "${DECRYPT_DATA_LINK}" # symlink for /etc/fstab
+ln -s "/dev/mapper/${DECRYPT_USERDATA_NAME}" "${DECRYPT_USERDATA_LINK}" # symlink for /etc/fstab
 
 if ! /usr/bin/openssl dgst -sha256 -verify "${PUBKEY}" -signature "${ROOT_HASH_SIGNATURE}" "${ROOT_HASH}"
 then

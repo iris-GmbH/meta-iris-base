@@ -4,7 +4,9 @@ devpts               /dev/pts             devpts     mode=0620,ptmxmode=0666,gid
 tmpfs                /run                 tmpfs      mode=0755,nodev,nosuid,strictatime 0  0
 
 # initramfs will will choose A or B, and symlink to userdata
-/dev/mapper/decrypted-irma6lvm-userdata /mnt/iris ext4 defaults          0  0
+/dev/mapper/decrypted-irma6lvm-userdata 	/mnt/iris ext4 defaults			0	0
+
+/dev/mapper/decrypted-irma6lvm-datastore 	/mnt/data ext4 defaults			0	0
 
 # bind mount directories for r/w access
 /mnt/iris/counter    /etc/counter         none       defaults,bind         0  0
