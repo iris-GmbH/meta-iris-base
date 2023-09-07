@@ -20,11 +20,11 @@ exists() {
 	command -v "$1" >/dev/null 2>&1 || { log "ERROR: $1 not found"; exit 1; }
 }
 
-# compares local and minimal version
+# compares if current fw is greater or equal than minimal version
 # $1 minimal version
 # returns 0 if local version >= minimal version
 # returns 1 if local version < minimal version
-check_minimal_version() {
+current_version_is_ge() {
 	localversion=$(sed -ne '/^VERSION=/s/^VERSION=[^0-9]*\([0-9]\+.[0-9]\+.[0-9]\+\)[^0-9]*.*/\1/p' /etc/os-release)
 	if printf '%s\n%s\n' "$1" "$localversion" | sort --check=quiet --version-sort; then
 		# $localversion >= $minimal_version
@@ -38,7 +38,7 @@ check_installed_version() {
 	# Hack for Dunfell-Kirkstone Power Safe Update: check if installed firmware is at least $minimalversion
 	# can be removed on major release 4.X.X
 	minimalversion="2.1.5"
-	if ! check_minimal_version "$minimalversion" ; then
+	if ! current_version_is_ge "$minimalversion" ; then
 		log_to_website "This update requires at least firmware version $minimalversion to be installed."
 		exit 1
 	fi
@@ -273,7 +273,7 @@ lvm_volume_exists() {
 # adjust_lvm_layout: can be removed on major release 5.X.X
 adjust_lvm_layout() {
 	minimal_version="3.0.2"
-	if check_minimal_version "$minimal_version"; then
+	if current_version_is_ge "$minimal_version"; then
 		# already on new lvm layout
 		# but adjust lvm for devs on $localversion > $minimal_version with old layout
 		firmware_version=$(grep -o 'FIRMWARE_VERSION="[^"]*"' /etc/os-release | cut -d '=' -f 2 | tr -d '"')
@@ -285,7 +285,7 @@ adjust_lvm_layout() {
 		return
 	fi
 
-	# $localversion < $minimal_version
+	# current fw < $minimal_version
 	# always format new layout to be power fail safe in case it was not fully formatted on the first try
 	create_userdata_mirror
 	create_datastore
