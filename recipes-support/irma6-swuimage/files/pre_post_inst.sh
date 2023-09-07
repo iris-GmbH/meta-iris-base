@@ -272,7 +272,7 @@ lvm_volume_exists() {
 
 # adjust_lvm_layout: can be removed on major release 5.X.X
 adjust_lvm_layout() {
-	minimal_version="3.0.2"
+	minimal_version="3.0.1"
 	if current_version_is_ge "$minimal_version"; then
 		# already on new lvm layout
 		# but adjust lvm for devs on $localversion > $minimal_version with old layout
