@@ -20,11 +20,28 @@ exists() {
 	command -v "$1" >/dev/null 2>&1 || { log "ERROR: $1 not found"; exit 1; }
 }
 
-check_installed_version() {
+# compares local and minimal version
+# $1 minimal version
+# returns 0 if local version >= minimal version
+# returns 1 if local version < minimal version
+check_minimal_version() {
 	localversion=$(sed -ne '/^VERSION=/s/^VERSION=[^0-9]*\([0-9]\+.[0-9]\+.[0-9]\+\)[^0-9]*.*/\1/p' /etc/os-release)
+	if printf '%s\n%s\n' "$1" "$localversion" | sort --check=quiet --version-sort; then
+		# $localversion >= $minimal_version
+		return 0
+	fi
+	# $localversion < $minimal_version
+	return 1
+}
+
+check_installed_version() {
 	# Hack for Dunfell-Kirkstone Power Safe Update: check if installed firmware is at least $minimalversion
+	# can be removed on major release 4.X.X
 	minimalversion="2.1.5"
-	printf '%s\n%s\n' "$minimalversion" "$localversion" | sort --check=quiet --version-sort || { log_to_website "This update requires at least firmware version $minimalversion to be installed."; exit 1; }
+	if ! check_minimal_version "$minimalversion" ; then
+		log_to_website "This update requires at least firmware version $minimalversion to be installed."
+		exit 1
+	fi
 }
 
 cmds_exist () {
@@ -253,12 +270,12 @@ lvm_volume_exists() {
 	lvs "/dev/irma6lvm/$1" > /dev/null 2>&1;
 }
 
+# adjust_lvm_layout: can be removed on major release 5.X.X
 adjust_lvm_layout() {
 	minimal_version="3.0.2"
-	# $localversion set by check_installed_version
-	if printf '%s\n%s\n' "$minimal_version" "$localversion" | sort --check=quiet --version-sort; then
-		# $localversion >= $minimal_version already on new lvm layout
-		# but adjust lvm for devs on $minimal_version with old layout
+	if check_minimal_version "$minimal_version"; then
+		# already on new lvm layout
+		# but adjust lvm for devs on $localversion > $minimal_version with old layout
 		firmware_version=$(grep -o 'FIRMWARE_VERSION="[^"]*"' /etc/os-release | cut -d '=' -f 2 | tr -d '"')
 		if echo "$firmware_version" | grep -q "dev"; then
 			! lvm_volume_exists "userdata${FIRMWARE_SUFFIX}" && create_userdata_mirror
@@ -268,7 +285,7 @@ adjust_lvm_layout() {
 		return
 	fi
 
-	# $localversion < 3.0.2
+	# $localversion < $minimal_version
 	# always format new layout to be power fail safe in case it was not fully formatted on the first try
 	create_userdata_mirror
 	create_datastore
@@ -330,6 +347,7 @@ sync_userdata(){
 		# use rsync if possible
 		rsync -a /mnt/iris/ /tmp/userdata${FIRMWARE_SUFFIX} || err=1
 	else
+		# this else path can be removed on major release 5.X.X
 		cp -r /mnt/iris/* /tmp/userdata${FIRMWARE_SUFFIX} || err=1
 	fi
 	
