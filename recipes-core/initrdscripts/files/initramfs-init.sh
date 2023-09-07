@@ -89,8 +89,23 @@ pvsn_flash() {
 
     # create userdata A/B mirrors
     /etc/init.d/udev start # we need udev to create volumes cleanly
-    lvrename -y -A n /dev/irma6lvm/userdata userdata_a # rename userdata created in pvsn
-    lvcreate --yes -n userdata_b -L 512MB irma6lvm
+    if lvdisplay /dev/irma6lvm/userdata > /dev/null 2>&1; then
+        # rename old partition to A/B format to support retrocompatibility
+        lvrename -y -A n /dev/irma6lvm/userdata userdata_a
+    fi
+    vgmknodes
+
+    # resize userdata_a to support retrocompatibility
+    cur_size=$(lvs --select "lv_name = userdata_a" -o LV_SIZE --units m --nosuffix --noheadings | sed 's/  \([0-9]*\).*/\1/')
+    req_size=256 # mb
+    if [ "$cur_size" -gt "$req_size" ]; then
+        debug "Resize userdata_a to $req_size M"
+        e2fsck -f -p /dev/mapper/decrypted-irma6lvm-userdata_a
+        resize2fs "/dev/mapper/decrypted-irma6lvm-userdata_a" "$req_size"M
+        lvresize --autobackup n --force --yes --quiet -L "$req_size"M "/dev/mapper/irma6lvm-userdata_a"
+    fi
+    lvcreate --yes -n userdata_b -L 256MB irma6lvm
+    lvcreate --yes -n datastore -L 512MB irma6lvm
     vgmknodes
 
     # Setup encrypted partitions
@@ -99,6 +114,7 @@ pvsn_flash() {
     dmsetup -v create decrypted-irma6lvm-rootfs_b --table "0 $(blockdev --getsz /dev/mapper/irma6lvm-rootfs_b) crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 /dev/mapper/irma6lvm-rootfs_b 0 1 sector_size:4096"
     dmsetup -v create decrypted-irma6lvm-userdata_a --table "0 $(blockdev --getsz /dev/mapper/irma6lvm-userdata_a) crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 /dev/mapper/irma6lvm-userdata_a 0 1 sector_size:4096"
     dmsetup -v create decrypted-irma6lvm-userdata_b --table "0 $(blockdev --getsz /dev/mapper/irma6lvm-userdata_b) crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 /dev/mapper/irma6lvm-userdata_b 0 1 sector_size:4096"
+    dmsetup -v create decrypted-irma6lvm-datastore --table "0 $(blockdev --getsz /dev/mapper/irma6lvm-datastore) crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 /dev/mapper/irma6lvm-datastore 0 1 sector_size:4096"
     vgmknodes
 
     # Copy rootfs
@@ -112,6 +128,7 @@ pvsn_flash() {
     MOUNTP_USERDATA_PVSN="/mnt/pvsn_userdata"
     mkfs.ext4 /dev/mapper/decrypted-irma6lvm-userdata_a
     mkfs.ext4 /dev/mapper/decrypted-irma6lvm-userdata_b
+    mkfs.ext4 /dev/mapper/decrypted-irma6lvm-datastore
     mkdir -p $MOUNTP_USERDATA_PVSN
     mkdir -p $MOUNTP_USERDATA_A
     mkdir -p $MOUNTP_USERDATA_B
@@ -124,10 +141,9 @@ pvsn_flash() {
     mkdir -p $MOUNTP_USERDATA_A/irma6webserver
     cp -R $MOUNTP_USERDATA_PVSN/* $MOUNTP_USERDATA_A
     cp -R $MOUNTP_USERDATA_A/* $MOUNTP_USERDATA_B
-
-    rm -rf $MOUNTP_USERDATA_PVSN
-    umount $MOUNTP_USERDATA_PVSN
     sync
+    umount $MOUNTP_USERDATA_PVSN
+    rm -rf $MOUNTP_USERDATA_PVSN
 
     # Secure erase logical volumes
     pvsn_wipe pvsn_rootfs
@@ -149,6 +165,13 @@ pvsn_flash() {
     dmsetup remove /dev/mapper/decrypted-irma6lvm-rootfs_b
     dmsetup remove /dev/mapper/decrypted-irma6lvm-userdata_a
     dmsetup remove /dev/mapper/decrypted-irma6lvm-userdata_b
+    dmsetup remove /dev/mapper/decrypted-irma6lvm-datastore
+
+    # delete static data, if old pvsn_flash_deploy script was used
+    if lvs "/dev/irma6lvm/staticdata" ; then
+        lvremove -A n -q -y "/dev/irma6lvm/staticdata_hash"
+        lvremove -A n -q -y "/dev/irma6lvm/staticdata"
+    fi
 }
 
 emergency_switch() {
