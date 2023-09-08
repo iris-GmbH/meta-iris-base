@@ -109,9 +109,9 @@ update_alternative_firmware() {
 		> /dev/null 2>&1
 
 	# resize alternative userdata to 256mb
-	cur_size=$(lvs "/dev/mapper/irma6lvm-userdata_${ALT_FW_SUFFIX}" -o LV_SIZE --noheadings | sed -e 's/[^0-9.]//g' -e 's/\..*//')
+	cur_size=$(lvs --select "lv_name = userdata_${ALT_FW_SUFFIX}" -o LV_SIZE --units m --nosuffix --noheadings | sed 's/  \([0-9]*\).*/\1/')
 	req_size=256 # mb
-	if [ "$cur_size" -ne "$req_size" ]; then
+	if [ "$cur_size" -gt "$req_size" ]; then
 		log "Resize userdata_${ALT_FW_SUFFIX} to $req_size M"
 		e2fsck -f -p /dev/mapper/decrypted-irma6lvm-userdata_${ALT_FW_SUFFIX} || err=1
 		resize2fs "/dev/mapper/decrypted-irma6lvm-userdata_${ALT_FW_SUFFIX}" "$req_size"M || err=1

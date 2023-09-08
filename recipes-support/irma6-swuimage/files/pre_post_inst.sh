@@ -267,7 +267,8 @@ create_webserver_symlinks() {
 }
 
 lvm_volume_exists() {
-	lvs "/dev/irma6lvm/$1" > /dev/null 2>&1;
+	lvs "/dev/irma6lvm/$1" > /dev/null 2>&1
+	return $?
 }
 
 # adjust_lvm_layout: can be removed on major release 5.X.X
@@ -293,7 +294,7 @@ adjust_lvm_layout() {
 }
 
 remove_staticdata(){
-	if lvs "/dev/irma6lvm/staticdata" > /dev/null 2>&1; then
+	if lvm_volume_exists "staticdata" > /dev/null 2>&1; then
 		lvremove -A n -q -y "/dev/irma6lvm/staticdata_hash" > /dev/null 2>&1
 		lvremove -A n -q -y "/dev/irma6lvm/staticdata" > /dev/null 2>&1
 	fi
