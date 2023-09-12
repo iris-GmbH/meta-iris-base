@@ -1,0 +1,32 @@
+From 9e3d2ef7960dc1570aac09283e5d019d02470380 Mon Sep 17 00:00:00 2001
+From: Jan Hannig <jan.hannig@iris-sensing.com>
+Date: Mon, 28 Aug 2023 15:27:31 +0200
+Subject: epc660: remove the register setting of
+ EPC660_REG_LED_DRIVER 0x90
+
+as the register should be only settable by platform application.
+
+Signed-off-by: Jan Hannig <jan.hannig@iris-sensing.com>
+---
+ drivers/media/i2c/epc660.c | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/media/i2c/epc660.c b/drivers/media/i2c/epc660.c
+index 83ad5c4d4aaa..c0be9cdd8e56 100644
+--- a/drivers/media/i2c/epc660.c
++++ b/drivers/media/i2c/epc660.c
+@@ -202,8 +202,9 @@ static int epc660_s_stream(struct v4l2_subdev *sd, int enable)
+ 		/* Enable power */
+ 		if (reg_write_byte(client, EPC660_REG_POWER_CTRL, 0x07) < 0)
+ 			return -EIO;
+-		if (reg_write_byte(client, EPC660_REG_LED_DRIVER, 0xe0) < 0)
+-			return -EIO;
++		// Do not set the LED driver register as the application shall have the possibilty to do that by hand
++		// 	if (reg_write_byte(client, EPC660_REG_LED_DRIVER, 0xe0) < 0)
++		//		return -EIO;
+ 		/* Switch to multi frame mode and enable shutter */
+ 		//		do not switch on the automatic shutter as the application shall have the possibilty to do that by hand
+ 		//		if (reg_write_byte(client, EPC660_REG_SHUTTER_CTRL, 0x03) < 0)
+-- 
+2.30.2
+
