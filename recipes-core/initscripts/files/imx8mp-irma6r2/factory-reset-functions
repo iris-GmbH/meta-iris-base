@@ -104,4 +104,5 @@ factory_reset() {
     ln -sf /mnt/iris/identity /mnt/iris/nts
     ln -sf /mnt/iris/identity /mnt/iris/syslogtls
     reset_systemtime
+    sync
 }
