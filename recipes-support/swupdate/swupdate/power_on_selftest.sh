@@ -95,6 +95,8 @@ update_alternative_firmware() {
 		{ log "Error: Failed to copy alternative roothash.signature"; err=1; }
 	umount /mnt/keystore
 
+	[ "$err" -eq 0 ] || return "$err"
+
 	# Update alternative userdata
 	if lvdisplay /dev/irma6lvm/userdata > /dev/null 2>&1; then
 		# rename old partition to A/B format
@@ -104,13 +106,23 @@ update_alternative_firmware() {
 	dmsetup -v create decrypted-irma6lvm-userdata_${ALT_FW_SUFFIX} --table \
 		"0 $(blockdev --getsz /dev/mapper/irma6lvm-userdata_${ALT_FW_SUFFIX}) \
 		crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 /dev/mapper/irma6lvm-userdata_${ALT_FW_SUFFIX} 0 1 sector_size:4096" \
-		> /dev/null 2>&1		
+		> /dev/null 2>&1
+
+	# resize alternative userdata to 256mb
+	cur_size=$(lvs --select "lv_name = userdata_${ALT_FW_SUFFIX}" -o LV_SIZE --units m --nosuffix --noheadings | sed 's/  \([0-9]*\).*/\1/')
+	req_size=256 # mb
+	if [ "$cur_size" -gt "$req_size" ]; then
+		log "Resize userdata_${ALT_FW_SUFFIX} to $req_size M"
+		e2fsck -f -p /dev/mapper/decrypted-irma6lvm-userdata_${ALT_FW_SUFFIX} || err=1
+		resize2fs "/dev/mapper/decrypted-irma6lvm-userdata_${ALT_FW_SUFFIX}" "$req_size"M || err=1
+		lvresize --autobackup n --force --yes --quiet -L "$req_size"M "/dev/mapper/irma6lvm-userdata_${ALT_FW_SUFFIX}" || err=1
+	fi
 
 	# sync userdata A and B
 	USERDATA_MOUNTP="/tmp/userdata_${ALT_FW_SUFFIX}"
 	mkdir -p $USERDATA_MOUNTP
 	mount -t ext4 /dev/mapper/decrypted-irma6lvm-userdata_${ALT_FW_SUFFIX} $USERDATA_MOUNTP || err=1
-	rsync -a /mnt/iris/ $USERDATA_MOUNTP || err=1
+	rsync -a --delete /mnt/iris/ $USERDATA_MOUNTP || err=1
 	rm -f $USERDATA_MOUNTP/alternative_fw_needs_update # avoid syncing A/B after next update 
 	sync
 	umount $USERDATA_MOUNTP
