@@ -346,9 +346,10 @@ sync_userdata(){
 
 	if command -v rsync > /dev/null ; then
 		# use rsync if possible
-		rsync -a /mnt/iris/ /tmp/userdata${FIRMWARE_SUFFIX} || err=1
+		rsync -a --delete /mnt/iris/ /tmp/userdata${FIRMWARE_SUFFIX} || err=1
 	else
 		# this else path can be removed on major release 5.X.X
+		rm -rf /tmp/userdata${FIRMWARE_SUFFIX}/*
 		cp -r /mnt/iris/* /tmp/userdata${FIRMWARE_SUFFIX} || err=1
 	fi
 	

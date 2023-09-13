@@ -122,7 +122,7 @@ update_alternative_firmware() {
 	USERDATA_MOUNTP="/tmp/userdata_${ALT_FW_SUFFIX}"
 	mkdir -p $USERDATA_MOUNTP
 	mount -t ext4 /dev/mapper/decrypted-irma6lvm-userdata_${ALT_FW_SUFFIX} $USERDATA_MOUNTP || err=1
-	rsync -a /mnt/iris/ $USERDATA_MOUNTP || err=1
+	rsync -a --delete /mnt/iris/ $USERDATA_MOUNTP || err=1
 	rm -f $USERDATA_MOUNTP/alternative_fw_needs_update # avoid syncing A/B after next update 
 	sync
 	umount $USERDATA_MOUNTP
