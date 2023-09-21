@@ -1,5 +1,15 @@
 #!/bin/sh
 
+set_flag() {
+	echo "Error: $0 not implemented"
+	return 1
+}
+
+is_flag_set() {
+	echo "Error: $0 not implemented"
+	return 1
+}
+
 short_detected() {
 	echo "Error: $0 not implemented"
 	return 1

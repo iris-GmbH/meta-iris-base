@@ -1,7 +1,6 @@
 #!/bin/sh
 
 . /usr/share/factory-reset/factory-reset-functions || exit 1
-[ -n "$LAZY_RESET_FLAG" ] || { echo "Error: Filename LAZY_RESET_FLAG is not set"; exit 1; }
 
 FORCE=0
 LAZY=0
@@ -15,15 +14,14 @@ while getopts ":lf" options; do
 done
 
 # Check if the factory reset is forced or if the reset flag is set
-if [ "$FORCE" -eq 1 ] || [ -f "$LAZY_RESET_FLAG" ]; then
+if [ "$FORCE" -eq 1 ] || is_flag_set; then
     factory_reset
-    rm -f "$LAZY_RESET_FLAG"
     exit 0
 fi
 
-# Touch a file to perform a factory reset on the next reboot
+# Set a flag to perform a factory reset on the next reboot
 if [ "$LAZY" -eq 1 ]; then
-    touch "$LAZY_RESET_FLAG"
+    set_flag
     exit 0
 fi
 
