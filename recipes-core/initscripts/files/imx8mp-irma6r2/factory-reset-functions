@@ -114,6 +114,7 @@ reset_userdata() {
     rm -f  "$USERDATA_DIR"/rsyslog/*.conf "$USERDATA_DIR"/rsyslog/*.conf.bak
     rm -f  "$USERDATA_DIR"/switch_log_location
     rm -rf "$USERDATA_DIR"/device_flags
+    rm -f "$USERDATA_DIR"/userdata_synced
     # Set default symlinks
     ln -sf /etc/nginx/sites-available/reverse_proxy_https.conf "$USERDATA_DIR"/nginx/sites-enabled/default_server
     ln -sf /mnt/iris/identity "$USERDATA_DIR"/webtls
