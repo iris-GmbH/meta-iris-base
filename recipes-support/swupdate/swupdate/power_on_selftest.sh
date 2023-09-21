@@ -204,7 +204,7 @@ finalize_update(){
 	# start_alt_fw_update on the next reboot which might brick the device
 	reset_uboot_envs
 
-	userdata_sync_allowed
+	remove_userdata_sync_flag
 	start_alt_fw_update
 }
 
@@ -216,7 +216,8 @@ start_alt_fw_update(){
 	fi
 }
 
-userdata_sync_allowed(){
+remove_userdata_sync_flag(){
+	# allow A/B config synchronization in initramfs
 	SYNC_FILE="/mnt/iris/userdata_synced"
 	rm -f $SYNC_FILE
 }

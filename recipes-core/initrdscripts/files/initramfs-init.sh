@@ -201,7 +201,7 @@ lvm_volume_exists() {
     return $?
 }
 
-create_userdata_mirror(){
+try_create_userdata_mirror(){
     if ! lvm_volume_exists "userdata${FIRMWARE_SUFFIX}"; then
         debug "Create userdata${FIRMWARE_SUFFIX}"
         lvcreate -y --autobackup n -n "userdata${FIRMWARE_SUFFIX}" -L 256MB irma6lvm
@@ -220,7 +220,7 @@ create_userdata_mirror(){
     dmsetup remove ${DECRYPT_USERDATA_NAME}
 }
 
-remove_staticdata(){
+try_remove_staticdata(){
     if lvm_volume_exists "staticdata" > /dev/null 2>&1; then
         lvremove -A n -q -y "/dev/irma6lvm/staticdata_hash" > /dev/null 2>&1
         lvremove -A n -q -y "/dev/irma6lvm/staticdata" > /dev/null 2>&1
@@ -275,7 +275,7 @@ sync_userdata_from_alt(){
     dmsetup remove ${ALT_DECRYPT_USERDATA_NAME}
 }
 
-create_datastore(){
+try_create_datastore(){
     if ! lvs ${DATASTORE_DEV} > /dev/null 2>&1; then
         debug "Creating Datastore Volume..."
         lvcreate -y --autobackup n -n "${DATASTORE_NAME}" -L 512MB irma6lvm
@@ -366,16 +366,16 @@ if [ "$PENDING_UPDATE" = "1" ]; then
     # power fail safe operations
 
     # adjust lvm layout: can be removed on major release 5
-    create_userdata_mirror
+    try_create_userdata_mirror
 
     # get config from alternative userdata on update
     sync_userdata_from_alt
 
     # adjust lvm layout: can be removed on major release 5
-    create_datastore
+    try_create_datastore
 
     # adjust lvm layout: can be removed on major release 5
-    remove_staticdata
+    try_remove_staticdata
 fi
 
 debug "Unlocking encrypted device: ${ROOT_DEV}" 
