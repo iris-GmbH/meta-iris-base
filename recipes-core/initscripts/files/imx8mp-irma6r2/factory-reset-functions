@@ -1,6 +1,6 @@
 #!/bin/sh
 
-LAZY_RESET_FLAG="/mnt/iris/lazy_factory_reset"
+LAZY_RESET_FLAG="lazy_factory_reset"
 cable_is_shorted=0
 
 print_info() {
@@ -94,10 +94,31 @@ mount_alternative_userdata() {
 }
 
 unmount_alternative_userdata() {
-	umount "$1"
-	rm -rf "$1"
-	ALT_SUFFIX="$2"
-	dmsetup remove "decrypted-irma6lvm-userdata${ALT_SUFFIX}"
+    umount "$1"
+    rm -rf "$1"
+    ALT_SUFFIX="$2"
+    dmsetup remove "decrypted-irma6lvm-userdata${ALT_SUFFIX}"
+}
+
+get_alternative_suffix() {
+    lvs -S "LV_ATTR !~ 'o' && LV_NAME =~ 'userdata'" -o LV_NAME --noheadings | cut -c11-
+}
+
+set_flag() {
+	touch "/mnt/iris/$LAZY_RESET_FLAG"
+}
+
+is_flag_set() {
+    ALT_SUFFIX=$(get_alternative_suffix)
+    ALT_MOUNTPOINT="/tmp/altuserdata"
+    mount_alternative_userdata "$ALT_MOUNTPOINT" "$ALT_SUFFIX"
+    ret=1
+    if [ -f "/mnt/iris/$LAZY_RESET_FLAG" ] || [ -f "$ALT_MOUNTPOINT/$LAZY_RESET_FLAG" ];
+    then
+        ret=0
+    fi
+    unmount_alternative_userdata "$ALT_MOUNTPOINT" "$ALT_SUFFIX"
+    return "$ret"
 }
 
 reset_userdata() {
@@ -122,6 +143,8 @@ reset_userdata() {
     ln -sf /mnt/iris/identity "$USERDATA_DIR"/syslogtls
     # Delete saved timestamp
     rm -f "$USERDATA_DIR"/timestamp
+    # Delete lazy flag
+    rm -f "$USERDATA_DIR/$LAZY_RESET_FLAG"
     sync
 }
 
@@ -134,7 +157,7 @@ factory_reset() {
     reset_userdata "/mnt/iris"
 
     # filter for non-opened LV whose name matches "userdata"
-    ALT_SUFFIX=$(lvs -S "LV_ATTR !~ 'o' && LV_NAME =~ 'userdata'" -o LV_NAME --noheadings | cut -c11-)
+    ALT_SUFFIX=$(get_alternative_suffix)
     ALT_MOUNTPOINT="/tmp/altuserdata"
     if [ -z "$ALT_SUFFIX" ]
     then
