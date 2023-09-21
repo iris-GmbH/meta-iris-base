@@ -103,7 +103,7 @@ update_alternative_firmware() {
 		lvrename -y -A n /dev/irma6lvm/userdata userdata_${ALT_FW_SUFFIX}
 	fi
 
-	dmsetup -v create decrypted-irma6lvm-userdata_${ALT_FW_SUFFIX} --table \
+	dmsetup create decrypted-irma6lvm-userdata_${ALT_FW_SUFFIX} --table \
 		"0 $(blockdev --getsz /dev/mapper/irma6lvm-userdata_${ALT_FW_SUFFIX}) \
 		crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 /dev/mapper/irma6lvm-userdata_${ALT_FW_SUFFIX} 0 1 sector_size:4096" \
 		> /dev/null 2>&1
@@ -203,6 +203,8 @@ finalize_update(){
 	# creating the ALTERNATIVE_FW_UPDATE_FLAG first will trigger
 	# start_alt_fw_update on the next reboot which might brick the device
 	reset_uboot_envs
+
+	remove_userdata_sync_flag
 	start_alt_fw_update
 }
 
@@ -213,6 +215,13 @@ start_alt_fw_update(){
 		update_security_report
 	fi
 }
+
+remove_userdata_sync_flag(){
+	# allow A/B config synchronization in initramfs
+	SYNC_FILE="/mnt/iris/userdata_synced"
+	rm -f $SYNC_FILE
+}
+
 
 # skip on NFS boot to avoid unecessary reboots
 if findmnt / -t nfs4 > /dev/null; then

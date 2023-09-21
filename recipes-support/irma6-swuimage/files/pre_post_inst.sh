@@ -266,103 +266,6 @@ create_webserver_symlinks() {
 	fi
 }
 
-lvm_volume_exists() {
-	lvs "/dev/irma6lvm/$1" > /dev/null 2>&1
-	return $?
-}
-
-# adjust_lvm_layout: can be removed on major release 5.X.X
-adjust_lvm_layout() {
-	minimal_version="3.0.1"
-	if current_version_is_ge "$minimal_version"; then
-		# already on new lvm layout
-		# but adjust lvm for devs on $localversion > $minimal_version with old layout
-		firmware_version=$(grep -o 'FIRMWARE_VERSION="[^"]*"' /etc/os-release | cut -d '=' -f 2 | tr -d '"')
-		if echo "$firmware_version" | grep -q "dev"; then
-			! lvm_volume_exists "userdata${FIRMWARE_SUFFIX}" && create_userdata_mirror
-			! lvm_volume_exists "datastore" && create_datastore
-			remove_staticdata
-		fi
-		return
-	fi
-
-	# current fw < $minimal_version
-	# always format new layout to be power fail safe in case it was not fully formatted on the first try
-	create_userdata_mirror
-	create_datastore
-	remove_staticdata
-}
-
-remove_staticdata(){
-	if lvm_volume_exists "staticdata" > /dev/null 2>&1; then
-		lvremove -A n -q -y "/dev/irma6lvm/staticdata_hash" > /dev/null 2>&1
-		lvremove -A n -q -y "/dev/irma6lvm/staticdata" > /dev/null 2>&1
-	fi
-}
-
-create_datastore(){
-	err=0
-	lvcreate -y --autobackup n -n "datastore" -L 512MB irma6lvm > /dev/null 2>&1
-	dmsetup -v create decrypted-irma6lvm-datastore --table \
-		"0 $(blockdev --getsz /dev/mapper/irma6lvm-datastore) \
-		crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 /dev/mapper/irma6lvm-datastore 0 1 sector_size:4096"
-
-	mkfs.ext4 -F /dev/mapper/decrypted-irma6lvm-datastore > /dev/null 2>&1 || err=1
-	sleep 1 # workaround for removing without busy errors
-	dmsetup remove decrypted-irma6lvm-datastore
-
-	if ! [ "$err" -eq 0 ] ; then
-		log "Failed to create datastore volume"
-		exit "$err"
-	fi
-}
-
-create_userdata_mirror(){
-	err=0
-	lvcreate -y --autobackup n -n "userdata${FIRMWARE_SUFFIX}" -L 256MB irma6lvm > /dev/null 2>&1
-	dmsetup -v create decrypted-irma6lvm-userdata${FIRMWARE_SUFFIX} --table \
-		"0 $(blockdev --getsz /dev/mapper/irma6lvm-userdata${FIRMWARE_SUFFIX}) \
-		crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 /dev/mapper/irma6lvm-userdata${FIRMWARE_SUFFIX} 0 1 sector_size:4096"
-	mkfs.ext4 -F /dev/mapper/decrypted-irma6lvm-userdata${FIRMWARE_SUFFIX} > /dev/null 2>&1 || err=1
-	sleep 1 # workaround for removing without busy errors
-	dmsetup remove decrypted-irma6lvm-userdata${FIRMWARE_SUFFIX}
-
-	if ! [ "$err" -eq 0 ] ; then
-		log "Failed to create configuration mirror"
-		exit "$err"
-	fi
-}
-
-sync_userdata(){
-	# decrypt existing alternative userdata
-	dmsetup -v create decrypted-irma6lvm-userdata${FIRMWARE_SUFFIX} --table \
-		"0 $(blockdev --getsz /dev/mapper/irma6lvm-userdata${FIRMWARE_SUFFIX}) \
-		crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 /dev/mapper/irma6lvm-userdata${FIRMWARE_SUFFIX} 0 1 sector_size:4096"
-
-	# sync A and B, because alternative fw needs current config
-	err=0
-	mkdir -p /tmp/userdata${FIRMWARE_SUFFIX}
-	mount -t ext4 /dev/mapper/decrypted-irma6lvm-userdata${FIRMWARE_SUFFIX} /tmp/userdata${FIRMWARE_SUFFIX} || err=1
-
-	if command -v rsync > /dev/null ; then
-		# use rsync if possible
-		rsync -a --delete /mnt/iris/ /tmp/userdata${FIRMWARE_SUFFIX} || err=1
-	else
-		# this else path can be removed on major release 5.X.X
-		rm -rf /tmp/userdata${FIRMWARE_SUFFIX}/*
-		cp -r /mnt/iris/* /tmp/userdata${FIRMWARE_SUFFIX} || err=1
-	fi
-	
-	umount /tmp/userdata${FIRMWARE_SUFFIX}
-	rm -rf /tmp/userdata${FIRMWARE_SUFFIX}
-	dmsetup remove decrypted-irma6lvm-userdata${FIRMWARE_SUFFIX}
-
-	if ! [ "$err" -eq 0 ] ; then
-		log "Failed to sync userdata${FIRMWARE_SUFFIX}"
-		exit "$err"
-	fi
-}
-
 pending_update() {
 	PENDING_UPDATE=$(fw_printenv upgrade_available | awk -F'=' '{print $2}')
 	if [ "$PENDING_UPDATE" = "1" ]; then
@@ -397,7 +300,5 @@ if [ "$1" = "postinst" ]; then
 	remove_symlinks
 	umount_keystore
 	move_userdata_config
-	adjust_lvm_layout
-	sync_userdata
 	exit 0
 fi
