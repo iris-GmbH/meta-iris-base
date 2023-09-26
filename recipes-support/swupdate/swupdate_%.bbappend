@@ -37,6 +37,9 @@ RDEPENDS:${PN} += " \
 	nginx \
 	lvm2 \
 	mmc-utils \
+	rsync \
+	e2fsprogs-resize2fs \
+	e2fsprogs-e2fsck \
 "
 
 # Include more RDEPENDS for pre_post_inst.sh in swuimage, but only for real hardware

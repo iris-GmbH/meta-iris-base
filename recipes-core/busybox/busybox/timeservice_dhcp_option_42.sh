@@ -12,7 +12,7 @@ if [ -n "$ntpsrv_list" ] ; then
 	fi
 	
 	if [ -e "$CHRONY_DHCP_PATH_FILE" ]; then
-  		rm CHRONY_DHCP_PATH_FILE
+  		rm "$CHRONY_DHCP_PATH_FILE"
 	fi
   	touch "$CHRONY_DHCP_PATH_FILE"
 	

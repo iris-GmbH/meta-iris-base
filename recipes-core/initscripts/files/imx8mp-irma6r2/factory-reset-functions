@@ -1,6 +1,6 @@
 #!/bin/sh
 
-LAZY_RESET_FLAG="/mnt/iris/lazy_factory_reset"
+LAZY_RESET_FLAG="lazy_factory_reset"
 cable_is_shorted=0
 
 print_info() {
@@ -71,22 +71,100 @@ short_detected() {
 	[ "$cable_is_shorted" -eq 1 ] && return 0 || return 1
 }
 
+reset_systemtime() {
+    date_string=$(cat /etc/timestamp)
+    year=$(echo "$date_string" | cut -c 1-4)
+    month=$(echo "$date_string" | cut -c 5-6)
+    day=$(echo "$date_string" | cut -c 7-8)
+    hour=$(echo "$date_string" | cut -c 9-10)
+    minute=$(echo "$date_string" | cut -c 11-12)
+    second=$(echo "$date_string" | cut -c 13-14)
+    date -s "$year-$month-$day $hour:$minute:$second"
+    hwclock --systohc
+}
+
+# call with path to mount point (will be created)
+mount_alternative_userdata() {
+    ALT_SUFFIX="$2"
+    dmsetup -v create "decrypted-irma6lvm-userdata${ALT_SUFFIX}" --table \
+	    "0 $(blockdev --getsz "/dev/mapper/irma6lvm-userdata${ALT_SUFFIX}") \
+	    crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 /dev/mapper/irma6lvm-userdata${ALT_SUFFIX} 0 1 sector_size:4096"
+    mkdir -p "$1"
+    mount -t ext4 "/dev/mapper/decrypted-irma6lvm-userdata${ALT_SUFFIX}" "$1"
+}
+
+unmount_alternative_userdata() {
+    umount "$1"
+    rm -rf "$1"
+    ALT_SUFFIX="$2"
+    dmsetup remove "decrypted-irma6lvm-userdata${ALT_SUFFIX}"
+}
+
+get_alternative_suffix() {
+    lvs -S "LV_ATTR !~ 'o' && LV_NAME =~ 'userdata'" -o LV_NAME --noheadings | cut -c11-
+}
+
+set_flag() {
+	touch "/mnt/iris/$LAZY_RESET_FLAG"
+}
+
+is_flag_set() {
+    ALT_SUFFIX=$(get_alternative_suffix)
+    ALT_MOUNTPOINT="/tmp/altuserdata"
+    mount_alternative_userdata "$ALT_MOUNTPOINT" "$ALT_SUFFIX"
+    ret=1
+    if [ -f "/mnt/iris/$LAZY_RESET_FLAG" ] || [ -f "$ALT_MOUNTPOINT/$LAZY_RESET_FLAG" ];
+    then
+        ret=0
+    fi
+    unmount_alternative_userdata "$ALT_MOUNTPOINT" "$ALT_SUFFIX"
+    return "$ret"
+}
+
+reset_userdata() {
+    USERDATA_DIR="$1"
+    rm -f  "$USERDATA_DIR"/counter/config_customer*
+    rm -f  "$USERDATA_DIR"/counter/config.yaml*
+    rm -rf "$USERDATA_DIR"/counter/webserver # delete possible traces of old location
+    rm -rf "$USERDATA_DIR"/irma6webserver/*
+    rm -f  "$USERDATA_DIR"/logging/*.sqlite
+    rm -f  "$USERDATA_DIR"/chrony/chrony.conf
+    rm -rf "$USERDATA_DIR"/customer
+    rm -rf "$USERDATA_DIR"/log
+    rm -f  "$USERDATA_DIR"/*.conf "$USERDATA_DIR"/*.conf.bak # syslog-remotes.conf
+    rm -f  "$USERDATA_DIR"/rsyslog/*.conf "$USERDATA_DIR"/rsyslog/*.conf.bak
+    rm -f  "$USERDATA_DIR"/switch_log_location
+    rm -rf "$USERDATA_DIR"/device_flags
+    rm -f "$USERDATA_DIR"/userdata_synced
+    # Set default symlinks
+    ln -sf /etc/nginx/sites-available/reverse_proxy_https.conf "$USERDATA_DIR"/nginx/sites-enabled/default_server
+    ln -sf /mnt/iris/identity "$USERDATA_DIR"/webtls
+    ln -sf /mnt/iris/identity "$USERDATA_DIR"/nts
+    ln -sf /mnt/iris/identity "$USERDATA_DIR"/syslogtls
+    # Delete saved timestamp
+    rm -f "$USERDATA_DIR"/timestamp
+    # Delete lazy flag
+    rm -f "$USERDATA_DIR/$LAZY_RESET_FLAG"
+    sync
+}
+
 factory_reset() {
     echo "Factory reset!"
-    rm -f /mnt/iris/counter/config_customer*
-    rm -f /mnt/iris/counter/config.yaml*
-    rm -rf /mnt/iris/counter/webserver # delete possible traces of old location
-    rm -f /mnt/iris/irma6webserver/preferences.json
-    rm -f /mnt/iris/irma6webserver/authentication.sqlite
-    rm -f /mnt/iris/logging/*.sqlite
-    rm -f /mnt/iris/chrony/chrony.conf
-    rm -rf /mnt/iris/customer
-    rm -rf /mnt/iris/log
-    rm -f /mnt/iris/*.conf /mnt/iris/*.conf.bak # syslog-remotes.conf
-    rm -f /mnt/iris/rsyslog/*.conf /mnt/iris/rsyslog/*.conf.bak
-    # Set default symlinks
-    ln -sf /etc/nginx/sites-available/reverse_proxy_https.conf /mnt/iris/nginx/sites-enabled/default_server
-    ln -sf /mnt/iris/identity /mnt/iris/webtls
-    ln -sf /mnt/iris/identity /mnt/iris/nts
-    ln -sf /mnt/iris/identity /mnt/iris/syslogtls
+
+    # reset hw and system clock first, delete timestamp file afterwards
+    reset_systemtime
+
+    reset_userdata "/mnt/iris"
+
+    # filter for non-opened LV whose name matches "userdata"
+    ALT_SUFFIX=$(get_alternative_suffix)
+    ALT_MOUNTPOINT="/tmp/altuserdata"
+    if [ -z "$ALT_SUFFIX" ]
+    then
+        echo "Can not locate alternative userdata partition for factory reset"
+        return
+    fi
+    mount_alternative_userdata "$ALT_MOUNTPOINT" "$ALT_SUFFIX"
+    reset_userdata "$ALT_MOUNTPOINT"
+    unmount_alternative_userdata "$ALT_MOUNTPOINT" "$ALT_SUFFIX"
 }

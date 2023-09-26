@@ -10,6 +10,15 @@ print_info() {
     [ "$1" -eq 3 ] && printf "TEST FAILED"
 }
 
+set_flag() {
+	touch "$LAZY_RESET_FLAG"
+}
+
+is_flag_set() {
+	[ -f "$LAZY_RESET_FLAG" ] && return 0
+	return 1
+}
+
 cable_test_wait_for_completion() {
     j=5
     while [ "$j" -gt 0 ]; do
@@ -86,9 +95,24 @@ short_detected() {
     [ "$cable_is_shorted" -eq 1 ] && return 0 || return 1
 }
 
+reset_systemtime() {
+    date_string=$(cat /etc/timestamp)
+    year=$(echo "$date_string" | cut -c 1-4)
+    month=$(echo "$date_string" | cut -c 5-6)
+    day=$(echo "$date_string" | cut -c 7-8)
+    hour=$(echo "$date_string" | cut -c 9-10)
+    minute=$(echo "$date_string" | cut -c 11-12)
+    second=$(echo "$date_string" | cut -c 13-14)
+    date -s "$year-$month-$day $hour:$minute:$second"
+}
+
 factory_reset() {
     echo "Factory reset!"
     rm -f /etc/counter/config_customer*
     rm -f /etc/counter/config.yaml*
+    rm -rf /etc/irma6webserver
+    reset_systemtime
+    rm -f "$LAZY_RESET_FLAG"
+    sync
 }
 

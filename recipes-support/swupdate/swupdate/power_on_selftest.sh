@@ -4,7 +4,7 @@ TAG=$0
 
 log() {
 	logger -t "$TAG" "$1"
-	echo "$TAG $1" > /dev/kmsg
+	echo "$TAG $1"
 }
 
 exists() {
@@ -15,9 +15,6 @@ exists() {
 . /etc/init.d/functions
 
 ALTERNATIVE_FW_UPDATE_FLAG=/mnt/iris/alternative_fw_needs_update
-
-# lock file can be used by other init scripts for synchronization
-LOCK_FILE=/tmp/selftest.lock
 
 power_on_selftest() {
 	# Check that all necessary tools are available and running
@@ -35,15 +32,14 @@ power_on_selftest() {
 			retries=$((retries-1))
 		done
 		if [ "$retries" -eq 0 ]; then
-			log "[FAILED] power on self test"; reboot; exit 1;
+			log "[FAILED] power on self test"; return 1;
 		fi
 	done
 	log "[PASSED] power on self test"
+	return 0
 }
 
-update_alternative_firmware() {
-	err=0
-	log "Start updating alternative firmware"
+get_firmware_bootpath() {
 	if grep -q 'linuxboot_b\|firmware_b' /proc/cmdline; then
 		CUR_FITIMAGE_DEV=/dev/mmcblk2p3
 		ALT_FITIMAGE_DEV=/dev/mmcblk2p2
@@ -55,6 +51,11 @@ update_alternative_firmware() {
 		CUR_FW_SUFFIX="a"
 		ALT_FW_SUFFIX="b"
 	fi
+}
+
+update_alternative_firmware() {
+	err=0
+	log "Start updating alternative firmware: $ALT_FW_SUFFIX"
 
 	# Update alternative fitImage partition
 	mkdir /tmp/cur_fitimage_dev /tmp/alt_fitimage_dev
@@ -94,9 +95,50 @@ update_alternative_firmware() {
 		{ log "Error: Failed to copy alternative roothash.signature"; err=1; }
 	umount /mnt/keystore
 
+	[ "$err" -eq 0 ] || return "$err"
+
+	# Update alternative userdata
+	if lvdisplay /dev/irma6lvm/userdata > /dev/null 2>&1; then
+		# rename old partition to A/B format
+		lvrename -y -A n /dev/irma6lvm/userdata userdata_${ALT_FW_SUFFIX}
+	fi
+
+	dmsetup create decrypted-irma6lvm-userdata_${ALT_FW_SUFFIX} --table \
+		"0 $(blockdev --getsz /dev/mapper/irma6lvm-userdata_${ALT_FW_SUFFIX}) \
+		crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 /dev/mapper/irma6lvm-userdata_${ALT_FW_SUFFIX} 0 1 sector_size:4096" \
+		> /dev/null 2>&1
+
+	# resize alternative userdata to 256mb
+	cur_size=$(lvs --select "lv_name = userdata_${ALT_FW_SUFFIX}" -o LV_SIZE --units m --nosuffix --noheadings | sed 's/  \([0-9]*\).*/\1/')
+	req_size=256 # mb
+	if [ "$cur_size" -gt "$req_size" ]; then
+		log "Resize userdata_${ALT_FW_SUFFIX} to $req_size M"
+		e2fsck -f -p /dev/mapper/decrypted-irma6lvm-userdata_${ALT_FW_SUFFIX} || err=1
+		resize2fs "/dev/mapper/decrypted-irma6lvm-userdata_${ALT_FW_SUFFIX}" "$req_size"M || err=1
+		lvresize --autobackup n --force --yes --quiet -L "$req_size"M "/dev/mapper/irma6lvm-userdata_${ALT_FW_SUFFIX}" || err=1
+	fi
+
+	# sync userdata A and B
+	USERDATA_MOUNTP="/tmp/userdata_${ALT_FW_SUFFIX}"
+	mkdir -p $USERDATA_MOUNTP
+	mount -t ext4 /dev/mapper/decrypted-irma6lvm-userdata_${ALT_FW_SUFFIX} $USERDATA_MOUNTP || err=1
+	rsync -a --delete /mnt/iris/ $USERDATA_MOUNTP || err=1
+	rm -f $USERDATA_MOUNTP/alternative_fw_needs_update # avoid syncing A/B after next update 
+	sync
+	umount $USERDATA_MOUNTP
+	rm -rf $USERDATA_MOUNTP
+	dmsetup remove decrypted-irma6lvm-userdata_${ALT_FW_SUFFIX}
+
 	# Delete obsolete directories that were migrated in pre_post_install script
 	rm -rf "/mnt/iris/counter/webserver"
 
+	if [ "$err" -eq 0  ]; then
+		rm "$ALTERNATIVE_FW_UPDATE_FLAG"
+		sync
+		log "Alternative firmware update complete"
+	else
+		log "Alternative firmware update failed"
+	fi
 	return "$err";
 }
 
@@ -113,7 +155,7 @@ prepare_alternative_fw_update() {
 reset_uboot_envs() {
 	TMP_ENV_FILE="/tmp/reset_update_envs"
 
-	# Always set firmware to the current one, if self test is passed
+	# Always set firmware to the current one
 	# Default to firmware=0 if value is invalid
 	grep -q 'linuxboot_b\|firmware_b' /proc/cmdline && firmware=1 || firmware=0
 	printf "bootcount=0\nupgrade_available=\nustate=\nfirmware=%s\n" "$firmware" > "$TMP_ENV_FILE"
@@ -123,28 +165,89 @@ reset_uboot_envs() {
 	rm "$TMP_ENV_FILE"
 }
 
-{
-touch $LOCK_FILE
+update_security_report(){
+	MONIT_LOG_FILE="/var/log/irma-monitoring/console.log"
+	/usr/bin/security-check.sh >> "$MONIT_LOG_FILE"
+	log "Security report updated"
+}
+
+start_confirmation_test() {
+	configuration="/mnt/iris/irma6webserver/enable_update_test"
+	if [ -f "$configuration" ] ; then
+		wait_for_confirmation
+	fi
+
+	finalize_update
+}
+
+wait_for_confirmation(){
+	CONFIRMATION_PIPE="/tmp/update_confirmation"
+	rm -f "$CONFIRMATION_PIPE" # clean pipe
+	mkfifo "$CONFIRMATION_PIPE"
+	chown irma_webserver "$CONFIRMATION_PIPE" # share pipe with webserver
+	log "Waiting for update confirmation..."
+	while true
+	do
+		if read -r line <$CONFIRMATION_PIPE; then
+			if [ "$line" = 'confirmed' ]; then
+				break
+			fi
+		fi
+	done
+	log "Confirmation received"
+	rm -f "$CONFIRMATION_PIPE"
+}
+
+finalize_update(){
+	# Run reset_uboot_envs first as (in the case of a perfectly timed power cut)
+	# creating the ALTERNATIVE_FW_UPDATE_FLAG first will trigger
+	# start_alt_fw_update on the next reboot which might brick the device
+	reset_uboot_envs
+
+	remove_userdata_sync_flag
+	start_alt_fw_update
+}
+
+start_alt_fw_update(){
+	! [ -f "$ALTERNATIVE_FW_UPDATE_FLAG" ] && prepare_alternative_fw_update
+	if [ -f "$ALTERNATIVE_FW_UPDATE_FLAG" ]; then
+		update_alternative_firmware
+		update_security_report
+	fi
+}
+
+remove_userdata_sync_flag(){
+	# allow A/B config synchronization in initramfs
+	SYNC_FILE="/mnt/iris/userdata_synced"
+	rm -f $SYNC_FILE
+}
+
+
+# skip on NFS boot to avoid unecessary reboots
+if findmnt / -t nfs4 > /dev/null; then
+	log "skipped because of NFS boot"
+	exit 0
+fi
+
+get_firmware_bootpath
 
 # Check if everything is still ok after update on reboot
 PENDING_UPDATE=$(fw_printenv upgrade_available | awk -F'=' '{print $2}')
+
 if [ "$PENDING_UPDATE" = "1" ]; then
-	power_on_selftest
+	BOOTCOUNT=$(fw_printenv bootcount | awk -F'=' '{print $2}')
+	BOOTLIMIT=$(fw_printenv bootlimit | awk -F'=' '{print $2}')
 
-	# Run reset_uboot_envs first as (in the case of a perfectly timed power cut)
-	# creating the ALTERNATIVE_FW_UPDATE_FLAG first will trigger
-	# update_alternative_firmware on the next reboot which might brick the device
-	reset_uboot_envs
-	prepare_alternative_fw_update
-
-	log "Firmware update successful complete"
+	if [ "$BOOTCOUNT" -le "$BOOTLIMIT" ]; then
+		# test new firwmare
+		power_on_selftest || { /sbin/reboot; exit 1; }
+		start_confirmation_test &
+	else
+		# on fallback always reset
+		log "Update failed: fallback to boot: $CUR_FW_SUFFIX"
+		finalize_update &
+	fi
+else
+	# Check if alternative firmware update is needed
+	start_alt_fw_update &
 fi
-
-# Update the alternative firmware after success
-if [ -f "$ALTERNATIVE_FW_UPDATE_FLAG" ]; then
-	update_alternative_firmware && rm "$ALTERNATIVE_FW_UPDATE_FLAG" && log "Alternative firmware update complete" || log "Alternative firmware update failed"
-fi
-
-rm $LOCK_FILE
-
-} &

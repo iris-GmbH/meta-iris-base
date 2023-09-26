@@ -3,11 +3,13 @@ From: Ian Dannapel <ian.dannapel@iris-sensing.com>
 Date: Mon, 22 May 2023 13:02:46 +0200
 Subject: [PATCH] Revert "MA-20141 imx8m: enable alarm when shutdown"
 
-This reverts commit cc5f3575c801897eeda40e486de3f9a517a1b460
+This reverts https://github.com/nxp-imx/imx-atf/commit/cc5f3575c801897eeda40e486de3f9a517a1b460
 because it introduced a poweroff bug, which restarted the device
 instead of shutting down.
 
 Signed-off-by: Ian Dannapel <ian.dannapel@iris-sensing.com>
+
+
 ---
  plat/imx/imx8m/imx8m_psci_common.c           | 2 +-
  plat/imx/imx8m/imx8mm/include/platform_def.h | 2 --

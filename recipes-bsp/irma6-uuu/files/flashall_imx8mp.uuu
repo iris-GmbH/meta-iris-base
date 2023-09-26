@@ -68,9 +68,9 @@ FBK: ucmd lvcreate -y -n rootfs_a -L "$(cat /tmp/size_rootfs)"B irma6lvm
 FBK: ucmd lvcreate -y -n rootfs_a_hash -L "$(cat /tmp/size_rootfsverity)"B irma6lvm
 FBK: ucmd lvcreate -y -n rootfs_b -L "$(cat /tmp/size_rootfs)"B irma6lvm
 FBK: ucmd lvcreate -y -n rootfs_b_hash -L "$(cat /tmp/size_rootfsverity)"B irma6lvm
-FBK: ucmd lvcreate -y -n userdata -L 512MB irma6lvm
-FBK: ucmd lvcreate -y -n staticdata -L 128MB irma6lvm
-FBK: ucmd lvcreate -y -n staticdata_hash -L 8MB irma6lvm
+FBK: ucmd lvcreate -y -n userdata_a -L 256MB irma6lvm
+FBK: ucmd lvcreate -y -n userdata_b -L 256MB irma6lvm
+FBK: ucmd lvcreate -y -n datastore -L 512MB irma6lvm
 FBK: ucmd lvcreate -y -n keystore -L 128MB irma6lvm
 FBK: ucmd vgchange -a y
 FBK: ucmd vgmknodes
@@ -86,7 +86,9 @@ FBK: ucmd caam-keygen create volumeKey ccm -s 32
 FBK: ucmd keyctl padd logon logkey: @us < /mnt/keystore/caam/volumeKey
 FBK: ucmd dmsetup -v create decrypted-irma6lvm-rootfs_a --table "0 $(blockdev --getsz /dev/mapper/irma6lvm-rootfs_a) crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 /dev/mapper/irma6lvm-rootfs_a 0 1 sector_size:4096"
 FBK: ucmd dmsetup -v create decrypted-irma6lvm-rootfs_b --table "0 $(blockdev --getsz /dev/mapper/irma6lvm-rootfs_b) crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 /dev/mapper/irma6lvm-rootfs_b 0 1 sector_size:4096"
-FBK: ucmd dmsetup -v create decrypted-irma6lvm-userdata --table "0 $(blockdev --getsz /dev/mapper/irma6lvm-userdata) crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 /dev/mapper/irma6lvm-userdata 0 1 sector_size:4096"
+FBK: ucmd dmsetup -v create decrypted-irma6lvm-userdata_a --table "0 $(blockdev --getsz /dev/mapper/irma6lvm-userdata_a) crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 /dev/mapper/irma6lvm-userdata_a 0 1 sector_size:4096"
+FBK: ucmd dmsetup -v create decrypted-irma6lvm-userdata_b --table "0 $(blockdev --getsz /dev/mapper/irma6lvm-userdata_b) crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 /dev/mapper/irma6lvm-userdata_b 0 1 sector_size:4096"
+FBK: ucmd dmsetup -v create decrypted-irma6lvm-datastore --table "0 $(blockdev --getsz /dev/mapper/irma6lvm-datastore) crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 /dev/mapper/irma6lvm-datastore 0 1 sector_size:4096"
 FBK: ucmd vgmknodes
 
 # Flash rootfs to both rootfs partitions
@@ -110,15 +112,17 @@ FBK: ucp rootfs.ext4.hashdevice t:-
 FBK: sync
 FBK: ucmd sync
 
-# Create ext4 partition for userdata
-FBK: ucmd mkfs.ext4 /dev/mapper/decrypted-irma6lvm-userdata
+# Create ext4 partition for userdata A/B
+FBK: ucmd mkfs.ext4 /dev/mapper/decrypted-irma6lvm-userdata_a
 FBK: ucmd mkdir -p /mnt/iris
-FBK: ucmd mount -t ext4 /dev/mapper/decrypted-irma6lvm-userdata /mnt/iris
+FBK: ucmd mount -t ext4 /dev/mapper/decrypted-irma6lvm-userdata_a /mnt/iris
 FBK: ucmd mkdir -p /mnt/iris/swupdate
 FBK: ucp swupdate_snakeoil_encryption.key t:/mnt/iris/swupdate/encryption.key
+FBK: ucmd chmod 0400 /mnt/iris/swupdate/encryption.key
 FBK: ucmd mkdir -p /mnt/iris/identity
 FBK: ucp sensor_identity_snakeoil.key t:/mnt/iris/identity/sensor.key
 FBK: ucp sensor_identity_snakeoil.crt t:/mnt/iris/identity/sensor.crt
+FBK: ucmd chmod 0440 -R /mnt/iris/identity/
 FBK: ucmd ln -sr /mnt/iris/identity /mnt/iris/webtls
 FBK: ucmd ln -sr /mnt/iris/identity /mnt/iris/nts
 FBK: ucmd mkdir -p /mnt/iris/nginx/sites-enabled
@@ -126,9 +130,24 @@ FBK: ucmd ln -s /etc/nginx/sites-available/reverse_proxy_https.conf /mnt/iris/ng
 FBK: ucmd mkdir -p /mnt/iris/counter
 FBK: ucmd mkdir -p /mnt/iris/irma6webserver
 FBK: ucmd mkdir -p /mnt/iris/dropbear
-FBK: ucmd umount /mnt/iris
-FBK: ucmd dmsetup remove decrypted-irma6lvm-userdata
+
+# copy userdata A to B
+FBK: ucmd mkfs.ext4 /dev/mapper/decrypted-irma6lvm-userdata_b
+FBK: ucmd mkdir -p /tmp/userdata_b
+FBK: ucmd mount -t ext4 /dev/mapper/decrypted-irma6lvm-userdata_b /tmp/userdata_b
+FBK: ucmd cp -r /mnt/iris/* /tmp/userdata_b
+
+# datastore
+FBK: ucmd mkfs.ext4 /dev/mapper/decrypted-irma6lvm-datastore
+
+# clean up
 FBK: ucmd sync
+FBK: ucmd umount /mnt/iris
+FBK: ucmd umount /tmp/userdata_b
+FBK: ucmd rm -rf /tmp/userdata_b
+FBK: ucmd dmsetup remove decrypted-irma6lvm-userdata_a
+FBK: ucmd dmsetup remove decrypted-irma6lvm-userdata_b
+FBK: ucmd dmsetup remove decrypted-irma6lvm-datastore
 
 FBK: ucp rootfs.ext4.roothash t:/mnt/keystore/rootfs_a_roothash
 FBK: ucp rootfs.ext4.roothash t:/mnt/keystore/rootfs_b_roothash
