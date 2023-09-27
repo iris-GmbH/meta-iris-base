@@ -187,10 +187,10 @@ emergency_switch() {
         /usr/bin/fw_setenv firmware "$new_firmware"
         debug "Error: Emergency firmware switch from $firmware to $new_firmware"
 
-        ${MOUNT} "/dev/mapper/${DECRYPT_USERDATA_NAME}" "/mnt/iris"
-        mkdir -p /mnt/iris/log
-        cat /var/volatile/log/initramfs.log >> /mnt/iris/log/initramfs.log
-        ${UMOUNT} "/mnt/iris"
+        ${MOUNT} "/dev/mapper/${DECRYPT_DATASTORE_NAME}" "/mnt/datastore"
+        mkdir -p "/mnt/datastore/log"
+        cat /var/volatile/log/initramfs.log >> /mnt/datastore/log/initramfs.log
+        ${UMOUNT} "/mnt/datastore"
         sync
     fi
     exit 1
