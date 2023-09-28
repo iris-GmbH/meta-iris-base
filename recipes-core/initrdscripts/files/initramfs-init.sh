@@ -111,11 +111,11 @@ pvsn_flash() {
 
     # Setup encrypted partitions
     keyctl padd logon logkey: @us < /mnt/keystore/caam/volumeKey
-    dmsetup -v create decrypted-irma6lvm-rootfs_a --table "0 $(blockdev --getsz /dev/mapper/irma6lvm-rootfs_a) crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 /dev/mapper/irma6lvm-rootfs_a 0 1 sector_size:4096"
-    dmsetup -v create decrypted-irma6lvm-rootfs_b --table "0 $(blockdev --getsz /dev/mapper/irma6lvm-rootfs_b) crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 /dev/mapper/irma6lvm-rootfs_b 0 1 sector_size:4096"
-    dmsetup -v create decrypted-irma6lvm-userdata_a --table "0 $(blockdev --getsz /dev/mapper/irma6lvm-userdata_a) crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 /dev/mapper/irma6lvm-userdata_a 0 1 sector_size:4096"
-    dmsetup -v create decrypted-irma6lvm-userdata_b --table "0 $(blockdev --getsz /dev/mapper/irma6lvm-userdata_b) crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 /dev/mapper/irma6lvm-userdata_b 0 1 sector_size:4096"
-    dmsetup -v create decrypted-irma6lvm-datastore --table "0 $(blockdev --getsz /dev/mapper/irma6lvm-datastore) crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 /dev/mapper/irma6lvm-datastore 0 1 sector_size:4096"
+    dmsetup create decrypted-irma6lvm-rootfs_a --table "0 $(blockdev --getsz /dev/mapper/irma6lvm-rootfs_a) crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 /dev/mapper/irma6lvm-rootfs_a 0 1 sector_size:4096"
+    dmsetup create decrypted-irma6lvm-rootfs_b --table "0 $(blockdev --getsz /dev/mapper/irma6lvm-rootfs_b) crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 /dev/mapper/irma6lvm-rootfs_b 0 1 sector_size:4096"
+    dmsetup create decrypted-irma6lvm-userdata_a --table "0 $(blockdev --getsz /dev/mapper/irma6lvm-userdata_a) crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 /dev/mapper/irma6lvm-userdata_a 0 1 sector_size:4096"
+    dmsetup create decrypted-irma6lvm-userdata_b --table "0 $(blockdev --getsz /dev/mapper/irma6lvm-userdata_b) crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 /dev/mapper/irma6lvm-userdata_b 0 1 sector_size:4096"
+    dmsetup create decrypted-irma6lvm-datastore --table "0 $(blockdev --getsz /dev/mapper/irma6lvm-datastore) crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 /dev/mapper/irma6lvm-datastore 0 1 sector_size:4096"
     vgmknodes
 
     # Copy rootfs
