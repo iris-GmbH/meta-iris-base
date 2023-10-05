@@ -362,7 +362,11 @@ caam-keygen import $KEYSTORE/caam/volumeKey.bb volumeKey
 keyctl padd logon logkey: @us < $KEYSTORE/caam/volumeKey
 
 PENDING_UPDATE=$(fw_printenv upgrade_available | awk -F'=' '{print $2}')
-if [ "$PENDING_UPDATE" = "1" ]; then
+BOOTCOUNT=$(fw_printenv bootcount | awk -F'=' '{print $2}')
+BOOTLIMIT=$(fw_printenv bootlimit | awk -F'=' '{print $2}')
+
+# check if we are updating and not on fallback
+if [ "$PENDING_UPDATE" = "1" ] && [ "$BOOTCOUNT" -le "$BOOTLIMIT" ]; then
     # power fail safe operations
 
     # adjust lvm layout: can be removed on major release 5
