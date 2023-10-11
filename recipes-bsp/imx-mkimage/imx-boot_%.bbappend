@@ -29,36 +29,75 @@ do_compile() {
     if ${DEPLOY_OPTEE}; then
         cp ${DEPLOY_DIR_IMAGE}/tee.bin ${BOOT_STAGING}
     fi
-    for target in ${IMXBOOT_TARGETS}; do
-        compile_${SOC_FAMILY}
-        if [ "$target" = "flash_linux_m4_no_v2x" ]; then
-           # Special target build for i.MX 8DXL with V2X off
-           bbnote "building ${IMX_BOOT_SOC_TARGET} - ${REV_OPTION} V2X=NO ${target}"
-           make SOC=${IMX_BOOT_SOC_TARGET} ${REV_OPTION} V2X=NO dtbs=${UBOOT_DTB_NAME} flash_linux_m4
+   for type in ${UBOOT_CONFIG}; do
+        if [ "${@d.getVarFlags('UBOOT_DTB_NAME')}" = "None" ]; then
+            UBOOT_DTB_NAME_FLAGS="${type}:${UBOOT_DTB_NAME}"
         else
-           bbnote "building ${IMX_BOOT_SOC_TARGET} - ${REV_OPTION} ${target}"
-           make SOC=${IMX_BOOT_SOC_TARGET} ${REV_OPTION} dtbs=${UBOOT_DTB_NAME} ${target} > ${S}/hab_info1.txt 2>&1
+            UBOOT_DTB_NAME_FLAGS="${@' '.join(flag + ':' + dtb for flag, dtb in (d.getVarFlags('UBOOT_DTB_NAME')).items()) if d.getVarFlags('UBOOT_DTB_NAME') is not None else '' }"
         fi
 
-        if [ "${HAB_ENABLE}" = "1" ];then
-            case ${MACHINE} in
-              "imx8mp-irma6r2")
-                print_cmd=print_fit_hab_ddr4
-                ;;
-              "imx8mp-lpddr4-evk")
-                print_cmd=print_fit_hab
-                ;;
-              *)
-                bberror "HAB signing is not supported yet for ${MACHINE}!"
-                ;;
-            esac
-            make SOC=iMX8MP $print_cmd > ${S}/hab_info2.txt
-        fi
+        for key_value in ${UBOOT_DTB_NAME_FLAGS}; do
+            type_key="${key_value%%:*}"
+            dtb_name="${key_value#*:}"
 
-        if [ -e "${BOOT_STAGING}/flash.bin" ]; then
-            cp ${BOOT_STAGING}/flash.bin ${S}/${BOOT_CONFIG_MACHINE}-${target}
-        fi
+            if [ "$type_key" = "$type" ]
+            then
+                bbnote "UBOOT_CONFIG = $type, UBOOT_DTB_NAME = $dtb_name"
+
+                UBOOT_CONFIG_EXTRA="$type_key"
+                if [ -e ${DEPLOY_DIR_IMAGE}/${BOOT_TOOLS}/${dtb_name}-${type} ] ; then
+                    UBOOT_DTB_NAME_EXTRA="${dtb_name}-${type}"
+                else
+                    # backward compatibility
+                    UBOOT_DTB_NAME_EXTRA="${dtb_name}"
+                fi
+                UBOOT_NAME_EXTRA="u-boot-${MACHINE}.bin-${UBOOT_CONFIG_EXTRA}"
+                BOOT_CONFIG_MACHINE_EXTRA="${BOOT_NAME}-${MACHINE}-${UBOOT_CONFIG_EXTRA}.bin"
+
+                for target in ${IMXBOOT_TARGETS}; do
+                    compile_${SOC_FAMILY}
+                    if [ "$target" = "flash_linux_m4_no_v2x" ]; then
+                        # Special target build for i.MX 8DXL with V2X off
+                        bbnote "building ${IMX_BOOT_SOC_TARGET} - ${REV_OPTION} V2X=NO ${target}"
+                        make SOC=${IMX_BOOT_SOC_TARGET} ${REV_OPTION} V2X=NO dtbs=${UBOOT_DTB_NAME_EXTRA} flash_linux_m4
+                    else
+                        bbnote "building ${IMX_BOOT_SOC_TARGET} - ${REV_OPTION} ${target}"
+                        make SOC=${IMX_BOOT_SOC_TARGET} ${REV_OPTION} dtbs=${UBOOT_DTB_NAME_EXTRA} ${target} > ${S}/hab_info1.txt 2>&1
+                    fi
+
+                    if [ "${HAB_ENABLE}" = "1" ];then
+                        case ${MACHINE} in
+                          "imx8mp-irma6r2")
+                            print_cmd=print_fit_hab_ddr4
+                            ;;
+                          "imx8mp-lpddr4-evk")
+                            print_cmd=print_fit_hab
+                            ;;
+                          *)
+                            bberror "HAB signing is not supported yet for ${MACHINE}!"
+                            ;;
+                        esac
+                        make SOC=iMX8MP $print_cmd > ${S}/hab_info2.txt
+                    fi
+
+                    if [ -e "${BOOT_STAGING}/flash.bin" ]; then
+                        cp ${BOOT_STAGING}/flash.bin ${S}/${BOOT_CONFIG_MACHINE_EXTRA}-${target}
+                    fi
+                done
+
+                unset UBOOT_CONFIG_EXTRA
+                unset UBOOT_DTB_NAME_EXTRA
+                unset UBOOT_NAME_EXTRA
+                unset BOOT_CONFIG_MACHINE_EXTRA
+            fi
+
+            unset type_key
+            unset dtb_name
+        done
+
+        unset UBOOT_DTB_NAME_FLAGS
     done
+    unset type
 }
 
 #
@@ -157,20 +196,21 @@ Blocks = ${5}
 EOF
 }
 
-set_imxboot_target() {
+set_imxboot_vars() {
     for target in ${IMXBOOT_TARGETS}; do
         # Use first "target" as IMAGE_IMXBOOT_TARGET
         if [ "$IMAGE_IMXBOOT_TARGET" = "" ]; then
 	        IMAGE_IMXBOOT_TARGET="$target"
         fi
     done
+    BOOT_CONFIG_MACHINE_EXTRA="${BOOT_NAME}-${MACHINE}-${UBOOT_CONFIG}.bin"
 }
 
 sign_uboot_common() {
     # Copy flash.bin
-    set_imxboot_target
-    fn="${S}/${BOOT_CONFIG_MACHINE}-${IMAGE_IMXBOOT_TARGET}.signed"
-    cp ${S}/${BOOT_CONFIG_MACHINE}-${IMAGE_IMXBOOT_TARGET} ${fn}
+    set_imxboot_vars
+    fn="${S}/${BOOT_CONFIG_MACHINE_EXTRA}-${IMAGE_IMXBOOT_TARGET}.signed"
+    cp ${S}/${BOOT_CONFIG_MACHINE_EXTRA}-${IMAGE_IMXBOOT_TARGET} ${fn}
 
     # Parse hab signing info (offset, blocks) 
     cst_off=$(cat ${S}/hab_info1.txt | grep -w csf_off | cut -f3)
@@ -207,18 +247,18 @@ do_sign_uboot() {
 
 do_install:append() {
     if [ "${HAB_ENABLE}" = "1" ];then
-        set_imxboot_target
-        install -m 0644 ${S}/${BOOT_CONFIG_MACHINE}-${IMAGE_IMXBOOT_TARGET}.signed ${D}/boot/
+        set_imxboot_vars
+        install -m 0644 ${S}/${BOOT_CONFIG_MACHINE_EXTRA}-${IMAGE_IMXBOOT_TARGET}.signed ${D}/boot/
     fi
 }
 
 do_deploy:append() {
     if [ "${HAB_ENABLE}" = "1" ];then
         # copy flash.bin.signed to deploy dir and create a symlink imx-boot.signed
-        set_imxboot_target
-        install -m 0644 ${S}/${BOOT_CONFIG_MACHINE}-${IMAGE_IMXBOOT_TARGET}.signed ${DEPLOYDIR}
+        set_imxboot_vars
+        install -m 0644 ${S}/${BOOT_CONFIG_MACHINE_EXTRA}-${IMAGE_IMXBOOT_TARGET}.signed ${DEPLOYDIR}
         cd ${DEPLOYDIR}
-        ln -sf ${BOOT_CONFIG_MACHINE}-${IMAGE_IMXBOOT_TARGET}.signed ${BOOT_NAME}.signed
+        ln -sf ${BOOT_CONFIG_MACHINE_EXTRA}-${IMAGE_IMXBOOT_TARGET}.signed ${BOOT_NAME}.signed
         cd -
     fi
 }
