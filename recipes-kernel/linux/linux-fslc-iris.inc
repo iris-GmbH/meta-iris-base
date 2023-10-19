@@ -46,6 +46,7 @@ SRC_URI += " \
     file://0040-tc358746-Use-gpio-reset-instead-of-sotware-reset.patch \
     file://0041-EPC660-Update-sequencer-code-to-V14-Datasheet-V2.20.patch \
     file://0042-epc660-remove-the-register-setting-of-EPC660_REG_LED.patch \
+    file://0043-Set-VB2_MAX_FRAME-VIDEO_MAX_FRAME-up-to-128.patch \
 "
 
 SRC_URI:append:poky-iris-deploy = "\
