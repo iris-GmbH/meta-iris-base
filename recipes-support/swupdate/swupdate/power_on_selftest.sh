@@ -171,10 +171,17 @@ update_security_report(){
 	log "Security report updated"
 }
 
-start_confirmation_test() {
+revert_update(){
+	if [ -n "$BOOTLIMIT" ]; then
+		fw_setenv bootcount "$BOOTLIMIT" # bootcount will be bootlimit + 1 after reboot
+	fi
+}
+
+start_confirmation_test(){
 	configuration="/mnt/iris/irma6webserver/enable_update_test"
-	if [ -f "$configuration" ] ; then
-		wait_for_confirmation
+
+	if [ -f "$configuration" ] && ! wait_for_confirmation; then
+		revert_update; /sbin/reboot; exit 0;
 	fi
 
 	finalize_update
@@ -185,17 +192,21 @@ wait_for_confirmation(){
 	rm -f "$CONFIRMATION_PIPE" # clean pipe
 	mkfifo "$CONFIRMATION_PIPE"
 	chown irma_webserver "$CONFIRMATION_PIPE" # share pipe with webserver
-	log "Waiting for update confirmation..."
+	log "Waiting for update response..."
 	while true
 	do
 		if read -r line <$CONFIRMATION_PIPE; then
+			log "Response received: $line"
 			if [ "$line" = 'confirmed' ]; then
-				break
+				rm -f "$CONFIRMATION_PIPE"
+				return 0
+			elif [ "$line" = 'rejected' ]; then
+				rm -f "$CONFIRMATION_PIPE"
+				return 1
 			fi
 		fi
 	done
-	log "Confirmation received"
-	rm -f "$CONFIRMATION_PIPE"
+	return 0
 }
 
 finalize_update(){
