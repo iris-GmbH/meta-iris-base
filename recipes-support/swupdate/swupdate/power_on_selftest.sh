@@ -8,7 +8,7 @@ log() {
 }
 
 exists() {
-	command -v "$1" >/dev/null 2>&1 || { log "ERROR: $1 not found"; exit 1; }
+	command -v "$1" >/dev/null 2>&1 || { log "ERROR: $1 not found"; return 1; }
 }
 
 # pidofproc()
@@ -21,7 +21,7 @@ power_on_selftest() {
 	tools="nginx WebInterfaceServer swupdate count_von_count i6ls"
 	log "[STARTED] power on self test started!"
 	for tool in $tools; do
-		exists "$tool"
+		exists "$tool" || return 1
 		retries=5
 		while [ "$retries" -gt 0 ]; do
 			if pidofproc "$tool" >/dev/null 2>&1; then
