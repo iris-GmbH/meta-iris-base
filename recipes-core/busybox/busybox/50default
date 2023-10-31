@@ -77,10 +77,10 @@ case "$1" in
 		else
 			echo "The ntpsrv list is empty."
 		fi
-		# reading dhcp option 240 to pass syslog server list to the script and restarting rsyslog service 
-		if [ -n "$opt240" ] ; then
-			echo "reading dhcp option 240 and call script for restarting rsyslog service"
-			/etc/udhcpc.d/dhcp_custom_option/udhcp_custom_syslog_option.sh "$opt240"
+		# reading dhcp option 7 to pass syslog server list to the script and restarting rsyslog service 
+		if [ -n "$opt7" ] ; then
+			echo "reading dhcp option 7 and call script for restarting rsyslog service"
+			/etc/udhcpc.d/dhcp_custom_option/udhcp_custom_syslog_option.sh "$opt7"
 		else
 			echo "The log server list is empty."
 		fi

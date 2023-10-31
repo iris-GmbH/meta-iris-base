@@ -8,7 +8,7 @@ set -euo pipefail
 MNT_IRIS_UDHCP_SYSLOG_REMOTE_CONFFILE="/mnt/iris/rsyslog/syslog-remotes-udhcp.conf"
 
 # the option is read as a enviroment variable passed by udhcp client
-echo "option 240: ${1:?}"
+echo "option 7: ${1:?}"
 hex_value=$1
 ip_list=""
 use_udp_active=false
