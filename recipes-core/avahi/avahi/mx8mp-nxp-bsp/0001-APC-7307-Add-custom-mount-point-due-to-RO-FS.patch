@@ -1,0 +1,50 @@
+From 467cd29a12a6b7c223a1d2576ccf99a596ed973c Mon Sep 17 00:00:00 2001
+From: Jasper Orschulko <jasper@fancydomain.eu>
+Date: Wed, 1 Nov 2023 14:18:11 +0100
+Subject: [PATCH] [APC-7307] Add custom mount point due to RO FS
+
+We require a RW location for the avahi services, however `/etc`
+is RO. Therefore we create a folder on the RW partition and symlink it
+to `/etc/avahi/services`.
+
+Upstream-Status: Inappropriate [configuration]
+Signed-off-by: Jasper Orschulko <jasper@fancydomain.eu>
+---
+ initscript/debian/avahi-daemon.in | 19 +++++++++++++++++++
+ 1 file changed, 21 insertions(+)
+
+diff --git a/initscript/debian/avahi-daemon.in b/initscript/debian/avahi-daemon.in
+index f846f19..ac908cb 100755
+--- a/initscript/debian/avahi-daemon.in
++++ b/initscript/debian/avahi-daemon.in
+@@ -24,6 +24,27 @@
+ # Authors:      <sebastien.estienne@gmail.com>
+ #
+ 
++MOUNT_POINT="/etc/avahi/services"
++SOURCE_DIR="/mnt/iris/avahi/services"
++SERVICE_FILE="irma-provider.service"
++
++# remount configuration dir on RW partition since the default path cannot be changed.
++if ! mount | grep -q "$MOUNT_POINT"; then
++
++
++    if [ ! -d "$SOURCE_DIR" ]; then
++        mkdir -p "$SOURCE_DIR"
++    fi
++
++    if [ ! -e "$SOURCE_DIR"/"$SERVICE_FILE" ]; then
++        cp "$MOUNT_POINT"/"$SERVICE_FILE" "$SOURCE_DIR"/"$SERVICE_FILE"
++    fi
++
++    if ! mount --bind "$SOURCE_DIR" "$MOUNT_POINT"; then
++        echo "error on mounting $MOUNT_POINT."
++    fi
++fi
++
+ if [ -f /lib/lsb/init-functions ]
+ then
+     . /lib/lsb/init-functions
+-- 
+2.44.0
+
