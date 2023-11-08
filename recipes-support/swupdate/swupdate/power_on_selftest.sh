@@ -14,7 +14,6 @@ exists() {
 # pidofproc()
 . /etc/init.d/functions
 
-ALTERNATIVE_FW_UPDATE_FLAG=/mnt/iris/alternative_fw_needs_update
 
 power_on_selftest() {
 	# Check that all necessary tools are available and running
@@ -87,28 +86,41 @@ update_alternative_firmware() {
 	dd if="/dev/mapper/irma6lvm-rootfs_${CUR_FW_SUFFIX}_hash" of="/dev/mapper/irma6lvm-rootfs_${ALT_FW_SUFFIX}_hash" bs=10M >/dev/null 2>&1 || \
 		{ log "Error: Failed to copy alternative rootfs hash device"; err=1; return "$err"; }
 
-	# Update alternative roothash and roothash.signature
+	# Update alternative roothash.signature
 	mount /dev/mapper/irma6lvm-keystore /mnt/keystore
-	cp "/mnt/keystore/rootfs_${CUR_FW_SUFFIX}_roothash" "/mnt/keystore/rootfs_${ALT_FW_SUFFIX}_roothash" || \
-		{ log "Error: Failed to copy alternative roothash"; err=1; }
 	cp "/mnt/keystore/rootfs_${CUR_FW_SUFFIX}_roothash.signature" "/mnt/keystore/rootfs_${ALT_FW_SUFFIX}_roothash.signature" || \
 		{ log "Error: Failed to copy alternative roothash.signature"; err=1; }
+
+	# Update lastly the roothash, which is used as parameter verify if the alt rootfs needs to be updated
+	cp "/mnt/keystore/rootfs_${CUR_FW_SUFFIX}_roothash" "/mnt/keystore/rootfs_${ALT_FW_SUFFIX}_roothash" || \
+		{ log "Error: Failed to copy alternative roothash"; err=1; }
 	umount /mnt/keystore
 
-	[ "$err" -eq 0 ] || return "$err"
+	# Delete obsolete directories that were migrated in pre_post_install script
+	# can be removed on major release 5
+	rm -rf "/mnt/iris/counter/webserver"
+	sync
+
+	return "$err";
+}
+
+update_alternative_userdata(){
+	log "Synchronizing config from ${CUR_FW_SUFFIX} to ${ALT_FW_SUFFIX}"
 
 	# Update alternative userdata
+	# can be removed on major release 5
 	if lvdisplay /dev/irma6lvm/userdata > /dev/null 2>&1; then
 		# rename old partition to A/B format
 		lvrename -y -A n /dev/irma6lvm/userdata userdata_${ALT_FW_SUFFIX}
 	fi
 
+	err=0
 	dmsetup create decrypted-irma6lvm-userdata_${ALT_FW_SUFFIX} --table \
 		"0 $(blockdev --getsz /dev/mapper/irma6lvm-userdata_${ALT_FW_SUFFIX}) \
-		crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 /dev/mapper/irma6lvm-userdata_${ALT_FW_SUFFIX} 0 1 sector_size:4096" \
-		> /dev/null 2>&1
+		crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 /dev/mapper/irma6lvm-userdata_${ALT_FW_SUFFIX} 0 1 sector_size:4096"
 
 	# resize alternative userdata to 256mb
+	# can be removed on major release 5
 	cur_size=$(lvs --select "lv_name = userdata_${ALT_FW_SUFFIX}" -o LV_SIZE --units m --nosuffix --noheadings | sed 's/  \([0-9]*\).*/\1/')
 	req_size=256 # mb
 	if [ "$cur_size" -gt "$req_size" ]; then
@@ -123,33 +135,27 @@ update_alternative_firmware() {
 	mkdir -p $USERDATA_MOUNTP
 	mount -t ext4 /dev/mapper/decrypted-irma6lvm-userdata_${ALT_FW_SUFFIX} $USERDATA_MOUNTP || err=1
 	rsync -a --delete /mnt/iris/ $USERDATA_MOUNTP || err=1
-	rm -f $USERDATA_MOUNTP/alternative_fw_needs_update # avoid syncing A/B after next update 
 	sync
 	umount $USERDATA_MOUNTP
 	rm -rf $USERDATA_MOUNTP
 	dmsetup remove decrypted-irma6lvm-userdata_${ALT_FW_SUFFIX}
 
-	# Delete obsolete directories that were migrated in pre_post_install script
-	rm -rf "/mnt/iris/counter/webserver"
-
-	if [ "$err" -eq 0  ]; then
-		rm "$ALTERNATIVE_FW_UPDATE_FLAG"
-		sync
-		log "Alternative firmware update complete"
-	else
-		log "Alternative firmware update failed"
-	fi
-	return "$err";
+	return "$err"
 }
 
-prepare_alternative_fw_update() {
+# return values
+# 0: update required
+# 1: update not required
+is_alt_fw_update_required() {
+	ret=1
+
 	# Alternative firmware needs an update if roothash differs
 	mount /dev/mapper/irma6lvm-keystore /mnt/keystore
 	if ! cmp -s /mnt/keystore/rootfs_a_roothash /mnt/keystore/rootfs_b_roothash; then
-		touch "$ALTERNATIVE_FW_UPDATE_FLAG"
-		sync
+		ret=0
 	fi
 	umount /mnt/keystore
+	return "$ret"
 }
 
 reset_uboot_envs() {
@@ -172,9 +178,10 @@ update_security_report(){
 }
 
 revert_update(){
-	if [ -n "$BOOTLIMIT" ]; then
-		fw_setenv bootcount "$BOOTLIMIT" # bootcount will be bootlimit + 1 after reboot
+	if [ -z "$BOOTLIMIT" ]; then
+		BOOTLIMIT=$(fw_printenv bootlimit | awk -F'=' '{print $2}')
 	fi
+	fw_setenv bootcount "$BOOTLIMIT" # bootcount will be bootlimit + 1 after reboot and fallback
 }
 
 start_confirmation_test(){
@@ -210,9 +217,9 @@ wait_for_confirmation(){
 }
 
 finalize_update(){
-	# Run reset_uboot_envs first as (in the case of a perfectly timed power cut)
-	# creating the ALTERNATIVE_FW_UPDATE_FLAG first will trigger
-	# start_alt_fw_update on the next reboot which might brick the device
+	# Run reset_uboot_envs first to avoid switching back 
+	# to the old firmware in the case of a perfectly timed power cut
+	# start_alt_fw_update can be executed on the following boots
 	reset_uboot_envs
 
 	remove_userdata_sync_flag
@@ -220,10 +227,22 @@ finalize_update(){
 }
 
 start_alt_fw_update(){
-	! [ -f "$ALTERNATIVE_FW_UPDATE_FLAG" ] && prepare_alternative_fw_update
-	if [ -f "$ALTERNATIVE_FW_UPDATE_FLAG" ]; then
-		update_alternative_firmware
+	if is_alt_fw_update_required; then
+		if update_alternative_firmware; then
+			sync
+			log "Alternative firmware update successful"
+		else
+			log "Alternative firmware update failed"
+		fi
 		update_security_report
+	fi
+
+	# config/userdata is always synced, in case of rootfs with the same roothash
+	# copy only necessary files using rsync 
+	if update_alternative_userdata; then
+		log "Alternative config update successful"
+	else
+		log "Alternative config update failed"
 	fi
 }
 
@@ -248,8 +267,9 @@ PENDING_UPDATE=$(fw_printenv upgrade_available | awk -F'=' '{print $2}')
 if [ "$PENDING_UPDATE" = "1" ]; then
 	BOOTCOUNT=$(fw_printenv bootcount | awk -F'=' '{print $2}')
 	BOOTLIMIT=$(fw_printenv bootlimit | awk -F'=' '{print $2}')
+	USTATE=$(fw_printenv ustate | awk -F'=' '{print $2}')
 
-	if [ "$BOOTCOUNT" -le "$BOOTLIMIT" ]; then
+	if [ "$BOOTCOUNT" -le "$BOOTLIMIT" ] && [ "$USTATE" = 2 ] ; then
 		# test new firwmare
 		power_on_selftest || { /sbin/reboot; exit 1; }
 		start_confirmation_test &
