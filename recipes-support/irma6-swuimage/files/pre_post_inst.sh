@@ -54,9 +54,11 @@ cmds_exist () {
 parse_cmdline() {
 	if grep -q 'linuxboot_b\|firmware_b' /proc/cmdline; then
 		FIRMWARE_SUFFIX="_a"
+		FIRMWARE_SUFFIX_ALT="_b"
 	else
 		# default to update firmware b
 		FIRMWARE_SUFFIX="_b"
+		FIRMWARE_SUFFIX_ALT="_a"
 	fi
 	log "Update firmware${FIRMWARE_SUFFIX}"
 }
@@ -274,6 +276,30 @@ pending_update() {
 	fi
 }
 
+prepare_userdata_sync() {
+	SYNC_FILE_NAME="userdata_synced"
+
+	USERDATA_ALT_NAME="userdata$FIRMWARE_SUFFIX_ALT"
+	USERDATA_ALT_MOUNTP="/tmp/$USERDATA_ALT_NAME"
+	
+	# remove sync file from current userdata
+	rm -f "/mnt/iris/$SYNC_FILE_NAME"
+
+	# remove possible sync file from alternative userdata
+	if dmsetup create ${USERDATA_ALT_NAME} --table \
+		"0 $(blockdev --getsz /dev/mapper/irma6lvm-userdata${FIRMWARE_SUFFIX_ALT}) \
+		crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 /dev/mapper/irma6lvm-userdata${FIRMWARE_SUFFIX_ALT} 0 1 sector_size:4096"
+	then
+		mkdir -p $USERDATA_ALT_MOUNTP
+		mount -t ext4 /dev/mapper/${USERDATA_ALT_NAME} $USERDATA_ALT_MOUNTP
+		rm -f $USERDATA_ALT_MOUNTP/$SYNC_FILE_NAME
+
+		umount $USERDATA_ALT_MOUNTP
+		rm -rf $USERDATA_ALT_MOUNTP
+		dmsetup remove $USERDATA_ALT_NAME
+	fi
+}
+
 if [ "$1" = "preinst" ]; then
 	check_installed_version
 	pending_update
@@ -300,5 +326,6 @@ if [ "$1" = "postinst" ]; then
 	remove_symlinks
 	umount_keystore
 	move_userdata_config
+	prepare_userdata_sync
 	exit 0
 fi

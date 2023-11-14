@@ -86,7 +86,7 @@ reset_systemtime() {
 # call with path to mount point (will be created)
 mount_alternative_userdata() {
     ALT_SUFFIX="$2"
-    dmsetup -v create "decrypted-irma6lvm-userdata${ALT_SUFFIX}" --table \
+    dmsetup create "decrypted-irma6lvm-userdata${ALT_SUFFIX}" --table \
 	    "0 $(blockdev --getsz "/dev/mapper/irma6lvm-userdata${ALT_SUFFIX}") \
 	    crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 /dev/mapper/irma6lvm-userdata${ALT_SUFFIX} 0 1 sector_size:4096"
     mkdir -p "$1"
@@ -167,4 +167,7 @@ factory_reset() {
     mount_alternative_userdata "$ALT_MOUNTPOINT" "$ALT_SUFFIX"
     reset_userdata "$ALT_MOUNTPOINT"
     unmount_alternative_userdata "$ALT_MOUNTPOINT" "$ALT_SUFFIX"
+
+    # reset persistent data
+    rm -rf "/mnt/datastore/*"
 }

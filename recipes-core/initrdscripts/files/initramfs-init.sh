@@ -111,11 +111,11 @@ pvsn_flash() {
 
     # Setup encrypted partitions
     keyctl padd logon logkey: @us < /mnt/keystore/caam/volumeKey
-    dmsetup -v create decrypted-irma6lvm-rootfs_a --table "0 $(blockdev --getsz /dev/mapper/irma6lvm-rootfs_a) crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 /dev/mapper/irma6lvm-rootfs_a 0 1 sector_size:4096"
-    dmsetup -v create decrypted-irma6lvm-rootfs_b --table "0 $(blockdev --getsz /dev/mapper/irma6lvm-rootfs_b) crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 /dev/mapper/irma6lvm-rootfs_b 0 1 sector_size:4096"
-    dmsetup -v create decrypted-irma6lvm-userdata_a --table "0 $(blockdev --getsz /dev/mapper/irma6lvm-userdata_a) crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 /dev/mapper/irma6lvm-userdata_a 0 1 sector_size:4096"
-    dmsetup -v create decrypted-irma6lvm-userdata_b --table "0 $(blockdev --getsz /dev/mapper/irma6lvm-userdata_b) crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 /dev/mapper/irma6lvm-userdata_b 0 1 sector_size:4096"
-    dmsetup -v create decrypted-irma6lvm-datastore --table "0 $(blockdev --getsz /dev/mapper/irma6lvm-datastore) crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 /dev/mapper/irma6lvm-datastore 0 1 sector_size:4096"
+    dmsetup create decrypted-irma6lvm-rootfs_a --table "0 $(blockdev --getsz /dev/mapper/irma6lvm-rootfs_a) crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 /dev/mapper/irma6lvm-rootfs_a 0 1 sector_size:4096"
+    dmsetup create decrypted-irma6lvm-rootfs_b --table "0 $(blockdev --getsz /dev/mapper/irma6lvm-rootfs_b) crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 /dev/mapper/irma6lvm-rootfs_b 0 1 sector_size:4096"
+    dmsetup create decrypted-irma6lvm-userdata_a --table "0 $(blockdev --getsz /dev/mapper/irma6lvm-userdata_a) crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 /dev/mapper/irma6lvm-userdata_a 0 1 sector_size:4096"
+    dmsetup create decrypted-irma6lvm-userdata_b --table "0 $(blockdev --getsz /dev/mapper/irma6lvm-userdata_b) crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 /dev/mapper/irma6lvm-userdata_b 0 1 sector_size:4096"
+    dmsetup create decrypted-irma6lvm-datastore --table "0 $(blockdev --getsz /dev/mapper/irma6lvm-datastore) crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 /dev/mapper/irma6lvm-datastore 0 1 sector_size:4096"
     vgmknodes
 
     # Copy rootfs
@@ -187,10 +187,10 @@ emergency_switch() {
         /usr/bin/fw_setenv firmware "$new_firmware"
         debug "Error: Emergency firmware switch from $firmware to $new_firmware"
 
-        ${MOUNT} "/dev/mapper/${DECRYPT_USERDATA_NAME}" "/mnt/iris"
-        mkdir -p /mnt/iris/log
-        cat /var/volatile/log/initramfs.log >> /mnt/iris/log/initramfs.log
-        ${UMOUNT} "/mnt/iris"
+        ${MOUNT} "/dev/mapper/${DECRYPT_DATASTORE_NAME}" "/mnt/datastore"
+        mkdir -p "/mnt/datastore/log"
+        cat /var/volatile/log/initramfs.log >> /mnt/datastore/log/initramfs.log
+        ${UMOUNT} "/mnt/datastore"
         sync
     fi
     exit 1
@@ -362,7 +362,11 @@ caam-keygen import $KEYSTORE/caam/volumeKey.bb volumeKey
 keyctl padd logon logkey: @us < $KEYSTORE/caam/volumeKey
 
 PENDING_UPDATE=$(fw_printenv upgrade_available | awk -F'=' '{print $2}')
-if [ "$PENDING_UPDATE" = "1" ]; then
+BOOTCOUNT=$(fw_printenv bootcount | awk -F'=' '{print $2}')
+BOOTLIMIT=$(fw_printenv bootlimit | awk -F'=' '{print $2}')
+
+# check if we are updating and not on fallback
+if [ "$PENDING_UPDATE" = "1" ] && [ "$BOOTCOUNT" -le "$BOOTLIMIT" ]; then
     # power fail safe operations
 
     # adjust lvm layout: can be removed on major release 5

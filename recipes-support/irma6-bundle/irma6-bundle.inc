@@ -18,7 +18,6 @@ deltask package_write_rpm
 
 do_install[depends] = "\
     ${IMAGENAME}:do_image_complete \
-    ${@'' if d.getVar('IRMA6_RELEASE') == '1' else '${IMAGENAME}-swuimage:do_swuimage'} \
-    ${@'' if d.getVar('IRMA6_RELEASE') == '1' else '${IMAGENAME}-uuu:do_deploy'} \
+    ${@'${IMAGENAME}:do_createfirmwarezip' if d.getVar('IRMA6_RELEASE') == '1' else '${IMAGENAME}-swuimage:do_swuimage ${IMAGENAME}-uuu:do_deploy'} \
 "
 
