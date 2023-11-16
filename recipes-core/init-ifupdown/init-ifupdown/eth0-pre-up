@@ -43,7 +43,7 @@ createIpFromMAC(){
 createServiceAdapter(){
    # add virtual network adapter with ip generated from mac
    if [ "$ENABLE_SERVICE_ADAPTER" != false ] && validateIp $IP \
-      && [ $((0x${MAC5})) -ne 0 ] || [ $((0x${MAC6})) -ne 0 ]; then
+      && ( [ $((0x${MAC5})) -ne 0 ] || [ $((0x${MAC6})) -ne 0 ] ); then
 
       ifconfig eth0:1 $IP netmask 255.254.0.0
       echo "Interface 1: using IP: $IP"
