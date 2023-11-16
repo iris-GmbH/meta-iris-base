@@ -42,6 +42,8 @@ createIpFromMAC(){
 
 createServiceAdapter(){
    # add virtual network adapter with ip generated from mac
+   # check if address does not end with ".0.0".
+   # ".x.0" and ".0.x" is allowed
    if [ "$ENABLE_SERVICE_ADAPTER" != false ] && validateIp $IP \
       && ( [ $((0x${MAC5})) -ne 0 ] || [ $((0x${MAC6})) -ne 0 ] ); then
 
