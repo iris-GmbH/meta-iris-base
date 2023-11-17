@@ -110,7 +110,7 @@ factory_reset() {
     echo "Factory reset!"
     rm -f /etc/counter/config_customer*
     rm -f /etc/counter/config.yaml*
-    rm -rf /etc/irma6webserver
+    rm -rf /etc/counter/irma6webserver
     reset_systemtime
     rm -f "$LAZY_RESET_FLAG"
     sync
