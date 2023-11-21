@@ -26,7 +26,7 @@ index f846f19..ac908cb 100755
 +SERVICE_FILE="irma-provider.service"
 +
 +# remount configuration dir on RW partition since the default path cannot be changed.
-+if ! mount | grep -q "$MOUNT_POINT"; then
++if ! mount | grep -q "$MOUNT_POINT" && ! findmnt / -t nfs4 > /dev/null; then
 +
 +
 +    if [ ! -d "$SOURCE_DIR" ]; then
