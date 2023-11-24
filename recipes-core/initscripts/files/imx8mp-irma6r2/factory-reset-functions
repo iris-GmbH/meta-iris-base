@@ -169,5 +169,5 @@ factory_reset() {
     unmount_alternative_userdata "$ALT_MOUNTPOINT" "$ALT_SUFFIX"
 
     # reset persistent data
-    rm -rf "/mnt/datastore/*"
+    rm -rf /mnt/datastore/*
 }
