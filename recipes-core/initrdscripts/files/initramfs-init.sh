@@ -182,6 +182,9 @@ emergency_switch() {
 
     firmware=$(/usr/bin/fw_printenv firmware | awk -F'=' '{print $2}')
     if [ "$firmware" -eq 1 ] || [ "$firmware" -eq 0 ]; then
+        # sync userdata before the emergency switch
+        sync_userdata_from_to ${FIRMWARE_SUFFIX} ${ALT_FIRMWARE_SUFFIX}
+
         new_firmware=$(( firmware^1 ))
         /usr/bin/fw_setenv firmware "$new_firmware"
         debug "Error: Emergency firmware switch from $firmware to $new_firmware"
