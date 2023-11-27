@@ -49,13 +49,6 @@ software =
             encrypted = true;
         },
         {
-            filename = "@@SWU_BOOTLOADER_ENV@@";
-            type = "bootloader";
-            sha256 = "$swupdate_get_sha256(@@SWU_BOOTLOADER_ENV@@)";
-            ivt = "@@SWU_IVT@@";
-            encrypted = true;
-        },
-        {
             filename = "@@SWU_BOOTLOADER@@";
             type = "bootloader_update"
             device = "/dev/swu_bootloader";

@@ -14,7 +14,6 @@ FILESEXTRAPATHS:prepend := "${@os.path.dirname(d.getVar('FILE'))}/files:"
 SRC_URI = " \
     file://sw-description \
     file://pre_post_inst.sh \
-    file://bootloader-env \
 "
 
 IMAGE_DEPENDS = "\
@@ -30,7 +29,6 @@ SWU_ROOTFS = "${IMAGENAME}-${MACHINE}.ext4.gz"
 SWU_ROOTHASH="${IMAGENAME}-${MACHINE}.ext4.roothash"
 SWU_ROOTHASH_SIGNATURE="${IMAGENAME}-${MACHINE}.ext4.roothash.signature"
 SWU_HASHDEVICE="${IMAGENAME}-${MACHINE}.ext4.hashdevice"
-SWU_BOOTLOADER_ENV = "bootloader-env"
 SWU_PRE_POST_SCRIPT = "pre_post_inst.sh"
 
 SWU_META = "${IMAGENAME}-${MACHINE}.testdata.json"
@@ -68,7 +66,6 @@ python do_swuimage:prepend () {
     mark_encrypted(d.getVar('SWU_BOOTLOADER'))
     mark_encrypted(d.getVar('SWU_FITIMAGE'))
     mark_encrypted(d.getVar('SWU_ROOTFS'))
-    mark_encrypted(d.getVar('SWU_BOOTLOADER_ENV'))
     mark_encrypted(d.getVar('SWU_PRE_POST_SCRIPT'))
     mark_encrypted(d.getVar('SWU_ROOTHASH'))
     mark_encrypted(d.getVar('SWU_ROOTHASH_SIGNATURE'))
