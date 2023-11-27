@@ -236,52 +236,86 @@ try_remove_staticdata(){
     fi
 }
 
-# sync_userdata_from_alt
-# try to sync config from alternative userdata
+# sync_userdata_from_to
+# try to sync config from SRC to DST
+# $1: SRC_SUFFIX _a/_b
+# $2: DST_SUFFIX _a/_b
+# $3: set_sync_flag 0/1 (default: 0)
 # will exit 1 if failed
-sync_userdata_from_alt(){
+sync_userdata_from_to() {
     err=0
+    set_sync_flag=0
+
+    if [ "$#" -lt 2 ] || [ "$1" = "$2" ]; then
+        debug "Error: Can not sync userdata"
+        exit 1
+    fi
+
+    SRC_SUFFIX=$1
+    DST_SUFFIX=$2
+
+    SRC_DEC_USER_NAME=decrypted-irma6lvm-userdata${SRC_SUFFIX}
+    DST_DEC_USER_NAME=decrypted-irma6lvm-userdata${DST_SUFFIX}
+
+    SRC_USER_DEV=/dev/mapper/irma6lvm-userdata${SRC_SUFFIX}
+    DST_USER_DEV=/dev/mapper/irma6lvm-userdata${DST_SUFFIX}
+
+	[ "$#" -gt 2 ] && set_sync_flag=1
+
     # compatibility hack for old lvm layout with single userdata (fw =< 3.0.0)
     # can removed on major version 5
-    ALT_USERDATA_FIRMWARE_SUFFIX=${ALT_FIRMWARE_SUFFIX}
     if lvm_volume_exists "userdata"; then
-        ALT_USERDATA_FIRMWARE_SUFFIX=""
+        SRC_SUFFIX=""
     fi
 
     # decrypt existing userdata A/B
-    dmsetup create ${DECRYPT_USERDATA_NAME} --table "0 $(blockdev --getsz ${USERDATA_DEV}) \
-        crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 ${USERDATA_DEV} 0 1 sector_size:4096"
+    dmsetup create "${SRC_DEC_USER_NAME}" --table "0 $(blockdev --getsz "${SRC_USER_DEV}") \
+        crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 ${SRC_USER_DEV} 0 1 sector_size:4096"
 
-    dmsetup create ${ALT_DECRYPT_USERDATA_NAME} --table \
-        "0 $(blockdev --getsz /dev/mapper/irma6lvm-userdata${ALT_USERDATA_FIRMWARE_SUFFIX}) \
-        crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 /dev/mapper/irma6lvm-userdata${ALT_USERDATA_FIRMWARE_SUFFIX} 0 1 sector_size:4096"
+    dmsetup create "${DST_DEC_USER_NAME}" --table "0 $(blockdev --getsz "${DST_USER_DEV}") \
+        crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 ${DST_USER_DEV} 0 1 sector_size:4096"
     vgmknodes
 
     # mount userdata A/B
-    mkdir -p /tmp/userdata${FIRMWARE_SUFFIX}
-    mkdir -p /tmp/userdata${ALT_FIRMWARE_SUFFIX}
-    mount -t ext4 /dev/mapper/${DECRYPT_USERDATA_NAME} /tmp/userdata${FIRMWARE_SUFFIX} || err=1
-    mount -t ext4 /dev/mapper/${ALT_DECRYPT_USERDATA_NAME} /tmp/userdata${ALT_FIRMWARE_SUFFIX} || err=1
-    [ "$err" -eq 0 ] || exit "$err"
+    SRC_TMP_USER=/tmp/userdata${SRC_SUFFIX}
+    DST_TMP_USER=/tmp/userdata${DST_SUFFIX}
+    mkdir -p "${SRC_TMP_USER}"
+    mkdir -p "${DST_TMP_USER}"
+    if ! findmnt "${SRC_TMP_USER}" > /dev/null; then
+        mount -t ext4 "/dev/mapper/${SRC_DEC_USER_NAME}" "${SRC_TMP_USER}" || err=1
+    fi
+    if ! findmnt "${DST_TMP_USER}" > /dev/null; then
+        mount -t ext4 "/dev/mapper/${DST_DEC_USER_NAME}" "${DST_TMP_USER}" || err=1
+    fi
+
+    if [ "$err" -ne 0 ]; then
+        umount "${SRC_TMP_USER}"
+        umount "${DST_TMP_USER}"
+        exit "$err"
+    fi
 
     # sync alternative -> current
     # use persitent flag to sync only once
-    SYNC_FILE="/tmp/userdata${FIRMWARE_SUFFIX}/userdata_synced"
-    if [ ! -f $SYNC_FILE ]; then
-        debug "Sync Userdata: ${ALT_FIRMWARE_SUFFIX} to ${FIRMWARE_SUFFIX}"
-        rsync -a --delete /tmp/userdata${ALT_FIRMWARE_SUFFIX}/ /tmp/userdata${FIRMWARE_SUFFIX} || err=1
-        [ "$err" -eq 0 ] || exit "$err"
+    SYNC_FILE=${DST_TMP_USER}/userdata_synced
+    if [ ! -f "$SYNC_FILE" ]; then
+        debug "Sync Userdata: ${SRC_SUFFIX} to ${DST_SUFFIX}"
+        rsync -a --delete "${SRC_TMP_USER}/" "${DST_TMP_USER}" || err=1
+        if [ "$err" -ne 0 ]; then
+            umount "${SRC_TMP_USER}"
+            umount "${DST_TMP_USER}"
+            exit "$err"
+        fi
     fi
-    touch $SYNC_FILE # sync file is removed on power on test
+    [ "$set_sync_flag" -eq 1 ] && touch "$SYNC_FILE" # sync file is removed on power on test
     sync
 
     # clean up
-    umount /tmp/userdata${FIRMWARE_SUFFIX}
-    umount /tmp/userdata${ALT_FIRMWARE_SUFFIX}
-    rm -rf /tmp/userdata${FIRMWARE_SUFFIX}
-    rm -rf /tmp/userdata${ALT_FIRMWARE_SUFFIX}
-    dmsetup remove ${DECRYPT_USERDATA_NAME}
-    dmsetup remove ${ALT_DECRYPT_USERDATA_NAME}
+    umount "${SRC_TMP_USER}"
+    umount "${DST_TMP_USER}"
+    rm -rf "${SRC_TMP_USER}"
+    rm -rf "${DST_TMP_USER}"
+    dmsetup remove "${SRC_DEC_USER_NAME}"
+    dmsetup remove "${DST_DEC_USER_NAME}"
 }
 
 try_create_datastore(){
@@ -382,7 +416,7 @@ if [ "$PENDING_UPDATE" = "1" ] && [ "$BOOTCOUNT" -le "$BOOTLIMIT" ]; then
     try_create_userdata_mirror
 
     # get config from alternative userdata on update
-    sync_userdata_from_alt
+    sync_userdata_from_to ${ALT_FIRMWARE_SUFFIX} ${FIRMWARE_SUFFIX} 1
 
     # adjust lvm layout: can be removed on major release 5
     try_create_datastore
