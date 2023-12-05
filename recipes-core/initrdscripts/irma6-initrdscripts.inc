@@ -23,6 +23,7 @@ RDEPENDS:${PN} = " \
     nfs-utils \
     libubootenv-bin \
     rsync \
+    e2fsprogs-e2fsck \
 "
 
 S = "${WORKDIR}"
