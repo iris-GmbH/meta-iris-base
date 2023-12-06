@@ -287,10 +287,11 @@ prepare_userdata_sync() {
 	rm -f "/mnt/iris/$SYNC_FILE_NAME"
 
 	# remove possible sync file from alternative userdata
-	if dmsetup create ${USERDATA_ALT_NAME} --table \
+	if [ -b "/dev/mapper/irma6lvm-userdata${FIRMWARE_SUFFIX_ALT}" ]; then
+		dmsetup create ${USERDATA_ALT_NAME} --table \
 		"0 $(blockdev --getsz /dev/mapper/irma6lvm-userdata${FIRMWARE_SUFFIX_ALT}) \
 		crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 /dev/mapper/irma6lvm-userdata${FIRMWARE_SUFFIX_ALT} 0 1 sector_size:4096"
-	then
+
 		mkdir -p $USERDATA_ALT_MOUNTP
 		mount -t ext4 /dev/mapper/${USERDATA_ALT_NAME} $USERDATA_ALT_MOUNTP
 		rm -f $USERDATA_ALT_MOUNTP/$SYNC_FILE_NAME
