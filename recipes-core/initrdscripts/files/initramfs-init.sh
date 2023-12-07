@@ -263,7 +263,7 @@ sync_userdata_from_to() {
     SRC_USER_DEV=/dev/mapper/irma6lvm-userdata${SRC_SUFFIX}
     DST_USER_DEV=/dev/mapper/irma6lvm-userdata${DST_SUFFIX}
 
-	[ "$#" -gt 2 ] && set_sync_flag=1
+    [ "$#" -gt 2 ] && set_sync_flag=1
 
     # compatibility hack for old lvm layout with single userdata (fw =< 3.0.0)
     # can removed on major version 5
