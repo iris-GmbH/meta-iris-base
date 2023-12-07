@@ -58,8 +58,8 @@ update_alternative_firmware() {
 
 	# Update alternative fitImage partition
 	mkdir /tmp/cur_fitimage_dev /tmp/alt_fitimage_dev
-	mount "$CUR_FITIMAGE_DEV" /tmp/cur_fitimage_dev
-	mount "$ALT_FITIMAGE_DEV" /tmp/alt_fitimage_dev
+	mount -t vfat "$CUR_FITIMAGE_DEV" /tmp/cur_fitimage_dev
+	mount -t vfat "$ALT_FITIMAGE_DEV" /tmp/alt_fitimage_dev
 	cp /tmp/cur_fitimage_dev/fitImage.signed /tmp/alt_fitimage_dev/fitImage.signed || \
 		{ log "Error: Failed to copy alternative fitImage"; err=1; }
 	umount /tmp/cur_fitimage_dev /tmp/alt_fitimage_dev
@@ -104,6 +104,22 @@ update_alternative_firmware() {
 	return "$err";
 }
 
+# open userdata A or B
+# $1: "a" or "b"
+decrypt_userdata_volume(){
+	dmsetup create decrypted-irma6lvm-userdata_"$1" --table \
+		"0 $(blockdev --getsz /dev/mapper/irma6lvm-userdata_"$1") \
+		crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 /dev/mapper/irma6lvm-userdata_$1 0 1 sector_size:4096"
+	return "$?"
+}
+
+# close userdata A or B
+# $1: "a" or "b"
+close_userdata_volume(){
+	sleep 1 # workaround for removing without busy errors
+	dmsetup remove decrypted-irma6lvm-userdata_"$1"
+}
+
 update_alternative_userdata(){
 	log "Synchronizing config from ${CUR_FW_SUFFIX} to ${ALT_FW_SUFFIX}"
 
@@ -115,9 +131,7 @@ update_alternative_userdata(){
 	fi
 
 	err=0
-	dmsetup create decrypted-irma6lvm-userdata_${ALT_FW_SUFFIX} --table \
-		"0 $(blockdev --getsz /dev/mapper/irma6lvm-userdata_${ALT_FW_SUFFIX}) \
-		crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 /dev/mapper/irma6lvm-userdata_${ALT_FW_SUFFIX} 0 1 sector_size:4096"
+	decrypt_userdata_volume ${ALT_FW_SUFFIX}
 
 	# resize alternative userdata to 256mb
 	# can be removed on major release 5
@@ -125,10 +139,34 @@ update_alternative_userdata(){
 	req_size=256 # mb
 	if [ "$cur_size" -gt "$req_size" ]; then
 		log "Resize userdata_${ALT_FW_SUFFIX} to $req_size M"
-		e2fsck -f -p /dev/mapper/decrypted-irma6lvm-userdata_${ALT_FW_SUFFIX} || err=1
-		resize2fs "/dev/mapper/decrypted-irma6lvm-userdata_${ALT_FW_SUFFIX}" "$req_size"M || err=1
-		lvresize --autobackup n --force --yes --quiet -L "$req_size"M "/dev/mapper/irma6lvm-userdata_${ALT_FW_SUFFIX}" || err=1
+
+		e2fsck -f -p /dev/mapper/decrypted-irma6lvm-userdata_${ALT_FW_SUFFIX}
+		is_healthy=$? # Success: 0, 1 (errors corrected). Everything else considered failure
+
+		if [ "$is_healthy" -lt 2 ] ; then
+			resize2fs "/dev/mapper/decrypted-irma6lvm-userdata_${ALT_FW_SUFFIX}" "$req_size"M || { log "resize2fs rc: $?"; err=1; }
+			# lvm resize can only execute if the file system resize was successful!
+			if [ "$err" -eq 0 ]; then
+				lvresize --autobackup n --force --yes --quiet -L "$req_size"M "/dev/mapper/irma6lvm-userdata_${ALT_FW_SUFFIX}" || err=1
+			fi
+		else
+			# force lvresize if filesystem is unhealthy
+			log "e2fsck failed with code: $is_healthy Formating userdata_${ALT_FW_SUFFIX} with $req_size M size"
+			close_userdata_volume ${ALT_FW_SUFFIX}
+			lvresize --autobackup n --force --yes --quiet -L "$req_size"M "/dev/mapper/irma6lvm-userdata_${ALT_FW_SUFFIX}" || { log "lvresize rc: $?"; err=1; }
+			[ "$err" -eq 0 ] && decrypt_userdata_volume ${ALT_FW_SUFFIX} || err=1
+			if [ "$err" -eq 0 ]; then
+				mkfs.ext4 -F /dev/mapper/decrypted-irma6lvm-userdata_${ALT_FW_SUFFIX} || { log "mkfs.ext4 rc: $?"; err=1; }
+			fi
+		fi
 	fi
+
+	# closing the decrytped device before using it avoids fs errors
+	close_userdata_volume ${ALT_FW_SUFFIX}
+
+	[ "$err" -eq 0 ] || return "$err"
+
+	decrypt_userdata_volume ${ALT_FW_SUFFIX}
 
 	# sync userdata A and B
 	USERDATA_MOUNTP="/tmp/userdata_${ALT_FW_SUFFIX}"
@@ -138,7 +176,8 @@ update_alternative_userdata(){
 	sync
 	umount $USERDATA_MOUNTP
 	rm -rf $USERDATA_MOUNTP
-	dmsetup remove decrypted-irma6lvm-userdata_${ALT_FW_SUFFIX}
+
+	close_userdata_volume ${ALT_FW_SUFFIX}
 
 	return "$err"
 }
@@ -275,7 +314,7 @@ if [ "$PENDING_UPDATE" = "1" ]; then
 		start_confirmation_test &
 	else
 		# on fallback always reset
-		log "Update failed: fallback to boot: $CUR_FW_SUFFIX"
+		log "Update failed: booted on fallback firmware: $CUR_FW_SUFFIX"
 		finalize_update &
 	fi
 else
