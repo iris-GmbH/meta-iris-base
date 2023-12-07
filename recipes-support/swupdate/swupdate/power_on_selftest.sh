@@ -58,8 +58,8 @@ update_alternative_firmware() {
 
 	# Update alternative fitImage partition
 	mkdir /tmp/cur_fitimage_dev /tmp/alt_fitimage_dev
-	mount "$CUR_FITIMAGE_DEV" /tmp/cur_fitimage_dev
-	mount "$ALT_FITIMAGE_DEV" /tmp/alt_fitimage_dev
+	mount -t vfat "$CUR_FITIMAGE_DEV" /tmp/cur_fitimage_dev
+	mount -t vfat "$ALT_FITIMAGE_DEV" /tmp/alt_fitimage_dev
 	cp /tmp/cur_fitimage_dev/fitImage.signed /tmp/alt_fitimage_dev/fitImage.signed || \
 		{ log "Error: Failed to copy alternative fitImage"; err=1; }
 	umount /tmp/cur_fitimage_dev /tmp/alt_fitimage_dev
