@@ -101,8 +101,7 @@ pvsn_flash() {
     req_size=256 # mb
     if [ "$cur_size" -gt "$req_size" ]; then
         debug "Resize userdata_a to $req_size M"
-        e2fsck -f -p /dev/mapper/decrypted-irma6lvm-userdata_a
-        resize2fs "/dev/mapper/decrypted-irma6lvm-userdata_a" "$req_size"M
+        # no filesystem here yet, so resize the lvm volume only
         lvresize --autobackup n --force --yes --quiet -L "$req_size"M "/dev/mapper/irma6lvm-userdata_a"
     fi
     lvcreate --yes -n userdata_b -L 256MB irma6lvm
@@ -211,12 +210,22 @@ try_create_userdata_mirror(){
         crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 ${USERDATA_DEV} 0 1 sector_size:4096"
     vgmknodes
 
-    # format current useradata if it is new
-    if ! blkid /dev/mapper/${DECRYPT_USERDATA_NAME} | grep -q 'TYPE="ext4"'; then
-        mkfs.ext4 -F /dev/mapper/${DECRYPT_USERDATA_NAME}
-        sleep 1 # workaround for removing without busy errors
-    fi
+    # format ext4 current useradata if it is new
+    # or if it has inconsistencies. See APC-7461
+    is_ext_formated=0
+    is_healthy=0
+    blkid /dev/mapper/${DECRYPT_USERDATA_NAME} | grep -q 'TYPE="ext4"'
+    is_ext_formated=$?
+    [ "$is_ext_formated" -eq 0 ] && { e2fsck -f -p /dev/mapper/${DECRYPT_USERDATA_NAME}; is_healthy=$?; }
 
+    # is_healthy: Success: 0, 1 (errors corrected). Everything else considered failure
+    if [ "$is_ext_formated" -ne 0 ] || [ "$is_healthy" -gt 1 ]; then
+        debug "Formating filesystem on ${DECRYPT_USERDATA_NAME}"
+        debug "is_ext_formated: $is_ext_formated"
+        debug "is_healthy: $is_healthy"
+        mkfs.ext4 -F /dev/mapper/${DECRYPT_USERDATA_NAME}
+    fi
+    sleep 1 # workaround for removing without busy errors
     dmsetup remove ${DECRYPT_USERDATA_NAME}
 }
 
