@@ -5,7 +5,7 @@
 	<service>
 		<type>_http._tcp</type>
 		<port>80</port>
-		<txt-record>manufacturer=iris-GmbH</txt-record>
+		<txt-record>manufacturer=iris-GmbH infrared &amp; intelligent sensors</txt-record>
 		<txt-record>model=IRMA6</txt-record>
 		<txt-record>hardwareversion=</txt-record>
 		<txt-record>doorid=</txt-record>
