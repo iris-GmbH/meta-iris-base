@@ -11,4 +11,6 @@ createDefaultAdapter(){
    echo "Interface 2: using IP: 192.168.240.254"
 }
 
-createDefaultAdapter
+if [ "$IFACE" = "eth0" ]; then
+   createDefaultAdapter
+fi
