@@ -100,12 +100,19 @@ createCustomerAdapter(){
                route add default gw $CUSTOMERGATEWAY eth0
                echo "$CUSTOMERGATEWAY Gateway route added for eth0"
             fi
-
+            addDnsServer
             return
          fi
       fi  
    fi
    setToDHCPMode
+}
+
+addDnsServer(){
+    if validateIp $CUSTOMERDNS; then
+        # Add DNS-Server
+        echo "nameserver $CUSTOMERDNS" > /etc/resolv.conf
+    fi
 }
 
 parameterExists(){
@@ -162,6 +169,7 @@ if [ "$IFACE" = "eth0" ]; then
    CUSTOMERIP=""
    CUSTOMERNETMASK=""
    CUSTOMERGATEWAY=""
+   CUSTOMERDNS=""
    CUSTOMDHCP61ACIVATED=""
    CUSTOMDHCP61CLIENTIDENTIFIER=""
    if parameterExists "pa\.communication\.ipaddr"; then
@@ -175,6 +183,10 @@ if [ "$IFACE" = "eth0" ]; then
    if parameterExists "pa\.communication\.gateway"; then
       CUSTOMERGATEWAY=$(getIpAddress "pa\.communication\.gateway")
       echo "  pa.communication.gateway:" "$CUSTOMERGATEWAY"
+   fi
+   if parameterExists "pa\.communication\.dns"; then
+      CUSTOMERDNS=$(getIpAddress "pa\.communication\.dns")
+      echo "  pa.communication.dns:" "$CUSTOMERDNS"
    fi
    if parameterExists "pa\.communication\.dhcp_usecustomoption61"; then
       CUSTOMDHCP61ACIVATED=$(getParameter "pa\.communication\.dhcp_usecustomoption61")
