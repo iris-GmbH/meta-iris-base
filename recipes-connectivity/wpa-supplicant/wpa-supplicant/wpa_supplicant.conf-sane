@@ -1,0 +1,10 @@
+ap_scan=0
+
+network={
+	key_mgmt=IEEE8021X
+	eap=TLS
+	identity="irma6"
+	ca_cert="/mnt/iris/eaptls/sensor.ca"
+	client_cert="/mnt/iris/eaptls/sensor.crt"
+	private_key="/mnt/iris/eaptls/sensor.key"
+}
