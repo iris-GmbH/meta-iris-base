@@ -183,7 +183,7 @@ emergency_switch() {
     firmware=$(/usr/bin/fw_printenv firmware | awk -F'=' '{print $2}')
     if [ "$firmware" -eq 1 ] || [ "$firmware" -eq 0 ]; then
         # sync userdata before the emergency switch
-        sync_userdata_from_to ${FIRMWARE_SUFFIX} ${ALT_FIRMWARE_SUFFIX}
+        sync_userdata_from_to "${FIRMWARE_SUFFIX}" "${ALT_FIRMWARE_SUFFIX}"
 
         new_firmware=$(( firmware^1 ))
         /usr/bin/fw_setenv firmware "$new_firmware"
@@ -264,12 +264,6 @@ sync_userdata_from_to() {
     DST_USER_DEV=/dev/mapper/irma6lvm-userdata${DST_SUFFIX}
 
     [ "$#" -gt 2 ] && set_sync_flag=1
-
-    # compatibility hack for old lvm layout with single userdata (fw =< 3.0.0)
-    # can removed on major version 5
-    if lvm_volume_exists "userdata"; then
-        SRC_SUFFIX=""
-    fi
 
     # decrypt existing userdata A/B
     dmsetup create "${SRC_DEC_USER_NAME}" --table "0 $(blockdev --getsz "${SRC_USER_DEV}") \
@@ -418,8 +412,15 @@ if [ "$PENDING_UPDATE" = "1" ] && [ "$BOOTCOUNT" -le "$BOOTLIMIT" ]; then
     # adjust lvm layout: can be removed on major release 5
     try_create_userdata_mirror
 
+    # compatibility hack for old lvm layout with single userdata (fw =< 3.0.0)
+    # sync from userdata instead of userdata_a
+    # can be removed on major version 5
+    if lvm_volume_exists "userdata"; then
+        ALT_FIRMWARE_SUFFIX=""
+    fi
+
     # get config from alternative userdata on update
-    sync_userdata_from_to ${ALT_FIRMWARE_SUFFIX} ${FIRMWARE_SUFFIX} 1
+    sync_userdata_from_to "${ALT_FIRMWARE_SUFFIX}" "${FIRMWARE_SUFFIX}" 1
 
     # adjust lvm layout: can be removed on major release 5
     try_create_datastore
