@@ -125,6 +125,7 @@ FBK: ucp sensor_identity_snakeoil.crt t:/mnt/iris/identity/sensor.crt
 FBK: ucmd chmod 0440 -R /mnt/iris/identity/
 FBK: ucmd ln -sr /mnt/iris/identity /mnt/iris/webtls
 FBK: ucmd ln -sr /mnt/iris/identity /mnt/iris/nts
+FBK: ucmd ln -sr /mnt/iris/identity /mnt/iris/eaptls
 FBK: ucmd mkdir -p /mnt/iris/nginx/sites-enabled
 FBK: ucmd ln -s /etc/nginx/sites-available/reverse_proxy_https.conf /mnt/iris/nginx/sites-enabled/default_server
 FBK: ucmd mkdir -p /mnt/iris/counter

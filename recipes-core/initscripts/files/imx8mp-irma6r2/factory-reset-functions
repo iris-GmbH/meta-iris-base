@@ -141,6 +141,7 @@ reset_userdata() {
     ln -sf /mnt/iris/identity "$USERDATA_DIR"/webtls
     ln -sf /mnt/iris/identity "$USERDATA_DIR"/nts
     ln -sf /mnt/iris/identity "$USERDATA_DIR"/syslogtls
+    ln -sf /mnt/iris/identity "$USERDATA_DIR"/eaptls
     # Delete saved timestamp
     rm -f "$USERDATA_DIR"/timestamp
     # Delete lazy flag
