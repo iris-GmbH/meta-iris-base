@@ -21,6 +21,8 @@ SRC_URI:append := " \
 	file://0001-RDPHOEN-1221-Formatting-index.html.patch \
 	file://0002-RDPHOEN-1221-SWUpdate-Webinterface-CI-rework.patch \
 	file://0003-Fix-404-on-SourceSansPro_Semibold_latin_ext.woff2.patch \
+	file://0004-mongoose_multipart-Allow-raw-binary-uploads.patch \
+	file://0005-Revert-progress-Clear-source-after-reported-download.patch \
 	file://Findswupdate.cmake \
 "
 

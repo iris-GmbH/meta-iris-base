@@ -264,3 +264,26 @@ do_deploy:append() {
 }
 
 addtask do_sign_uboot before do_deploy do_install after do_compile
+
+do_check_iris_version_string() {
+    set_imxboot_vars
+    if [ "${HAB_ENABLE}" = "1" ]; then
+        bootloader="${S}/${BOOT_CONFIG_MACHINE_EXTRA}-${IMAGE_IMXBOOT_TARGET}.signed"
+    else
+        bootloader="${S}/${BOOT_CONFIG_MACHINE_EXTRA}-${IMAGE_IMXBOOT_TARGET}"
+    fi
+
+    # Find the first occurence of "U-Boot SPL [...]" in the first 1MB and check for pattern: iris-boot_X.X.X+gYYY
+    # Do exactly the same as here: meta-iris-base/recipes-support/swupdate/swupdate/bootloader_update.lua,
+    # but during build.
+    input_string=$(dd if="$bootloader" bs=1M count=1 2>/dev/null | strings | grep "U-Boot SPL" | head -n 1)
+    pattern="iris-boot_[0-9]+\.[0-9]+\.[0-9]+\+(\w+)"
+    if [ -n "$input_string" ] && echo "$input_string" | grep -q -E "$pattern"; then
+        version_string=$(echo "$input_string" | grep -Eo "$pattern" | head -n 1)
+        bbnote "iris version string found: $version_string"
+    else
+        bberror "iris version string not found in $bootloader"
+    fi
+}
+
+addtask check_iris_version_string before do_deploy after do_install

@@ -49,6 +49,7 @@ cmds_exist () {
 	exists sfdisk
 	exists jq
 	exists openssl
+	exists fw_setenv
 }
 
 parse_cmdline() {
@@ -301,6 +302,10 @@ prepare_userdata_sync() {
 	fi
 }
 
+set_uboot_env() {
+	fw_setenv upgrade_available 1 || exit 1
+}
+
 if [ "$1" = "preinst" ]; then
 	check_installed_version
 	pending_update
@@ -328,5 +333,6 @@ if [ "$1" = "postinst" ]; then
 	umount_keystore
 	move_userdata_config
 	prepare_userdata_sync
+	set_uboot_env
 	exit 0
 fi
