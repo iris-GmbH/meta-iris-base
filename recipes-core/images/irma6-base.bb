@@ -31,6 +31,7 @@ IRMA6_EXTRA_PACKAGES = " \
 	rsyslog \
 	chrony \
 	nftables \
+	wpa-supplicant \
 "
 
 # IRMA6 Release 1 only packages
