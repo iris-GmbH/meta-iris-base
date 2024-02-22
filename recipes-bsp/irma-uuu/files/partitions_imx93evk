@@ -1,0 +1,3 @@
+label: dos
+start= 10M, size= 500M, type=0c
+start=600M, type=83
