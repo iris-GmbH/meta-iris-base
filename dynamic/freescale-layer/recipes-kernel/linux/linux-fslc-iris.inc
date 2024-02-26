@@ -3,7 +3,7 @@
 
 FILESEXTRAPATHS:prepend := "${THISDIR}/linux-fslc-iris:"
 
-SRC_URI += " \
+SRC_URI:append:use-irma6r2-bsp = " \
     file://0001-epc660-Add-device-driver-support.patch \
     file://0002-tc358746-Add-device-driver-support.patch \
     file://0003-imx8mp-evk.dts-Add-epc660-and-tc358746-nodes-to-dts.patch \
@@ -47,6 +47,9 @@ SRC_URI += " \
     file://0041-EPC660-Update-sequencer-code-to-V14-Datasheet-V2.20.patch \
     file://0042-epc660-remove-the-register-setting-of-EPC660_REG_LED.patch \
     file://0043-Set-VB2_MAX_FRAME-VIDEO_MAX_FRAME-up-to-128.patch \
+"
+
+SRC_URI:append:use-irma-matrix-bsp = " \
 "
 
 SRC_URI:append:poky-iris-deploy = "\

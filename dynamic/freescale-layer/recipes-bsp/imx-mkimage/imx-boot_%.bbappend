@@ -1,6 +1,8 @@
 # SPDX-License-Identifier: MIT
 # Copyright (C) 2022 iris-GmbH infrared & intelligent sensors
 
+require imx-mkimage_iris.inc
+
 inherit irma6-bootloader-version
 PV = "${IRIS_IMX_BOOT_RELEASE}"
 
@@ -23,7 +25,7 @@ hex2dec() {
 # the further signature process. The outputs are stored in the files
 # hab_info1.txt and hab_info2.txt.
 #
-do_compile() {
+do_compile:use-irma6r2-bsp() {
     # mkimage for i.MX8
     # Copy TEE binary to SoC target folder to mkimage
     if ${DEPLOY_OPTEE}; then

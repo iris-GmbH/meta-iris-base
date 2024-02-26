@@ -1,0 +1,58 @@
+uuu_version 1.4.165
+
+# Boot flash.bin
+SDPS: boot -f flash.bin
+
+# use uboot burn bootloader to eMMC
+FB: ucmd setenv fastboot_dev mmc
+FB: ucmd setenv mmcdev ${emmc_dev}
+FB: flash bootloader flash.bin
+
+FB: ucmd if env exists emmc_ack; then ; else setenv emmc_ack 0; fi;
+
+FB: ucmd setenv emmc_cmd mmc partconf ${emmc_dev} ${emmc_ack} 1 0
+FB: ucmd if test "${emmc_skip_fb}" != "yes"; then run emmc_cmd; fi
+FB: ucmd setenv emmc_cmd mmc bootbus ${emmc_dev} 2 0 1;
+FB: ucmd if test "${emmc_skip_fb}" != "yes"; then run emmc_cmd; fi
+
+# Load kernel, dtb and initramfs to boot
+FB: ucmd setenv fastboot_buffer ${loadaddr}
+FB: download -f Image
+FB: ucmd setenv fastboot_buffer ${fdt_addr}
+FB: download -f imx93-11x11-evk.dtb
+FB: ucmd setenv fastboot_buffer ${initrd_addr}
+FB: download -f fsl-image-mfgtool-initramfs-imx93-matrix-evk.cpio.zst.u-boot
+FB: acmd ${kboot} ${loadaddr} ${initrd_addr} ${fdt_addr}
+
+# get mmc dev number from kernel command line
+# Wait for emmc
+FBK: ucmd while [ ! -e /dev/mmcblk*boot0 ]; do sleep 1; echo "wait for /dev/mmcblk*boot* appear"; done;
+
+# search emmc device number, if your platform have more than two emmc chip, please echo dev number >/tmp/mmcdev 
+FBK: ucmd dev=`ls /dev/mmcblk*boot*`; dev=($dev); dev=${dev[0]}; dev=${dev#/dev/mmcblk}; dev=${dev%boot*}; echo $dev > /tmp/mmcdev;
+
+# load and write partition table
+FBK: ucp partitions t:/tmp
+FBK: ucmd mmc=`cat /tmp/mmcdev`; dd if=/dev/zero of=/dev/mmcblk${mmc} bs=1M count=10
+FBK: ucmd mmc=`cat /tmp/mmcdev`; cat /tmp/partitions | sfdisk --force /dev/mmcblk${mmc}
+FBK: ucmd sync
+
+# create linux boot partition
+FBK: ucmd mmc=`cat /tmp/mmcdev`; while [ ! -e /dev/mmcblk${mmc}p1 ]; do sleep 1; done
+FBK: ucmd mmc=`cat /tmp/mmcdev`; mkfs.vfat /dev/mmcblk${mmc}p1
+FBK: ucmd mmc=`cat /tmp/mmcdev`; mkdir -p /mnt/fat
+FBK: ucmd mmc=`cat /tmp/mmcdev`; mount -t vfat /dev/mmcblk${mmc}p1 /mnt/fat
+FBK: ucp  Image t:/mnt/fat
+FBK: ucp  imx93-11x11-evk.dtb t:/mnt/fat
+FBK: ucmd umount /mnt/fat
+
+# create rootfs partition
+FBK: ucmd mmc=`cat /tmp/mmcdev`; mkfs.ext4 -F -E nodiscard /dev/mmcblk${mmc}p2
+FBK: ucmd mkdir -p /mnt/ext4
+FBK: ucmd mmc=`cat /tmp/mmcdev`; mount /dev/mmcblk${mmc}p2 /mnt/ext4
+FBK: acmd export EXTRACT_UNSAFE_SYMLINKS=1; tar --zstd --warning=no-timestamp -x -C /mnt/ext4
+FBK: ucp rootfs.tar.zst t:-
+FBK: sync
+FBK: ucmd umount /mnt/ext4
+FBK: DONE
+
