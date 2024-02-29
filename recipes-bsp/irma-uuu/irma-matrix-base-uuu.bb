@@ -21,5 +21,5 @@ UUUSCRIPT:imx93-matrix-evk = "flashall_imx93evk.uuu"
 COMPATIBLE_MACHINE = "use-irma-matrix-bsp"
 
 # TODO: Use irma6 image for now:
-IMAGENAME = "irma6-base"
+IMAGENAME = "irma6-maintenance"
 
