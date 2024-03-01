@@ -2,7 +2,7 @@
 # Copyright (C) 2022 iris-GmbH infrared & intelligent sensors
 
 # use recipe from meta-secure-imx as base
-require irma6-initramfs.inc
+require irma-initramfs.inc
 
-INITSCRIPT_PACKAGE = "irma6-initrdscripts-init"
+INITSCRIPT_PACKAGE = "irma-initrdscripts-init"
 
