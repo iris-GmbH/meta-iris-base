@@ -43,6 +43,7 @@ SRC_URI:append:imx8mp-irma6r2 = "\
 
 FILESEXTRAPATHS:prepend:imx93-matrix-evk := "${THISDIR}/u-boot-imx/imx93-matrix-evk:"
 SRC_URI:append:imx93-matrix-evk = "\
+	file://0001-MARE-13-imx93evk-Enable-CONFIG_FIT.patch \
 "
 
 SRC_URI:append:poky-iris-deploy = "\
