@@ -19,6 +19,7 @@ KERNEL_DTB_FILE:imx8mp-lpddr4-evk = "freescale/imx8mp-evk.dtb"
 ITS_KERNEL_LOAD_ADDR:mx8mp-nxp-bsp = "0x40400000"
 ITS_KERNEL_ENTRY_ADDR:mx8mp-nxp-bsp = "0x40400000"
 FITLOADADDR:mx8mp-nxp-bsp = "0x48000000"
+ITS_DTB_LOAD_ADDR:mx8mp-nxp-bsp = "0x43000000"
 
 # include checking of HAB/CST related variables
 inherit irma6-signing-variable-check
@@ -26,7 +27,6 @@ addtask do_signing_variable_check before do_assemble_fit
 
 do_assemble_fit:prepend() {
 	if [ -z "${FITLOADADDR}" ]; then
-		FITLOADADDR=0x48000000
 		bbwarn "Set FITLOADADDR to ${FITLOADADDR}"
 	fi
 
@@ -50,6 +50,9 @@ do_assemble_fit:prepend() {
 	if [ -z "${ITS_KERNEL_ENTRY_ADDR}" ]; then
 		bbwarn "ITS_KERNEL_ENTRY_ADDR is not set"
 	fi
+	if [ -z "${ITS_DTB_LOAD_ADDR}" ]; then
+		bbwarn "ITS_DTB_LOAD_ADDR is not set"
+	fi
 }
 
 # overwrite meta-secure-imx/recipes-core/images/image-fit.inc
@@ -65,6 +68,7 @@ do_assemble_fit() {
 	export MACHINE=${MACHINE}
 	export ITS_KERNEL_LOAD_ADDR=${ITS_KERNEL_LOAD_ADDR}
 	export ITS_KERNEL_ENTRY_ADDR=${ITS_KERNEL_ENTRY_ADDR}
+	export ITS_DTB_LOAD_ADDR=${ITS_DTB_LOAD_ADDR}
 	export KERNEL_IMAGETYPE=${KERNEL_IMAGETYPE}
 	if [ "${KERNEL_IMAGETYPE}" = "Image.gz" ]; then
 		export KERNEL_COMPRESSION=gzip
@@ -92,6 +96,7 @@ do_assemble_fit() {
 	sed -i "s|KERNEL_COMPRESSION|$KERNEL_COMPRESSION|g" rescue.its
 	sed -i "s|KERNEL_DTB_FILE|$(basename $KERNEL_DTB_FILE)|g" rescue.its
 	sed -i "s|ITS_KERNEL_LOAD_ADDR|$ITS_KERNEL_LOAD_ADDR|g" rescue.its
+	sed -i "s|ITS_DTB_LOAD_ADDR|$ITS_DTB_LOAD_ADDR|g" rescue.its
 	sed -i "s|ITS_KERNEL_ENTRY_ADDR|$ITS_KERNEL_ENTRY_ADDR|g" rescue.its
 	cat rescue.its
 	echo "======== create itb file ==========="
