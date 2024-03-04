@@ -11,4 +11,4 @@ FITIMAGE_RUNNING_VERSION = "1.0"
 # name of the recipe, which creates the initramfs
 RESCUE_NAME = "irma-initramfs"
 
-require irma6-fit.inc
+require irma-fit.inc

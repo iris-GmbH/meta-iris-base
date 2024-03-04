@@ -4,8 +4,6 @@
 # require inc-file from meta-secure-imx
 require recipes-core/images/image-fit.inc
 
-COMPATIBLE_MACHINE = "mx8"
-
 FILESEXTRAPATHS:prepend := "${THISDIR}/files:"
 
 KERNEL_SIGN_SUFFIX = "signed"
@@ -14,12 +12,19 @@ RESCUE_NAME_FULL ?= "${RESCUE_NAME}-${MACHINE}.cpio.gz"
 # Overwrite KERNEL_DEVICETREE as it is a multiline variable defined in meta-freescale/conf/machine
 KERNEL_DTB_FILE = "${KERNEL_DEVICETREE}"
 KERNEL_DTB_FILE:imx8mp-lpddr4-evk = "freescale/imx8mp-evk.dtb"
+KERNEL_DTB_FILE:imx93-matrix-evk = "freescale/imx93-11x11-evk.dtb"
 
 # Define load addresses for imx8mp hardware
 ITS_KERNEL_LOAD_ADDR:mx8mp-nxp-bsp = "0x40400000"
 ITS_KERNEL_ENTRY_ADDR:mx8mp-nxp-bsp = "0x40400000"
 FITLOADADDR:mx8mp-nxp-bsp = "0x48000000"
 ITS_DTB_LOAD_ADDR:mx8mp-nxp-bsp = "0x43000000"
+
+# Define load addresses for imx93 hardware
+ITS_KERNEL_LOAD_ADDR:mx9-nxp-bsp = "0x80400000"
+ITS_KERNEL_ENTRY_ADDR:mx9-nxp-bsp = "0x80400000"
+FITLOADADDR:mx9-nxp-bsp = "0x88000000"
+ITS_DTB_LOAD_ADDR:mx9-nxp-bsp = "0x83000000"
 
 # include checking of HAB/CST related variables
 inherit irma6-signing-variable-check
@@ -108,7 +113,9 @@ do_assemble_fit() {
 
 	install -d ${DEPLOY_DIR_IMAGE}
 	install -m 644 ${ITB_FNAME} ${DEPLOY_DIR_IMAGE}/${ITB_FNAME}
+}
 
+do_assemble_fit:append:mx8mp-nxp-bsp() {
 	prepare_hab_image ${ITB_FNAME}
 	install ${ITB_FNAME}-ivt.${KERNEL_SIGN_SUFFIX} ${DEPLOY_DIR_IMAGE}/${ITB_FNAME}.${KERNEL_SIGN_SUFFIX}
 }
