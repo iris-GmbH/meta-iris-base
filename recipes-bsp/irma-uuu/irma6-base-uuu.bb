@@ -6,9 +6,9 @@ FITIMAGE_NAME = "irma6-fitimage"
 FITIMAGE_UUU_NAME = "irma6-fitimage-uuu"
 FLASHBIN:imx8mp-lpddr4-evk = "boot/imx-boot-imx8mp-lpddr4-evk-sd.bin-flash_evk.signed"
 FLASHBIN:imx8mp-irma6r2 = "boot/imx-boot-imx8mp-irma6r2-sd.bin-flash_ddr4_evk.signed"
-PARTITIONS:mx8mp-nxp-bsp = "partitions_imx8mp"
 UUUSCRIPT:mx8mp-nxp-bsp = "flashall_imx8mp.uuu"
 VERIFICATIONSCRIPT:mx8mp-nxp-bsp = "verification_imx8mp.sh"
+SIGNED_SUFFIX = ".signed"
 
 COMPATIBLE_MACHINE = "use-irma6r2-bsp"
 
