@@ -3,6 +3,14 @@
 
 FILESEXTRAPATHS:prepend := "${THISDIR}/linux-fslc-iris:"
 
+# Unset in-tree defconfig and use local defconfig
+KBUILD_DEFCONFIG:mx8-generic-bsp = ""
+KBUILD_DEFCONFIG:mx9-generic-bsp = ""
+
+SRC_URI:append = " \
+    file://defconfig \
+"
+
 SRC_URI:append:use-irma6r2-bsp = " \
     file://0001-epc660-Add-device-driver-support.patch \
     file://0002-tc358746-Add-device-driver-support.patch \
@@ -49,7 +57,7 @@ SRC_URI:append:use-irma6r2-bsp = " \
     file://0043-Set-VB2_MAX_FRAME-VIDEO_MAX_FRAME-up-to-128.patch \
 "
 
-SRC_URI:append:use-irma-matrix-bsp = " \
+SRC_URI:append:imx93-matrix-evk = " \
 "
 
 SRC_URI:append:poky-iris-deploy = "\
