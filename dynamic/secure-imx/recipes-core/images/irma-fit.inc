@@ -85,6 +85,16 @@ do_assemble_fit() {
 	else
 		export TARGET_ARCH=${TARGET_ARCH}
 	fi
+
+	initramfs_extension="${RESCUE_NAME_FULL##*.}"
+	if [ "$initramfs_extension" = "gz" ]; then
+		export INITRAMFS_COMPRESSION=gzip
+	elif [ "$initramfs_extension" = "zst" ]; then
+	    export INITRAMFS_COMPRESSION=zstd
+	else
+	    export INITRAMFS_COMPRESSION=none
+	fi
+
 	echo "B" ${B}
 	echo "S" ${S}
 	echo $DEPLOY_DIR_IMAGE
@@ -100,6 +110,7 @@ do_assemble_fit() {
 	sed -i "s|KERNEL_IMAGETYPE|$KERNEL_IMAGETYPE|g" rescue.its
 	sed -i "s|KERNEL_COMPRESSION|$KERNEL_COMPRESSION|g" rescue.its
 	sed -i "s|KERNEL_DTB_FILE|$(basename $KERNEL_DTB_FILE)|g" rescue.its
+	sed -i "s|INITRAMFS_COMPRESSION|$INITRAMFS_COMPRESSION|g" rescue.its
 	sed -i "s|ITS_KERNEL_LOAD_ADDR|$ITS_KERNEL_LOAD_ADDR|g" rescue.its
 	sed -i "s|ITS_DTB_LOAD_ADDR|$ITS_DTB_LOAD_ADDR|g" rescue.its
 	sed -i "s|ITS_KERNEL_ENTRY_ADDR|$ITS_KERNEL_ENTRY_ADDR|g" rescue.its
