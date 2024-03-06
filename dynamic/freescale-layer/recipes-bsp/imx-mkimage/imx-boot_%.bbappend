@@ -242,7 +242,11 @@ sign_uboot_common() {
 do_sign_uboot() {
     if [ "${HAB_ENABLE}" = "1" ];then
         sign_uboot_common
-    else
+    fi
+}
+
+do_sign_uboot:append:use-irma6r2-bsp() {
+    if [ "${HAB_ENABLE}" = "0" ];then
         bbwarn "HAB boot not enabled."
     fi
 }
