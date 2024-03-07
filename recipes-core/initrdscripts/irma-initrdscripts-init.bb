@@ -10,3 +10,4 @@ RDEPENDS:${PN}:append:mx8mp-nxp-bsp = " \
     keyutils \
 "
 
+SCRIPTFILE:mx93-nxp-bsp = "matrix-initramfs-init.sh"
