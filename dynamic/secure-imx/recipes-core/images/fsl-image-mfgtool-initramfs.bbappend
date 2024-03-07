@@ -17,8 +17,8 @@ CORE_IMAGE_BASE_INSTALL:append:use-irma-matrix-bsp = " \
 "
 
 # Overwrite default IMAGE_FSTYPES for the initramfs
-IMAGE_FSTYPES:use-irma6r2-bsp = " cpio.gz"
-IMAGE_FSTYPES:use-irma-matrix-bsp = " cpio.zst.u-boot"
+IMAGE_FSTYPES:use-irma6r2-bsp = "cpio.gz"
+IMAGE_FSTYPES:use-irma-matrix-bsp = "cpio.zst"
 
 # Remove not needed dependencies to speed up build time
 DEPENDS:remove = "u-boot-mfgtool linux-mfgtool"
