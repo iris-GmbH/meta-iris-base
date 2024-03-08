@@ -7,5 +7,4 @@ require irma-initramfs.inc
 INITSCRIPT_PACKAGE = "irma-initrdscripts-init"
 
 # Overwrite default IMAGE_FSTYPES for the initramfs
-IMAGE_FSTYPES:use-irma6r2-bsp = "cpio.gz"
-IMAGE_FSTYPES:use-irma-matrix-bsp = "cpio.zst"
+IMAGE_FSTYPES = "cpio.zst"

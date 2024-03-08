@@ -8,6 +8,5 @@ LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/MIT;md5=0835ade698e0bcf8506ecda
 FITIMAGE_DESCRIPTION = "IRMA Matrix uuu initial operation fitImage"
 FITIMAGE_RUNNING_VERSION = "1.0"
 RESCUE_NAME = "fsl-image-mfgtool-initramfs"
-RESCUE_NAME_FULL = "${RESCUE_NAME}-${MACHINE}.cpio.zst"
 
 require irma-fit.inc

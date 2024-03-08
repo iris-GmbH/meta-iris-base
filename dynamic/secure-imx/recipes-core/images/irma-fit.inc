@@ -7,7 +7,7 @@ require recipes-core/images/image-fit.inc
 FILESEXTRAPATHS:prepend := "${THISDIR}/files:"
 
 KERNEL_SIGN_SUFFIX = "signed"
-RESCUE_NAME_FULL ?= "${RESCUE_NAME}-${MACHINE}.cpio.gz"
+RESCUE_NAME_FULL ?= "${RESCUE_NAME}-${MACHINE}.cpio.zst"
 
 # Overwrite KERNEL_DEVICETREE as it is a multiline variable defined in meta-freescale/conf/machine
 KERNEL_DTB_FILE = "${KERNEL_DEVICETREE}"
