@@ -2,8 +2,6 @@
 # Copyright (C) 2021 iris-GmbH infrared & intelligent sensors
 
 require uuu-container.inc
-FITIMAGE_NAME = "irma6-fitimage"
-FITIMAGE_UUU_NAME = "irma6-fitimage-uuu"
 FLASHBIN:imx8mp-lpddr4-evk = "boot/imx-boot-imx8mp-lpddr4-evk-sd.bin-flash_evk.signed"
 FLASHBIN:imx8mp-irma6r2 = "boot/imx-boot-imx8mp-irma6r2-sd.bin-flash_ddr4_evk.signed"
 UUUSCRIPT:mx8mp-nxp-bsp = "flashall_imx8mp.uuu"

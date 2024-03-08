@@ -4,8 +4,14 @@
 # require inc-file from meta-secure-imx
 require recipes-core/images/image-fit.inc
 
+SUMMARY = "IRMA FIT image"
+LICENSE = "MIT"
+LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/MIT;md5=0835ade698e0bcf8506ecda2f7b4f302"
+
 FILESEXTRAPATHS:prepend := "${THISDIR}/files:"
 
+FITIMAGE_RUNNING_VERSION = "1.0"
+FITIMAGE_DESCRIPTION = "IRMA FIT image"
 KERNEL_SIGN_SUFFIX = "signed"
 RESCUE_NAME_FULL ?= "${RESCUE_NAME}-${MACHINE}.cpio.zst"
 
@@ -37,15 +43,6 @@ do_assemble_fit:prepend() {
 
 	if [ -z "${RESCUE_NAME_FULL}" ]; then
 		bbwarn "RESCUE_NAME_FULL is not set"
-	fi
-
-	if [ -z "${FITIMAGE_DESCRIPTION}" ]; then
-		bbwarn "FITIMAGE_DESCRIPTION is not set"
-	fi
-
-	if [ -z "${FITIMAGE_RUNNING_VERSION}" ]; then
-		FITIMAGE_RUNNING_VERSION=0.0.0
-		bbwarn "Set FITIMAGE_RUNNING_VERSION to ${FITIMAGE_RUNNING_VERSION}"
 	fi
 
 	if [ -z "${ITS_KERNEL_LOAD_ADDR}" ]; then

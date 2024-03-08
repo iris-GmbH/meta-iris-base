@@ -28,8 +28,8 @@ do_compile[noexec] = "1"
 do_deploy[nostamp] = "1"
 
 # Variables - must be set in bb file
-FITIMAGE_NAME ?= ""
-FITIMAGE_UUU_NAME ?= ""
+FITIMAGE_NAME = "irma-fitimage"
+FITIMAGE_UUU_NAME = "irma-fitimage-uuu"
 SIGNED_SUFFIX ?= ""
 
 UUUSCRIPT ?= ""
