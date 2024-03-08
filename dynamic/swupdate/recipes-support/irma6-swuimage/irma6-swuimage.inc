@@ -6,7 +6,7 @@ LICENSE = "MIT"
 LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/MIT;md5=0835ade698e0bcf8506ecda2f7b4f302"
 
 IMAGENAME = "${@ d.getVar('PN').replace('-swuimage','')}"
-FITIMAGENAME = "irma6-fitimage"
+FITIMAGENAME = "irma-fitimage"
 
 # The following line forces the usage of the "files" directory next to this .inc file even if it is required from another layer
 FILESEXTRAPATHS:prepend := "${@os.path.dirname(d.getVar('FILE'))}/files:"
