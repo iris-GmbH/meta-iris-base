@@ -4,21 +4,33 @@
 # require inc-file from meta-secure-imx
 require recipes-core/images/image-fit.inc
 
-COMPATIBLE_MACHINE = "mx8"
+SUMMARY = "IRMA FIT image"
+LICENSE = "MIT"
+LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/MIT;md5=0835ade698e0bcf8506ecda2f7b4f302"
 
 FILESEXTRAPATHS:prepend := "${THISDIR}/files:"
 
+FITIMAGE_RUNNING_VERSION = "1.0"
+FITIMAGE_DESCRIPTION = "IRMA FIT image"
 KERNEL_SIGN_SUFFIX = "signed"
-RESCUE_NAME_FULL ?= "${RESCUE_NAME}-${MACHINE}.cpio.gz"
+RESCUE_NAME_FULL ?= "${RESCUE_NAME}-${MACHINE}.cpio.zst"
 
 # Overwrite KERNEL_DEVICETREE as it is a multiline variable defined in meta-freescale/conf/machine
 KERNEL_DTB_FILE = "${KERNEL_DEVICETREE}"
 KERNEL_DTB_FILE:imx8mp-lpddr4-evk = "freescale/imx8mp-evk.dtb"
+KERNEL_DTB_FILE:imx93-matrix-evk = "freescale/imx93-11x11-evk.dtb"
 
 # Define load addresses for imx8mp hardware
 ITS_KERNEL_LOAD_ADDR:mx8mp-nxp-bsp = "0x40400000"
 ITS_KERNEL_ENTRY_ADDR:mx8mp-nxp-bsp = "0x40400000"
 FITLOADADDR:mx8mp-nxp-bsp = "0x48000000"
+ITS_DTB_LOAD_ADDR:mx8mp-nxp-bsp = "0x43000000"
+
+# Define load addresses for imx93 hardware
+ITS_KERNEL_LOAD_ADDR:mx9-nxp-bsp = "0x80400000"
+ITS_KERNEL_ENTRY_ADDR:mx9-nxp-bsp = "0x80400000"
+FITLOADADDR:mx9-nxp-bsp = "0x88000000"
+ITS_DTB_LOAD_ADDR:mx9-nxp-bsp = "0x83000000"
 
 # include checking of HAB/CST related variables
 inherit irma6-signing-variable-check
@@ -26,21 +38,11 @@ addtask do_signing_variable_check before do_assemble_fit
 
 do_assemble_fit:prepend() {
 	if [ -z "${FITLOADADDR}" ]; then
-		FITLOADADDR=0x48000000
 		bbwarn "Set FITLOADADDR to ${FITLOADADDR}"
 	fi
 
 	if [ -z "${RESCUE_NAME_FULL}" ]; then
 		bbwarn "RESCUE_NAME_FULL is not set"
-	fi
-
-	if [ -z "${FITIMAGE_DESCRIPTION}" ]; then
-		bbwarn "FITIMAGE_DESCRIPTION is not set"
-	fi
-
-	if [ -z "${FITIMAGE_RUNNING_VERSION}" ]; then
-		FITIMAGE_RUNNING_VERSION=0.0.0
-		bbwarn "Set FITIMAGE_RUNNING_VERSION to ${FITIMAGE_RUNNING_VERSION}"
 	fi
 
 	if [ -z "${ITS_KERNEL_LOAD_ADDR}" ]; then
@@ -49,6 +51,9 @@ do_assemble_fit:prepend() {
 
 	if [ -z "${ITS_KERNEL_ENTRY_ADDR}" ]; then
 		bbwarn "ITS_KERNEL_ENTRY_ADDR is not set"
+	fi
+	if [ -z "${ITS_DTB_LOAD_ADDR}" ]; then
+		bbwarn "ITS_DTB_LOAD_ADDR is not set"
 	fi
 }
 
@@ -65,6 +70,7 @@ do_assemble_fit() {
 	export MACHINE=${MACHINE}
 	export ITS_KERNEL_LOAD_ADDR=${ITS_KERNEL_LOAD_ADDR}
 	export ITS_KERNEL_ENTRY_ADDR=${ITS_KERNEL_ENTRY_ADDR}
+	export ITS_DTB_LOAD_ADDR=${ITS_DTB_LOAD_ADDR}
 	export KERNEL_IMAGETYPE=${KERNEL_IMAGETYPE}
 	if [ "${KERNEL_IMAGETYPE}" = "Image.gz" ]; then
 		export KERNEL_COMPRESSION=gzip
@@ -76,6 +82,16 @@ do_assemble_fit() {
 	else
 		export TARGET_ARCH=${TARGET_ARCH}
 	fi
+
+	initramfs_extension="${RESCUE_NAME_FULL##*.}"
+	if [ "$initramfs_extension" = "gz" ]; then
+		export INITRAMFS_COMPRESSION=gzip
+	elif [ "$initramfs_extension" = "zst" ]; then
+	    export INITRAMFS_COMPRESSION=zstd
+	else
+	    export INITRAMFS_COMPRESSION=none
+	fi
+
 	echo "B" ${B}
 	echo "S" ${S}
 	echo $DEPLOY_DIR_IMAGE
@@ -91,7 +107,9 @@ do_assemble_fit() {
 	sed -i "s|KERNEL_IMAGETYPE|$KERNEL_IMAGETYPE|g" rescue.its
 	sed -i "s|KERNEL_COMPRESSION|$KERNEL_COMPRESSION|g" rescue.its
 	sed -i "s|KERNEL_DTB_FILE|$(basename $KERNEL_DTB_FILE)|g" rescue.its
+	sed -i "s|INITRAMFS_COMPRESSION|$INITRAMFS_COMPRESSION|g" rescue.its
 	sed -i "s|ITS_KERNEL_LOAD_ADDR|$ITS_KERNEL_LOAD_ADDR|g" rescue.its
+	sed -i "s|ITS_DTB_LOAD_ADDR|$ITS_DTB_LOAD_ADDR|g" rescue.its
 	sed -i "s|ITS_KERNEL_ENTRY_ADDR|$ITS_KERNEL_ENTRY_ADDR|g" rescue.its
 	cat rescue.its
 	echo "======== create itb file ==========="
@@ -103,7 +121,9 @@ do_assemble_fit() {
 
 	install -d ${DEPLOY_DIR_IMAGE}
 	install -m 644 ${ITB_FNAME} ${DEPLOY_DIR_IMAGE}/${ITB_FNAME}
+}
 
+do_assemble_fit:append:mx8mp-nxp-bsp() {
 	prepare_hab_image ${ITB_FNAME}
 	install ${ITB_FNAME}-ivt.${KERNEL_SIGN_SUFFIX} ${DEPLOY_DIR_IMAGE}/${ITB_FNAME}.${KERNEL_SIGN_SUFFIX}
 }

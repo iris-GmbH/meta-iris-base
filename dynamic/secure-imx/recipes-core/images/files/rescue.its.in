@@ -24,7 +24,7 @@
 			type = "flat_dt";
 			arch = "TARGET_ARCH";
 			compression = "none";
-			load = <0x43000000>;
+			load = <ITS_DTB_LOAD_ADDR>;
 			hash {
 				algo = "sha256";
 			};
@@ -35,7 +35,7 @@
 			type = "ramdisk";
 			arch = "TARGET_ARCH";
 			os = "linux";
-			compression = "none";
+			compression = "INITRAMFS_COMPRESSION";
 
 			hash {
 				algo = "sha256";
