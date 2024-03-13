@@ -12,5 +12,3 @@ VERIFICATIONSCRIPT:imx93-11x11-lpddr4x-evk = "verification_imx93evk.sh"
 # only allow iMX93 (= irma-matrix) machines
 COMPATIBLE_MACHINE = "mx93-nxp-bsp"
 
-# TODO: Use irma6 image for now:
-IMAGENAME = "irma6-maintenance"
