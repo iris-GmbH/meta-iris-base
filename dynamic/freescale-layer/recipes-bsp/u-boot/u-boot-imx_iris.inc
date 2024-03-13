@@ -6,8 +6,8 @@ LOCALVERSION = "-${IRIS_IMX_BOOT_RELEASE}"
 
 UBOOT_INITIAL_ENV = "u-boot-initial-env"
 
-FILESEXTRAPATHS:prepend:use-irma6r2-bsp := "${THISDIR}/u-boot-imx/common:"
-SRC_URI:append:use-irma6r2-bsp = "\
+FILESEXTRAPATHS:prepend:mx8mp-nxp-bsp := "${THISDIR}/u-boot-imx/common:"
+SRC_URI:append:mx8mp-nxp-bsp = "\
 	file://fw_env.config \
 	file://0001-env-Fix-prio-on-bad-CRC-case-with-ENV_APPEND-enabled.patch \
 	file://0002-env-Invert-gd-env_valid-for-env_mmc_save.patch \

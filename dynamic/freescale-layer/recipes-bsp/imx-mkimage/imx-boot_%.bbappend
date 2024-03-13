@@ -27,7 +27,7 @@ hex2dec() {
 # the further signature process. The outputs are stored in the files
 # hab_info1.txt and hab_info2.txt.
 #
-do_compile:use-irma6r2-bsp() {
+do_compile:mx8mp-nxp-bsp() {
     # mkimage for i.MX8
     # Copy TEE binary to SoC target folder to mkimage
     if ${DEPLOY_OPTEE}; then
@@ -247,7 +247,7 @@ do_sign_uboot() {
     fi
 }
 
-do_sign_uboot:append:use-irma6r2-bsp() {
+do_sign_uboot:append:mx8mp-nxp-bsp() {
     if [ "${HAB_ENABLE}" = "0" ];then
         bbwarn "HAB boot not enabled."
     fi
