@@ -57,7 +57,8 @@ SRC_URI:append:use-irma6r2-bsp = " \
     file://0043-Set-VB2_MAX_FRAME-VIDEO_MAX_FRAME-up-to-128.patch \
 "
 
-SRC_URI:append:imx93-matrix-evk = " \
+# irma-matrix specific patches
+SRC_URI:append:mx93-nxp-bsp = " \
 "
 
 SRC_URI:append:poky-iris-deploy = "\

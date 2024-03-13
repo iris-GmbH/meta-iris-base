@@ -14,7 +14,8 @@ CORE_IMAGE_BASE_INSTALL:append:use-irma6r2-bsp = " \
    keyutils \
 "
 
-CORE_IMAGE_BASE_INSTALL:append:use-irma-matrix-bsp = " \
+# irma-matrix specific packages
+CORE_IMAGE_BASE_INSTALL:append:mx93-nxp-bsp = " \
     tar \
     zstd \
 "

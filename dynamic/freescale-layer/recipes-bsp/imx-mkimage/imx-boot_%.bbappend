@@ -11,6 +11,8 @@ SRC_URI:append:imx8mp-irma6r2 = " \
     file://0001-Use-imx8mp-irma6r2.dtb-instead-of-imx8mp-ddr4-evk.dt.patch \
 "
 
+IMXBOOT_TARGETS:imx93-11x11-lpddr4x-evk = "flash_singleboot_no_ahabfw"
+
 python __anonymous () {
     if d.getVar('HAB_ENABLE', True):
         d.appendVar("DEPENDS", " cst-native")
