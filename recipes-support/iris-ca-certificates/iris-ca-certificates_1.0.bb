@@ -7,7 +7,7 @@ LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/MIT;md5=0835ade698e0bcf8506ecda
 FILES:${PN} = "${sysconfdir}/iris/ca-certificates"
 
 # Release 1 is limited to a subset
-do_r1_install () {
+do_install:poky-iris-0601() {
     install -d ${D}${sysconfdir}/iris/ca-certificates
     if [ ! -e "${DOWNLOAD_CRT}" ]; then
         bbfatal "Error: DOWNLOAD_CRT: ${DOWNLOAD_CRT} does not exist!"
@@ -15,7 +15,7 @@ do_r1_install () {
     install -m 0644 ${DOWNLOAD_CRT} ${D}${sysconfdir}/iris/ca-certificates/download.crt
 }
 
-do_r2_install() {
+do_install:poky-iris-0602() {
     install -d ${D}${sysconfdir}/iris/ca-certificates
 
     if [ ! -e "${SWUPDATE_CA_CERT}" ]; then
@@ -27,13 +27,4 @@ do_r2_install() {
         bbfatal "Error: DOWNLOAD_CRT: ${DOWNLOAD_CRT} does not exist!"
     fi
     install -m 0644 ${DOWNLOAD_CRT} ${D}${sysconfdir}/iris/ca-certificates/download.crt
-}
-
-do_install() {
-    if [ "${IRMA6_RELEASE}" = "2" ]
-    then
-        do_r2_install
-    else
-        do_r1_install
-    fi
 }
