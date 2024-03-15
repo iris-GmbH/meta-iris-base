@@ -4,7 +4,7 @@
 SUMMARY = "The iris custom Linux distribution, minus our proprietary platform application."
 IMAGE_LINGUAS = " "
 LICENSE = "MIT"
-inherit irma6-core-image
+inherit irma-core-image
 IMAGE_ROOTFS_SIZE ?= "8192"
 IMAGE_ROOTFS_EXTRA_SPACE:append = "${@bb.utils.contains("DISTRO_FEATURES", "systemd", " + 4096", "" ,d)}"
 TOOLCHAIN_HOST_TASK += " \
@@ -19,7 +19,7 @@ TOOLCHAIN_HOST_TASK += " \
 TOOLCHAIN_TARGET_TASK += "googletest"
 
 PV = "${DISTRO_VERSION}"
-inherit irma6-versioning
+inherit irma-firmware-versioning
 
 IRMA6_BASE_PACKAGES = " \
 	iris-ca-certificates \

@@ -35,7 +35,7 @@
 			type = "ramdisk";
 			arch = "TARGET_ARCH";
 			os = "linux";
-			compression = "INITRAMFS_COMPRESSION";
+			compression = "none";
 
 			hash {
 				algo = "sha256";

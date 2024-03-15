@@ -11,7 +11,8 @@ SRC_URI:append = " \
     file://defconfig \
 "
 
-SRC_URI:append:use-irma6r2-bsp = " \
+# irma6r2 specific patches
+SRC_URI:append:mx8mp-nxp-bsp = " \
     file://0001-epc660-Add-device-driver-support.patch \
     file://0002-tc358746-Add-device-driver-support.patch \
     file://0003-imx8mp-evk.dts-Add-epc660-and-tc358746-nodes-to-dts.patch \
@@ -57,7 +58,8 @@ SRC_URI:append:use-irma6r2-bsp = " \
     file://0043-Set-VB2_MAX_FRAME-VIDEO_MAX_FRAME-up-to-128.patch \
 "
 
-SRC_URI:append:imx93-matrix-evk = " \
+# irma-matrix specific patches
+SRC_URI:append:mx93-nxp-bsp = " \
 "
 
 SRC_URI:append:poky-iris-deploy = "\

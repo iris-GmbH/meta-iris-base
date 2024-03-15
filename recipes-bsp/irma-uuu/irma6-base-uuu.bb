@@ -8,7 +8,8 @@ UUUSCRIPT:mx8mp-nxp-bsp = "flashall_imx8mp.uuu"
 VERIFICATIONSCRIPT:mx8mp-nxp-bsp = "verification_imx8mp.sh"
 SIGNED_SUFFIX = ".signed"
 
-COMPATIBLE_MACHINE = "use-irma6r2-bsp"
+# only allow iMX8MP (= irma6r2) machines
+COMPATIBLE_MACHINE = "mx8mp-nxp-bsp"
 
 # the CAAM driver seems to have a bug when the kernel runs with more than 4 GB of RAM
 # see: https://community.nxp.com/t5/i-MX-Processors/quot-swiotlb-buffer-is-full-quot-when-writing-large-file-on/m-p/1586218
