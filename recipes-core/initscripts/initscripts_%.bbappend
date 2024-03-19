@@ -14,14 +14,14 @@ SRC_URI:append:mx8mp-nxp-bsp = " \
     file://switch-log-location.sh \
 "
 
-RDEPENDS:${PN}:append:mx8mp-nxp-bsp = " phytool"
+RDEPENDS:${PN}:append = " phytool"
 
 FILES:${PN} += " \
 	${datadir}/factory-reset/factory-reset-functions \
 	${bindir}/factory-reset.sh \
 "
 
-do_install:append:mx8mp-nxp-bsp() {
+do_install:append () {
 	# Remove S06checkroot.sh symlink to avoid "ro" /
 	# remounting when using nfs boot and expecting rw access
 	# from prior mounting in the initramfs init script.
