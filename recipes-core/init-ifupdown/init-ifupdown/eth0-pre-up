@@ -124,11 +124,6 @@ parameterExists(){
   fi
 }
 
-getIpAddress(){
-  adr=`echo $json | sed -rn 's/.*"'"$1"'"\s*:\s*\{\s*"value"\s*:\s*\{\s*"value"\s*:\s*"([^"]*).*/\1/p'`
-  echo $adr
-}
-
 getParameter(){
   val=`echo $json | sed -rn 's/.*"'"$1"'"\s*:\s*\{\s*"value"\s*:\s*([^,]*).*/\1/p'`
   echo $val
@@ -173,19 +168,19 @@ if [ "$IFACE" = "eth0" ]; then
    CUSTOMDHCP61ACIVATED=""
    CUSTOMDHCP61CLIENTIDENTIFIER=""
    if parameterExists "pa\.communication\.ipaddr"; then
-      CUSTOMERIP=$(getIpAddress "pa\.communication\.ipaddr")
+      CUSTOMERIP=$(getParameter "pa\.communication\.ipaddr")
       echo "  pa.communication.ipaddr:" "$CUSTOMERIP"
    fi
    if parameterExists "pa\.communication\.netmask"; then
-      CUSTOMERNETMASK=$(getIpAddress "pa\.communication\.netmask")
+      CUSTOMERNETMASK=$(getParameter "pa\.communication\.netmask")
       echo "  pa.communication.netmask:" $CUSTOMERNETMASK
    fi
    if parameterExists "pa\.communication\.gateway"; then
-      CUSTOMERGATEWAY=$(getIpAddress "pa\.communication\.gateway")
+      CUSTOMERGATEWAY=$(getParameter "pa\.communication\.gateway")
       echo "  pa.communication.gateway:" "$CUSTOMERGATEWAY"
    fi
    if parameterExists "pa\.communication\.dns"; then
-      CUSTOMERDNS=$(getIpAddress "pa\.communication\.dns")
+      CUSTOMERDNS=$(getParameter "pa\.communication\.dns")
       echo "  pa.communication.dns:" "$CUSTOMERDNS"
    fi
    if parameterExists "pa\.communication\.dhcp_usecustomoption61"; then
