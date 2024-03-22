@@ -20,30 +20,6 @@ exists() {
 	command -v "$1" >/dev/null 2>&1 || { log "ERROR: $1 not found"; exit 1; }
 }
 
-# compares if current fw is greater or equal than minimal version
-# $1 minimal version
-# returns 0 if local version >= minimal version
-# returns 1 if local version < minimal version
-current_version_is_ge() {
-	localversion=$(sed -ne '/^VERSION=/s/^VERSION=[^0-9]*\([0-9]\+.[0-9]\+.[0-9]\+\)[^0-9]*.*/\1/p' /etc/os-release)
-	if printf '%s\n%s\n' "$1" "$localversion" | sort --check=quiet --version-sort; then
-		# $localversion >= $minimal_version
-		return 0
-	fi
-	# $localversion < $minimal_version
-	return 1
-}
-
-check_installed_version() {
-	# Hack for Dunfell-Kirkstone Power Safe Update: check if installed firmware is at least $minimalversion
-	# can be removed on major release 4.X.X
-	minimalversion="2.1.5"
-	if ! current_version_is_ge "$minimalversion" ; then
-		log_to_website "This update requires at least firmware version $minimalversion to be installed."
-		exit 1
-	fi
-}
-
 cmds_exist () {
 	exists dmsetup
 	exists sfdisk
@@ -307,7 +283,6 @@ set_uboot_env() {
 }
 
 if [ "$1" = "preinst" ]; then
-	check_installed_version
 	pending_update
 	cmds_exist
 	parse_cmdline
