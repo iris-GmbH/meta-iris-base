@@ -156,7 +156,7 @@ check_hab_srk() {
 	n_of_srks=4
 
 	# images to be verified for SRK signature
-	signed_images="/tmp/imx-boot.signed /tmp/irma6-fitimage.itb.signed"
+	signed_images="/tmp/imx-boot.signed /tmp/irma-fitimage.itb.signed"
 
 	# check if secure boot is activated
 	boot_cfg=$(imx_fuse_read 7 1)
@@ -282,7 +282,7 @@ prepare_userdata_sync() {
 
 	USERDATA_ALT_NAME="userdata$FIRMWARE_SUFFIX_ALT"
 	USERDATA_ALT_MOUNTP="/tmp/$USERDATA_ALT_NAME"
-	
+
 	# remove sync file from current userdata
 	rm -f "/mnt/iris/$SYNC_FILE_NAME"
 
