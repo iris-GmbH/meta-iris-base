@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: MIT
 # Copyright (C) 2022 iris-GmbH infrared & intelligent sensors
 
-DESCRIPTION = "Generate irma6 swupdate images"
+DESCRIPTION = "Generate irma swupdate images"
 LICENSE = "MIT"
 LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/MIT;md5=0835ade698e0bcf8506ecda2f7b4f302"
 
@@ -48,7 +48,7 @@ python() {
 python do_swuimage:prepend () {
     import json
     print(d.getVar('IMAGE_LINK_NAME'))
-    # read rootfs / irma6 version from meta file
+    # read rootfs / irma version from meta file
     image_dir = d.getVar('DEPLOY_DIR_IMAGE', True)
     irmameta = json.load(open(os.path.join(image_dir, d.getVar("SWU_META"))))
     fw_version = irmameta['FIRMWARE_VERSION']

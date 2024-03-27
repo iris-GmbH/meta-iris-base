@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: MIT
 # Copyright (C) 2022 iris-GmbH infrared & intelligent sensors
 
-SUMMARY = "initramfs image init script for irma6"
+SUMMARY = "initramfs image init script for irma"
 LICENSE = "MIT"
 LIC_FILES_CHKSUM = "file://${COREBASE}/meta/COPYING.MIT;md5=3da9cfbcb788c80a0384361b4de20420"
 

@@ -21,12 +21,14 @@ TOOLCHAIN_TARGET_TASK += "googletest"
 PV = "${DISTRO_VERSION}"
 inherit irma-firmware-versioning
 
-IRMA6_BASE_PACKAGES = " \
+IRMA_BASE_PACKAGES = " \
 	iris-ca-certificates \
 "
 
-# IRMA6 default (Release 2) only packages
-IRMA6_EXTRA_PACKAGES = " \
+IRMA_EXTRA_PACKAGES = ""
+
+# IRMA6 Release 2 only packages
+IRMA_EXTRA_PACKAGES:poky-iris-0602 = " \
 	iris-signing \
 	rsyslog \
 	chrony \
@@ -35,12 +37,12 @@ IRMA6_EXTRA_PACKAGES = " \
 "
 
 # IRMA6 Release 1 only packages
-IRMA6_EXTRA_PACKAGES:sc57x = " \
+IRMA_EXTRA_PACKAGES:poky-iris-0601 = " \
 "
 
 IMAGE_INSTALL:append = " \
-	${IRMA6_BASE_PACKAGES} \
-	${IRMA6_EXTRA_PACKAGES} \
+	${IRMA_BASE_PACKAGES} \
+	${IRMA_EXTRA_PACKAGES} \
 "
 
 # Include swupdate in image if swupdate is part of the update procedure

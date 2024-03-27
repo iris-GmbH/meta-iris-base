@@ -2,7 +2,7 @@ software =
 {
     version = "@@SWU_FW_VERSION@@";
     bootloader_transaction_marker = false;
-    description = "Firmware update for IRMA6 image";
+    description = "Firmware update for IRMA image";
     hardware-compatibility = [ "@@SWU_HW_VERSION@@" ];
 
     files: (
