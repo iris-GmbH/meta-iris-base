@@ -28,3 +28,8 @@ do_install:poky-iris-0602() {
     fi
     install -m 0644 ${DOWNLOAD_CRT} ${D}${sysconfdir}/iris/ca-certificates/download.crt
 }
+
+do_install:poky-iris-0501() {
+    install -d ${D}${sysconfdir}/iris/ca-certificates
+    #TODO: install relevant key material
+}
