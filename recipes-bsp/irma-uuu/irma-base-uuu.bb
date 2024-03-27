@@ -4,12 +4,21 @@
 require uuu-container.inc
 FLASHBIN:imx8mp-lpddr4-evk = "boot/imx-boot-imx8mp-lpddr4-evk-sd.bin-flash_evk.signed"
 FLASHBIN:imx8mp-irma6r2 = "boot/imx-boot-imx8mp-irma6r2-sd.bin-flash_ddr4_evk.signed"
-UUUSCRIPT:mx8mp-nxp-bsp = "flashall_imx8mp.uuu"
-VERIFICATIONSCRIPT:mx8mp-nxp-bsp = "verification_imx8mp.sh"
-SIGNED_SUFFIX = ".signed"
+FLASHBIN:imx93-11x11-lpddr4x-evk = "boot/imx-boot-imx93-11x11-lpddr4x-evk-sd.bin-flash_singleboot_no_ahabfw"
 
-# only allow iMX8MP (= irma6r2) machines
-COMPATIBLE_MACHINE = "mx8mp-nxp-bsp"
+UUUSCRIPT:mx8mp-nxp-bsp = "flashall_imx8mp.uuu"
+UUUSCRIPT:imx93-11x11-lpddr4x-evk = "flashall_imx93evk.uuu"
+
+VERIFICATIONSCRIPT:mx8mp-nxp-bsp = "verification_imx8mp.sh"
+VERIFICATIONSCRIPT:imx93-11x11-lpddr4x-evk = "verification_imx93evk.sh"
+
+SIGNED_SUFFIX:mx8mp-nxp-bsp = ".signed"
+
+USE_ROOTFS_DMVERITY:imx93-11x11-lpddr4x-evk = "0"
+DEPLOY_SNAKEOIL_KEYS:imx93-11x11-lpddr4x-evk = "0"
+
+# only allow iMX machines
+COMPATIBLE_MACHINE = "(mx8mp-nxp-bsp|mx93-nxp-bsp)"
 
 # the CAAM driver seems to have a bug when the kernel runs with more than 4 GB of RAM
 # see: https://community.nxp.com/t5/i-MX-Processors/quot-swiotlb-buffer-is-full-quot-when-writing-large-file-on/m-p/1586218
