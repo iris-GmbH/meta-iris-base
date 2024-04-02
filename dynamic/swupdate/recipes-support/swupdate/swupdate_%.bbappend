@@ -71,15 +71,15 @@ do_install:append () {
 
 	# create swupdate.cfg and replace variables
 	cp ${WORKDIR}/swupdate.cfg.in ${WORKDIR}/swupdate.cfg
-	export FW_VERSION=`echo ${DISTRO_VERSION} | grep -oP '\d+\.\d+\.\d+'`
+	export FW_VERSION=`echo ${DISTRO_VERSION} | grep -oP '\d+\.\d+'`
 	if [ -z "$FW_VERSION" ]; then
-		bbfatal "ERROR: Can not read read firmware version"
+		bbfatal "ERROR: Can not read firmware version"
 	fi
 	sed -i "s|FW_VERSION|$FW_VERSION|g" ${WORKDIR}/swupdate.cfg
 
-	# enforce max-version to MAJOR+1.999.999
+	# enforce max-version to MAJOR+1.999
 	MAJOR=$(echo $FW_VERSION | cut -d"." -f1)
-	export MAX_VERSION="$(echo "$MAJOR+1" | bc).999.999"
+	export MAX_VERSION="$(echo "$MAJOR+1" | bc).999"
 	sed -i "s|MAX_VERSION|$MAX_VERSION|g" ${WORKDIR}/swupdate.cfg
 
 	# copy swupdate.cfg

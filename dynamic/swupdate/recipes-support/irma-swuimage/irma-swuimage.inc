@@ -56,7 +56,7 @@ python do_swuimage:prepend () {
 
     # set the swu fw version
     import re
-    swu_fw_version = re.search('\d+\.\d+\.\d+', fw_version).group(0)
+    swu_fw_version = re.search('\d+\.\d+', fw_version).group(0)
     d.setVar("SWU_FW_VERSION", swu_fw_version)
 
     # mark images that needs to be encrypted, before being passed to swu
