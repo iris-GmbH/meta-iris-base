@@ -17,5 +17,5 @@ do_install:append() {
 }
 
 # Maintenance package
-PACKAGES =+ "irma6-maintenance-ip"
-FILES:irma6-maintenance-ip = "${sysconfdir}/network/if-pre-up.d/eth0-pre-up-maintenance"
+PACKAGES =+ "irma-maintenance-ip"
+FILES:irma-maintenance-ip = "${sysconfdir}/network/if-pre-up.d/eth0-pre-up-maintenance"

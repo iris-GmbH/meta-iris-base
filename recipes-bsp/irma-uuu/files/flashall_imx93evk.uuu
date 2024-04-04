@@ -1,0 +1,132 @@
+uuu_version 1.4.165
+
+# Boot flash.bin
+SDPS: boot -f flash.bin
+
+# use uboot burn bootloader to eMMC
+FB: ucmd setenv fastboot_dev mmc
+FB: ucmd setenv mmcdev ${emmc_dev}
+FB: flash bootloader flash.bin
+
+FB: ucmd if env exists emmc_ack; then ; else setenv emmc_ack 0; fi;
+FB: ucmd setenv emmc_cmd mmc partconf ${emmc_dev} ${emmc_ack} 1 0
+FB: ucmd if test "${emmc_skip_fb}" != "yes"; then run emmc_cmd; fi
+FB: ucmd setenv emmc_cmd mmc bootbus ${emmc_dev} 2 0 1;
+FB: ucmd if test "${emmc_skip_fb}" != "yes"; then run emmc_cmd; fi
+
+# Load kernel and boot from initramfs
+FB: ucmd setenv fastboot_buffer ${fit_addr}
+FB: download -f fitImage-uuu
+#FB: acmd run mfgtool_args; fastboot auto
+FB: acmd bootm ${fit_addr}
+
+# Wait for emmc and save mmc device path
+FBK: ucmd while [ ! -e /dev/mmcblk*boot0 ]; do sleep 1; echo "wait for /dev/mmcblk*boot* appear"; done;
+FBK: ucmd dev=`ls /dev/mmcblk*boot*`; dev=($dev); dev=${dev[0]}; dev=${dev#/dev/mmcblk}; dev=${dev%boot*}; echo $dev > /tmp/mmcdev;
+
+# load and write partition table
+FBK: ucp partitions t:/tmp
+FBK: ucmd mmc=`cat /tmp/mmcdev`; dd if=/dev/zero of=/dev/mmcblk${mmc} bs=1M count=10
+FBK: ucmd mmc=`cat /tmp/mmcdev`; cat /tmp/partitions | sfdisk --force /dev/mmcblk${mmc}
+FBK: ucmd sync
+
+# load bootloader container (flash.bin) and flash it to both hardware boot partitions
+FBK: ucp  flash.bin t:/tmp
+FBK: ucmd mmc=`cat /tmp/mmcdev`; echo 0 > /sys/block/mmcblk${mmc}boot0/force_ro
+FBK: ucmd mmc=`cat /tmp/mmcdev`; echo 0 > /sys/block/mmcblk${mmc}boot1/force_ro
+FBK: ucmd mmc=`cat /tmp/mmcdev`; dd if=/tmp/flash.bin of=/dev/mmcblk${mmc}boot0
+FBK: ucmd mmc=`cat /tmp/mmcdev`; dd if=/tmp/flash.bin of=/dev/mmcblk${mmc}boot1
+FBK: ucmd sync
+FBK: ucmd mmc=`cat /tmp/mmcdev`; echo 1 > /sys/block/mmcblk${mmc}boot0/force_ro
+FBK: ucmd mmc=`cat /tmp/mmcdev`; echo 1 > /sys/block/mmcblk${mmc}boot1/force_ro
+
+# flash fitimage to both linuxboot partitions
+FBK: ucmd mmc=`cat /tmp/mmcdev`; while [ ! -e /dev/mmcblk${mmc}p2 ]; do sleep 1; done
+FBK: ucmd mmc=`cat /tmp/mmcdev`; mkfs.vfat /dev/mmcblk${mmc}p2
+FBK: ucmd mkdir -p /mnt/fat
+FBK: ucmd mmc=`cat /tmp/mmcdev`; mount -t vfat /dev/mmcblk${mmc}p2 /mnt/fat
+FBK: ucp  fitImage t:/mnt/fat/fitImage
+FBK: ucmd umount /mnt/fat
+
+FBK: ucmd mmc=`cat /tmp/mmcdev`; mkfs.vfat /dev/mmcblk${mmc}p3
+FBK: ucmd mmc=`cat /tmp/mmcdev`; mount -t vfat /dev/mmcblk${mmc}p3 /mnt/fat
+FBK: ucp  fitImage t:/mnt/fat/fitImage
+FBK: ucmd umount /mnt/fat
+FBK: ucmd sync
+
+# create FAT on rescue partition
+FBK: ucmd mmc=`cat /tmp/mmcdev`; mkfs.vfat /dev/mmcblk${mmc}p4
+
+# extract LVM sizes for rootfs
+FBK: ucp hashsums t:/tmp
+FBK: ucmd sh -c '. /tmp/hashsums; echo "((($SIZE_ROOTFS/(4*1024*1024)) + (($SIZE_ROOTFS % (4*1024*1024)) > 0)) * (4*1024*1024))" | bc' > /tmp/size_rootfs
+
+# Create LVM
+FBK: ucmd mmc=`cat /tmp/mmcdev`; pvcreate -ff -y /dev/mmcblk${mmc}p5
+FBK: ucmd mmc=`cat /tmp/mmcdev`; vgcreate irma6lvm /dev/mmcblk${mmc}p5
+# start udev daemon so lvm can synchronize devices
+FBK: ucmd /etc/init.d/udev start
+FBK: ucmd lvcreate -y -n rootfs_a -L "$(cat /tmp/size_rootfs)"B irma6lvm
+FBK: ucmd lvcreate -y -n rootfs_b -L "$(cat /tmp/size_rootfs)"B irma6lvm
+FBK: ucmd lvcreate -y -n userdata_a -L 256MB irma6lvm
+FBK: ucmd lvcreate -y -n userdata_b -L 256MB irma6lvm
+FBK: ucmd lvcreate -y -n datastore -L 512MB irma6lvm
+FBK: ucmd lvcreate -y -n keystore -L 128MB irma6lvm
+FBK: ucmd vgchange -a y
+FBK: ucmd vgmknodes
+
+# Create fat data partition (keystore)
+FBK: ucmd mkfs.vfat /dev/mapper/irma6lvm-keystore
+FBK: ucmd mount -t vfat /dev/mapper/irma6lvm-keystore /mnt/keystore
+
+# Flash rootfs to both rootfs partitions
+FBK: acmd zcat | dd of=/dev/mapper/irma6lvm-rootfs_a
+FBK: ucp rootfs.ext4.gz t:-
+FBK: acmd zcat | dd of=/dev/mapper/irma6lvm-rootfs_b
+FBK: ucp rootfs.ext4.gz t:-
+FBK: sync
+FBK: ucmd sync
+
+#FBK: ucmd mmc=`cat /tmp/mmcdev`; mount /dev/mmcblk${mmc}p2 /mnt/ext4
+#FBK: acmd export EXTRACT_UNSAFE_SYMLINKS=1; tar --zstd --warning=no-timestamp -x -C /mnt/ext4
+#FBK: ucp rootfs.tar.zst t:-
+
+
+# Create ext4 partition for userdata A/B
+FBK: ucmd mkfs.ext4 /dev/mapper/irma6lvm-userdata_a
+
+#FBK: ucmd mkdir -p /mnt/iris
+#FBK: ucmd mount -t ext4 /dev/mapper/decrypted-irma6lvm-userdata_a /mnt/iris
+#FBK: ucmd mkdir -p /mnt/iris/swupdate
+#FBK: ucp swupdate_snakeoil_encryption.key t:/mnt/iris/swupdate/encryption.key
+#FBK: ucmd chmod 0400 /mnt/iris/swupdate/encryption.key
+#FBK: ucmd mkdir -p /mnt/iris/identity
+#FBK: ucp sensor_identity_snakeoil.key t:/mnt/iris/identity/sensor.key
+#FBK: ucp sensor_identity_snakeoil.crt t:/mnt/iris/identity/sensor.crt
+#FBK: ucmd chmod 0440 -R /mnt/iris/identity/
+#FBK: ucmd ln -sr /mnt/iris/identity /mnt/iris/webtls
+#FBK: ucmd ln -sr /mnt/iris/identity /mnt/iris/nts
+#FBK: ucmd ln -sr /mnt/iris/identity /mnt/iris/eaptls
+#FBK: ucmd mkdir -p /mnt/iris/nginx/sites-enabled
+#FBK: ucmd ln -s /etc/nginx/sites-available/reverse_proxy_https.conf /mnt/iris/nginx/sites-enabled/default_server
+#FBK: ucmd mkdir -p /mnt/iris/counter
+#FBK: ucmd mkdir -p /mnt/iris/irma6webserver
+#FBK: ucmd mkdir -p /mnt/iris/dropbear
+
+# Copy userdata A to B
+FBK: ucmd mkfs.ext4 /dev/mapper/irma6lvm-userdata_b
+#FBK: ucmd mkdir -p /tmp/userdata_b
+#FBK: ucmd mount -t ext4 /dev/mapper/decrypted-irma6lvm-userdata_b /tmp/userdata_b
+#FBK: ucmd cp -r /mnt/iris/* /tmp/userdata_b
+
+# datastore
+FBK: ucmd mkfs.ext4 /dev/mapper/irma6lvm-datastore
+
+# Clean up
+FBK: ucmd sync
+#FBK: ucmd umount /mnt/iris
+#FBK: ucmd umount /tmp/userdata_b
+#FBK: ucmd rm -rf /tmp/userdata_b
+
+FBK: DONE
+

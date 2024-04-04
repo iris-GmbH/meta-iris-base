@@ -21,7 +21,7 @@ FILES:${PN} += " \
 	${bindir}/factory-reset.sh \
 "
 
-do_install:append() {
+do_install:append () {
 	# Remove S06checkroot.sh symlink to avoid "ro" /
 	# remounting when using nfs boot and expecting rw access
 	# from prior mounting in the initramfs init script.

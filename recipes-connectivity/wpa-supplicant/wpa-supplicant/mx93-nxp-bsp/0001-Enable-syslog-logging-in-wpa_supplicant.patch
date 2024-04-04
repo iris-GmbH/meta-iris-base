@@ -1,0 +1,25 @@
+From 93189c52ed8fcdedb5ef0e04c7cd1dab2b8e214c Mon Sep 17 00:00:00 2001
+From: Erik Schumacher <erik.schumacher@iris-sensing.com>
+Date: Mon, 29 Jan 2024 14:50:34 +0100
+Subject: [PATCH 1/2] Enable syslog logging in wpa_supplicant
+
+---
+ ./wpa-supplicant.sh           | 2 +-
+ 1 file changed, 1 insertions(+), 1 deletions(-)
+
+diff --git a/wpa-supplicant.sh b/wpa-supplicant.sh
+index 35a1aa639e..75df8d709e 100644
+--- a/wpa-supplicant.sh
++++ b/wpa-supplicant.sh
+@@ -5,7 +5,7 @@ WPA_SUP_BIN="/usr/sbin/wpa_supplicant"
+ WPA_SUP_PNAME="wpa_supplicant"
+ WPA_SUP_PIDFILE="/var/run/wpa_supplicant.$IFACE.pid"
+ WPA_COMMON_CTRL_IFACE="/var/run/wpa_supplicant"
+-WPA_SUP_OPTIONS="-B -P $WPA_SUP_PIDFILE -i $IFACE"
++WPA_SUP_OPTIONS="-B -P $WPA_SUP_PIDFILE -i $IFACE -s"
+ 
+ VERBOSITY=0
+ 
+-- 
+2.43.0
+

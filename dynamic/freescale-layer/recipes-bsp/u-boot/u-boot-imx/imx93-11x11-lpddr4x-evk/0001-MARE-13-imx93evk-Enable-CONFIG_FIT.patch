@@ -1,0 +1,24 @@
+From 47c3fde24fb7e4b0f8da0a7794f2b20a4a657d45 Mon Sep 17 00:00:00 2001
+From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+Date: Sat, 2 Mar 2024 09:51:02 +0000
+Subject: [PATCH] [MARE-13]: imx93evk: Enable CONFIG_FIT
+
+---
+ configs/imx93_11x11_evk_defconfig | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/configs/imx93_11x11_evk_defconfig b/configs/imx93_11x11_evk_defconfig
+index b4d6041c7d..0fa4699c2f 100644
+--- a/configs/imx93_11x11_evk_defconfig
++++ b/configs/imx93_11x11_evk_defconfig
+@@ -27,6 +27,7 @@ CONFIG_SYS_MEMTEST_START=0x80000000
+ CONFIG_SYS_MEMTEST_END=0x90000000
+ CONFIG_REMAKE_ELF=y
+ CONFIG_SYS_MONITOR_LEN=524288
++CONFIG_FIT=y
+ CONFIG_DISTRO_DEFAULTS=y
+ CONFIG_BOOTCOMMAND="run distro_bootcmd;run bsp_bootcmd"
+ CONFIG_DEFAULT_FDT_FILE="imx93-11x11-evk.dtb"
+-- 
+2.39.3
+

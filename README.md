@@ -54,7 +54,7 @@ Following formal rules and points have to be respected:
 III. Misc
 ========
 
-This repository contains the configuration, recipes and modifications for building the iris custom Linux distribution (the irma6-base image), minus our proprietary platform application.
+This repository contains the configuration, recipes and modifications for building the iris custom Linux distribution (the irma-base image), minus our proprietary platform application.
 
 The Maintainers of this layer focus on supporting the current Yocto LTS release.
 However, feel free to add support for other layers via pull requests.

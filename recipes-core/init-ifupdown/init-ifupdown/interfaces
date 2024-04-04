@@ -7,3 +7,5 @@ iface lo inet loopback
 # Wired or wireless interfaces
 auto eth0
 iface eth0 inet manual
+wpa-driver wired
+wpa-conf /etc/wpa_supplicant.conf
