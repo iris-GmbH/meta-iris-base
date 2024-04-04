@@ -40,6 +40,10 @@ IRMA_EXTRA_PACKAGES:poky-iris-0602 = " \
 IRMA_EXTRA_PACKAGES:poky-iris-0601 = " \
 "
 
+# IRMA Matrix only packages
+IRMA_EXTRA_PACKAGES:poky-iris-0501 = " \
+"
+
 IMAGE_INSTALL:append = " \
 	${IRMA_BASE_PACKAGES} \
 	${IRMA_EXTRA_PACKAGES} \

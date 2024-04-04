@@ -18,6 +18,7 @@ deltask package_write_rpm
 
 ADDITIONAL_INSTALL_DEPENDS:poky-iris-0601 = "${IMAGENAME}:do_createfirmwarezip"
 ADDITIONAL_INSTALL_DEPENDS:poky-iris-0602 = "${IMAGENAME}-swuimage:do_swuimage ${IMAGENAME}-uuu:do_deploy"
+ADDITIONAL_INSTALL_DEPENDS:poky-iris-0501 = "${IMAGENAME}-uuu:do_deploy"
 
 do_install[depends] = "\
     ${IMAGENAME}:do_image_complete \
