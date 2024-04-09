@@ -16,7 +16,16 @@ TOOLCHAIN_HOST_TASK += " \
     nativesdk-python3-gcovr \
     nativesdk-git \
 "
-TOOLCHAIN_TARGET_TASK += "googletest"
+
+TOOLCHAIN_TARGET_TASK += " \
+    libstdc++-staticdev \
+    googletest \
+    protobuf \
+    dlib \
+    nlohmann-json \
+    json-schema-validator \
+    libnmea \
+"
 
 PV = "${DISTRO_VERSION}"
 inherit irma-firmware-versioning
