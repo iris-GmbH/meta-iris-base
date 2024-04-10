@@ -27,6 +27,9 @@ TOOLCHAIN_TARGET_TASK += " \
     libnmea \
 "
 
+TOOLCHAIN_TARGET_TASK:append:poky-iris-0501 = " swupdate"
+TOOLCHAIN_TARGET_TASK:append:poky-iris-0602 = " swupdate"
+
 PV = "${DISTRO_VERSION}"
 inherit irma-firmware-versioning
 
