@@ -10,7 +10,7 @@ EXTRA_IMAGEDEPENDS += "u-boot"
 include conf/machine/include/arm/armv7a/tune-cortexa5.inc
 DEFAULTTUNE="cortexa5thf-neon"
 
-IMAGE_FSTYPES += "tar.bz2 jffs2 jffs2.sum"
+IMAGE_FSTYPES += "tar.bz2 jffs2"
 EXTRA_IMAGECMD:jffs2 = "--little-endian --pad=0x0 --pagesize=0x1000 --eraseblock=0x10000 --squash"
 
 SERIAL_CONSOLE = "115200 ttySC0"
