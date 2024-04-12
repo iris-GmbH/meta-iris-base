@@ -125,7 +125,7 @@ parameterExists(){
 
 getParameter(){
   val=$(echo "$json" | sed -rn 's/.*"'"$1"'"\s*:\s*\{\s*"value"\s*:\s*([^,]*).*/\1/p')
-  echo "$val"
+  echo "$val" | sed 's/^"//' | sed 's/"$//' # remove leading/trailing double quotes
 }
 
 # Main function
