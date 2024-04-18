@@ -15,7 +15,7 @@ VERIFICATIONSCRIPT:imx93-11x11-lpddr4x-evk = "verification_imx93evk.sh"
 SIGNED_SUFFIX:mx8mp-nxp-bsp = ".signed"
 
 USE_ROOTFS_DMVERITY:imx93-11x11-lpddr4x-evk = "0"
-DEPLOY_SNAKEOIL_KEYS:imx93-11x11-lpddr4x-evk = "0"
+
 
 # only allow iMX machines
 COMPATIBLE_MACHINE = "(mx8mp-nxp-bsp|mx93-nxp-bsp)"

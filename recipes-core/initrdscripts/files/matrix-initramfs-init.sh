@@ -43,13 +43,14 @@ parse_cmdline() {
 		ALT_FIRMWARE_SUFFIX="b"
 	fi
 	ROOT_DEV=/dev/mapper/irma6lvm-rootfs_${FIRMWARE_SUFFIX}
-	#USERDATA_DEV="/dev/mapper/irma6lvm-userdata_${FIRMWARE_SUFFIX}"
+	USERDATA_DEV="/dev/mapper/irma6lvm-userdata_${FIRMWARE_SUFFIX}"
+	USERDATA_SYM="/dev/mapper/irma6lvm-userdata"
 }
 
 echo "Initramfs Bootstrap..."
 mount_pseudo_fs
 
-# populate LVM mapper devices
+echo "Populate LVM mapper devices"
 vgchange -a y
 vgmknodes
 
@@ -64,6 +65,9 @@ else
 	${MOUNT} "${ROOT_DEV}" "${ROOT_MNT}"
 	echo "Switch root to eMMC"
 fi
+
+echo "Create ${USERDATA_SYM} symlink in /etc/fstab"
+ln -s "${USERDATA_DEV}" "${USERDATA_SYM}"
 
 umount_pseudo_fs
 exec switch_root "${ROOT_MNT}" "${INIT}" "${CMDLINE}"
