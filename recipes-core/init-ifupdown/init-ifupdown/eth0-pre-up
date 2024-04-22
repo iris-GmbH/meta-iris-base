@@ -125,6 +125,12 @@ parameterExists(){
 
 getParameter(){
   val=$(echo "$json" | sed -rn 's/.*"'"$1"'"\s*:\s*\{\s*"value"\s*:\s*([^,]*).*/\1/p')
+
+  # compatibility for old v1.0 ipv4 parameters - "value": {"value": "255.254.0.0"}
+  if echo "$val" | grep -q '"value"'; then
+    val=$(echo "$val" | sed -n 's/.*"value"\s*:\s*"\([^"]*\)".*/\1/p')
+  fi
+
   echo "$val" | sed 's/^"//' | sed 's/"$//' # remove leading/trailing double quotes
 }
 
