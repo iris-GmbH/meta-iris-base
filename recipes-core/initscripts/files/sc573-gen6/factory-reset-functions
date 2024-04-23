@@ -111,6 +111,7 @@ factory_reset() {
     rm -f /etc/counter/config_customer*
     rm -f /etc/counter/config.yaml*
     rm -rf /etc/counter/irma6webserver
+    rm -rf /etc/counter/dropbear
     reset_systemtime
     rm -f "$LAZY_RESET_FLAG"
     sync

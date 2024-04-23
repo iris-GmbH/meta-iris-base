@@ -33,7 +33,7 @@ do_install:append () {
 	install -D -m 0755 ${WORKDIR}/factory-reset-functions ${D}${datadir}/factory-reset/factory-reset-functions
 	install -D -m 0755 ${WORKDIR}/factory-reset.sh ${D}${bindir}/factory-reset.sh
 	install -D -m 0755 ${WORKDIR}/factory-reset.init ${D}${sysconfdir}/init.d/factory-reset
-	update-rc.d -r ${D} factory-reset start 18 5 .
+	update-rc.d -r ${D} factory-reset start 8 5 .
 
 	install -D -m 0755 ${WORKDIR}/set-hostname.sh ${D}${sysconfdir}/init.d/set-hostname
 	update-rc.d -r ${D} set-hostname start 40 S .
