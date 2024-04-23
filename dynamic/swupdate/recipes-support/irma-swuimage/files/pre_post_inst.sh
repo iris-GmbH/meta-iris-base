@@ -157,7 +157,10 @@ check_hab_srk() {
 
 		# read SRKs from image
 		(cd /tmp/ && csf_parser -s "$file_decrypted" > /dev/null 2>&1)
+		[ ! -f /tmp/output/SRKTable.bin ] && { log "SRKTable.bin can not be extracted"; exit 1; }
+
 		(cd /tmp/ && createSRKFuses output/SRKTable.bin "$n_of_srks" "$key_length" "$key_type" > /dev/null 2>&1)
+		[ ! -f /tmp/SRK_fuses.bin ] && { log "SRK_fuses.bin can not be created"; exit 1; }
 		srk_image=$(hexdump -e '"0x%04x\n"' /tmp/SRK_fuses.bin)
 
 		# clean up
