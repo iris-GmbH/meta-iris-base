@@ -39,6 +39,7 @@ SRC_URI:append:imx8mp-irma6r2 = "\
 	file://0008-imx8mp-irma6r2-Add-IU-EEPROM-readout-for-configuring.patch \
 	file://0009-imx8mp-irma6r2-Add-check-for-when-the-device-is-lock.patch \
 	file://0010-imx8mp-irma6r2-Set-lpj-32000-and-remove-double-entry.patch \
+	file://0011-imx8mp_irma6r2-Use-UART-3-for-debug-output.patch \
 "
 
 FILESEXTRAPATHS:prepend:imx93-11x11-lpddr4x-evk := "${THISDIR}/u-boot-imx/imx93-11x11-lpddr4x-evk:"
