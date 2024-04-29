@@ -283,6 +283,9 @@ start_alt_fw_update(){
 	else
 		log "Alternative config update failed"
 	fi
+
+	# clear lock file
+	rm -f "$LOCK_FILE"
 }
 
 remove_userdata_sync_flag(){
@@ -302,6 +305,9 @@ get_firmware_bootpath
 
 # Check if everything is still ok after update on reboot
 PENDING_UPDATE=$(fw_printenv upgrade_available | awk -F'=' '{print $2}')
+
+LOCK_FILE="/tmp/power_on_selftest.lock"
+touch "$LOCK_FILE" # lock file is removed in start_alt_fw_update() or by reboot
 
 if [ "$PENDING_UPDATE" = "1" ]; then
 	BOOTCOUNT=$(fw_printenv bootcount | awk -F'=' '{print $2}')
