@@ -1,0 +1,26 @@
+From 7c6abe898e8ef89f3ca9c91fc7fc1a127b78b194 Mon Sep 17 00:00:00 2001
+From: Erik Schumacher <erik.schumacher@iris-sensing.com>
+Date: Mon, 24 Jun 2024 15:13:25 +0000
+Subject: [PATCH] tc358746.c: Remove MEDIA_LNK_FL_IMMUTABLE
+
+Allow userspace to modify media_link
+---
+ drivers/media/i2c/tc358746.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/drivers/media/i2c/tc358746.c b/drivers/media/i2c/tc358746.c
+index 15637add115d..2ef5f59cbe7b 100644
+--- a/drivers/media/i2c/tc358746.c
++++ b/drivers/media/i2c/tc358746.c
+@@ -1474,7 +1474,7 @@ static int tc358746_notify_bound(struct v4l2_async_notifier *notifier,
+ {
+ 	struct tc358746 *tc358746 =
+ 		container_of(notifier, struct tc358746, notifier);
+-	u32 flags = MEDIA_LNK_FL_ENABLED | MEDIA_LNK_FL_IMMUTABLE;
++	u32 flags = MEDIA_LNK_FL_ENABLED;
+ 	struct media_pad *sink = &tc358746->pads[TC358746_SINK];
+ 
+ 	return v4l2_create_fwnode_links_to_pad(sd, sink, flags);
+-- 
+2.46.0
+

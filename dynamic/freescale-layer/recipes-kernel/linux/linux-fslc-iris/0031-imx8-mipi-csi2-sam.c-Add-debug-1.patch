@@ -1,0 +1,29 @@
+From 5bae05748aa5c8d086deaa9d0468e96c94934c28 Mon Sep 17 00:00:00 2001
+From: Erik Schumacher <erik.schumacher@iris-sensing.com>
+Date: Thu, 15 Sep 2022 12:49:55 +0200
+Subject: [PATCH] imx8-mipi-csi2-sam.c: Add debug = 1
+
+Add debug = 1 to print summary of communication errors
+
+Signed-off-by: Erik Schumacher <erik.schumacher@iris-sensing.com>
+Signed-off-by: Jasper Orschulko <jasper@fancydomain.eu>
+---
+ drivers/staging/media/imx/imx8-mipi-csi2-sam.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/drivers/staging/media/imx/imx8-mipi-csi2-sam.c b/drivers/staging/media/imx/imx8-mipi-csi2-sam.c
+index cfd60bb755a6..0f57a49f90ac 100644
+--- a/drivers/staging/media/imx/imx8-mipi-csi2-sam.c
++++ b/drivers/staging/media/imx/imx8-mipi-csi2-sam.c
+@@ -447,7 +447,7 @@ struct csi_state {
+ 	u32 val;
+ };
+ 
+-static int debug;
++static int debug = 1;
+ module_param(debug, int, 0644);
+ MODULE_PARM_DESC(debug, "Debug level (0-2)");
+ 
+-- 
+2.46.0
+

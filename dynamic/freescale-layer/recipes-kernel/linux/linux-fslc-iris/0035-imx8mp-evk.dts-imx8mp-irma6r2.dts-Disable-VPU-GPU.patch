@@ -1,0 +1,114 @@
+From cfa0b2d2971a08748cd29191f3c3e2ea6b397574 Mon Sep 17 00:00:00 2001
+From: Ian Dannapel <ian.dannapel@iris-sensing.com>
+Date: Tue, 5 Apr 2022 17:49:07 +0200
+Subject: [PATCH] imx8mp-evk.dts/imx8mp-irma6r2.dts: Disable VPU/GPU
+
+This also prevents these drivers to create nodes in /dev/video*.
+And the capture driver is now on /dev/video0 instead of /dev/video2.
+
+Signed-off-by: Erik Schumacher <erik.schumacher@iris-sensing.com>
+Signed-off-by: Jasper Orschulko <jasper@fancydomain.eu>
+---
+ arch/arm64/boot/dts/freescale/imx8mp-evk.dts     | 16 ++++++++--------
+ arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts | 16 ++++++++--------
+ 2 files changed, 16 insertions(+), 16 deletions(-)
+
+diff --git a/arch/arm64/boot/dts/freescale/imx8mp-evk.dts b/arch/arm64/boot/dts/freescale/imx8mp-evk.dts
+index e8cdd405b5c7..8a719b1382ad 100644
+--- a/arch/arm64/boot/dts/freescale/imx8mp-evk.dts
++++ b/arch/arm64/boot/dts/freescale/imx8mp-evk.dts
+@@ -1432,35 +1432,35 @@ MX8MP_IOMUXC_GPIO1_IO15__CCM_CLKO2	0x50
+ };
+ 
+ &vpu_g1 {
+-	status = "okay";
++	status = "disabled";
+ };
+ 
+ &vpu_g2 {
+-	status = "okay";
++	status = "disabled";
+ };
+ 
+ &vpu_vc8000e {
+-	status = "okay";
++	status = "disabled";
+ };
+ 
+ &vpu_v4l2 {
+-	status = "okay";
++	status = "disabled";
+ };
+ 
+ &gpu_3d {
+-	status = "okay";
++	status = "disabled";
+ };
+ 
+ &gpu_2d {
+-	status = "okay";
++	status = "disabled";
+ };
+ 
+ &ml_vipsi {
+-	status = "okay";
++	status = "disabled";
+ };
+ 
+ &mix_gpu_ml {
+-	status = "okay";
++	status = "disabled";
+ };
+ 
+ &mipi_csi_0 {
+diff --git a/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts b/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
+index 778428b23c2d..8e395f1a7b7b 100644
+--- a/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
++++ b/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
+@@ -777,35 +777,35 @@ MX8MP_IOMUXC_GPIO1_IO15__CCM_CLKO2	0x50
+ };
+ 
+ &vpu_g1 {
+-	status = "okay";
++	status = "disabled";
+ };
+ 
+ &vpu_g2 {
+-	status = "okay";
++	status = "disabled";
+ };
+ 
+ &vpu_vc8000e {
+-	status = "okay";
++	status = "disabled";
+ };
+ 
+ &vpu_v4l2 {
+-	status = "okay";
++	status = "disabled";
+ };
+ 
+ &gpu_3d {
+-	status = "okay";
++	status = "disabled";
+ };
+ 
+ &gpu_2d {
+-	status = "okay";
++	status = "disabled";
+ };
+ 
+ &ml_vipsi {
+-	status = "okay";
++	status = "disabled";
+ };
+ 
+ &mix_gpu_ml {
+-	status = "okay";
++	status = "disabled";
+ };
+ 
+ &mipi_csi_1 {
+-- 
+2.46.0
+

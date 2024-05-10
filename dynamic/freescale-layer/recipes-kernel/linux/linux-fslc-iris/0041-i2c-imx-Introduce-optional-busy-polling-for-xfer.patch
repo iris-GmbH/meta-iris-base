@@ -1,0 +1,114 @@
+From 3999eb37913eced59b56588e2d7aabab5586f0ed Mon Sep 17 00:00:00 2001
+From: Erik Schumacher <erik.schumacher@iris-sensing.com>
+Date: Tue, 19 Mar 2024 16:48:51 +0000
+Subject: [PATCH] i2c-imx: Introduce optional busy polling for xfer
+
+Mode can be selected in the device tree. Due to an unknown source
+somewhere in the interrupt and wait queue handling, a delay of 300 us (or
+multiples thereof) is introduced between the ACK bit from the peripheral
+device and the transmission of the next bits. This is not a problem for
+sporadic transmissions, but can accumulate in cases with heavy i2c
+traffic. Reduce the udelay in i2c_imx_bus_busy() from 100 to 5 us.
+
+imx8mp-irma6r2.dts: Use busy polling on i2c-1 ("epc bus")
+
+Signed-off-by: Jasper Orschulko <jasper@fancydomain.eu>
+---
+ .../boot/dts/freescale/imx8mp-irma6r2.dts     |  1 +
+ drivers/i2c/busses/i2c-imx.c                  | 31 +++++++++++++++++--
+ 2 files changed, 30 insertions(+), 2 deletions(-)
+
+diff --git a/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts b/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
+index 8e395f1a7b7b..995970a7562c 100644
+--- a/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
++++ b/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
+@@ -179,6 +179,7 @@ &i2c2 {
+ 	clock-frequency = <384000>;
+ 	pinctrl-names = "default";
+ 	pinctrl-0 = <&pinctrl_i2c2>;
++	force-atomic-rw;
+ 	status = "okay";
+ 
+ 	epc660_mipi: epc660_mipi@22 {
+diff --git a/drivers/i2c/busses/i2c-imx.c b/drivers/i2c/busses/i2c-imx.c
+index cdf5dab8c139..9dd0584aaf50 100644
+--- a/drivers/i2c/busses/i2c-imx.c
++++ b/drivers/i2c/busses/i2c-imx.c
+@@ -287,6 +287,8 @@ struct imx_i2c_struct {
+ 	/* For checking slave events. */
+ 	spinlock_t     slave_lock;
+ 	struct hrtimer slave_timer;
++
++	bool force_atomic_rw;
+ };
+ 
+ static const struct imx_i2c_hwdata imx1_i2c_hwdata = {
+@@ -404,6 +406,17 @@ static inline unsigned char imx_i2c_read_reg(struct imx_i2c_struct *i2c_imx,
+ 	return readb(i2c_imx->base + (reg << i2c_imx->hwdata->regshift));
+ }
+ 
++static inline void imx_i2c_set_interrupt(struct imx_i2c_struct *i2c_imx, bool enable)
++{
++	unsigned char val = imx_i2c_read_reg(i2c_imx, IMX_I2C_I2CR);
++	if (enable) {
++		val |= I2CR_IIEN;
++	} else {
++		val &= ~I2CR_IIEN;
++	}
++	imx_i2c_write_reg(val, i2c_imx, IMX_I2C_I2CR);
++}
++
+ static void i2c_imx_clear_irq(struct imx_i2c_struct *i2c_imx, unsigned int bits)
+ {
+ 	unsigned int temp;
+@@ -590,7 +603,7 @@ static int i2c_imx_bus_busy(struct imx_i2c_struct *i2c_imx, int for_busy, bool a
+ 			return -ETIMEDOUT;
+ 		}
+ 		if (atomic)
+-			udelay(100);
++			udelay(5);
+ 		else
+ 			schedule();
+ 	}
+@@ -1328,9 +1341,15 @@ static int i2c_imx_xfer_common(struct i2c_adapter *adapter,
+ {
+ 	unsigned int i, temp;
+ 	int result;
+-	bool is_lastmsg = false;
++	bool is_lastmsg = false, atomic_prev_value = atomic;
+ 	struct imx_i2c_struct *i2c_imx = i2c_get_adapdata(adapter);
+ 
++	if (!atomic && i2c_imx->force_atomic_rw)
++	{
++		imx_i2c_set_interrupt(i2c_imx, false);
++		atomic = true;
++	}
++
+ 	/* Start I2C transfer */
+ 	result = i2c_imx_start(i2c_imx, atomic);
+ 	if (result) {
+@@ -1407,6 +1426,11 @@ static int i2c_imx_xfer_common(struct i2c_adapter *adapter,
+ 	if (i2c_imx->slave)
+ 		i2c_imx_slave_init(i2c_imx);
+ 
++	if (!atomic_prev_value && i2c_imx->force_atomic_rw)
++	{
++		imx_i2c_set_interrupt(i2c_imx, true);
++	}
++
+ 	return (result < 0) ? result : num;
+ }
+ 
+@@ -1763,6 +1787,9 @@ static int i2c_imx_probe(struct platform_device *pdev)
+ 		goto clk_notifier_unregister;
+ 	}
+ 
++	i2c_imx->force_atomic_rw = of_property_read_bool(pdev->dev.of_node,
++							 "force-atomic-rw");
++
+ 	/*
+ 	 * This limit caused by an i.MX7D hardware issue(e7805 in Errata).
+ 	 * If there is no limit, when the bitrate set up to 400KHz, it will
+-- 
+2.46.0
+
