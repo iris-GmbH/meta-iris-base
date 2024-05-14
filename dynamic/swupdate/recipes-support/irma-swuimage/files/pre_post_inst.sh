@@ -17,7 +17,7 @@ log_to_website() {
 }
 
 exists() {
-	command -v "$1" >/dev/null 2>&1 || { log "ERROR: $1 not found"; exit 1; }
+	command -v "$1" >/dev/null 2>&1 || { log "[Error] $1 not found"; exit 1; }
 }
 
 cmds_exist () {
@@ -83,7 +83,7 @@ get_bootdev_name() {
 	EMMC_DEV="/dev/mmcblk2"
 	KERNEL_DEV=$(sfdisk -J $EMMC_DEV | jq 'first(.partitiontable.partitions[] | select ((.name!=null) and (.name=="linuxboot'${FIRMWARE_SUFFIX}'")) | .node)' -r)
 	if ! [ -b "$KERNEL_DEV" ]; then
-		log "Could not locate boot partition for firmware${FIRMWARE_SUFFIX}"; exit 1;
+		log "[Error] Could not locate boot partition for firmware${FIRMWARE_SUFFIX}"; exit 1;
 	fi
 }
 
@@ -119,7 +119,7 @@ imx_fuse_read () {
 	count=${2}	# count = number of words to be read
 
 	ocotp_patch=$(find /sys/bus/ -name "imx-ocotp0")
-	[ -z "${ocotp_patch}" ] && { log "No FUSE support!"; exit 1; }
+	[ -z "${ocotp_patch}" ] && { log "[Error] No FUSE support!"; exit 1; }
 	ocotp_file=${ocotp_patch}/nvmem
 
 	dd if="${ocotp_file}" bs=4 count="${count}" skip="${idx}" 2>/dev/null | hexdump -e '"0x%04x\n"'
@@ -148,7 +148,7 @@ check_hab_srk() {
 	for signed_image in $signed_images
 	do
 		if [ ! -e "$signed_image" ]; then
-			log "File $signed_image not present, cannot verify SRKs"; exit 1;
+			log "[Error] File $signed_image not present, cannot verify SRKs"; exit 1;
 		fi
 
 		# decrypt image to read SRKs
@@ -157,14 +157,17 @@ check_hab_srk() {
 
 		# read SRKs from image
 		(cd /tmp/ && csf_parser -s "$file_decrypted" > /dev/null 2>&1)
+		[ ! -f /tmp/output/SRKTable.bin ] && { log "[Error] SRKTable.bin can not be extracted"; exit 1; }
+
 		(cd /tmp/ && createSRKFuses output/SRKTable.bin "$n_of_srks" "$key_length" "$key_type" > /dev/null 2>&1)
+		[ ! -f /tmp/SRK_fuses.bin ] && { log "[Error] SRK_fuses.bin can not be created"; exit 1; }
 		srk_image=$(hexdump -e '"0x%04x\n"' /tmp/SRK_fuses.bin)
 
 		# clean up
 		rm -rf /tmp/output/ /tmp/SRK_fuses.bin "$file_decrypted"
 
 		if [ "$srk_image" != "$srk_fuses" ]; then
-			log "Aborting, SRK $signed_image does not match SRK Fuse!"
+			log "[Error] SRK $signed_image does not match SRK Fuse!"
 			log "SRK Image: $srk_image"
 			log "SRK Fuse: $srk_fuses"
 			exit 1;
@@ -179,7 +182,7 @@ check_identity() {
 	SENSOR_CRT="/mnt/iris/identity/sensor.crt"
 
 	if ! [ -f "$SENSOR_KEY" ] || ! [ -f "$SENSOR_CRT" ]; then
-		log "Device has no identity certificate or key"; exit 1;
+		log "[Error] Device has no identity certificate or key"; exit 1;
 	fi
 }
 
@@ -188,7 +191,7 @@ resize_rootfs_lvm() {
 	rootfs_file=$(< /tmp/sw-description tr '\n' ' ' | grep -o '{[^}]*device = "/dev/swu_rootfs"[^}]*}' | grep -o 'filename = "[^"]*";' | cut -d'"' -f 2)
 	rootfs_file="/tmp/$rootfs_file"
 	if [ ! -e "$rootfs_file" ]; then
-		log "Could not find new rootfs during logical volume resize!"; exit 1;
+		log "[Error] Could not find new rootfs during logical volume resize!"; exit 1;
 	fi
 
 	# get current rootfs size
@@ -197,7 +200,7 @@ resize_rootfs_lvm() {
 	# get new rootfs size
 	new_size=$(openssl enc -d -aes-256-cbc -K "$KEY" -iv "$IV" -in "$rootfs_file" | zcat | wc -c)
 	if [ "$new_size" -eq 0 ]; then
-		log "Could not retrieve new rootfs size during logical volume resize!"; exit 1;
+		log "[Error] Could not retrieve new rootfs size during logical volume resize!"; exit 1;
 	fi
 	if [ "$new_size" != "$cur_size" ]; then
 		log "Resize rootfs logical volume: ${cur_size} to ${new_size}"
@@ -248,9 +251,22 @@ create_webserver_symlinks() {
 pending_update() {
 	PENDING_UPDATE=$(fw_printenv upgrade_available | awk -F'=' '{print $2}')
 	if [ "$PENDING_UPDATE" = "1" ]; then
-		log_to_website "Update pending, device reboot required"
+		log_to_website "[Error] Update pending, device reboot required"
 		exit 1
 	fi
+
+	# upgrade available already set, but the second partition might be still updating
+	POST_LOCK_FILE="/tmp/power_on_selftest.lock"
+	wait_counter=8 # seconds
+	while [ -f "$POST_LOCK_FILE" ]; do
+		wait_counter=$((wait_counter - 1))
+
+		if [ "$wait_counter" -eq 0 ]; then
+			log_to_website "[Error] power on self test running"
+			exit 1
+		fi
+		sleep 1
+	done
 }
 
 prepare_userdata_sync() {

@@ -57,6 +57,7 @@ SRC_URI:append:mx8mp-nxp-bsp = " \
     file://0042-epc660-remove-the-register-setting-of-EPC660_REG_LED.patch \
     file://0043-Set-VB2_MAX_FRAME-VIDEO_MAX_FRAME-up-to-128.patch \
     file://0044-i2c-imx-Introduce-optional-busy-polling-for-xfer.patch \
+    file://0045-imx8mp-irma6r2.dts-Use-UART3-for-debug-output.patch \
 "
 
 # irma-matrix specific patches

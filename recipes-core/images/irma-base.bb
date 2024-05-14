@@ -16,7 +16,19 @@ TOOLCHAIN_HOST_TASK += " \
     nativesdk-python3-gcovr \
     nativesdk-git \
 "
-TOOLCHAIN_TARGET_TASK += "googletest"
+
+TOOLCHAIN_TARGET_TASK += " \
+    libstdc++-staticdev \
+    googletest \
+    protobuf \
+    dlib \
+    nlohmann-json \
+    json-schema-validator \
+    libnmea \
+"
+
+TOOLCHAIN_TARGET_TASK:append:poky-iris-0501 = " swupdate"
+TOOLCHAIN_TARGET_TASK:append:poky-iris-0602 = " swupdate"
 
 PV = "${DISTRO_VERSION}"
 inherit irma-firmware-versioning
@@ -38,6 +50,10 @@ IRMA_EXTRA_PACKAGES:poky-iris-0602 = " \
 
 # IRMA6 Release 1 only packages
 IRMA_EXTRA_PACKAGES:poky-iris-0601 = " \
+"
+
+# IRMA Matrix only packages
+IRMA_EXTRA_PACKAGES:poky-iris-0501 = " \
 "
 
 IMAGE_INSTALL:append = " \

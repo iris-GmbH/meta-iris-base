@@ -1,0 +1,48 @@
+From e40eeaf368c215b5cfe52816f7610ed0672b7c71 Mon Sep 17 00:00:00 2001
+From: Ian Dannapel <ian.dannapel@iris-sensing.com>
+Date: Thu, 25 Apr 2024 10:45:40 +0200
+Subject: [PATCH] imx8mp-irma6r2.dts: Use UART3 for debug output
+
+Signed-off-by: Ian Dannapel <ian.dannapel@iris-sensing.com>
+---
+ arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts b/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
+index 995970a7562c..55cb5c68772d 100644
+--- a/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
++++ b/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
+@@ -13,7 +13,7 @@ / {
+ 	compatible = "fsl,imx8mp-evk", "fsl,imx8mp";
+ 
+ 	chosen {
+-		stdout-path = &uart2;
++		stdout-path = &uart3;
+ 	};
+ 
+ 	gpio-leds {
+@@ -396,10 +396,10 @@ gpio@21 {
+ };
+ 
+ &uart2 {
+-	/* A53 */
++	/* A53 Default - unused */
+ 	pinctrl-names = "default";
+ 	pinctrl-0 = <&pinctrl_uart2>;
+-	status = "okay";
++	status = "disabled";
+ };
+ 
+ &usb3_phy0 {
+@@ -429,7 +429,7 @@ &usb_dwc3_0 {
+ };
+ 
+ &uart3 {
+-	/* uC (IU) */
++	/* A53 */
+ 	pinctrl-names = "default";
+ 	pinctrl-0 = <&pinctrl_uart3>;
+ 	status = "okay";
+-- 
+2.34.1
+

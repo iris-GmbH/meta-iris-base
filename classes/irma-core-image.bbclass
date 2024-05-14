@@ -56,12 +56,10 @@ IMAGE_FEATURES_REPLACES_ssh-server-openssh = "ssh-server-dropbear"
 
 MACHINE_HWCODECS ??= ""
 
-CORE_IMAGE_EXTRA_INSTALL += "libzip os-release"
+CORE_IMAGE_EXTRA_INSTALL += "os-release"
 
 CORE_IMAGE_BASE_INSTALL = "packagegroup-core-boot "
 
 IMAGE_INSTALL ?= "${CORE_IMAGE_BASE_INSTALL} ${CORE_IMAGE_EXTRA_INSTALL}"
-
-TOOLCHAIN_TARGET_TASK += "libstdc++-staticdev"
 
 inherit image

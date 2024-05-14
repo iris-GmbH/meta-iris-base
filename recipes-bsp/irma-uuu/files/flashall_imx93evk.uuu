@@ -87,46 +87,42 @@ FBK: ucp rootfs.ext4.gz t:-
 FBK: sync
 FBK: ucmd sync
 
-#FBK: ucmd mmc=`cat /tmp/mmcdev`; mount /dev/mmcblk${mmc}p2 /mnt/ext4
-#FBK: acmd export EXTRACT_UNSAFE_SYMLINKS=1; tar --zstd --warning=no-timestamp -x -C /mnt/ext4
-#FBK: ucp rootfs.tar.zst t:-
-
-
 # Create ext4 partition for userdata A/B
 FBK: ucmd mkfs.ext4 /dev/mapper/irma6lvm-userdata_a
 
-#FBK: ucmd mkdir -p /mnt/iris
-#FBK: ucmd mount -t ext4 /dev/mapper/decrypted-irma6lvm-userdata_a /mnt/iris
-#FBK: ucmd mkdir -p /mnt/iris/swupdate
-#FBK: ucp swupdate_snakeoil_encryption.key t:/mnt/iris/swupdate/encryption.key
-#FBK: ucmd chmod 0400 /mnt/iris/swupdate/encryption.key
-#FBK: ucmd mkdir -p /mnt/iris/identity
-#FBK: ucp sensor_identity_snakeoil.key t:/mnt/iris/identity/sensor.key
-#FBK: ucp sensor_identity_snakeoil.crt t:/mnt/iris/identity/sensor.crt
-#FBK: ucmd chmod 0440 -R /mnt/iris/identity/
-#FBK: ucmd ln -sr /mnt/iris/identity /mnt/iris/webtls
-#FBK: ucmd ln -sr /mnt/iris/identity /mnt/iris/nts
-#FBK: ucmd ln -sr /mnt/iris/identity /mnt/iris/eaptls
-#FBK: ucmd mkdir -p /mnt/iris/nginx/sites-enabled
-#FBK: ucmd ln -s /etc/nginx/sites-available/reverse_proxy_https.conf /mnt/iris/nginx/sites-enabled/default_server
-#FBK: ucmd mkdir -p /mnt/iris/counter
-#FBK: ucmd mkdir -p /mnt/iris/irma6webserver
-#FBK: ucmd mkdir -p /mnt/iris/dropbear
+FBK: ucmd mkdir -p /mnt/iris
+FBK: ucmd mount -t ext4 /dev/mapper/irma6lvm-userdata_a /mnt/iris
+FBK: ucmd mkdir -p /mnt/iris/counter
+FBK: ucmd mkdir -p /mnt/iris/irma6webserver
+FBK: ucmd mkdir -p /mnt/iris/dropbear
+FBK: ucmd mkdir -p /mnt/iris/swupdate
+FBK: ucp swupdate_snakeoil_encryption.key t:/mnt/iris/swupdate/encryption.key
+FBK: ucmd chmod 0400 /mnt/iris/swupdate/encryption.key
+FBK: ucmd mkdir -p /mnt/iris/identity
+FBK: ucp sensor_identity_snakeoil.key t:/mnt/iris/identity/sensor.key
+FBK: ucp sensor_identity_snakeoil.crt t:/mnt/iris/identity/sensor.crt
+FBK: ucmd chmod 0440 -R /mnt/iris/identity/
+FBK: ucmd ln -sr /mnt/iris/identity /mnt/iris/webtls
+FBK: ucmd ln -sr /mnt/iris/identity /mnt/iris/nts
+FBK: ucmd ln -sr /mnt/iris/identity /mnt/iris/eaptls
+FBK: ucmd mkdir -p /mnt/iris/nginx/sites-enabled
+
+# Default to HTTP
+FBK: ucmd ln -s /etc/nginx/sites-available/reverse_proxy_http.conf /mnt/iris/nginx/sites-enabled/default_server
 
 # Copy userdata A to B
 FBK: ucmd mkfs.ext4 /dev/mapper/irma6lvm-userdata_b
-#FBK: ucmd mkdir -p /tmp/userdata_b
-#FBK: ucmd mount -t ext4 /dev/mapper/decrypted-irma6lvm-userdata_b /tmp/userdata_b
-#FBK: ucmd cp -r /mnt/iris/* /tmp/userdata_b
+FBK: ucmd mkdir -p /tmp/userdata_b
+FBK: ucmd mount -t ext4 /dev/mapper/irma6lvm-userdata_b /tmp/userdata_b
+FBK: ucmd cp -r /mnt/iris/* /tmp/userdata_b
 
 # datastore
 FBK: ucmd mkfs.ext4 /dev/mapper/irma6lvm-datastore
 
 # Clean up
 FBK: ucmd sync
-#FBK: ucmd umount /mnt/iris
-#FBK: ucmd umount /tmp/userdata_b
-#FBK: ucmd rm -rf /tmp/userdata_b
+FBK: ucmd umount /mnt/iris
+FBK: ucmd umount /tmp/userdata_b
+FBK: ucmd rm -rf /tmp/userdata_b
 
 FBK: DONE
-
