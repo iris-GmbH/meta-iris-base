@@ -1,0 +1,149 @@
+From 897f6423e1d47b5cd08564144e9ed1f108bf5ff4 Mon Sep 17 00:00:00 2001
+From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+Date: Mon, 13 May 2024 11:16:22 +0000
+Subject: [PATCH] [MARE-133] u-boot-imx: Add AHAB Support for imx93evk
+
+Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+---
+ boot/bootm.c                      | 61 +++++++++++++++++++++++++++++++
+ configs/imx93_11x11_evk_defconfig |  3 ++
+ include/configs/imx93_evk.h       |  9 ++++-
+ 3 files changed, 71 insertions(+), 2 deletions(-)
+
+diff --git a/boot/bootm.c b/boot/bootm.c
+index 2eec60ec7b5..a66d9dc5884 100644
+--- a/boot/bootm.c
++++ b/boot/bootm.c
+@@ -33,6 +33,55 @@
+ #include <bootm.h>
+ #include <image.h>
+ 
++#if CONFIG_IS_ENABLED(AHAB_BOOT)
++
++#define IV_MAX_LEN			32
++#define HASH_MAX_LEN			64
++#define MAX_NUM_IMGS			6
++
++#define IVT_HEADER_TAG_B0		0x87
++#define IVT_VERSION_B0			0x00
++#define CONTAINER_IMAGE_ARRAY_START_OFFSET	0x2000
++
++typedef struct {
++	uint8_t version;
++	uint16_t length;
++	uint8_t tag;
++	uint16_t srk_table_offset;
++	uint16_t cert_offset;
++	uint16_t blob_offset;
++	uint16_t signature_offset;
++	uint32_t reserved;
++} __packed sig_blk_hdr_t;
++
++typedef struct {
++	uint32_t offset;
++	uint32_t size;
++	uint64_t dst;
++	uint64_t entry;
++	uint32_t hab_flags;
++	uint32_t meta;
++	uint8_t hash[HASH_MAX_LEN];
++	uint8_t iv[IV_MAX_LEN];
++} __packed boot_img_t;
++
++typedef struct {
++	uint8_t version;
++	uint16_t length;
++	uint8_t tag;
++	uint32_t flags;
++	uint16_t sw_version;
++	uint8_t fuse_version;
++	uint8_t num_images;
++	uint16_t sig_blk_offset;
++	uint16_t reserved;
++	boot_img_t img[MAX_NUM_IMGS];
++	sig_blk_hdr_t sig_blk_hdr;
++	uint32_t sigblk_size;
++	uint32_t padding;
++} __packed flash_header_v3_t;
++#endif
++
+ #define MAX_CMDLINE_SIZE	SZ_4K
+ 
+ #define IH_INITRD_ARCH IH_ARCH_DEFAULT
+@@ -889,6 +938,10 @@ static const void *boot_get_kernel(struct cmd_tbl *cmdtp, int flag, int argc,
+ 	int		os_noffset;
+ #endif
+ 
++#if CONFIG_IS_ENABLED(AHAB_BOOT)
++	flash_header_v3_t *fhdr_v3;
++#endif
++
+ 	img_addr = genimg_get_kernel_addr_fit(argc < 1 ? NULL : argv[0],
+ 					      &fit_uname_config,
+ 					      &fit_uname_kernel);
+@@ -900,6 +953,14 @@ static const void *boot_get_kernel(struct cmd_tbl *cmdtp, int flag, int argc,
+ 
+ 	/* check image type, for FIT images get FIT kernel node */
+ 	*os_data = *os_len = 0;
++
++#if CONFIG_IS_ENABLED(AHAB_BOOT)
++	fhdr_v3 = (flash_header_v3_t *) map_sysmem(img_addr, 0);
++	if (fhdr_v3->version == IVT_VERSION_B0 && fhdr_v3->tag == IVT_HEADER_TAG_B0) {
++		printf("## Valid NXP Container Header found\n");
++		img_addr += CONTAINER_IMAGE_ARRAY_START_OFFSET;
++	}
++#endif
+ 	buf = map_sysmem(img_addr, 0);
+ 	switch (genimg_get_format(buf)) {
+ #if CONFIG_IS_ENABLED(LEGACY_IMAGE_FORMAT)
+diff --git a/configs/imx93_11x11_evk_defconfig b/configs/imx93_11x11_evk_defconfig
+index 6ed55b5cbc4..97e7221b418 100644
+--- a/configs/imx93_11x11_evk_defconfig
++++ b/configs/imx93_11x11_evk_defconfig
+@@ -12,6 +12,7 @@ CONFIG_ENV_SECT_SIZE=0x10000
+ CONFIG_DM_GPIO=y
+ CONFIG_DEFAULT_DEVICE_TREE="imx93-11x11-evk"
+ CONFIG_SPL_TEXT_BASE=0x2049A000
++CONFIG_AHAB_BOOT=y
+ CONFIG_USB_TCPC=y
+ CONFIG_TARGET_IMX93_11X11_EVK=y
+ CONFIG_SYS_PROMPT="u-boot=> "
+@@ -189,6 +190,8 @@ CONFIG_BMP_32BPP=y
+ CONFIG_VIDEO_LOGO=y
+ CONFIG_VIDEO_LCD_RAYDIUM_RM67191=y
+ CONFIG_VIDEO_ADV7535=y
++# CONFIG_SPL_SHA1 is not set
++# CONFIG_SPL_SHA256 is not set
+ CONFIG_SYS_WHITE_ON_BLACK=y
+ CONFIG_SPLASH_SCREEN=y
+ CONFIG_SPLASH_SCREEN_ALIGN=y
+diff --git a/include/configs/imx93_evk.h b/include/configs/imx93_evk.h
+index a26d3f96bcf..d88ff74a694 100644
+--- a/include/configs/imx93_evk.h
++++ b/include/configs/imx93_evk.h
+@@ -63,7 +63,7 @@
+ 	"fdt_addr_r=0x83000000\0"			\
+ 	"fdt_addr=0x83000000\0"			\
+ 	"fdt_high=0xffffffffffffffff\0"		\
+-	"cntr_addr=0x98000000\0"			\
++	"cntr_addr=0x88000000\0"			\
+ 	"cntr_file=os_cntr_signed.bin\0" \
+ 	"boot_fit=no\0" \
+ 	"fdtfile=" CONFIG_DEFAULT_FDT_FILE "\0" \
+@@ -80,7 +80,12 @@
+ 	"loadfdt=fatload mmc ${mmcdev}:${mmcpart} ${fdt_addr_r} ${fdtfile}\0" \
+ 	"fit_img=fitImage.signed\0" \
+ 	"fit_addr=0x88000000\0" \
+-	"fitboot=fatload mmc ${mmcdev}#${mmcpart} ${fit_addr} ${fit_img}; run mmcargs; bootm ${fit_addr}\0" \
++	"fitboot=fatload mmc ${mmcdev}#${mmcpart} ${fit_addr} ${fit_img}; " \
++		"if run auth_os; then " \
++			"run mmcargs; bootm ${fit_addr}; " \
++		"else " \
++			"echo ERROR: failed to authenticate; " \
++		"fi; reset;\0" \
+ 	"firmware=0\0" \
+ 	"upgrade_available=0\0" \
+ 	"ustate=0\0" \
+-- 
+2.39.3
+
