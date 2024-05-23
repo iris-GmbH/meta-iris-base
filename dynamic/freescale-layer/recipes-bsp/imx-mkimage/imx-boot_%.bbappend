@@ -11,11 +11,17 @@ SRC_URI:append:imx8mp-irma6r2 = " \
     file://0001-Use-imx8mp-irma6r2.dtb-instead-of-imx8mp-ddr4-evk.dt.patch \
 "
 
-IMXBOOT_TARGETS:imx93-11x11-lpddr4x-evk = "flash_singleboot_no_ahabfw"
+SRC_URI:append:mx93-nxp-bsp = " \
+    file://csf_ahab.cfg \
+    file://0001-Add-flash_fitimage-for-imx93.patch \
+"
 
 python __anonymous () {
-    if d.getVar('HAB_ENABLE', True):
+    overrides = d.getVar('OVERRIDES', True).split(':')
+    if 'hab4' in overrides:
         d.appendVar("DEPENDS", " cst-native")
+    if 'ahab' in overrides:
+        d.appendVar("DEPENDS", " cst-native cst-signer-native")
 }
 
 hex2dec() {
@@ -27,7 +33,7 @@ hex2dec() {
 # the further signature process. The outputs are stored in the files
 # hab_info1.txt and hab_info2.txt.
 #
-do_compile:mx8mp-nxp-bsp() {
+do_compile:hab4() {
     # mkimage for i.MX8
     # Copy TEE binary to SoC target folder to mkimage
     if ${DEPLOY_OPTEE}; then
@@ -208,9 +214,10 @@ set_imxboot_vars() {
         fi
     done
     BOOT_CONFIG_MACHINE_EXTRA="${BOOT_NAME}-${MACHINE}-${UBOOT_CONFIG}.bin"
+    BOOT_IMAGE_SD="${BOOT_CONFIG_MACHINE_EXTRA}-${IMAGE_IMXBOOT_TARGET}"
 }
 
-sign_uboot_common() {
+do_sign_boot_image:hab4() {
     # Copy flash.bin
     set_imxboot_vars
     fn="${S}/${BOOT_CONFIG_MACHINE_EXTRA}-${IMAGE_IMXBOOT_TARGET}.signed"
@@ -241,45 +248,68 @@ sign_uboot_common() {
     dd if=${S}/csf_fit.bin of=$fn seek=$sld_csf_off bs=1 conv=notrunc
 }
 
-do_sign_uboot() {
-    if [ "${HAB_ENABLE}" = "1" ];then
-        sign_uboot_common
-    fi
-}
-
-do_sign_uboot:append:mx8mp-nxp-bsp() {
-    if [ "${HAB_ENABLE}" = "0" ];then
-        bbwarn "HAB boot not enabled."
-    fi
-}
-
-do_install:append() {
-    if [ "${HAB_ENABLE}" = "1" ];then
-        set_imxboot_vars
-        install -m 0644 ${S}/${BOOT_CONFIG_MACHINE_EXTRA}-${IMAGE_IMXBOOT_TARGET}.signed ${D}/boot/
-    fi
-}
-
-do_deploy:append() {
-    if [ "${HAB_ENABLE}" = "1" ];then
-        # copy flash.bin.signed to deploy dir and create a symlink imx-boot.signed
-        set_imxboot_vars
-        install -m 0644 ${S}/${BOOT_CONFIG_MACHINE_EXTRA}-${IMAGE_IMXBOOT_TARGET}.signed ${DEPLOYDIR}
-        cd ${DEPLOYDIR}
-        ln -sf ${BOOT_CONFIG_MACHINE_EXTRA}-${IMAGE_IMXBOOT_TARGET}.signed ${BOOT_NAME}.signed
-        cd -
-    fi
-}
-
-addtask do_sign_uboot before do_deploy do_install after do_compile
-
-do_check_iris_version_string() {
+do_sign_boot_image:ahab() {
+    bbnote "Signing boot image"
+    SIGNDIR="${S}"
+    install -m 0755 ${WORKDIR}/csf_ahab.cfg ${SIGNDIR}/csf.cfg
     set_imxboot_vars
-    if [ "${HAB_ENABLE}" = "1" ]; then
-        bootloader="${S}/${BOOT_CONFIG_MACHINE_EXTRA}-${IMAGE_IMXBOOT_TARGET}.signed"
-    else
-        bootloader="${S}/${BOOT_CONFIG_MACHINE_EXTRA}-${IMAGE_IMXBOOT_TARGET}"
+
+    # Check if SD image is available
+    if [ ! -e "${SIGNDIR}/${BOOT_IMAGE_SD}" ]; then
+        bbfatal 'imx-boot SD image is not available to sign'
     fi
+
+    # Generate signed image using cst_signer
+	cd "${SIGNDIR}"
+    CST_EXE_PATH=cst CST_PATH=${HAB_DIR} cst_signer -d -i ${SIGNDIR}/${BOOT_IMAGE_SD} -c ${SIGNDIR}/csf.cfg
+    if [ ! -e "${SIGNDIR}/signed-${BOOT_IMAGE_SD}" ]; then
+        bbfatal "Image signing failed"
+    fi
+    mv ${SIGNDIR}/signed-${BOOT_IMAGE_SD} ${SIGNDIR}/${BOOT_IMAGE_SD}.signed
+}
+
+do_sign_boot_image() {
+    bbwarn "Signed boot not enabled."
+}
+
+addtask do_sign_boot_image before do_deploy do_install after do_compile
+
+install_boot_image() {
+    # For the uuu-container build
+    set_imxboot_vars
+    install -m 0644 ${S}/${BOOT_IMAGE_SD}.signed ${D}/boot/
+    check_iris_version_string
+}
+
+do_install:append:hab4() {
+    install_boot_image
+}
+
+do_install:append:ahab() {
+    install_boot_image
+}
+
+deploy_boot_image() {
+    set_imxboot_vars
+    if [ -e "${S}/${BOOT_IMAGE_SD}.signed" ]; then
+        install -m 0644 ${S}/${BOOT_IMAGE_SD}.signed ${DEPLOY_DIR_IMAGE}/
+        ln -sf ${DEPLOY_DIR_IMAGE}/${BOOT_IMAGE_SD}.signed ${DEPLOY_DIR_IMAGE}/${BOOT_NAME}.signed
+    else
+        bbfatal "ERROR: Could not deploy Signed image"
+    fi
+}
+
+do_deploy:append:hab4() {
+    deploy_boot_image
+}
+
+do_deploy:append:ahab() {
+    deploy_boot_image
+}
+
+check_iris_version_string() {
+    set_imxboot_vars
+    bootloader="${S}/${BOOT_IMAGE_SD}.signed"
 
     # Find the first occurence of "U-Boot SPL [...]" in the first 1MB and check for pattern: iris-boot_X.X.X+gYYY
     # Do exactly the same as here: meta-iris-base/recipes-support/swupdate/swupdate/bootloader_update.lua,
@@ -293,5 +323,3 @@ do_check_iris_version_string() {
         bberror "iris version string not found in $bootloader"
     fi
 }
-
-addtask check_iris_version_string before do_deploy after do_install
