@@ -30,7 +30,6 @@ do_deploy[nostamp] = "1"
 # Variables - must be set in bb file
 FITIMAGE_NAME = "irma-fitimage"
 FITIMAGE_UUU_NAME = "irma-fitimage-uuu"
-SIGNED_SUFFIX ?= ""
 
 UUUSCRIPT ?= ""
 VERIFICATIONSCRIPT ?= ""
@@ -41,15 +40,15 @@ ROOTFS = "${IMAGENAME}-${MACHINE}.${ROOTFS_EXT}"
 ROOTFSVERITY = "${IMAGENAME}-${MACHINE}.ext4.hashdevice"
 ROOTFSROOTHASH = "${IMAGENAME}-${MACHINE}.ext4.roothash"
 ROOTFSROOTHASH_SIGNATURE = "${IMAGENAME}-${MACHINE}.ext4.roothash.signature"
-FITIMAGE = "${FITIMAGE_NAME}.itb${SIGNED_SUFFIX}"
-FITIMAGEUUU = "${FITIMAGE_UUU_NAME}.itb${SIGNED_SUFFIX}"
+FITIMAGE = "${FITIMAGE_NAME}.itb.signed"
+FITIMAGEUUU = "${FITIMAGE_UUU_NAME}.itb"
 
 # set output directory and file names
 UUU_DEPLOY_DIR = "${DEPLOYDIR}/${PN}"
 UUU_DEPLOY_TAR = "${DEPLOYDIR}/${PN}-container.tar.gz"
 
 # File names in deploy directory
-FLASHBINDEPLOY = "flash.bin${SIGNED_SUFFIX}"
+FLASHBINDEPLOY = "flash.bin.signed"
 HASHSUMS = "hashsums"
 ROOTFSDEPLOY = "rootfs.${ROOTFS_EXT}"
 ROOTFSVERITYDEPLOY = "rootfs.ext4.hashdevice"
@@ -58,8 +57,8 @@ ROOTFSROOTHASHDEPLOY_SIGNATURE = "rootfs.ext4.roothash.signature"
 PARTITIONSDEPLOY = "partitions"
 UUUSCRIPTDEPLOY = "flashall.uuu"
 VERIFICATIONSCRIPTDEPLOY = "verification.sh"
-FITIMAGEDEPLOY = "fitImage${SIGNED_SUFFIX}"
-FITIMAGEUUUDEPLOY = "fitImage-uuu${SIGNED_SUFFIX}"
+FITIMAGEDEPLOY = "fitImage.signed"
+FITIMAGEUUUDEPLOY = "fitImage-uuu"
 
 # The following line forces the usage of the "files" directory next to this .inc file even if it is required from another layer
 FILESEXTRAPATHS:prepend := "${@os.path.dirname(d.getVar('FILE'))}/files:"

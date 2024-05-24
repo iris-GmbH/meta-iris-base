@@ -1,12 +1,12 @@
 uuu_version 1.4.165
 
-# Boot flash.bin
-SDPS: boot -f flash.bin
+# Boot flash.bin.signed
+SDPS: boot -f flash.bin.signed
 
 # use uboot burn bootloader to eMMC
 FB: ucmd setenv fastboot_dev mmc
 FB: ucmd setenv mmcdev ${emmc_dev}
-FB: flash bootloader flash.bin
+FB: flash bootloader flash.bin.signed
 
 FB: ucmd if env exists emmc_ack; then ; else setenv emmc_ack 0; fi;
 FB: ucmd setenv emmc_cmd mmc partconf ${emmc_dev} ${emmc_ack} 1 0
@@ -30,27 +30,27 @@ FBK: ucmd mmc=`cat /tmp/mmcdev`; dd if=/dev/zero of=/dev/mmcblk${mmc} bs=1M coun
 FBK: ucmd mmc=`cat /tmp/mmcdev`; cat /tmp/partitions | sfdisk --force /dev/mmcblk${mmc}
 FBK: ucmd sync
 
-# load bootloader container (flash.bin) and flash it to both hardware boot partitions
-FBK: ucp  flash.bin t:/tmp
+# load bootloader container (flash.bin.signed) and flash it to both hardware boot partitions
+FBK: ucp  flash.bin.signed t:/tmp
 FBK: ucmd mmc=`cat /tmp/mmcdev`; echo 0 > /sys/block/mmcblk${mmc}boot0/force_ro
 FBK: ucmd mmc=`cat /tmp/mmcdev`; echo 0 > /sys/block/mmcblk${mmc}boot1/force_ro
-FBK: ucmd mmc=`cat /tmp/mmcdev`; dd if=/tmp/flash.bin of=/dev/mmcblk${mmc}boot0
-FBK: ucmd mmc=`cat /tmp/mmcdev`; dd if=/tmp/flash.bin of=/dev/mmcblk${mmc}boot1
+FBK: ucmd mmc=`cat /tmp/mmcdev`; dd if=/tmp/flash.bin.signed of=/dev/mmcblk${mmc}boot0
+FBK: ucmd mmc=`cat /tmp/mmcdev`; dd if=/tmp/flash.bin.signed of=/dev/mmcblk${mmc}boot1
 FBK: ucmd sync
 FBK: ucmd mmc=`cat /tmp/mmcdev`; echo 1 > /sys/block/mmcblk${mmc}boot0/force_ro
 FBK: ucmd mmc=`cat /tmp/mmcdev`; echo 1 > /sys/block/mmcblk${mmc}boot1/force_ro
 
-# flash fitimage to both linuxboot partitions
+# flash fitImage.signed to both linuxboot partitions
 FBK: ucmd mmc=`cat /tmp/mmcdev`; while [ ! -e /dev/mmcblk${mmc}p2 ]; do sleep 1; done
 FBK: ucmd mmc=`cat /tmp/mmcdev`; mkfs.vfat /dev/mmcblk${mmc}p2
 FBK: ucmd mkdir -p /mnt/fat
 FBK: ucmd mmc=`cat /tmp/mmcdev`; mount -t vfat /dev/mmcblk${mmc}p2 /mnt/fat
-FBK: ucp  fitImage t:/mnt/fat/fitImage
+FBK: ucp  fitImage.signed t:/mnt/fat/fitImage.signed
 FBK: ucmd umount /mnt/fat
 
 FBK: ucmd mmc=`cat /tmp/mmcdev`; mkfs.vfat /dev/mmcblk${mmc}p3
 FBK: ucmd mmc=`cat /tmp/mmcdev`; mount -t vfat /dev/mmcblk${mmc}p3 /mnt/fat
-FBK: ucp  fitImage t:/mnt/fat/fitImage
+FBK: ucp  fitImage.signed t:/mnt/fat/fitImage.signed
 FBK: ucmd umount /mnt/fat
 FBK: ucmd sync
 
