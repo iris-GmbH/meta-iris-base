@@ -3,7 +3,7 @@
 
 require imx-mkimage_iris.inc
 
-inherit irma6-bootloader-version
+inherit irma6-bootloader-version hab
 PV = "${IRIS_IMX_BOOT_RELEASE}"
 
 FILESEXTRAPATHS:prepend := "${THISDIR}/files:"
