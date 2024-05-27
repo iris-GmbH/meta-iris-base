@@ -15,6 +15,9 @@ SRC_URI:append:mx8mp-nxp-bsp = "\
 	file://0004-Add-HAB-image-authentication-for-FIT-Images.patch \
 	file://0005-crypto-caam-Add-fsl-caam-driver.patch \
 	file://0006-MLK-19053-crypto-caam-RNG4-TRNG-errata.patch \
+	file://0007-LFU-573-1-imx8m-hab-Verify-hash-of-FIT-FDT-strucure.patch \
+	file://0008-LFU-573-2-imx8m-hab-Verify-optional-FIT-FDT-signatur.patch \
+	file://0009-LFU-573-3-doc-imx8m-Update-iMX8M-secure-boot-and-enc.patch \
 "
 
 FILESEXTRAPATHS:prepend:imx8mp-lpddr4-evk := "${THISDIR}/u-boot-imx/imx8mp-lpddr4-evk:"
