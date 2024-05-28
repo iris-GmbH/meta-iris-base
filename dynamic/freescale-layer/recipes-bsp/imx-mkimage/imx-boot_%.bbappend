@@ -18,7 +18,10 @@ SRC_URI:append:ahab = " \
 
 # Make irma-fitimage as dependent on the do_compile task of imx-boot
 COMPILE_DEPENDS = ""
-COMPILE_DEPENDS:ahab = "irma-fitimage:do_assemble_fit"
+COMPILE_DEPENDS:ahab = " \
+    irma-fitimage:do_assemble_fit \
+    irma-fitimage-uuu:do_assemble_fit \
+"
 do_compile[depends] += "${COMPILE_DEPENDS}"
 
 python __anonymous () {
@@ -313,8 +316,14 @@ do_deploy:append:ahab() {
 }
 
 do_compile:append:ahab() {
+    # Create flash.bin for the uuu kernel fitimage -> flash_os.bin.uuu
+    cp ${DEPLOY_DIR_IMAGE}/irma-fitimage-uuu.itb ${BOOT_STAGING}/irma-fitimage-uuu.itb
+    FITIMAGE=irma-fitimage-uuu.itb make SOC=${IMX_BOOT_SOC_TARGET} flash_fitimage
+    mv ${BOOT_STAGING}/flash_os.bin ${BOOT_STAGING}/flash_os.bin.uuu
+
+    # Create flash.bin for the kernel fitimage -> flash_os.bin
     cp ${DEPLOY_DIR_IMAGE}/irma-fitimage.itb ${BOOT_STAGING}/irma-fitimage.itb
-    make SOC=${IMX_BOOT_SOC_TARGET} flash_fitimage
+    FITIMAGE=irma-fitimage.itb make SOC=${IMX_BOOT_SOC_TARGET} flash_fitimage
 }
 
 do_sign_fitimage() {
@@ -324,14 +333,19 @@ do_sign_fitimage() {
 do_sign_fitimage:ahab() {
     bbnote "Signing fitimage"
 
-	SIGNDIR="${S}"
-	#install -m 0755 ${WORKDIR}/csf_ahab.cfg ${SIGNDIR}/csf.cfg
+    SIGNDIR="${S}"
+    if [ ! -f ${SIGNDIR}/csf.cfg ]; then
+        install -m 0755 ${WORKDIR}/csf_ahab.cfg ${SIGNDIR}/csf.cfg
+    fi
 
-	# Generate signed fitimage using cst_signer
-	cd "${SIGNDIR}"
+    # Generate signed fitimage using cst_signer
+    cd "${SIGNDIR}"
     CST_EXE_PATH=cst CST_PATH=${HAB_DIR} cst_signer -d -i ${BOOT_STAGING}/flash_os.bin -c ${SIGNDIR}/csf.cfg
-
     mv ${SIGNDIR}/signed-flash_os.bin ${SIGNDIR}/irma-fitimage.itb.signed
+
+    # Generate signed fitimage-uuu using cst_signer
+    CST_EXE_PATH=cst CST_PATH=${HAB_DIR} cst_signer -d -i ${BOOT_STAGING}/flash_os.bin.uuu -c ${SIGNDIR}/csf.cfg
+    mv ${SIGNDIR}/signed-flash_os.bin.uuu ${SIGNDIR}/irma-fitimage-uuu.itb.signed
 }
 
 
@@ -340,6 +354,7 @@ addtask do_sign_fitimage before do_deploy do_install after do_sign_boot_image
 do_deploy:append:ahab() {
     if [ -e "${S}/irma-fitimage.itb.signed" ]; then
         install -m 0644 ${S}/irma-fitimage.itb.signed ${DEPLOYDIR}
+        install -m 0644 ${S}/irma-fitimage-uuu.itb.signed ${DEPLOYDIR}
     else
         bbfatal "Could not deploy Signed fitimage"
     fi

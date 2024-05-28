@@ -16,7 +16,7 @@ FB: ucmd if test "${emmc_skip_fb}" != "yes"; then run emmc_cmd; fi
 
 # Load kernel and boot from initramfs
 FB: ucmd setenv fastboot_buffer ${fit_addr}
-FB: download -f fitImage-uuu
+FB: download -f fitImage-uuu.signed
 #FB: acmd run mfgtool_args; fastboot auto
 FB: acmd bootm ${fit_addr}
 
