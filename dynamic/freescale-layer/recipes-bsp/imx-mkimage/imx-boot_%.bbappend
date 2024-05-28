@@ -7,14 +7,19 @@ inherit irma6-bootloader-version hab
 PV = "${IRIS_IMX_BOOT_RELEASE}"
 
 FILESEXTRAPATHS:prepend := "${THISDIR}/files:"
-SRC_URI:append:imx8mp-irma6r2 = " \
+SRC_URI:append:hab4 = " \
     file://0001-Use-imx8mp-irma6r2.dtb-instead-of-imx8mp-ddr4-evk.dt.patch \
 "
 
-SRC_URI:append:mx93-nxp-bsp = " \
+SRC_URI:append:ahab = " \
     file://csf_ahab.cfg \
     file://0001-Add-flash_fitimage-for-imx93.patch \
 "
+
+# Make irma-fitimage as dependent on the do_compile task of imx-boot
+COMPILE_DEPENDS = ""
+COMPILE_DEPENDS:ahab = "irma-fitimage:do_assemble_fit"
+do_compile[depends] += "${COMPILE_DEPENDS}"
 
 python __anonymous () {
     overrides = d.getVar('OVERRIDES', True).split(':')
@@ -305,6 +310,39 @@ do_deploy:append:hab4() {
 
 do_deploy:append:ahab() {
     deploy_boot_image
+}
+
+do_compile:append:ahab() {
+    cp ${DEPLOY_DIR_IMAGE}/irma-fitimage.itb ${BOOT_STAGING}/irma-fitimage.itb
+    make SOC=${IMX_BOOT_SOC_TARGET} flash_fitimage
+}
+
+do_sign_fitimage() {
+    :
+}
+
+do_sign_fitimage:ahab() {
+    bbnote "Signing fitimage"
+
+	SIGNDIR="${S}"
+	#install -m 0755 ${WORKDIR}/csf_ahab.cfg ${SIGNDIR}/csf.cfg
+
+	# Generate signed fitimage using cst_signer
+	cd "${SIGNDIR}"
+    CST_EXE_PATH=cst CST_PATH=${HAB_DIR} cst_signer -d -i ${BOOT_STAGING}/flash_os.bin -c ${SIGNDIR}/csf.cfg
+
+    mv ${SIGNDIR}/signed-flash_os.bin ${SIGNDIR}/irma-fitimage.itb.signed
+}
+
+
+addtask do_sign_fitimage before do_deploy do_install after do_sign_boot_image
+
+do_deploy:append:ahab() {
+    if [ -e "${S}/irma-fitimage.itb.signed" ]; then
+        install -m 0644 ${S}/irma-fitimage.itb.signed ${DEPLOYDIR}
+    else
+        bbfatal "Could not deploy Signed fitimage"
+    fi
 }
 
 check_iris_version_string() {
