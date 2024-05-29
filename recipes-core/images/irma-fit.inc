@@ -1,14 +1,39 @@
 # SPDX-License-Identifier: MIT
 # Copyright (C) 2022 iris-GmbH infrared & intelligent sensors
 
-# require inc-file from meta-secure-imx
-require recipes-core/images/image-fit.inc
-
 SUMMARY = "IRMA FIT image"
 LICENSE = "MIT"
 LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/MIT;md5=0835ade698e0bcf8506ecda2f7b4f302"
 
 FILESEXTRAPATHS:prepend := "${THISDIR}/files:"
+SRC_URI = " \
+	file://rescue.its.in \
+"
+
+DEPENDS += " \
+	dtc-native \
+	u-boot-mkimage-native \
+"
+
+do_assemble_fit[depends] += "virtual/kernel:do_deploy"
+
+do_patch[noexec] = "1"
+do_configure[noexec] = "1"
+do_assemble_fit[nostamp] = "1"
+do_package[noexec] = "1"
+do_packagedata[noexec] = "1"
+deltask package_write_ipk
+deltask package_write_deb
+deltask package_write_rpm
+deltask do_deploy_archives
+deltask do_rootfs
+
+S = "${WORKDIR}"
+B = "${S}"
+
+ITB_FNAME = "${PN}.itb"
+
+inherit fitimage-hab-sign
 
 FITIMAGE_RUNNING_VERSION = "1.0"
 FITIMAGE_DESCRIPTION = "IRMA FIT image"
@@ -57,7 +82,6 @@ do_assemble_fit:prepend() {
 	fi
 }
 
-# overwrite meta-secure-imx/recipes-core/images/image-fit.inc
 do_assemble_fit() {
 	echo "STAGING_KERNEL_DIR" ${STAGING_KERNEL_DIR}
 	echo "STAGING_KERNEL_BUILDDIR" ${STAGING_KERNEL_BUILDDIR}
@@ -117,38 +141,6 @@ do_assemble_fit:append:mx8mp-nxp-bsp() {
 	install ${ITB_FNAME}-ivt.${KERNEL_SIGN_SUFFIX} ${DEPLOY_DIR_IMAGE}/${ITB_FNAME}.${KERNEL_SIGN_SUFFIX}
 }
 
-# overwrite meta-secure-imx/classes/fitimage-hab-sign.bbclass
-csf_emit_file() {
-	cat << EOF > ${1}
-[Header]
-Version = 4.5
-Hash Algorithm = sha256
-Engine Configuration = 0
-Certificate Format = X509
-Signature Format = CMS
-Engine = ${7}
+addtask do_assemble_fit before do_install after do_compile
 
-[Install SRK]
-File = "${2}"
-Source index = 0
-
-[Install CSFK]
-File = "${3}"
-
-[Authenticate CSF]
-
-[Install Key]
-Verification index = 0
-Target Index = 2
-File= "${4}"
-
-[Authenticate Data]
-Verification index = 2
-Blocks = ${5} "${6}"
-
-[Unlock]
-Engine = ${7}
-Features = RNG
-EOF
-}
-
+do_assemble_fit[depends] += "${RESCUE_NAME}:do_image_complete"
