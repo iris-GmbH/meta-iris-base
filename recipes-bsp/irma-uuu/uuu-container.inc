@@ -3,6 +3,9 @@
 
 inherit deploy
 
+# get access to image name variables like IMAGE_NAME_SUFFIX
+inherit image-artifact-names
+
 IMAGENAME ?= "${@ d.getVar('PN').replace('-uuu','')}"
 
 # use dmverity and root hash signatures, use ext4.gz as image type that gets flashed directly instead of unpacking a tar.gz
@@ -43,10 +46,10 @@ VERIFICATIONSCRIPT ?= ""
 
 # Set file paths of source files
 ROOTFS_EXT ?= "ext4.gz"
-ROOTFS = "${IMAGENAME}-${MACHINE}.${ROOTFS_EXT}"
-ROOTFSVERITY = "${IMAGENAME}-${MACHINE}.ext4.hashdevice"
-ROOTFSROOTHASH = "${IMAGENAME}-${MACHINE}.ext4.roothash"
-ROOTFSROOTHASH_SIGNATURE = "${IMAGENAME}-${MACHINE}.ext4.roothash.signature"
+ROOTFS = "${IMAGENAME}-${MACHINE}${IMAGE_NAME_SUFFIX}.${ROOTFS_EXT}"
+ROOTFSVERITY = "${IMAGENAME}-${MACHINE}${IMAGE_NAME_SUFFIX}.ext4.hashdevice"
+ROOTFSROOTHASH = "${IMAGENAME}-${MACHINE}${IMAGE_NAME_SUFFIX}.ext4.roothash"
+ROOTFSROOTHASH_SIGNATURE = "${IMAGENAME}-${MACHINE}${IMAGE_NAME_SUFFIX}.ext4.roothash.signature"
 FITIMAGE = "${FITIMAGE_NAME}.itb.signed"
 FITIMAGEUUU = "${FITIMAGE_UUU_NAME}.itb.signed"
 
