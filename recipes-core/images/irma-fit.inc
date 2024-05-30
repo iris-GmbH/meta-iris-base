@@ -57,30 +57,6 @@ ITS_KERNEL_ENTRY_ADDR:mx9-nxp-bsp = "0x80400000"
 FITLOADADDR:mx9-nxp-bsp = "0x88000000"
 ITS_DTB_LOAD_ADDR:mx9-nxp-bsp = "0x83000000"
 
-# include checking of HAB/CST related variables
-inherit irma6-signing-variable-check
-addtask do_signing_variable_check before do_assemble_fit
-
-do_assemble_fit:prepend() {
-	if [ -z "${FITLOADADDR}" ]; then
-		bbwarn "Set FITLOADADDR to ${FITLOADADDR}"
-	fi
-
-	if [ -z "${RESCUE_NAME_FULL}" ]; then
-		bbwarn "RESCUE_NAME_FULL is not set"
-	fi
-
-	if [ -z "${ITS_KERNEL_LOAD_ADDR}" ]; then
-		bbwarn "ITS_KERNEL_LOAD_ADDR is not set"
-	fi
-
-	if [ -z "${ITS_KERNEL_ENTRY_ADDR}" ]; then
-		bbwarn "ITS_KERNEL_ENTRY_ADDR is not set"
-	fi
-	if [ -z "${ITS_DTB_LOAD_ADDR}" ]; then
-		bbwarn "ITS_DTB_LOAD_ADDR is not set"
-	fi
-}
 
 do_assemble_fit() {
 	echo "STAGING_KERNEL_DIR" ${STAGING_KERNEL_DIR}
