@@ -1,27 +1,25 @@
-From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
-From: iris Thomas Noack <thomas.noack@iris-sensing.com>
-Date: Fri, 24 Jun 2022 10:10:23 +0200
-Subject: [PATCH] [RDPHOEN-1221] SWUpdate Webinterface CI rework Applying Iris
- Coporate Design to webinterface
+From f105f8f5805bc7621d2360c89977ec758827bd17 Mon Sep 17 00:00:00 2001
+From: Michael Glembotzki <m.glembo@gmail.com>
+Date: Thu, 30 May 2024 20:50:17 +0200
+Subject: [PATCH] Apply iris Coporate Design to webinterface
 
-Signed-off-by: iris Thomas Noack <thomas.noack@iris-sensing.com>
+Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+Signed-off-by: Thomas Noack <thomas.noack@iris-sensing.com>
 ---
  examples/www/v2/css/override.css              |  74 ++++++++++++++++++
- .../www/v2/images/IRS_IRMA6_100pt_neg.svg     |  18 +++++
- examples/www/v2/images/favicon.ico            | Bin 0 -> 1554 bytes
- examples/www/v2/index.html                    |   5 +-
+ examples/www/v2/images/favicon.png            | Bin 959 -> 988 bytes
+ examples/www/v2/images/logo.png               | Bin 832 -> 5344 bytes
+ examples/www/v2/index.html                    |   2 +-
  .../SourceSansPro_Light_latin_ext.woff2       | Bin 0 -> 20264 bytes
  .../SourceSansPro_Semibold_latin_ext.woff2    | Bin 0 -> 20320 bytes
- 6 files changed, 95 insertions(+), 2 deletions(-)
+ 6 files changed, 75 insertions(+), 1 deletion(-)
  create mode 100644 examples/www/v2/css/override.css
- create mode 100644 examples/www/v2/images/IRS_IRMA6_100pt_neg.svg
- create mode 100644 examples/www/v2/images/favicon.ico
  create mode 100644 examples/www/v2/webfonts/SourceSansPro_Light_latin_ext.woff2
  create mode 100644 examples/www/v2/webfonts/SourceSansPro_Semibold_latin_ext.woff2
 
 diff --git a/examples/www/v2/css/override.css b/examples/www/v2/css/override.css
 new file mode 100644
-index 0000000..c85a94e
+index 00000000..89040e75
 --- /dev/null
 +++ b/examples/www/v2/css/override.css
 @@ -0,0 +1,74 @@
@@ -32,12 +30,12 @@ index 0000000..c85a94e
 + @font-face {
 +  font-family: 'Source Sans Pro';
 +  font-weight: 300;
-+  src: url(webfonts/SourceSansPro_Light_latin_ext.woff2) format('woff2');
++  src: url(../webfonts/SourceSansPro_Light_latin_ext.woff2) format('woff2');
 +}
 +@font-face {
 +  font-family: 'Source Sans Pro';
 +  font-weight: 600;
-+  src: url(webfonts/SourceSansPro_Semibold_latin_ext.woff2) format('woff2');
++  src: url(../webfonts/SourceSansPro_Semibold_latin_ext.woff2) format('woff2');
 +}
 +
 + body {
@@ -100,92 +98,184 @@ index 0000000..c85a94e
 +  color: #000000;
 +}
 \ No newline at end of file
-diff --git a/examples/www/v2/images/IRS_IRMA6_100pt_neg.svg b/examples/www/v2/images/IRS_IRMA6_100pt_neg.svg
-new file mode 100644
-index 0000000..be90cff
---- /dev/null
-+++ b/examples/www/v2/images/IRS_IRMA6_100pt_neg.svg
-@@ -0,0 +1,18 @@
-+<?xml version="1.0" encoding="utf-8"?>
-+<!-- Generator: Adobe Illustrator 25.2.3, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->
-+<svg version="1.1" id="Ebene_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
-+	 viewBox="0 0 311.81 79.37" style="enable-background:new 0 0 311.81 79.37;" xml:space="preserve">
-+<style type="text/css">
-+	.st0{fill:#FFFFFF;}
-+</style>
-+<path class="st0" d="M299.54,52.94c0,9.2-5.6,16.2-14.5,16.2c-10,0-14.6-8.3-14.6-17.1c0-7.4,4.9-14.8,14.9-14.8
-+	C294.14,37.24,299.54,43.24,299.54,52.94 M307.64,51.63c0-12.6-7.8-21-20.7-21c-8,0-14.2,3.5-17.3,9l-0.1-0.1c0.4-2,0.6-3.1,0.8-4.2
-+	c2.6-14.8,10.4-25,25.6-25c1.8,0,3.5,0.2,5.1,0.4v-6.6c-1.1-0.1-3.1-0.2-4.2-0.2c-20,0-35,13.8-35,42.8c0,17.8,8,28.7,22,28.7
-+	C298.04,75.44,307.64,65.44,307.64,51.63 M217.44,49.74h-15.6l4.4-12.7c1.4-4.1,2.5-8.3,3.2-12h0.2c0.7,4,1.8,7.4,3.1,11.2
-+	L217.44,49.74z M242.64,74.54l-23.7-67.5h-17.7l-22.8,67.5h15.5l4.1-12.5h23.3l4.2,12.5H242.64z M174.75,74.54l-10.8-67.5h-17.6
-+	l-9.6,29.5c-1.6,5.2-2.8,9.4-3.8,14.8h-0.2c-1-5.3-2.1-10-3.6-14.7l-9.4-29.6h-17.9l-10.8,67.5h15.7l3.4-26.4
-+	c0.7-5.6,1.4-10.8,2-17.1h0.1c0.9,6,2.6,12.5,4.4,18.3l8,25.2h15l8.3-27.6c1.7-5.8,2.9-10.9,3.9-15.9h0.2c0.5,5.2,1.1,10.2,2,15.7
-+	l4.3,27.8H174.75z M64.85,27.83c0,5.7-4.2,9.2-10.8,9.2c-1.5,0-3.1-0.1-3.9-0.2v-17.3c0.9-0.1,2.7-0.2,4.3-0.2
-+	C61.75,19.33,64.85,22.54,64.85,27.83 M85.75,74.54l-14.3-21.7c-1.6-2.5-3.4-5-5.2-7.6c9-2.2,14.9-9.6,14.9-18.7
-+	c0-14.3-9.6-20-25.5-20c-8.1,0-15.4,0.1-21.1,0.5v67.5h15.6v-26.4h0.6l16,26.4H85.75z M19.77,7.04H4.17v67.5h15.6V7.04z"/>
-+</svg>
-diff --git a/examples/www/v2/images/favicon.ico b/examples/www/v2/images/favicon.ico
-new file mode 100644
-index 0000000000000000000000000000000000000000..8cae3e25f40bf34ee4319de07af7c84e27b2103b
+diff --git a/examples/www/v2/images/favicon.png b/examples/www/v2/images/favicon.png
+index b5250a8c6e163c57ddaea169b590013ac1c00db4..2544cfe010ed64d9ea2e06f5b69abd3356513235 100644
 GIT binary patch
-literal 1554
-zcmaJ>drT8|96zmNtO8O~UyR^+prV1^^+oAHrG*1&;#F6h!5B`i*DI~`?rMA3T82aB
-zMCUf$m?B2gITaraP0%?BMj(S3r{Lm-1}35+DnZ3}HbvbP0r$t)C3n9^KA+F`^L^wt
-zE-@?&6-EdF00`A*Vn%)i18;B;|8@I(kNIT=m!8cnWv!fta8ZEH!kQ^iPZRl+ks>Us
-zSDvAg0YDIIH)V6#_#%{KX$cX)NW8R@X9GZTiq}by1r!IGseC)5fd=XuAkc2nKv_y0
-z!JTQ8&7SFVQA>RW6X`1;)fOma0hsJXc>$W@2+&JA7&q$GKtsAHzYko)5I6+k3N+Ab
-zQ`z_uFpYIlpi+_$Pa+8_P^Fegl`54&6$i=?sS-xyupEh($x#J@DrDgB1M$&Z7AtDR
-zGKORECk<rdI426j9*;-jkxN)tJ}gzM)i5H1WwLl45$|5jaD+FWaYv6RV3eD5*`1u7
-zWx#+UVP*?C4a7TrodWF~m1W$+W#S74dkH5jl^}tXMu0f}|4^D9MY}m8^~Udi3cF3K
-zofK@O+-#wX<Qr#=4uo=|X)cQ3SeJ=q9V1m-Vq-bhZDXBaTG~+6z*w9h?M&cu-Vh7N
-zQ9a}42!^Eem<Hl?BzC(6l_MEaxgt@n!xU<%G+mi0(_v{+g<74iM6d)oGQ!1JvXG`2
-zZiH)j!&QvQ4GaYB<RfF0%f5=TWVl!w97-IukL^V|rrt2uGPW1q{TO+`ycsyq-hZ`w
-z<cgo6z;<+a`NQb=Qw%@zE`GST*IwQQ0OL#an9k(wY|ct5n6DEr=ogrq7uxr2#qW<Z
-zE5fk}HI6ukX}oai3R3i&KRlBlL{dCwV)d4s4|U-phqxtG<iKVfh&5P)?v<+U?Kn|?
-zvyt$$wcYvH9o2mf0ZOjcrrso9sxqrsmc4!L+S((Vx$^Gr?r11#^DP$mqrXttc+Hs`
-zrG>uMzPfQ8P(+08Fzn|Zb}?nSl4<$NE5-JYV#SSlh<1Vh?Yi7B;b+$^A8e>H>@Pn&
-z_~3!4>&lf2o}d0Kt_$btmmTXK=qm!l6W`I!s_I{Py{WY|G^SkNd9ja6vCe7weD0oV
-zS`qO>d}Nsaafwa;*WlnHe;@ZOj+wf5@3{@)O)Y}wi<3cN$*OvMuCcnkAqY&IaL^>Y
-zvnr|CEalP3MMXEbyB3+QeZ>?a_3x+4s@pG2Ii6Fqr{}G*t1n*c>V0HW__*rX=A#{L
-zL5=U0=G0{Pn}0lUGVByFpiPb{tEiZEn?p+%$L>62Jh;VpaL_vN#AiF&0ah;hMV%lP
-zzBlP|SJ$r7>q34mIe$w~-7cI{zOhqQ8IpIYw8ODJ56P^AE6z4K5|XAT`Oi1?KdF7C
-zJ}bz|$_jq9y;Tr7nJX^F>t6QseEM`oNYIAGNO)VMx^i92qm8EdQ!c(gf9rwJBRh|O
-znGs#{Novb!(~(OvYrb1P4(u>=#%#mxuYqrd`69G+xmEPeySDnS3(ew*jhm16Jn)9B
-zY4Fb>V<xX{Uorbx`r6+GXM4X{pO+Z<z4hq4mT}u=Y8$%qCsj<{)LRP#pZOvqT6ndu
-zPk-pSAO(nIk7dVwRlEBJ5G<;>RPb%9b>GR9haPWnac^(Y?q3I+o(yVFO_&bMy9Xqm
-S7Afxs{?ht%19mtyuk;_Kk4zZ=
+literal 988
+zcmeAS@N?(olHy`uVBq!ia0vp^3LwnE0wix1Z>k4zl0AZa85pY67#JE_7#My5g&JNk
+zFq9fFFuY1&V6d9Oz#v{QXIG#NP=YDR+uenMVO6iP5s=4T;_2(k{(@Cbh)uY8G4E9d
+z2FAIbE{-7{$LCHp^au@<I9~tVw%6p9sfESWC!bD4y-{_U5ir^NaI{xT3r9BZq-kpE
+z%;E<xJYCD{cj=7|3+p8Bg~38QI1V}ce7rtk&%M3h_m-dE`#k!crTp{b|9{VaKSx^e
+zXqyYe(mlVW&iwh^@o#d`k=n10IjYN>SQkh}pJbi!G|}Cd>G7)lSB<k>y(5xlRG#`G
+z8f>s^-^X=T`tvwh-&E+?`7!=F^yGZdQ`P{@v?SNNLL27=38Xwy`moAdk0Ic(>ggJ7
+zz6j=frDxNap6xhXvZ%ItMnv)b($i~yntsiW-Z$?myYwo%?6cCZ-p*@q;hgO-dF`~?
+z^O1?xi%%Sx$$#ViuYV6amqvW+w7R!iSXoW-soIBGR?0qsPj%VFZ#t`GRCifv?s(I<
+zYBpchyY#~AKP-AGCmC&AQz!Isag=C&#Zj;5n0)KSdJSzB>-1XhUN%Vxz4Pr#qk=>G
+z>p$J@J)fpLexv6<JL21kw(2_0I?dpQ`LAYfZ(>}!WKP`!=KIV~on7ACk63h4zRiM{
+zO+_R|=}~RpTiJJqq89z$tQ6?<@1uCqM%%>M%xiuE<4(22HKHUXu_V<hxhNG#F&G&b
+zndlmr>KYq_7@Av|7+IMbX&V?=85nG1st`cYkei>9nO2Eg!}0h7Yk(Rw;5L+G=B5^x
+zB<2>N=&`UeFtakWgjmwyx_2K?j{-<faei7!d16s2Lq<tSL9vy-er9fBdMXfSCTHvA
+z7p3nxFFO~gRsy6pB%?Gp$;!$lKe;qFHLt|VDgdaon89%Q|K0jPHR4EWJVB;dS$U*p
+zre~Be7#nGP`SAs)L=00&cxFmT22jO?Xp2gq3P~gtzCf>(R2HN%fZe2Dke6=1Da;Se
+zCf^XCDh5MyLvsU5150zG{ojA90+k3NnG>8@1yo^bYT|TyueB^tQWi-vG{}=7Ei)$-
+f==HS3vdrZCJUt*0m&0ccRLJ1z>gTe~DWM4fbrE(0
 
-literal 0
-HcmV?d00001
+delta 948
+zcmV;l155ne2fqi98Gi-<0047(dh`GQ1BOXNK~z|UwbxsSl~oi6@ZUL}#<`SGnGYFM
+z+GsF=Q4bXn5lTZ8U5J^QNwP9}h=|^NiReX$UVDg=iY)0yX;<w!5z&hfQzCT3$>}zk
+zU9_^iH9f3-@N>_1Ze#u7aM*jVz1M%Q+qX9DqZ`9`3!h^b{(r#l*n^3*whAY7aBfR1
+z#B2B!?_xC;VNOA&ihkUVG5m}-aMrOXu3^2n=^9~yb}<+C;U_$u#vNfXzQQx;?R0Yi
+zeRvU*I<Uq7c4PDy6z8}toq296!G2-#%l|{=bzF(xaAqTc<3uFi{68qKV->zph>1#J
+zaYGu9;$*y!<9{=mBKD>K19%x%2%lF(hIHYtB(onEr#+iQM%_w8I-G$OI6aLQh~Qh^
+z#;wLMgg5aDc9zI&PUQBb3+@!DyrWKF9Uj8pX<WfU>}Z3)VR73*5kF%kG6zJhkVve<
+z!x*e3X6K0@DWZ|-b5un9983fn$rKCMT6~AzDn>A#SbxqI6-?uwChOJ0_)mO-l~v)B
+z$4WMIVgX6P;U+SD+1w@!RYl-^lr2toK%kbCcZq0kL?AE6FJWm7CyG)z8v@rlQmT9K
+zK@$Sg+1w=hYQk^1@1`B?vob8h<05vx6&dtH69Q#A)NrU|Ln{J{uth|DEsf7_B41_!
+zl9C=rr+-K*0t@h-C?@l8lE|cq4hd9osES`i(^14;jbmUxz7!v>DjpD3uo-%jo+1{e
+zvuwf262^N(Wap@fPwRHP+Cni=q{=RI3pQ8rx-el8)8dv_mmGM3=mk%~^=%Ls#%E@_
+zU=$k(^Zb~Y<{P(_9C#hR#;0v4m*iGtb6uiuoPSppABS<=l?lBds@HHf-zRQU8r2y_
+zlCpQQ`FoPiz4eJDm@>0kElW&`{oEbmD>>dm`8gs@7iaT5!s7k;hUf8A$w4=Wpt~rI
+z?@Y=+ZlZip1o1T`Ya8%f*`^+Rj~h$YmWvj9BksqC*jgetKPlKHI-ndQqG~p5(+5Pp
+zUVmD$)`v$$WBIHoyK8Z8n%|a4K9Vkz<1*pS8K%#1iRjse8m!L|8M8)oHtX?V+Lu?<
+zI_hq`u$A&U2827FG>cbF0o}q{lcMjOfkyRyyNKRyQS<LMvraTa-9i(hRXbbMj#*)e
+zc=b++?sf#HmB^ino07~F-p0~ahqv4H5G@sRHLeoYnJ=E^bJK4(z7Q|zCmeY<G{wIe
+WY{b0P=v^!T0000<MNUMnLSTYT3cqgv
+
+diff --git a/examples/www/v2/images/logo.png b/examples/www/v2/images/logo.png
+index 319f64feb1253b9bb129345350a6c5ecf8be1493..f4a746c365fa12522995e86c43d4f4f61cfdcead 100644
+GIT binary patch
+literal 5344
+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
+
+literal 832
+zcmV-G1Hb%<P)<h;3K|Lk000e1NJLTq000~S000~a1^@s6at+^<0009ANkl<ZNQteM
+zzmHW_5XV1r-@33XF6=6?u&{uT)hPZzDijkzN&Hc$gpDB<wnps4MEwJ-E!LQzCK|A?
+zQcP5$7S=|BW`RZCB1mGRQDTDV>V7QVJiQ#=eLskk+}wL+zBAuBbIv_;f&roiunpJ;
+z+y=COabOj230MZc0S-jOkwNkL5moB*>XLdy-J@RH1Gi3nGBIuSMYS50Y=e4IJ)};J
+z;5VH<r`21Bb(+grZ5=7g%VTU+e^B=f0`68%sMA+VR*N;0GkvNFFsq*ZKgen^*Q?*F
+zw|8}sh8A!Vn2U(7)%Sp#2gLgkI7esac4JM}?28fcjJgeY8<>rVl`i26z~+c}I>$@E
+zmH~uc0e=7of!6^G`{xmHcg8yid>aw3cDMg!rBvGk$jD#dR1;P`TKm31J+DRuJOG@C
+zh+k^>7(@tE`7HObcY;OyL}$r%R&-8~Hwy4DgwQEt(@)+i#_s~pR=`H!)2k$00md3^
+zlg0Q0V73BQMa0EX2-RDFHFVC@zlO;yB7OxXss@KfLUjiCIETx?{4j(mV@-?RlQ0kO
+zFEhyt!0*6oBM@F11FjpE5cm-Io6fogustGH8nESm2|2^x)QQ4yQ62B$Z~#~jOaKo@
+z#D$(ry1FD(Zv_6VfHttB@HtDT>6WsOPSf2V5evP@Qtr#Rb-5QfhWe0txX5OgdPVnE
+z7u7R;h`P8h)Ln({6ZKKlP`^{x6o6yu{e|w-AVPJ!x=`q*vTH<F@rwFp0lFvq*-TBh
+z)Q?cTUOiK9N2x!gzFb#SIm<f>;1hZ1ZpiUz^>_o>#>DO|^gA-qR_U-Q*Jy2_->IHc
+z-^r35E$la`?`O%%C78~u#^$Dy?9R(mNjjdlv3YetJ)Y0`eD7DUDSXytg1xU8HQ?h(
+zdRK$Jm6=apQKtVeTeAFfeaUJLvzgsn_PC4o@mrfdi|QT2`gNVF+`Vn}BlWTRj;-M)
+z)koCBIjfic-TpmfsJ^E@2s{UD0;YhU>GZqR`P~NQBjU3`vHk&^GLlx26J#d<0000<
+KMNUMnLSTYoK9ME>
 
 diff --git a/examples/www/v2/index.html b/examples/www/v2/index.html
-index 4ed5eb8..5cccab6 100755
+index db1255cf..727f973a 100755
 --- a/examples/www/v2/index.html
 +++ b/examples/www/v2/index.html
-@@ -6,12 +6,13 @@
-       name="viewport"
-       content="width=device-width,initial-scale=1,shrink-to-fit=no"
-     />
--    <link rel="icon" href="images/favicon.png" type="image/png" />
-+    <link rel="icon" href="images/favicon.ico" type="image/ico" />
-     <link rel="stylesheet" href="css/bootstrap.min.css" />
-     <link rel="stylesheet" href="css/dropzone.min.css" />
-     <link rel="stylesheet" href="css/fontawesome.min.css" />
-     <link rel="stylesheet" href="css/solid.min.css" />
-     <link rel="stylesheet" href="css/swupdate.min.css" />
-+    <link rel="stylesheet" href="css/override.css" />
-     <script src="js/jquery.min.js"></script>
-     <script src="js/bootstrap.min.js"></script>
-     <script src="js/dropzone.min.js"></script>
-@@ -23,7 +24,7 @@
-     <nav class="navbar sticky-top navbar-expand-sm navbar-dark bg-primary">
-       <div class="container">
-         <a class="navbar-brand" href="#">
--          <img class="d-inline-block align-top" src="images/logo.png" alt="" />
-+          <img class="d-inline-block align-top" src="images/IRS_IRMA6_100pt_neg.svg" alt="" />
-         </a>
-         <button
-           class="navbar-toggler"
+@@ -1 +1 @@
+-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,shrink-to-fit=no"><link rel="icon" href="images/favicon.png" type="image/png"><link rel="stylesheet" href="css/bootstrap.min.css"><link rel="stylesheet" href="css/dropzone.min.css"><link rel="stylesheet" href="css/fontawesome.min.css"><link rel="stylesheet" href="css/solid.min.css"><link rel="stylesheet" href="css/swupdate.min.css"><script src="js/jquery.min.js"></script><script src="js/bootstrap.min.js"></script><script src="js/dropzone.min.js"></script><script src="js/swupdate.min.js"></script><title>SWUpdate - Software Update for Embedded Systems</title></head><body><!-- Navigation Header --><nav class="navbar sticky-top navbar-expand-sm navbar-dark bg-primary"><div class="container"><a class="navbar-brand" href="#"><img class="d-inline-block align-top" src="images/logo.png" alt=""> </a><button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarText" aria-controls="navbarText" aria-expanded="false" aria-label="Toggle navigation"><span class="navbar-toggler-icon"></span></button><div class="collapse navbar-collapse" id="navbarText"><ul class="navbar-nav ms-auto"><li class="nav-item"><a id="swu-restart" class="nav-link" href="#"><i class="fas fa-sync"></i> Restart System</a></li></ul></div></div></nav><!-- Use Bootstrap Grid Container --><div class="container"><!-- Header --><div class="row my-3"><div class="col"><div class="card opacity-75"><div class="card-header pb-0"><h1 class="display-4"><span class="text-primary">SW</span>Update</h1><p class="lead">Software update for embedded systems</p><p>Upload a software image below, or restart the system at the top right corner.</p></div></div></div></div><div class="row my-3"><div class="col"><div class="card opacity-75"><div class="card-header pb-0"><h5><i class="fas fa-wrench"></i> Software Update</h5></div><div class="card-body"><!-- Dropzone Button for drag&drop files --><form class="dropzone border rounded mb-3" id="dropzone" action="./upload" method="post" enctype="multipart/form-data"><div class="dz-default dz-message"><span class="dz-message">Click here, or drag and drop a software update image file to this area.</span></div></form><!-- Status --><div id="swu-idle" class="alert alert-secondary"><i class="fas fa-info-circle"></i> Update not started.</div><div id="swu-run" class="alert alert-warning" style="display: none;"><i class="fas fa-exclamation-triangle"></i> Updating may take a few minutes, please don't turn off the power.</div><div id="swu-success" class="alert alert-success" style="display: none;"><i class="fas fa-check-circle"></i> Updated successfully.</div><div id="swu-failure" class="alert alert-danger" style="display: none;"><i class="fas fa-times-circle"></i> Update failed.</div><div id="swu-done" class="alert alert-info" style="display: none;"><i class="fas fa-sync"></i> Restarting system.</div><!-- Progress --> <i id="swu-progress-spinner" class="spinner-border invisible" role="status"></i> <strong id="swu-progress-run" style="display: none;">Updating:</strong> <span id="swu-progress-name"></span> <span id="swu-progress-value" class="float-right"></span><div class="progress" role="progressbar"><div id="swu-progress-bar" class="progress-bar progress-bar-striped" style="height: 1.5rem"></div></div></div></div></div></div><!-- Messages --><div class="row my-3"><div class="col"><div class="card opacity-75"><div class="card-header" id="headingMessages"><a class="h5 collapsed" data-bs-toggle="collapse" data-bs-target="#collapseMessages" aria-expanded="false" aria-controls="collapseMessages"><i class="fas"></i> Messages</a></div><div id="collapseMessages" class="collapse" aria-labelledby="headingMessages"><div class="card-body" id="messages"></div></div></div></div></div><!-- Restart --><div id="swu-restart-modal" class="modal fade" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-body"><i class="spinner-border" role="status"></i><h5>The system will restart. Please be patient, as restarting takes about one minute.</h5></div></div></div></div></div></body></html>
+\ No newline at end of file
++<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,shrink-to-fit=no"><link rel="icon" href="images/favicon.png" type="image/png"><link rel="stylesheet" href="css/bootstrap.min.css"><link rel="stylesheet" href="css/dropzone.min.css"><link rel="stylesheet" href="css/fontawesome.min.css"><link rel="stylesheet" href="css/solid.min.css"><link rel="stylesheet" href="css/swupdate.min.css"><link rel="stylesheet" href="css/override.css"><script src="js/jquery.min.js"></script><script src="js/bootstrap.min.js"></script><script src="js/dropzone.min.js"></script><script src="js/swupdate.min.js"></script><title>SWUpdate - Software Update for Embedded Systems</title></head><body><!-- Navigation Header --><nav class="navbar sticky-top navbar-expand-sm navbar-dark bg-primary"><div class="container"><a class="navbar-brand" href="#"><img class="d-inline-block align-top" src="images/logo.png" alt=""> </a><button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarText" aria-controls="navbarText" aria-expanded="false" aria-label="Toggle navigation"><span class="navbar-toggler-icon"></span></button><div class="collapse navbar-collapse" id="navbarText"><ul class="navbar-nav ms-auto"><li class="nav-item"><a id="swu-restart" class="nav-link" href="#"><i class="fas fa-sync"></i> Restart System</a></li></ul></div></div></nav><!-- Use Bootstrap Grid Container --><div class="container"><!-- Header --><div class="row my-3"><div class="col"><div class="card opacity-75"><div class="card-header pb-0"><h1 class="display-4"><span class="text-primary">SW</span>Update</h1><p class="lead">Software update for embedded systems</p><p>Upload a software image below, or restart the system at the top right corner.</p></div></div></div></div><div class="row my-3"><div class="col"><div class="card opacity-75"><div class="card-header pb-0"><h5><i class="fas fa-wrench"></i> Software Update</h5></div><div class="card-body"><!-- Dropzone Button for drag&drop files --><form class="dropzone border rounded mb-3" id="dropzone" action="./upload" method="post" enctype="multipart/form-data"><div class="dz-default dz-message"><span class="dz-message">Click here, or drag and drop a software update image file to this area.</span></div></form><!-- Status --><div id="swu-idle" class="alert alert-secondary"><i class="fas fa-info-circle"></i> Update not started.</div><div id="swu-run" class="alert alert-warning" style="display: none;"><i class="fas fa-exclamation-triangle"></i> Updating may take a few minutes, please don't turn off the power.</div><div id="swu-success" class="alert alert-success" style="display: none;"><i class="fas fa-check-circle"></i> Updated successfully.</div><div id="swu-failure" class="alert alert-danger" style="display: none;"><i class="fas fa-times-circle"></i> Update failed.</div><div id="swu-done" class="alert alert-info" style="display: none;"><i class="fas fa-sync"></i> Restarting system.</div><!-- Progress --> <i id="swu-progress-spinner" class="spinner-border invisible" role="status"></i> <strong id="swu-progress-run" style="display: none;">Updating:</strong> <span id="swu-progress-name"></span> <span id="swu-progress-value" class="float-right"></span><div class="progress" role="progressbar"><div id="swu-progress-bar" class="progress-bar progress-bar-striped" style="height: 1.5rem"></div></div></div></div></div></div><!-- Messages --><div class="row my-3"><div class="col"><div class="card opacity-75"><div class="card-header" id="headingMessages"><a class="h5 collapsed" data-bs-toggle="collapse" data-bs-target="#collapseMessages" aria-expanded="false" aria-controls="collapseMessages"><i class="fas"></i> Messages</a></div><div id="collapseMessages" class="collapse" aria-labelledby="headingMessages"><div class="card-body" id="messages"></div></div></div></div></div><!-- Restart --><div id="swu-restart-modal" class="modal fade" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-body"><i class="spinner-border" role="status"></i><h5>The system will restart. Please be patient, as restarting takes about one minute.</h5></div></div></div></div></div></body></html>
 diff --git a/examples/www/v2/webfonts/SourceSansPro_Light_latin_ext.woff2 b/examples/www/v2/webfonts/SourceSansPro_Light_latin_ext.woff2
 new file mode 100644
 index 0000000000000000000000000000000000000000..068ef13878383dec6168bad5972cb562695c95f2
@@ -987,5 +1077,5 @@ literal 0
 HcmV?d00001
 
 -- 
-2.20.1
+2.45.1
 
