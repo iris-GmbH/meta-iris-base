@@ -1,15 +1,42 @@
-From 897f6423e1d47b5cd08564144e9ed1f108bf5ff4 Mon Sep 17 00:00:00 2001
+From f7717cb5dfb5c54b83391c1dd74e49cbc329e06a Mon Sep 17 00:00:00 2001
 From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
 Date: Mon, 13 May 2024 11:16:22 +0000
 Subject: [PATCH] [MARE-133] u-boot-imx: Add AHAB Support for imx93evk
 
 Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
 ---
- boot/bootm.c                      | 61 +++++++++++++++++++++++++++++++
- configs/imx93_11x11_evk_defconfig |  3 ++
- include/configs/imx93_evk.h       |  9 ++++-
- 3 files changed, 71 insertions(+), 2 deletions(-)
+ arch/arm/include/asm/mach-imx/ahab.h |  1 +
+ boot/Kconfig                         |  2 +-
+ boot/bootm.c                         | 61 ++++++++++++++++++++++++++++
+ cmd/bootm.c                          | 15 +++++++
+ configs/imx93_11x11_evk_defconfig    |  7 ++++
+ include/configs/imx93_evk.h          |  2 +-
+ 6 files changed, 86 insertions(+), 2 deletions(-)
 
+diff --git a/arch/arm/include/asm/mach-imx/ahab.h b/arch/arm/include/asm/mach-imx/ahab.h
+index 2b152d2d222..ae4b1df488a 100644
+--- a/arch/arm/include/asm/mach-imx/ahab.h
++++ b/arch/arm/include/asm/mach-imx/ahab.h
+@@ -11,5 +11,6 @@
+ int ahab_auth_cntr_hdr(struct container_hdr *container, u16 length);
+ int ahab_auth_release(void);
+ int ahab_verify_cntr_image(struct boot_img_t *img, int image_index);
++int authenticate_os_container(ulong addr);
+ 
+ #endif
+diff --git a/boot/Kconfig b/boot/Kconfig
+index ad035695a4a..72eca494277 100644
+--- a/boot/Kconfig
++++ b/boot/Kconfig
+@@ -364,7 +364,7 @@ config BOOT_DEFAULTS
+ 	select CMD_PXE if CMD_NET
+ 	select SUPPORT_RAW_INITRD
+ 	select ENV_VARS_UBOOT_CONFIG
+-	select CMD_BOOTI if ARM64
++	select CMD_BOOTI if ARM64 && !AHAB_BOOT
+ 	select CMD_BOOTZ if ARM && !ARM64
+ 	imply CMD_MII if NET
+ 	imply USB_STORAGE
 diff --git a/boot/bootm.c b/boot/bootm.c
 index 2eec60ec7b5..a66d9dc5884 100644
 --- a/boot/bootm.c
@@ -96,8 +123,34 @@ index 2eec60ec7b5..a66d9dc5884 100644
  	buf = map_sysmem(img_addr, 0);
  	switch (genimg_get_format(buf)) {
  #if CONFIG_IS_ENABLED(LEGACY_IMAGE_FORMAT)
+diff --git a/cmd/bootm.c b/cmd/bootm.c
+index ff4d1442c41..b0f2f0d4dc7 100644
+--- a/cmd/bootm.c
++++ b/cmd/bootm.c
+@@ -216,6 +216,21 @@ int do_bootm(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
+ #endif
+ #endif
+ 
++#ifdef CONFIG_AHAB_BOOT
++	extern int authenticate_os_container(ulong addr);
++	ulong img_addr;
++	if(argc > 0) {
++		img_addr = simple_strtoul(argv[0], NULL, 16);
++	} else {
++		img_addr = image_load_addr;
++	}
++
++	if (authenticate_os_container(img_addr)) {
++		printf("ERROR: Authenticate FIT image Fail, Please check\n");
++		return 1;
++	}
++#endif
++
+ 	states = BOOTM_STATE_START | BOOTM_STATE_FINDOS | BOOTM_STATE_PRE_LOAD |
+ 		BOOTM_STATE_FINDOTHER | BOOTM_STATE_LOADOS |
+ 		BOOTM_STATE_OS_PREP | BOOTM_STATE_OS_FAKE_GO |
 diff --git a/configs/imx93_11x11_evk_defconfig b/configs/imx93_11x11_evk_defconfig
-index 6ed55b5cbc4..97e7221b418 100644
+index 0fa4699c2f4..2fc813819d9 100644
 --- a/configs/imx93_11x11_evk_defconfig
 +++ b/configs/imx93_11x11_evk_defconfig
 @@ -12,6 +12,7 @@ CONFIG_ENV_SECT_SIZE=0x10000
@@ -108,7 +161,25 @@ index 6ed55b5cbc4..97e7221b418 100644
  CONFIG_USB_TCPC=y
  CONFIG_TARGET_IMX93_11X11_EVK=y
  CONFIG_SYS_PROMPT="u-boot=> "
-@@ -189,6 +190,8 @@ CONFIG_BMP_32BPP=y
+@@ -28,6 +29,7 @@ CONFIG_SYS_MEMTEST_END=0x90000000
+ CONFIG_REMAKE_ELF=y
+ CONFIG_SYS_MONITOR_LEN=524288
+ CONFIG_FIT=y
++# CONFIG_LEGACY_IMAGE_FORMAT is not set
+ CONFIG_DISTRO_DEFAULTS=y
+ CONFIG_BOOTCOMMAND="run distro_bootcmd;run bsp_bootcmd"
+ CONFIG_DEFAULT_FDT_FILE="imx93-11x11-evk.dtb"
+@@ -53,6 +55,9 @@ CONFIG_SPL_WATCHDOG=y
+ CONFIG_SYS_MAXARGS=64
+ CONFIG_SYS_CBSIZE=2048
+ CONFIG_SYS_PBSIZE=2074
++# CONFIG_CMD_BOOTFLOW is not set
++# CONFIG_CMD_BOOTI is not set
++# CONFIG_CMD_ELF is not set
+ CONFIG_CMD_ERASEENV=y
+ CONFIG_CMD_NVEDIT_EFI=y
+ CONFIG_CMD_CRC32=y
+@@ -189,6 +194,8 @@ CONFIG_BMP_32BPP=y
  CONFIG_VIDEO_LOGO=y
  CONFIG_VIDEO_LCD_RAYDIUM_RM67191=y
  CONFIG_VIDEO_ADV7535=y
@@ -118,29 +189,15 @@ index 6ed55b5cbc4..97e7221b418 100644
  CONFIG_SPLASH_SCREEN=y
  CONFIG_SPLASH_SCREEN_ALIGN=y
 diff --git a/include/configs/imx93_evk.h b/include/configs/imx93_evk.h
-index a26d3f96bcf..d88ff74a694 100644
+index a6b47661e34..56c42480d8d 100644
 --- a/include/configs/imx93_evk.h
 +++ b/include/configs/imx93_evk.h
-@@ -63,7 +63,7 @@
- 	"fdt_addr_r=0x83000000\0"			\
- 	"fdt_addr=0x83000000\0"			\
- 	"fdt_high=0xffffffffffffffff\0"		\
--	"cntr_addr=0x98000000\0"			\
-+	"cntr_addr=0x88000000\0"			\
- 	"cntr_file=os_cntr_signed.bin\0" \
- 	"boot_fit=no\0" \
- 	"fdtfile=" CONFIG_DEFAULT_FDT_FILE "\0" \
-@@ -80,7 +80,12 @@
+@@ -80,7 +80,7 @@
  	"loadfdt=fatload mmc ${mmcdev}:${mmcpart} ${fdt_addr_r} ${fdtfile}\0" \
  	"fit_img=fitImage.signed\0" \
  	"fit_addr=0x88000000\0" \
 -	"fitboot=fatload mmc ${mmcdev}#${mmcpart} ${fit_addr} ${fit_img}; run mmcargs; bootm ${fit_addr}\0" \
-+	"fitboot=fatload mmc ${mmcdev}#${mmcpart} ${fit_addr} ${fit_img}; " \
-+		"if run auth_os; then " \
-+			"run mmcargs; bootm ${fit_addr}; " \
-+		"else " \
-+			"echo ERROR: failed to authenticate; " \
-+		"fi; reset;\0" \
++	"fitboot=fatload mmc ${mmcdev}#${mmcpart} ${fit_addr} ${fit_img}; run mmcargs; bootm ${fit_addr}; reset;\0" \
  	"firmware=0\0" \
  	"upgrade_available=0\0" \
  	"ustate=0\0" \
