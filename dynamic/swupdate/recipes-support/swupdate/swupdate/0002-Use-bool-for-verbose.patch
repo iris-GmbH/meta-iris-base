@@ -1,0 +1,77 @@
+From cc042f2cf0c8b9e9abfea617b0b9b306a70ed725 Mon Sep 17 00:00:00 2001
+From: Stefano Babic <stefano.babic@swupdate.org>
+Date: Fri, 31 May 2024 14:28:32 +0200
+Subject: [PATCH] Use bool for verbose
+
+Global "verbose" attribute was used as boolean, but defined as int. In
+swupdate.cfg is verbose correctly described as boolean. Recent commit
+1db0aefe creates a regression because it checks for type and requires
+that the type is int, conflicting with what is declared in swupdate.cfg.
+This solves the conflict and changes the type for verbose to bool.
+
+Signed-off-by: Stefano Babic <stefano.babic@swupdate.org>
+Reported-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+
+Upstream-Status: Submitted https://patchwork.ozlabs.org/project/swupdate/patch/20240531122832.792589-1-stefano.babic@swupdate.org/
+---
+ core/swupdate.c               | 2 +-
+ corelib/swupdate_gpg_verify.c | 2 +-
+ include/sslapi.h              | 2 +-
+ include/swupdate.h            | 2 +-
+ 4 files changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/core/swupdate.c b/core/swupdate.c
+index 084eb11a..80f2229a 100644
+--- a/core/swupdate.c
++++ b/core/swupdate.c
+@@ -329,7 +329,7 @@ static int read_globals_settings(void *elem, void *data)
+ 			WARN("Default Namaspace for SWUpdate vars cannot be set, possible side-effects");
+ 	}
+ 
+-	GET_FIELD_INT(LIBCFG_PARSER, elem, "verbose", &sw->verbose);
++	GET_FIELD_BOOL(LIBCFG_PARSER, elem, "verbose", &sw->verbose);
+ 	GET_FIELD_INT(LIBCFG_PARSER, elem, "loglevel", &sw->loglevel);
+ 	GET_FIELD_BOOL(LIBCFG_PARSER, elem, "syslog", &sw->syslog_enabled);
+ 	GET_FIELD_STRING(LIBCFG_PARSER, elem,
+diff --git a/corelib/swupdate_gpg_verify.c b/corelib/swupdate_gpg_verify.c
+index 8a00f204..5e1a061d 100644
+--- a/corelib/swupdate_gpg_verify.c
++++ b/corelib/swupdate_gpg_verify.c
+@@ -81,7 +81,7 @@ int swupdate_verify_file(struct swupdate_digest *dgst, const char *sigfile,
+ 
+ 	gpgme_set_protocol(ctx, protocol);
+ 	gpgme_set_status_cb(ctx, status_cb, NULL);
+-	if (dgst->verbose == 1) {
++	if (dgst->verbose) {
+ 		gpgme_set_ctx_flag(ctx, "full-status", "1");
+ 	}
+ 	gpgme_set_locale(ctx, LC_ALL, setlocale(LC_ALL, ""));
+diff --git a/include/sslapi.h b/include/sslapi.h
+index b23628be..64640184 100644
+--- a/include/sslapi.h
++++ b/include/sslapi.h
+@@ -112,7 +112,7 @@ struct swupdate_digest {
+ #endif
+ #ifdef CONFIG_SIGALG_GPG
+ 	char *gpg_home_directory;
+-	int verbose;
++	bool verbose;
+ 	char *gpgme_protocol;
+ #endif
+ };
+diff --git a/include/swupdate.h b/include/swupdate.h
+index ecad2d82..7cf42104 100644
+--- a/include/swupdate.h
++++ b/include/swupdate.h
+@@ -68,7 +68,7 @@ struct swupdate_cfg {
+ 	bool no_state_marker;
+ 	bool reboot_required;
+ 	bool check_max_version;
+-	int verbose;
++	bool verbose;
+ 	int loglevel;
+ 	int cert_purpose;
+ 	struct hw_type hw;
+-- 
+2.44.0
+
