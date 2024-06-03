@@ -11,6 +11,7 @@
 #include <linux/interrupt.h>
 #include <linux/delay.h>
 #include <linux/device.h>
+#include <linux/gpio/driver.h>
 #include <linux/sched.h>
 #include <linux/irq_sim.h>
 
