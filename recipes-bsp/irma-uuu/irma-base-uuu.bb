@@ -12,9 +12,6 @@ UUUSCRIPT:imx93-11x11-lpddr4x-evk = "flashall_imx93evk.uuu"
 VERIFICATIONSCRIPT:mx8mp-nxp-bsp = "verification_imx8mp.sh"
 VERIFICATIONSCRIPT:imx93-11x11-lpddr4x-evk = "verification_imx93evk.sh"
 
-USE_ROOTFS_DMVERITY:imx93-11x11-lpddr4x-evk = "0"
-
-
 # only allow iMX machines
 COMPATIBLE_MACHINE = "(mx8mp-nxp-bsp|mx93-nxp-bsp)"
 
