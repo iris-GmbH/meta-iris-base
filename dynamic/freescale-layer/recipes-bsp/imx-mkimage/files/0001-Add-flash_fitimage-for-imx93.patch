@@ -1,0 +1,36 @@
+From c8d4504bfdb7ac3500eddc393a9e26aa83e98efa Mon Sep 17 00:00:00 2001
+From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+Date: Sat, 25 May 2024 16:30:00 +0200
+Subject: [PATCH] Add flash_fitimage for imx93
+
+---
+ iMX9/soc.mak | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/iMX9/soc.mak b/iMX9/soc.mak
+index b17db6b..c4b2cf0 100644
+--- a/iMX9/soc.mak
++++ b/iMX9/soc.mak
+@@ -67,6 +67,9 @@ CAPSULE_GUID = bc550d86-da26-4b70-ac05-2a448eda6f21
+ 
+ endif
+ 
++FITIMAGE ?= irma-fitimage.itb
++FITIMAGE_ADDR ?= $(KERNEL_ADDR)
++
+ FCB_LOAD_ADDR ?= $(ATF_LOAD_ADDR)
+ MCU_IMG = m33_image.bin
+ M7_IMG = m7_image.bin
+@@ -469,6 +472,9 @@ flash_sentinel: $(MKIMG) ahabfw.bin
+ flash_kernel: $(MKIMG) Image $(KERNEL_DTB)
+ 	./$(MKIMG) -soc IMX9 -c -ap Image a55 $(KERNEL_ADDR) --data $(KERNEL_DTB) a55 $(KERNEL_DTB_ADDR) -out flash.bin
+ 
++flash_fitimage: $(MKIMG) $(FITIMAGE)
++	./$(MKIMG) -soc IMX9 -c -ap $(FITIMAGE) a55 $(FITIMAGE_ADDR) -out flash_os.bin
++	
+ flash_bootaux_cntr: $(MKIMG) $(MCU_IMG)
+ 	./$(MKIMG) -soc IMX9 -c -m33 $(MCU_IMG) 0 $(MCU_TCM_ADDR) $(MCU_TCM_ADDR_ACORE_VIEW) -out flash.bin
+ 
+-- 
+2.44.0
+

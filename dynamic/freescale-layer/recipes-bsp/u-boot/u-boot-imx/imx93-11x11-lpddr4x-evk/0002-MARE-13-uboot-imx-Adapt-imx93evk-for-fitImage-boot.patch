@@ -92,7 +92,7 @@ index e893b0b553..a26d3f96bc 100644
  		"source\0" \
  	"loadimage=fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${image}\0" \
  	"loadfdt=fatload mmc ${mmcdev}:${mmcpart} ${fdt_addr_r} ${fdtfile}\0" \
-+	"fit_img=fitImage\0" \
++	"fit_img=fitImage.signed\0" \
 +	"fit_addr=0x88000000\0" \
 +	"fitboot=fatload mmc ${mmcdev}#${mmcpart} ${fit_addr} ${fit_img}; run mmcargs; bootm ${fit_addr}\0" \
 +	"firmware=0\0" \

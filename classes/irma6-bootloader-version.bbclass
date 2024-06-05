@@ -4,4 +4,6 @@
 # partition. A signed storage location in flash.bin is the u-boot and the
 # u-boot-spl.
 
-IRIS_IMX_BOOT_RELEASE = "iris-boot_2.1.0"
+IRIS_IMX_BOOT_RELEASE = "iris-boot_0.0.0"
+IRIS_IMX_BOOT_RELEASE:mx8mp-nxp-bsp = "iris-boot_2.1.1"
+IRIS_IMX_BOOT_RELEASE:mx93-nxp-bsp = "iris-boot_1.0.0"

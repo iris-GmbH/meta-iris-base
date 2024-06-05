@@ -49,6 +49,7 @@ FILESEXTRAPATHS:prepend:imx93-11x11-lpddr4x-evk := "${THISDIR}/u-boot-imx/imx93-
 SRC_URI:append:imx93-11x11-lpddr4x-evk = "\
 	file://0001-MARE-13-imx93evk-Enable-CONFIG_FIT.patch \
 	file://0002-MARE-13-uboot-imx-Adapt-imx93evk-for-fitImage-boot.patch \
+	file://0003-MARE-133-u-boot-imx-Add-AHAB-Support-for-imx93evk.patch \
 "
 
 SRC_URI:append:poky-iris-deploy = "\

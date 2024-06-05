@@ -3,201 +3,32 @@
 
 require imx-mkimage_iris.inc
 
-inherit irma6-bootloader-version
+inherit irma6-bootloader-version hab
 PV = "${IRIS_IMX_BOOT_RELEASE}"
 
 FILESEXTRAPATHS:prepend := "${THISDIR}/files:"
-SRC_URI:append:imx8mp-irma6r2 = " \
+SRC_URI:append:hab4 = " \
     file://0001-Use-imx8mp-irma6r2.dtb-instead-of-imx8mp-ddr4-evk.dt.patch \
+    file://csf_hab4.cfg \
 "
 
-IMXBOOT_TARGETS:imx93-11x11-lpddr4x-evk = "flash_singleboot_no_ahabfw"
+SRC_URI:append:ahab = " \
+    file://csf_ahab.cfg \
+    file://0001-Add-flash_fitimage-for-imx93.patch \
+"
+
+# Make irma-fitimage as dependent on the do_compile task of imx-boot
+COMPILE_DEPENDS = ""
+COMPILE_DEPENDS:ahab = " \
+    irma-fitimage:do_assemble_fit \
+    irma-fitimage-uuu:do_assemble_fit \
+"
+do_compile[depends] += "${COMPILE_DEPENDS}"
 
 python __anonymous () {
-    if d.getVar('HAB_ENABLE', True):
-        d.appendVar("DEPENDS", " cst-native")
-}
-
-hex2dec() {
-    echo $(printf '%d' $1)
-}
-
-#
-# do_compile must be overwritten because the "make" outputs are required for
-# the further signature process. The outputs are stored in the files
-# hab_info1.txt and hab_info2.txt.
-#
-do_compile:mx8mp-nxp-bsp() {
-    # mkimage for i.MX8
-    # Copy TEE binary to SoC target folder to mkimage
-    if ${DEPLOY_OPTEE}; then
-        cp ${DEPLOY_DIR_IMAGE}/tee.bin ${BOOT_STAGING}
-    fi
-   for type in ${UBOOT_CONFIG}; do
-        if [ "${@d.getVarFlags('UBOOT_DTB_NAME')}" = "None" ]; then
-            UBOOT_DTB_NAME_FLAGS="${type}:${UBOOT_DTB_NAME}"
-        else
-            UBOOT_DTB_NAME_FLAGS="${@' '.join(flag + ':' + dtb for flag, dtb in (d.getVarFlags('UBOOT_DTB_NAME')).items()) if d.getVarFlags('UBOOT_DTB_NAME') is not None else '' }"
-        fi
-
-        for key_value in ${UBOOT_DTB_NAME_FLAGS}; do
-            type_key="${key_value%%:*}"
-            dtb_name="${key_value#*:}"
-
-            if [ "$type_key" = "$type" ]
-            then
-                bbnote "UBOOT_CONFIG = $type, UBOOT_DTB_NAME = $dtb_name"
-
-                UBOOT_CONFIG_EXTRA="$type_key"
-                if [ -e ${DEPLOY_DIR_IMAGE}/${BOOT_TOOLS}/${dtb_name}-${type} ] ; then
-                    UBOOT_DTB_NAME_EXTRA="${dtb_name}-${type}"
-                else
-                    # backward compatibility
-                    UBOOT_DTB_NAME_EXTRA="${dtb_name}"
-                fi
-                UBOOT_NAME_EXTRA="u-boot-${MACHINE}.bin-${UBOOT_CONFIG_EXTRA}"
-                BOOT_CONFIG_MACHINE_EXTRA="${BOOT_NAME}-${MACHINE}-${UBOOT_CONFIG_EXTRA}.bin"
-
-                for target in ${IMXBOOT_TARGETS}; do
-                    compile_${SOC_FAMILY}
-                    if [ "$target" = "flash_linux_m4_no_v2x" ]; then
-                        # Special target build for i.MX 8DXL with V2X off
-                        bbnote "building ${IMX_BOOT_SOC_TARGET} - ${REV_OPTION} V2X=NO ${target}"
-                        make SOC=${IMX_BOOT_SOC_TARGET} ${REV_OPTION} V2X=NO dtbs=${UBOOT_DTB_NAME_EXTRA} flash_linux_m4
-                    else
-                        bbnote "building ${IMX_BOOT_SOC_TARGET} - ${REV_OPTION} ${target}"
-                        make SOC=${IMX_BOOT_SOC_TARGET} ${REV_OPTION} dtbs=${UBOOT_DTB_NAME_EXTRA} ${target} > ${S}/hab_info1.txt 2>&1
-                    fi
-
-                    if [ "${HAB_ENABLE}" = "1" ];then
-                        case ${MACHINE} in
-                          "imx8mp-irma6r2")
-                            print_cmd=print_fit_hab_ddr4
-                            ;;
-                          "imx8mp-lpddr4-evk")
-                            print_cmd=print_fit_hab
-                            ;;
-                          *)
-                            bberror "HAB signing is not supported yet for ${MACHINE}!"
-                            ;;
-                        esac
-                        make SOC=iMX8MP $print_cmd > ${S}/hab_info2.txt
-                    fi
-
-                    if [ -e "${BOOT_STAGING}/flash.bin" ]; then
-                        cp ${BOOT_STAGING}/flash.bin ${S}/${BOOT_CONFIG_MACHINE_EXTRA}-${target}
-                    fi
-                done
-
-                unset UBOOT_CONFIG_EXTRA
-                unset UBOOT_DTB_NAME_EXTRA
-                unset UBOOT_NAME_EXTRA
-                unset BOOT_CONFIG_MACHINE_EXTRA
-            fi
-
-            unset type_key
-            unset dtb_name
-        done
-
-        unset UBOOT_DTB_NAME_FLAGS
-    done
-    unset type
-}
-
-#
-# Emit the CSF File for SPL part
-#
-# $1 ... CSF SPL Filename
-# $2 ... SRK Table Binary
-# $3 ... CSF Key File
-# $4 ... Image Key File
-# $5 ... Block Data
-# $6 ... CAAM / DCP
-csf_emit_spl_file() {
-	cat << EOF > ${1}
-[Header]
-Version = 4.5
-Hash Algorithm = sha256
-Engine Configuration = 0
-Certificate Format = X509
-Signature Format = CMS
-Engine = ${6}
-
-[Install SRK]
-File = "${2}"
-Source index = 0
-
-[Install CSFK]
-File = "${3}"
-
-[Authenticate CSF]
-
-[Unlock]
-Engine = ${6}
-Features = MID
-
-[Unlock]
-Engine = ${6}
-Features = MFG
-
-[Install Key]
-Verification index = 0
-Target index = 2
-File = "${4}"
-
-[Authenticate Data]
-Verification index = 2
-Blocks = ${5}
-
-EOF
-}
-
-#
-# Emit the CSF File for FIT part
-#
-# $1 ... CSF FIT Filename
-# $2 ... SRK Table Binary
-# $3 ... CSF Key File
-# $4 ... Image Key File
-# $5 ... Block Data
-# $6 ... CAAM / DCP
-csf_emit_fit_file() {
-	cat << EOF > ${1}
-[Header]
-Version = 4.5
-Hash Algorithm = sha256
-Engine = ${6}
-Engine Configuration = 0
-Certificate Format = X509
-Signature Format = CMS
-
-[Install SRK]
-File = "${2}"
-Source index = 0
-
-[Install CSFK]
-File = "${3}"
-
-[Authenticate CSF]
-
-[Unlock]
-Engine = ${6}
-Features = MID
-
-[Unlock]
-Engine = ${6}
-Features = MFG
-
-[Install Key]
-Verification index = 0
-Target index = 2
-File = "${4}"
-
-[Authenticate Data]
-Verification index = 2
-Blocks = ${5}
-
-EOF
+    overrides = d.getVar('OVERRIDES', True).split(':')
+    if 'hab4' in overrides or 'ahab' in overrides:
+        d.appendVar("DEPENDS", " cst-native cst-signer-native")
 }
 
 set_imxboot_vars() {
@@ -208,78 +39,125 @@ set_imxboot_vars() {
         fi
     done
     BOOT_CONFIG_MACHINE_EXTRA="${BOOT_NAME}-${MACHINE}-${UBOOT_CONFIG}.bin"
+    BOOT_IMAGE_SD="${BOOT_CONFIG_MACHINE_EXTRA}-${IMAGE_IMXBOOT_TARGET}"
 }
 
-sign_uboot_common() {
-    # Copy flash.bin
+do_sign_boot_image() {
+    bbwarn "Signed boot not enabled."
+}
+
+sign_boot_image() {
+    bbnote "Signing boot image"
+	SIGNDIR="${S}"
     set_imxboot_vars
-    fn="${S}/${BOOT_CONFIG_MACHINE_EXTRA}-${IMAGE_IMXBOOT_TARGET}.signed"
-    cp ${S}/${BOOT_CONFIG_MACHINE_EXTRA}-${IMAGE_IMXBOOT_TARGET} ${fn}
 
-    # Parse hab signing info (offset, blocks) 
-    cst_off=$(cat ${S}/hab_info1.txt | grep -w csf_off | cut -f3)
-    cst_off=$(hex2dec $cst_off)
-    sld_csf_off=$(cat ${S}/hab_info1.txt | grep -w sld_csf_off | cut -f3)
-    sld_csf_off=$(hex2dec $sld_csf_off)
-    blocks_spl="$(cat ${S}/hab_info1.txt | grep -w "spl hab block" | cut -f2) \"${fn}\""
-    blocks_fit1="$(cat ${S}/hab_info1.txt | grep -w "sld hab block" | cut -f2) \"${fn}\", \\"
-
-    fit2_lines=${@bb.utils.contains('MACHINE_FEATURES', 'optee', '4', '3', d)}
-    blocks_fit2="$(cat ${S}/hab_info2.txt | tail -n "$fit2_lines" | while read line; do echo "$line \"${fn}\", \\"; done)"
-    blocks_fit=$(printf '%s\n%s' "$blocks_fit1" "${blocks_fit2%???}")
-
-    # Create csf_spl.txt and csf_fit.txt
-    csf_emit_spl_file "${S}/csf_spl.txt" "${SRKTAB}" "${CSFK}" "${SIGN_CERT}" "${blocks_spl}" "${CRYPTO_HW_ACCEL}"
-    csf_emit_fit_file "${S}/csf_fit.txt" "${SRKTAB}" "${CSFK}" "${SIGN_CERT}" "${blocks_fit}" "${CRYPTO_HW_ACCEL}"
-
-    # Create csf files
-    cst -i ${S}/csf_spl.txt -o ${S}/csf_spl.bin
-    cst -i ${S}/csf_fit.txt -o ${S}/csf_fit.bin
-
-    # Sign bootable image
-    dd if=${S}/csf_spl.bin of=$fn seek=$cst_off bs=1 conv=notrunc
-    dd if=${S}/csf_fit.bin of=$fn seek=$sld_csf_off bs=1 conv=notrunc
-}
-
-do_sign_uboot() {
-    if [ "${HAB_ENABLE}" = "1" ];then
-        sign_uboot_common
+    # Check if SD image is available
+    if [ ! -e "${SIGNDIR}/${BOOT_IMAGE_SD}" ]; then
+        bbfatal 'imx-boot SD image is not available to sign'
     fi
-}
 
-do_sign_uboot:append:mx8mp-nxp-bsp() {
-    if [ "${HAB_ENABLE}" = "0" ];then
-        bbwarn "HAB boot not enabled."
+    # Generate signed image using cst_signer
+	cd "${SIGNDIR}"
+    CST_EXE_PATH=cst CST_PATH=${HAB_DIR} cst_signer -d -i ${SIGNDIR}/${BOOT_IMAGE_SD} -c ${SIGNDIR}/csf.cfg
+    if [ ! -e "${SIGNDIR}/signed-${BOOT_IMAGE_SD}" ]; then
+        bbfatal "Image signing failed"
     fi
+    mv ${SIGNDIR}/signed-${BOOT_IMAGE_SD} ${SIGNDIR}/${BOOT_IMAGE_SD}.signed
 }
 
-do_install:append() {
-    if [ "${HAB_ENABLE}" = "1" ];then
-        set_imxboot_vars
-        install -m 0644 ${S}/${BOOT_CONFIG_MACHINE_EXTRA}-${IMAGE_IMXBOOT_TARGET}.signed ${D}/boot/
-    fi
+do_sign_boot_image:hab4() {
+    install -m 0755 ${WORKDIR}/csf_hab4.cfg ${S}/csf.cfg
+    sign_boot_image
 }
 
-do_deploy:append() {
-    if [ "${HAB_ENABLE}" = "1" ];then
-        # copy flash.bin.signed to deploy dir and create a symlink imx-boot.signed
-        set_imxboot_vars
-        install -m 0644 ${S}/${BOOT_CONFIG_MACHINE_EXTRA}-${IMAGE_IMXBOOT_TARGET}.signed ${DEPLOYDIR}
-        cd ${DEPLOYDIR}
-        ln -sf ${BOOT_CONFIG_MACHINE_EXTRA}-${IMAGE_IMXBOOT_TARGET}.signed ${BOOT_NAME}.signed
-        cd -
-    fi
+do_sign_boot_image:ahab() {
+    install -m 0755 ${WORKDIR}/csf_ahab.cfg ${S}/csf.cfg
+    sign_boot_image
 }
 
-addtask do_sign_uboot before do_deploy do_install after do_compile
+addtask do_sign_boot_image before do_deploy do_install after do_compile
 
-do_check_iris_version_string() {
+install_boot_image() {
+    # For the uuu-container build
     set_imxboot_vars
-    if [ "${HAB_ENABLE}" = "1" ]; then
-        bootloader="${S}/${BOOT_CONFIG_MACHINE_EXTRA}-${IMAGE_IMXBOOT_TARGET}.signed"
+    install -m 0644 ${S}/${BOOT_IMAGE_SD}.signed ${D}/boot/
+    check_iris_version_string
+}
+
+do_install:append:hab4() {
+    install_boot_image
+}
+
+do_install:append:ahab() {
+    install_boot_image
+}
+
+deploy_boot_image() {
+    set_imxboot_vars
+    if [ -e "${S}/${BOOT_IMAGE_SD}.signed" ]; then
+        install -m 0644 ${S}/${BOOT_IMAGE_SD}.signed ${DEPLOY_DIR_IMAGE}/
+        ln -sf ${DEPLOY_DIR_IMAGE}/${BOOT_IMAGE_SD}.signed ${DEPLOY_DIR_IMAGE}/${BOOT_NAME}.signed
     else
-        bootloader="${S}/${BOOT_CONFIG_MACHINE_EXTRA}-${IMAGE_IMXBOOT_TARGET}"
+        bbfatal "ERROR: Could not deploy Signed image"
     fi
+}
+
+do_deploy:append:hab4() {
+    deploy_boot_image
+}
+
+do_deploy:append:ahab() {
+    deploy_boot_image
+}
+
+do_compile:append:ahab() {
+    # Create flash.bin for the uuu kernel fitimage -> flash_os.bin.uuu
+    cp ${DEPLOY_DIR_IMAGE}/irma-fitimage-uuu.itb ${BOOT_STAGING}/irma-fitimage-uuu.itb
+    FITIMAGE=irma-fitimage-uuu.itb make SOC=${IMX_BOOT_SOC_TARGET} flash_fitimage
+    mv ${BOOT_STAGING}/flash_os.bin ${BOOT_STAGING}/flash_os.bin.uuu
+
+    # Create flash.bin for the kernel fitimage -> flash_os.bin
+    cp ${DEPLOY_DIR_IMAGE}/irma-fitimage.itb ${BOOT_STAGING}/irma-fitimage.itb
+    FITIMAGE=irma-fitimage.itb make SOC=${IMX_BOOT_SOC_TARGET} flash_fitimage
+}
+
+do_sign_fitimage() {
+    :
+}
+
+do_sign_fitimage:ahab() {
+    bbnote "Signing fitimage"
+
+    SIGNDIR="${S}"
+    if [ ! -f ${SIGNDIR}/csf.cfg ]; then
+        install -m 0755 ${WORKDIR}/csf_ahab.cfg ${SIGNDIR}/csf.cfg
+    fi
+
+    # Generate signed fitimage using cst_signer
+    cd "${SIGNDIR}"
+    CST_EXE_PATH=cst CST_PATH=${HAB_DIR} cst_signer -d -i ${BOOT_STAGING}/flash_os.bin -c ${SIGNDIR}/csf.cfg
+    mv ${SIGNDIR}/signed-flash_os.bin ${SIGNDIR}/irma-fitimage.itb.signed
+
+    # Generate signed fitimage-uuu using cst_signer
+    CST_EXE_PATH=cst CST_PATH=${HAB_DIR} cst_signer -d -i ${BOOT_STAGING}/flash_os.bin.uuu -c ${SIGNDIR}/csf.cfg
+    mv ${SIGNDIR}/signed-flash_os.bin.uuu ${SIGNDIR}/irma-fitimage-uuu.itb.signed
+}
+
+
+addtask do_sign_fitimage before do_deploy do_install after do_sign_boot_image
+
+do_deploy:append:ahab() {
+    if [ -e "${S}/irma-fitimage.itb.signed" ]; then
+        install -m 0644 ${S}/irma-fitimage.itb.signed ${DEPLOYDIR}
+        install -m 0644 ${S}/irma-fitimage-uuu.itb.signed ${DEPLOYDIR}
+    else
+        bbfatal "Could not deploy Signed fitimage"
+    fi
+}
+
+check_iris_version_string() {
+    set_imxboot_vars
+    bootloader="${S}/${BOOT_IMAGE_SD}.signed"
 
     # Find the first occurence of "U-Boot SPL [...]" in the first 1MB and check for pattern: iris-boot_X.X.X+gYYY
     # Do exactly the same as here: meta-iris-base/recipes-support/swupdate/swupdate/bootloader_update.lua,
@@ -293,5 +171,3 @@ do_check_iris_version_string() {
         bberror "iris version string not found in $bootloader"
     fi
 }
-
-addtask check_iris_version_string before do_deploy after do_install
