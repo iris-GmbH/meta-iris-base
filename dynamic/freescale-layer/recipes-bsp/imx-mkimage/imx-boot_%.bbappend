@@ -23,12 +23,20 @@ COMPILE_DEPENDS:ahab = " \
     irma-fitimage:do_assemble_fit \
     irma-fitimage-uuu:do_assemble_fit \
 "
+COMPILE_DEPENDS:hab4 = " \
+    irma-fitimage:do_assemble_fit \
+    irma-fitimage-uuu:do_assemble_fit \
+"
 do_compile[depends] += "${COMPILE_DEPENDS}"
+
+FITIMAGE_NAME = "irma-fitimage.itb"
+FITIMAGE_UUU_NAME = "irma-fitimage-uuu.itb"
+FITLOADADDR:mx8mp-nxp-bsp = "0x48000000"
 
 python __anonymous () {
     overrides = d.getVar('OVERRIDES', True).split(':')
     if 'hab4' in overrides or 'ahab' in overrides:
-        d.appendVar("DEPENDS", " cst-native cst-signer-native")
+        d.appendVar("DEPENDS", " cst-native cst-signer-native perl-native")
 }
 
 set_imxboot_vars() {
@@ -96,7 +104,7 @@ deploy_boot_image() {
     set_imxboot_vars
     if [ -e "${S}/${BOOT_IMAGE_SD}.signed" ]; then
         install -m 0644 ${S}/${BOOT_IMAGE_SD}.signed ${DEPLOY_DIR_IMAGE}/
-        ln -sf ${DEPLOY_DIR_IMAGE}/${BOOT_IMAGE_SD}.signed ${DEPLOY_DIR_IMAGE}/${BOOT_NAME}.signed
+        ln -srf ${DEPLOY_DIR_IMAGE}/${BOOT_IMAGE_SD}.signed ${DEPLOY_DIR_IMAGE}/${BOOT_NAME}.signed
     else
         bbfatal "ERROR: Could not deploy Signed image"
     fi
@@ -112,20 +120,83 @@ do_deploy:append:ahab() {
 
 do_compile:append:ahab() {
     # Create flash.bin for the uuu kernel fitimage -> flash_os.bin.uuu
-    cp ${DEPLOY_DIR_IMAGE}/irma-fitimage-uuu.itb ${BOOT_STAGING}/irma-fitimage-uuu.itb
-    FITIMAGE=irma-fitimage-uuu.itb make SOC=${IMX_BOOT_SOC_TARGET} flash_fitimage
+    cp ${DEPLOY_DIR_IMAGE}/${FITIMAGE_UUU_NAME} ${BOOT_STAGING}/${FITIMAGE_UUU_NAME}
+    FITIMAGE=${FITIMAGE_UUU_NAME} make SOC=${IMX_BOOT_SOC_TARGET} flash_fitimage
     mv ${BOOT_STAGING}/flash_os.bin ${BOOT_STAGING}/flash_os.bin.uuu
 
     # Create flash.bin for the kernel fitimage -> flash_os.bin
-    cp ${DEPLOY_DIR_IMAGE}/irma-fitimage.itb ${BOOT_STAGING}/irma-fitimage.itb
-    FITIMAGE=irma-fitimage.itb make SOC=${IMX_BOOT_SOC_TARGET} flash_fitimage
+    cp ${DEPLOY_DIR_IMAGE}/${FITIMAGE_NAME} ${BOOT_STAGING}/${FITIMAGE_NAME}
+    FITIMAGE=${FITIMAGE_NAME} make SOC=${IMX_BOOT_SOC_TARGET} flash_fitimage
+}
+
+attach_ivt() {
+	if [ -z "${FITLOADADDR}" ]; then
+		bbfatal "FITLOADADDR is not set!"
+	fi
+
+	IMAGE_SIZE="`wc -c < ${1}`"
+	get_align_size_emit_file get_align_size.pl
+	genivt_emit_file imx6-genIVT.pl
+	ALIGNED_SIZE="$(perl -w get_align_size.pl ${IMAGE_SIZE})"
+	objcopy -I binary -O binary --pad-to ${ALIGNED_SIZE} --gap-fill=0x00 ${1} ${1}-pad
+	perl -w imx6-genIVT.pl ${FITLOADADDR} `printf "0x%x" ${ALIGNED_SIZE}`
+	cat ${1}-pad ivt.bin > ${1}-ivt
+	rm -f ${1}-pad
+}
+
+get_align_size_emit_file() {
+
+	cat << 'EOF' > ${1}
+use strict;
+my $image_size = $ARGV[0];
+my $aligned_size = (($image_size + 0x1000 - 1)  & ~ (0x1000 - 1));
+print  "$aligned_size\n";
+EOF
+}
+
+genivt_emit_file() {
+
+	cat << 'EOF' > ${1}
+use strict;
+my $loadaddr = hex(shift);
+my $img_size = hex(shift);
+
+my $entry = $loadaddr + 0x1000;
+my $ivt_addr = $loadaddr + $img_size;
+my $csf_addr = $ivt_addr + 0x20;
+
+open(my $out, '>:raw', 'ivt.bin') or die "Unable to open: $!";
+print $out pack("V", 0x412000D1); # IVT Header
+print $out pack("V", $entry); # Jump Location
+print $out pack("V", 0x0); # Reserved
+print $out pack("V", 0x0); # DCD pointer
+print $out pack("V", 0x0); # Boot Data
+print $out pack("V", $ivt_addr); # Self Pointer
+print $out pack("V", $csf_addr); # CSF Pointer
+print $out pack("V", 0x0); # Reserved
+close($out);
+EOF
+}
+
+do_compile:append:hab4() {
+    # Copy fitimage
+    cp ${DEPLOY_DIR_IMAGE}/${FITIMAGE_NAME} ${BOOT_STAGING}/${FITIMAGE_NAME}
+    cp ${DEPLOY_DIR_IMAGE}/${FITIMAGE_UUU_NAME} ${BOOT_STAGING}/${FITIMAGE_UUU_NAME}
+
+    # Append Image Vector Table
+    attach_ivt ${BOOT_STAGING}/${FITIMAGE_NAME}
+    attach_ivt ${BOOT_STAGING}/${FITIMAGE_UUU_NAME}
+
+    # Create the kernel (uuu) fitimage'S -> flash_os.bin, flash_os.bin.uuu
+    mv ${BOOT_STAGING}/${FITIMAGE_NAME}-ivt ${BOOT_STAGING}/flash_os.bin
+    mv ${BOOT_STAGING}/${FITIMAGE_UUU_NAME}-ivt ${BOOT_STAGING}/flash_os.bin.uuu
 }
 
 do_sign_fitimage() {
-    :
+    bbwarn "Signed fitimage not enabled."
 }
 
-do_sign_fitimage:ahab() {
+sign_fitimage() {
     bbnote "Signing fitimage"
 
     SIGNDIR="${S}"
@@ -136,23 +207,38 @@ do_sign_fitimage:ahab() {
     # Generate signed fitimage using cst_signer
     cd "${SIGNDIR}"
     CST_EXE_PATH=cst CST_PATH=${HAB_DIR} cst_signer -d -i ${BOOT_STAGING}/flash_os.bin -c ${SIGNDIR}/csf.cfg
-    mv ${SIGNDIR}/signed-flash_os.bin ${SIGNDIR}/irma-fitimage.itb.signed
+    mv ${SIGNDIR}/signed-flash_os.bin ${SIGNDIR}/${FITIMAGE_NAME}.signed
 
     # Generate signed fitimage-uuu using cst_signer
     CST_EXE_PATH=cst CST_PATH=${HAB_DIR} cst_signer -d -i ${BOOT_STAGING}/flash_os.bin.uuu -c ${SIGNDIR}/csf.cfg
-    mv ${SIGNDIR}/signed-flash_os.bin.uuu ${SIGNDIR}/irma-fitimage-uuu.itb.signed
+    mv ${SIGNDIR}/signed-flash_os.bin.uuu ${SIGNDIR}/${FITIMAGE_UUU_NAME}.signed
 }
 
+do_sign_fitimage:hab4() {
+    sign_fitimage
+}
+
+do_sign_fitimage:ahab() {
+    sign_fitimage
+}
 
 addtask do_sign_fitimage before do_deploy do_install after do_sign_boot_image
 
-do_deploy:append:ahab() {
-    if [ -e "${S}/irma-fitimage.itb.signed" ]; then
-        install -m 0644 ${S}/irma-fitimage.itb.signed ${DEPLOYDIR}
-        install -m 0644 ${S}/irma-fitimage-uuu.itb.signed ${DEPLOYDIR}
+deploy_fitimage() {
+    if [ -e "${S}/${FITIMAGE_NAME}.signed" ] || [ -e "${S}/${FITIMAGE_UUU_NAME}.signed" ]; then
+        install -m 0644 ${S}/${FITIMAGE_NAME}.signed ${DEPLOYDIR}
+        install -m 0644 ${S}/${FITIMAGE_UUU_NAME}.signed ${DEPLOYDIR}
     else
         bbfatal "Could not deploy Signed fitimage"
     fi
+}
+
+do_deploy:append:ahab() {
+    deploy_fitimage
+}
+
+do_deploy:append:hab4() {
+    deploy_fitimage
 }
 
 check_iris_version_string() {

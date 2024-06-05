@@ -1,18 +1,39 @@
 # SPDX-License-Identifier: MIT
 # Copyright (C) 2022 iris-GmbH infrared & intelligent sensors
 
-# require inc-file from meta-secure-imx
-require recipes-core/images/image-fit.inc
-
 SUMMARY = "IRMA FIT image"
 LICENSE = "MIT"
 LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/MIT;md5=0835ade698e0bcf8506ecda2f7b4f302"
 
 FILESEXTRAPATHS:prepend := "${THISDIR}/files:"
+SRC_URI = " \
+	file://rescue.its.in \
+"
 
+DEPENDS += " \
+	dtc-native \
+	u-boot-mkimage-native \
+"
+
+do_assemble_fit[depends] += "virtual/kernel:do_deploy"
+
+do_patch[noexec] = "1"
+do_configure[noexec] = "1"
+do_assemble_fit[nostamp] = "1"
+do_package[noexec] = "1"
+do_packagedata[noexec] = "1"
+deltask package_write_ipk
+deltask package_write_deb
+deltask package_write_rpm
+deltask do_deploy_archives
+deltask do_rootfs
+
+S = "${WORKDIR}"
+B = "${S}"
+
+ITB_FNAME = "${PN}.itb"
 FITIMAGE_RUNNING_VERSION = "1.0"
 FITIMAGE_DESCRIPTION = "IRMA FIT image"
-KERNEL_SIGN_SUFFIX = "signed"
 RESCUE_NAME_FULL ?= "${RESCUE_NAME}-${MACHINE}.cpio.zst"
 
 # Overwrite KERNEL_DEVICETREE as it is a multiline variable defined in meta-freescale/conf/machine
@@ -23,41 +44,14 @@ KERNEL_DTB_FILE:imx93-11x11-lpddr4x-evk = "freescale/imx93-11x11-evk.dtb"
 # Define load addresses for imx8mp hardware
 ITS_KERNEL_LOAD_ADDR:mx8mp-nxp-bsp = "0x40400000"
 ITS_KERNEL_ENTRY_ADDR:mx8mp-nxp-bsp = "0x40400000"
-FITLOADADDR:mx8mp-nxp-bsp = "0x48000000"
 ITS_DTB_LOAD_ADDR:mx8mp-nxp-bsp = "0x43000000"
 
 # Define load addresses for imx93 hardware
 ITS_KERNEL_LOAD_ADDR:mx9-nxp-bsp = "0x80400000"
 ITS_KERNEL_ENTRY_ADDR:mx9-nxp-bsp = "0x80400000"
-FITLOADADDR:mx9-nxp-bsp = "0x88000000"
 ITS_DTB_LOAD_ADDR:mx9-nxp-bsp = "0x83000000"
 
-# include checking of HAB/CST related variables
-inherit irma6-signing-variable-check
-addtask do_signing_variable_check before do_assemble_fit
 
-do_assemble_fit:prepend() {
-	if [ -z "${FITLOADADDR}" ]; then
-		bbwarn "Set FITLOADADDR to ${FITLOADADDR}"
-	fi
-
-	if [ -z "${RESCUE_NAME_FULL}" ]; then
-		bbwarn "RESCUE_NAME_FULL is not set"
-	fi
-
-	if [ -z "${ITS_KERNEL_LOAD_ADDR}" ]; then
-		bbwarn "ITS_KERNEL_LOAD_ADDR is not set"
-	fi
-
-	if [ -z "${ITS_KERNEL_ENTRY_ADDR}" ]; then
-		bbwarn "ITS_KERNEL_ENTRY_ADDR is not set"
-	fi
-	if [ -z "${ITS_DTB_LOAD_ADDR}" ]; then
-		bbwarn "ITS_DTB_LOAD_ADDR is not set"
-	fi
-}
-
-# overwrite meta-secure-imx/recipes-core/images/image-fit.inc
 do_assemble_fit() {
 	echo "STAGING_KERNEL_DIR" ${STAGING_KERNEL_DIR}
 	echo "STAGING_KERNEL_BUILDDIR" ${STAGING_KERNEL_BUILDDIR}
@@ -112,43 +106,6 @@ do_assemble_fit() {
 	install -m 644 ${ITB_FNAME} ${DEPLOY_DIR_IMAGE}/${ITB_FNAME}
 }
 
-do_assemble_fit:append:mx8mp-nxp-bsp() {
-	prepare_hab_image ${ITB_FNAME}
-	install ${ITB_FNAME}-ivt.${KERNEL_SIGN_SUFFIX} ${DEPLOY_DIR_IMAGE}/${ITB_FNAME}.${KERNEL_SIGN_SUFFIX}
-}
+addtask do_assemble_fit before do_install after do_compile
 
-# overwrite meta-secure-imx/classes/fitimage-hab-sign.bbclass
-csf_emit_file() {
-	cat << EOF > ${1}
-[Header]
-Version = 4.5
-Hash Algorithm = sha256
-Engine Configuration = 0
-Certificate Format = X509
-Signature Format = CMS
-Engine = ${7}
-
-[Install SRK]
-File = "${2}"
-Source index = 0
-
-[Install CSFK]
-File = "${3}"
-
-[Authenticate CSF]
-
-[Install Key]
-Verification index = 0
-Target Index = 2
-File= "${4}"
-
-[Authenticate Data]
-Verification index = 2
-Blocks = ${5} "${6}"
-
-[Unlock]
-Engine = ${7}
-Features = RNG
-EOF
-}
-
+do_assemble_fit[depends] += "${RESCUE_NAME}:do_image_complete"
