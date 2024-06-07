@@ -161,7 +161,7 @@ use strict;
 my $loadaddr = hex(shift);
 my $img_size = hex(shift);
 
-my $entry = $loadaddr + 0x1000;
+my $entry = $loadaddr;
 my $ivt_addr = $loadaddr + $img_size;
 my $csf_addr = $ivt_addr + 0x20;
 
