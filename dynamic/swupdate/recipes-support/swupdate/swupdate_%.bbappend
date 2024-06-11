@@ -61,12 +61,14 @@ FILES:${PN} += " \
 
 SWU_HW_VERSION ?= "${@'0.0' if not d.getVar('HW_VERSION') else d.getVar('HW_VERSION')}"
 
-do_install:append () {
+do_install:append:mx8mp-nxp-bsp () {
 	install -d ${D}${sysconfdir}/init.d
 	install -d ${D}${sysconfdir}/rc5.d
 	install -m 0755 ${WORKDIR}/${RESET_SCRIPT} ${D}${sysconfdir}/init.d
 	ln -s -r ${D}${sysconfdir}/init.d/${RESET_SCRIPT} ${D}${sysconfdir}/rc5.d/${RESET_SCRIPT_SYM}
+}
 
+do_install:append () {
 	# create swupdate.cfg and replace variables
 	cp ${WORKDIR}/swupdate.cfg.in ${WORKDIR}/swupdate.cfg
 	export FW_VERSION=`echo ${DISTRO_VERSION} | grep -oP '\d+\.\d+'`

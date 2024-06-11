@@ -87,12 +87,14 @@ python () {
     # Add task R2 only for ext4 builds
     image_fstypes = d.getVar('IMAGE_FSTYPES')
     compat_machines = (d.getVar('MACHINEOVERRIDES') or "").split(":")
-    if 'mx8mp-nxp-bsp' in compat_machines and 'ext4' in image_fstypes:
+    if ('mx8mp-nxp-bsp' in compat_machines or 'mx93-nxp-bsp' in compat_machines) and 'ext4' in image_fstypes:
         bb.build.addtask('do_generate_dmverity_hashes', 'do_image_complete', 'do_image_ext4', d)
 }
 
-# Generate dm-verity root hash for R2
-DEPENDS:append:mx8mp-nxp-bsp = " cryptsetup-native gzip-native bc-native xxd-native openssl-native"
+# Generate dm-verity root hash
+SECURE_BOOT_DEPENDS = " cryptsetup-native gzip-native bc-native xxd-native openssl-native"
+DEPENDS:append:mx8mp-nxp-bsp = "${SECURE_BOOT_DEPENDS}"
+DEPENDS:append:mx93-nxp-bsp = "${SECURE_BOOT_DEPENDS}"
 do_generate_dmverity_hashes () {
     blockdev=$(mktemp)
     paddeddev=$(mktemp)
