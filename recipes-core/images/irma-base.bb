@@ -87,7 +87,7 @@ python () {
     # Add task R2 only for ext4 builds
     image_fstypes = d.getVar('IMAGE_FSTYPES')
     compat_machines = (d.getVar('MACHINEOVERRIDES') or "").split(":")
-    if 'mx8mp-nxp-bsp' in compat_machines or 'mx93-nxp-bsp' in compat_machines and 'ext4' in image_fstypes:
+    if ('mx8mp-nxp-bsp' in compat_machines or 'mx93-nxp-bsp' in compat_machines) and 'ext4' in image_fstypes:
         bb.build.addtask('do_generate_dmverity_hashes', 'do_image_complete', 'do_image_ext4', d)
 }
 
