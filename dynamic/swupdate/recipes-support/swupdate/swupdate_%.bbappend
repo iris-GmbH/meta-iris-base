@@ -40,6 +40,9 @@ RDEPENDS:${PN} += " \
 	rsync \
 	e2fsprogs-resize2fs \
 	e2fsprogs-e2fsck \
+	util-linux-blockdev \
+	keyutils \
+	cryptsetup \
 "
 
 # Include more RDEPENDS for pre_post_inst.sh in swuimage, but only for real hardware
@@ -47,9 +50,6 @@ RDEPENDS:${PN}:append:mx8mp-nxp-bsp = " \
 	hab-csf-parser \
 	hab-srktool-scripts \
 	keyctl-caam \
-	util-linux-blockdev \
-	keyutils \
-	cryptsetup \
 "
 
 FILES:${PN} += " \
