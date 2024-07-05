@@ -1,12 +1,12 @@
 uuu_version 1.4.165
 
-# Boot flash.bin
-SDPS: boot -f flash.bin
+# Boot flash.bin.signed
+SDPS: boot -f flash.bin.signed
 
 # use uboot burn bootloader to eMMC
 FB: ucmd setenv fastboot_dev mmc
 FB: ucmd setenv mmcdev ${emmc_dev}
-FB: flash bootloader flash.bin
+FB: flash bootloader flash.bin.signed
 
 FB: ucmd if env exists emmc_ack; then ; else setenv emmc_ack 0; fi;
 FB: ucmd setenv emmc_cmd mmc partconf ${emmc_dev} ${emmc_ack} 1 0
@@ -16,8 +16,7 @@ FB: ucmd if test "${emmc_skip_fb}" != "yes"; then run emmc_cmd; fi
 
 # Load kernel and boot from initramfs
 FB: ucmd setenv fastboot_buffer ${fit_addr}
-FB: download -f fitImage-uuu
-#FB: acmd run mfgtool_args; fastboot auto
+FB: download -f fitImage-uuu.signed
 FB: acmd bootm ${fit_addr}
 
 # Wait for emmc and save mmc device path
@@ -30,36 +29,39 @@ FBK: ucmd mmc=`cat /tmp/mmcdev`; dd if=/dev/zero of=/dev/mmcblk${mmc} bs=1M coun
 FBK: ucmd mmc=`cat /tmp/mmcdev`; cat /tmp/partitions | sfdisk --force /dev/mmcblk${mmc}
 FBK: ucmd sync
 
-# load bootloader container (flash.bin) and flash it to both hardware boot partitions
-FBK: ucp  flash.bin t:/tmp
+# load bootloader container (flash.bin.signed) and flash it to both hardware boot partitions
+FBK: ucp  flash.bin.signed t:/tmp
 FBK: ucmd mmc=`cat /tmp/mmcdev`; echo 0 > /sys/block/mmcblk${mmc}boot0/force_ro
 FBK: ucmd mmc=`cat /tmp/mmcdev`; echo 0 > /sys/block/mmcblk${mmc}boot1/force_ro
-FBK: ucmd mmc=`cat /tmp/mmcdev`; dd if=/tmp/flash.bin of=/dev/mmcblk${mmc}boot0
-FBK: ucmd mmc=`cat /tmp/mmcdev`; dd if=/tmp/flash.bin of=/dev/mmcblk${mmc}boot1
+FBK: ucmd mmc=`cat /tmp/mmcdev`; dd if=/tmp/flash.bin.signed of=/dev/mmcblk${mmc}boot0
+FBK: ucmd mmc=`cat /tmp/mmcdev`; dd if=/tmp/flash.bin.signed of=/dev/mmcblk${mmc}boot1
 FBK: ucmd sync
 FBK: ucmd mmc=`cat /tmp/mmcdev`; echo 1 > /sys/block/mmcblk${mmc}boot0/force_ro
 FBK: ucmd mmc=`cat /tmp/mmcdev`; echo 1 > /sys/block/mmcblk${mmc}boot1/force_ro
 
-# flash fitimage to both linuxboot partitions
+# flash fitImage.signed to both linuxboot partitions
 FBK: ucmd mmc=`cat /tmp/mmcdev`; while [ ! -e /dev/mmcblk${mmc}p2 ]; do sleep 1; done
 FBK: ucmd mmc=`cat /tmp/mmcdev`; mkfs.vfat /dev/mmcblk${mmc}p2
 FBK: ucmd mkdir -p /mnt/fat
 FBK: ucmd mmc=`cat /tmp/mmcdev`; mount -t vfat /dev/mmcblk${mmc}p2 /mnt/fat
-FBK: ucp  fitImage t:/mnt/fat/fitImage
+FBK: ucp  fitImage.signed t:/mnt/fat/fitImage.signed
 FBK: ucmd umount /mnt/fat
 
 FBK: ucmd mmc=`cat /tmp/mmcdev`; mkfs.vfat /dev/mmcblk${mmc}p3
 FBK: ucmd mmc=`cat /tmp/mmcdev`; mount -t vfat /dev/mmcblk${mmc}p3 /mnt/fat
-FBK: ucp  fitImage t:/mnt/fat/fitImage
+FBK: ucp  fitImage.signed t:/mnt/fat/fitImage.signed
 FBK: ucmd umount /mnt/fat
 FBK: ucmd sync
 
 # create FAT on rescue partition
 FBK: ucmd mmc=`cat /tmp/mmcdev`; mkfs.vfat /dev/mmcblk${mmc}p4
 
-# extract LVM sizes for rootfs
+# copy hashsum and filesizes file to board
 FBK: ucp hashsums t:/tmp
+
+# extract LVM sizes for rootfs and hash devices
 FBK: ucmd sh -c '. /tmp/hashsums; echo "((($SIZE_ROOTFS/(4*1024*1024)) + (($SIZE_ROOTFS % (4*1024*1024)) > 0)) * (4*1024*1024))" | bc' > /tmp/size_rootfs
+FBK: ucmd sh -c '. /tmp/hashsums; echo "((($SIZE_ROOTFSVERITY/(4*1024*1024)) + (($SIZE_ROOTFSVERITY % (4*1024*1024)) > 0)) * (4*1024*1024))" | bc' > /tmp/size_rootfsverity
 
 # Create LVM
 FBK: ucmd mmc=`cat /tmp/mmcdev`; pvcreate -ff -y /dev/mmcblk${mmc}p5
@@ -67,7 +69,9 @@ FBK: ucmd mmc=`cat /tmp/mmcdev`; vgcreate irma6lvm /dev/mmcblk${mmc}p5
 # start udev daemon so lvm can synchronize devices
 FBK: ucmd /etc/init.d/udev start
 FBK: ucmd lvcreate -y -n rootfs_a -L "$(cat /tmp/size_rootfs)"B irma6lvm
+FBK: ucmd lvcreate -y -n rootfs_a_hash -L "$(cat /tmp/size_rootfsverity)"B irma6lvm
 FBK: ucmd lvcreate -y -n rootfs_b -L "$(cat /tmp/size_rootfs)"B irma6lvm
+FBK: ucmd lvcreate -y -n rootfs_b_hash -L "$(cat /tmp/size_rootfsverity)"B irma6lvm
 FBK: ucmd lvcreate -y -n userdata_a -L 256MB irma6lvm
 FBK: ucmd lvcreate -y -n userdata_b -L 256MB irma6lvm
 FBK: ucmd lvcreate -y -n datastore -L 512MB irma6lvm
@@ -87,9 +91,18 @@ FBK: ucp rootfs.ext4.gz t:-
 FBK: sync
 FBK: ucmd sync
 
+FBK: acmd cat | dd of=/dev/mapper/irma6lvm-rootfs_a_hash
+FBK: ucp rootfs.ext4.hashdevice t:-
+FBK: sync
+FBK: ucmd sync
+
+FBK: acmd cat | dd of=/dev/mapper/irma6lvm-rootfs_b_hash
+FBK: ucp rootfs.ext4.hashdevice t:-
+FBK: sync
+FBK: ucmd sync
+
 # Create ext4 partition for userdata A/B
 FBK: ucmd mkfs.ext4 /dev/mapper/irma6lvm-userdata_a
-
 FBK: ucmd mkdir -p /mnt/iris
 FBK: ucmd mount -t ext4 /dev/mapper/irma6lvm-userdata_a /mnt/iris
 FBK: ucmd mkdir -p /mnt/iris/counter
@@ -124,5 +137,19 @@ FBK: ucmd sync
 FBK: ucmd umount /mnt/iris
 FBK: ucmd umount /tmp/userdata_b
 FBK: ucmd rm -rf /tmp/userdata_b
+
+FBK: ucp rootfs.ext4.roothash t:/mnt/keystore/rootfs_a_roothash
+FBK: ucp rootfs.ext4.roothash t:/mnt/keystore/rootfs_b_roothash
+FBK: ucp rootfs.ext4.roothash.signature t:/mnt/keystore/rootfs_a_roothash.signature
+FBK: ucp rootfs.ext4.roothash.signature t:/mnt/keystore/rootfs_b_roothash.signature
+
+FBK: ucmd umount /mnt/keystore
+FBK: ucmd sync
+
+# Hashsum check
+FBK: ucp verification.sh t:/tmp
+FBK: ucmd /bin/sh /tmp/verification.sh
+# wait for end of operation as there are u/mount operations in the script
+FBK: ucmd sync
 
 FBK: DONE

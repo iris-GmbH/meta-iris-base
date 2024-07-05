@@ -11,12 +11,19 @@ USE_ROOTFS_DMVERITY ?= "1"
 # Include SWUPDATE_AES_SNAKEOIL_FILE and IDENTITY_SNAKEOIL_* key material
 DEPLOY_SNAKEOIL_KEYS ?= "1"
 
-# Depend on image (read from PN), initrams, kernel and imx-boot (u-boot)
-do_install[depends] = "\
+INSTALL_DEPENDS = " \
     ${IMAGENAME}:do_image_complete \
-    ${FITIMAGE_NAME}:do_assemble_fit \
-    ${FITIMAGE_UUU_NAME}:do_assemble_fit \
-    virtual/kernel:do_deploy"
+    virtual/kernel:do_deploy \
+"
+INSTALL_DEPENDS:append:mx8mp-nxp-bsp = " \
+    irma-fitimage:do_assemble_fit \
+    irma-fitimage-uuu:do_assemble_fit \
+"
+INSTALL_DEPENDS:append:mx93-nxp-bsp = " \
+    imx-boot:do_deploy \
+"
+do_install[depends] = "${INSTALL_DEPENDS}"
+
 DEPENDS = "imx-boot"
 LICENSE = "MIT"
 LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/MIT;md5=0835ade698e0bcf8506ecda2f7b4f302"
@@ -30,7 +37,6 @@ do_deploy[nostamp] = "1"
 # Variables - must be set in bb file
 FITIMAGE_NAME = "irma-fitimage"
 FITIMAGE_UUU_NAME = "irma-fitimage-uuu"
-SIGNED_SUFFIX ?= ""
 
 UUUSCRIPT ?= ""
 VERIFICATIONSCRIPT ?= ""
@@ -41,15 +47,15 @@ ROOTFS = "${IMAGENAME}-${MACHINE}.${ROOTFS_EXT}"
 ROOTFSVERITY = "${IMAGENAME}-${MACHINE}.ext4.hashdevice"
 ROOTFSROOTHASH = "${IMAGENAME}-${MACHINE}.ext4.roothash"
 ROOTFSROOTHASH_SIGNATURE = "${IMAGENAME}-${MACHINE}.ext4.roothash.signature"
-FITIMAGE = "${FITIMAGE_NAME}.itb${SIGNED_SUFFIX}"
-FITIMAGEUUU = "${FITIMAGE_UUU_NAME}.itb${SIGNED_SUFFIX}"
+FITIMAGE = "${FITIMAGE_NAME}.itb.signed"
+FITIMAGEUUU = "${FITIMAGE_UUU_NAME}.itb.signed"
 
 # set output directory and file names
 UUU_DEPLOY_DIR = "${DEPLOYDIR}/${PN}"
 UUU_DEPLOY_TAR = "${DEPLOYDIR}/${PN}-container.tar.gz"
 
 # File names in deploy directory
-FLASHBINDEPLOY = "flash.bin${SIGNED_SUFFIX}"
+FLASHBINDEPLOY = "flash.bin.signed"
 HASHSUMS = "hashsums"
 ROOTFSDEPLOY = "rootfs.${ROOTFS_EXT}"
 ROOTFSVERITYDEPLOY = "rootfs.ext4.hashdevice"
@@ -58,8 +64,8 @@ ROOTFSROOTHASHDEPLOY_SIGNATURE = "rootfs.ext4.roothash.signature"
 PARTITIONSDEPLOY = "partitions"
 UUUSCRIPTDEPLOY = "flashall.uuu"
 VERIFICATIONSCRIPTDEPLOY = "verification.sh"
-FITIMAGEDEPLOY = "fitImage${SIGNED_SUFFIX}"
-FITIMAGEUUUDEPLOY = "fitImage-uuu${SIGNED_SUFFIX}"
+FITIMAGEDEPLOY = "fitImage.signed"
+FITIMAGEUUUDEPLOY = "fitImage-uuu.signed"
 
 # The following line forces the usage of the "files" directory next to this .inc file even if it is required from another layer
 FILESEXTRAPATHS:prepend := "${@os.path.dirname(d.getVar('FILE'))}/files:"

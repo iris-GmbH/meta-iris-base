@@ -35,7 +35,7 @@ FBK: ucmd sync
 FBK: ucmd mmc=`cat /tmp/mmcdev`; echo 1 > /sys/block/mmcblk${mmc}boot0/force_ro
 FBK: ucmd mmc=`cat /tmp/mmcdev`; echo 1 > /sys/block/mmcblk${mmc}boot1/force_ro
 
-# flash fitimage to both linuxboot partitions
+# flash fitImage.signed to both linuxboot partitions
 FBK: ucmd mmc=`cat /tmp/mmcdev`; while [ ! -e /dev/mmcblk${mmc}p2 ]; do sleep 1; done
 FBK: ucmd mmc=`cat /tmp/mmcdev`; mkfs.vfat /dev/mmcblk${mmc}p2
 FBK: ucmd mkdir -p /mnt/fat
@@ -116,6 +116,9 @@ FBK: ucmd sync
 FBK: ucmd mkfs.ext4 /dev/mapper/decrypted-irma6lvm-userdata_a
 FBK: ucmd mkdir -p /mnt/iris
 FBK: ucmd mount -t ext4 /dev/mapper/decrypted-irma6lvm-userdata_a /mnt/iris
+FBK: ucmd mkdir -p /mnt/iris/counter
+FBK: ucmd mkdir -p /mnt/iris/irma6webserver
+FBK: ucmd mkdir -p /mnt/iris/dropbear
 FBK: ucmd mkdir -p /mnt/iris/swupdate
 FBK: ucp swupdate_snakeoil_encryption.key t:/mnt/iris/swupdate/encryption.key
 FBK: ucmd chmod 0400 /mnt/iris/swupdate/encryption.key
@@ -127,12 +130,11 @@ FBK: ucmd ln -sr /mnt/iris/identity /mnt/iris/webtls
 FBK: ucmd ln -sr /mnt/iris/identity /mnt/iris/nts
 FBK: ucmd ln -sr /mnt/iris/identity /mnt/iris/eaptls
 FBK: ucmd mkdir -p /mnt/iris/nginx/sites-enabled
-FBK: ucmd ln -s /etc/nginx/sites-available/reverse_proxy_https.conf /mnt/iris/nginx/sites-enabled/default_server
-FBK: ucmd mkdir -p /mnt/iris/counter
-FBK: ucmd mkdir -p /mnt/iris/irma6webserver
-FBK: ucmd mkdir -p /mnt/iris/dropbear
 
-# copy userdata A to B
+# Default to HTTPS
+FBK: ucmd ln -s /etc/nginx/sites-available/reverse_proxy_https.conf /mnt/iris/nginx/sites-enabled/default_server
+
+# Copy userdata A to B
 FBK: ucmd mkfs.ext4 /dev/mapper/decrypted-irma6lvm-userdata_b
 FBK: ucmd mkdir -p /tmp/userdata_b
 FBK: ucmd mount -t ext4 /dev/mapper/decrypted-irma6lvm-userdata_b /tmp/userdata_b
@@ -141,7 +143,7 @@ FBK: ucmd cp -r /mnt/iris/* /tmp/userdata_b
 # datastore
 FBK: ucmd mkfs.ext4 /dev/mapper/decrypted-irma6lvm-datastore
 
-# clean up
+# Clean up
 FBK: ucmd sync
 FBK: ucmd umount /mnt/iris
 FBK: ucmd umount /tmp/userdata_b

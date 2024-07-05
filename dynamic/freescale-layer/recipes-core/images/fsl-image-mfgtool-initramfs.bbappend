@@ -5,13 +5,13 @@ CORE_IMAGE_BASE_INSTALL:append = " \
     bc \
     lvm2 \
     udev \
+    cryptsetup \
+    util-linux-blockdev \
 "
 
 # irma6r2 specific packages
 CORE_IMAGE_BASE_INSTALL:append:mx8mp-nxp-bsp = " \
-   cryptsetup \
    keyctl-caam \
-   util-linux-blockdev \
    keyutils \
 "
 

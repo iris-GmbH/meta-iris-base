@@ -13,6 +13,7 @@ RDEPENDS:${PN} = " \
     util-linux-mount \
     util-linux-findfs \
     util-linux-uuidd \
+    util-linux-blockdev \
     cryptsetup \
     keyutils \
     mmc-utils \
@@ -20,10 +21,10 @@ RDEPENDS:${PN} = " \
     openssl-bin \
     iris-signing \
     e2fsprogs-mke2fs \
+    e2fsprogs-e2fsck \
     nfs-utils \
     libubootenv-bin \
     rsync \
-    e2fsprogs-e2fsck \
 "
 
 S = "${WORKDIR}"
