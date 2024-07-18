@@ -85,9 +85,9 @@ else
 	${UMOUNT} /mnt/keystore
 
 	echo "Unlocking encrypted devices"
-	dmsetup -v create ${DECRYPT_NAME}           --table "0 $(blockdev --getsz ${ROOT_DEV})      crypt aes-cbc-plain :32:trusted:kmk 0 ${ROOT_DEV}      0 1 sector_size:4096"
-	dmsetup -v create ${DECRYPT_USERDATA_NAME}  --table "0 $(blockdev --getsz ${USERDATA_DEV})  crypt aes-cbc-plain :32:trusted:kmk 0 ${USERDATA_DEV}  0 1 sector_size:4096"
-	dmsetup -v create ${DECRYPT_DATASTORE_NAME} --table "0 $(blockdev --getsz ${DATASTORE_DEV}) crypt aes-cbc-plain :32:trusted:kmk 0 ${DATASTORE_DEV} 0 1 sector_size:4096"
+	dmsetup create ${DECRYPT_NAME}           --table "0 $(blockdev --getsz ${ROOT_DEV})      crypt aes-cbc-plain :32:trusted:kmk 0 ${ROOT_DEV}      0 1 sector_size:4096"
+	dmsetup create ${DECRYPT_USERDATA_NAME}  --table "0 $(blockdev --getsz ${USERDATA_DEV})  crypt aes-cbc-plain :32:trusted:kmk 0 ${USERDATA_DEV}  0 1 sector_size:4096"
+	dmsetup create ${DECRYPT_DATASTORE_NAME} --table "0 $(blockdev --getsz ${DATASTORE_DEV}) crypt aes-cbc-plain :32:trusted:kmk 0 ${DATASTORE_DEV} 0 1 sector_size:4096"
 	vgmknodes
 
 	echo "Opening verity device: ${DECRYPT_ROOT_DEV}"
