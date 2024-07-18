@@ -75,6 +75,7 @@ FBK: ucmd lvcreate -y -n rootfs_b_hash -L "$(cat /tmp/size_rootfsverity)"B matri
 FBK: ucmd lvcreate -y -n userdata_a -L 256MB matrixlvm
 FBK: ucmd lvcreate -y -n userdata_b -L 256MB matrixlvm
 FBK: ucmd lvcreate -y -n datastore -L 512MB matrixlvm
+FBK: ucmd lvcreate -y -n datastore2 -L 128MB matrixlvm # datastore2 is not encrypted
 FBK: ucmd lvcreate -y -n keystore -L 128MB matrixlvm
 FBK: ucmd vgchange -a y
 FBK: ucmd vgmknodes
@@ -142,6 +143,7 @@ FBK: ucmd cp -r /mnt/iris/* /tmp/userdata_b
 
 # datastore
 FBK: ucmd mkfs.ext4 /dev/mapper/decrypted-matrixlvm-datastore
+FBK: ucmd mkfs.ext4 /dev/mapper/matrixlvm-datastore2
 
 # Clean up
 FBK: ucmd sync
