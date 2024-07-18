@@ -41,19 +41,19 @@ parse_cmdline() {
 		FIRMWARE_SUFFIX="a"
 		ALT_FIRMWARE_SUFFIX="b"
 	fi
-	ROOT_DEV=/dev/mapper/irma6lvm-rootfs_${FIRMWARE_SUFFIX}
-	ROOT_HASH_DEV=/dev/mapper/irma6lvm-rootfs_${FIRMWARE_SUFFIX}_hash
+	ROOT_DEV=/dev/mapper/matrixlvm-rootfs_${FIRMWARE_SUFFIX}
+	ROOT_HASH_DEV=/dev/mapper/matrixlvm-rootfs_${FIRMWARE_SUFFIX}_hash
 	ROOT_HASH=/mnt/keystore/rootfs_${FIRMWARE_SUFFIX}_roothash
 	ROOT_HASH_SIGNATURE=/mnt/keystore/rootfs_${FIRMWARE_SUFFIX}_roothash.signature
 	VERITY_NAME="verity-rootfs_${FIRMWARE_SUFFIX}"
 	VERITY_DEV="/dev/mapper/${VERITY_NAME}"
-	DECRYPT_NAME="decrypted-irma6lvm-rootfs${FIRMWARE_SUFFIX}"
+	DECRYPT_NAME="decrypted-matrixlvm-rootfs_${FIRMWARE_SUFFIX}"
 	DECRYPT_ROOT_DEV="/dev/mapper/${DECRYPT_NAME}"
-	USERDATA_DEV="/dev/mapper/irma6lvm-userdata_${FIRMWARE_SUFFIX}"
-	DECRYPT_USERDATA_NAME="decrypted-irma6lvm-userdata${FIRMWARE_SUFFIX}"
-	DECRYPT_USERDATA_SYM="/dev/mapper/decrypted-irma6lvm-userdata"
-	DATASTORE_DEV="/dev/mapper/irma6lvm-datastore"
-	DECRYPT_DATASTORE_NAME="decrypted-irma6lvm-datastore"
+	USERDATA_DEV="/dev/mapper/matrixlvm-userdata_${FIRMWARE_SUFFIX}"
+	DECRYPT_USERDATA_NAME="decrypted-matrixlvm-userdata_${FIRMWARE_SUFFIX}"
+	DECRYPT_USERDATA_SYM="/dev/mapper/decrypted-matrixlvm-userdata"
+	DATASTORE_DEV="/dev/mapper/matrixlvm-datastore"
+	DECRYPT_DATASTORE_NAME="decrypted-matrixlvm-datastore"
 }
 
 echo "Initramfs Bootstrap..."
@@ -73,9 +73,7 @@ if [ -n "${NFSPATH}" ]; then
 	${MOUNT} -t nfs "${NFSPATH}" ${ROOT_MNT}
 	echo "Switching root to Network File System"
 else
-	/etc/init.d/udev start # we need udev to manage volumes cleanly
-
-	${MOUNT} /dev/mapper/irma6lvm-keystore /mnt/keystore
+	${MOUNT} /dev/mapper/matrixlvm-keystore /mnt/keystore
 	if ! /usr/bin/openssl dgst -sha256 -verify /etc/iris/signing/roothash-public-key.pem -signature "${ROOT_HASH_SIGNATURE}" "${ROOT_HASH}" ; then
 		echo "ERROR: Root hash signature invalid"
 		exit 1
