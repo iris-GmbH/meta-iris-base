@@ -83,10 +83,21 @@ FBK: ucmd vgmknodes
 FBK: ucmd mkfs.vfat /dev/mapper/irma6lvm-keystore
 FBK: ucmd mount -t vfat /dev/mapper/irma6lvm-keystore /mnt/keystore
 
+# Generate, add and export a random trusted 32 byte kernel master key (blob)
+FBK: ucmd key_id=$(keyctl add trusted kmk "new 32" @us); keyctl pipe $key_id > /mnt/keystore/kmk.blob
+
+# Setup encrypted volumes
+FBK: ucmd dmsetup -v create decrypted-irma6lvm-rootfs_a   --table "0 $(blockdev --getsz /dev/mapper/irma6lvm-rootfs_a)   crypt aes-cbc-plain :32:trusted:kmk 0 /dev/mapper/irma6lvm-rootfs_a   0 1 sector_size:4096"
+FBK: ucmd dmsetup -v create decrypted-irma6lvm-rootfs_b   --table "0 $(blockdev --getsz /dev/mapper/irma6lvm-rootfs_b)   crypt aes-cbc-plain :32:trusted:kmk 0 /dev/mapper/irma6lvm-rootfs_a   0 1 sector_size:4096"
+FBK: ucmd dmsetup -v create decrypted-irma6lvm-userdata_a --table "0 $(blockdev --getsz /dev/mapper/irma6lvm-userdata_a) crypt aes-cbc-plain :32:trusted:kmk 0 /dev/mapper/irma6lvm-userdata_a 0 1 sector_size:4096"
+FBK: ucmd dmsetup -v create decrypted-irma6lvm-userdata_b --table "0 $(blockdev --getsz /dev/mapper/irma6lvm-userdata_b) crypt aes-cbc-plain :32:trusted:kmk 0 /dev/mapper/irma6lvm-userdata_b 0 1 sector_size:4096"
+FBK: ucmd dmsetup -v create decrypted-irma6lvm-datastore  --table "0 $(blockdev --getsz /dev/mapper/irma6lvm-datastore)  crypt aes-cbc-plain :32:trusted:kmk 0 /dev/mapper/irma6lvm-datastore  0 1 sector_size:4096"
+FBK: ucmd vgmknodes
+
 # Flash rootfs to both rootfs partitions
-FBK: acmd zcat | dd of=/dev/mapper/irma6lvm-rootfs_a
+FBK: acmd zcat | dd of=/dev/mapper/decrypted-irma6lvm-rootfs_a
 FBK: ucp rootfs.ext4.gz t:-
-FBK: acmd zcat | dd of=/dev/mapper/irma6lvm-rootfs_b
+FBK: acmd zcat | dd of=/dev/mapper/decrypted-irma6lvm-rootfs_b
 FBK: ucp rootfs.ext4.gz t:-
 FBK: sync
 FBK: ucmd sync
@@ -102,9 +113,9 @@ FBK: sync
 FBK: ucmd sync
 
 # Create ext4 partition for userdata A/B
-FBK: ucmd mkfs.ext4 /dev/mapper/irma6lvm-userdata_a
+FBK: ucmd mkfs.ext4 /dev/mapper/decrypted-irma6lvm-userdata_a
 FBK: ucmd mkdir -p /mnt/iris
-FBK: ucmd mount -t ext4 /dev/mapper/irma6lvm-userdata_a /mnt/iris
+FBK: ucmd mount -t ext4 /dev/mapper/decrypted-irma6lvm-userdata_a /mnt/iris
 FBK: ucmd mkdir -p /mnt/iris/counter
 FBK: ucmd mkdir -p /mnt/iris/irma6webserver
 FBK: ucmd mkdir -p /mnt/iris/dropbear
@@ -124,19 +135,22 @@ FBK: ucmd mkdir -p /mnt/iris/nginx/sites-enabled
 FBK: ucmd ln -s /etc/nginx/sites-available/reverse_proxy_http.conf /mnt/iris/nginx/sites-enabled/default_server
 
 # Copy userdata A to B
-FBK: ucmd mkfs.ext4 /dev/mapper/irma6lvm-userdata_b
+FBK: ucmd mkfs.ext4 /dev/mapper/decrypted-irma6lvm-userdata_b
 FBK: ucmd mkdir -p /tmp/userdata_b
-FBK: ucmd mount -t ext4 /dev/mapper/irma6lvm-userdata_b /tmp/userdata_b
+FBK: ucmd mount -t ext4 /dev/mapper/decrypted-irma6lvm-userdata_b /tmp/userdata_b
 FBK: ucmd cp -r /mnt/iris/* /tmp/userdata_b
 
 # datastore
-FBK: ucmd mkfs.ext4 /dev/mapper/irma6lvm-datastore
+FBK: ucmd mkfs.ext4 /dev/mapper/decrypted-irma6lvm-datastore
 
 # Clean up
 FBK: ucmd sync
 FBK: ucmd umount /mnt/iris
 FBK: ucmd umount /tmp/userdata_b
 FBK: ucmd rm -rf /tmp/userdata_b
+FBK: ucmd dmsetup remove decrypted-irma6lvm-userdata_a
+FBK: ucmd dmsetup remove decrypted-irma6lvm-userdata_b
+FBK: ucmd dmsetup remove decrypted-irma6lvm-datastore
 
 FBK: ucp rootfs.ext4.roothash t:/mnt/keystore/rootfs_a_roothash
 FBK: ucp rootfs.ext4.roothash t:/mnt/keystore/rootfs_b_roothash
