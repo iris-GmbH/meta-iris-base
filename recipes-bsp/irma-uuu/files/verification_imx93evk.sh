@@ -25,11 +25,11 @@ umount /mnt/fat
 sync
 
 mkdir -p /mnt/keystore
-mount -t vfat /dev/mapper/irma6lvm-keystore /mnt/keystore
-echo "Verify hash of rootfs on /dev/mapper/decrypted-irma6lvm-rootfs_a"
-head -c "$SIZE_ROOTFS" /dev/mapper/decrypted-irma6lvm-rootfs_a | sha256sum - | cut -d' ' -f1 | grep $HASH_ROOTFS || { echo "Error: Failed to verify hash of rootfs on /dev/mapper/decrypted-irma6lvm-rootfs_a"; exit 1; }
-veritysetup verify /dev/mapper/decrypted-irma6lvm-rootfs_a /dev/mapper/irma6lvm-rootfs_a_hash $(cat /mnt/keystore/rootfs_a_roothash) || { echo "Error: dm-verity verification fail on /dev/mapper/decrypted-irma6lvm-rootfs_a"; exit 1; }
-echo "Verify hash of rootfs on /dev/mapper/decrypted-irma6lvm-rootfs_b"
-head -c "$SIZE_ROOTFS" /dev/mapper/decrypted-irma6lvm-rootfs_b | sha256sum - | cut -d' ' -f1 | grep $HASH_ROOTFS || { echo "Error: Failed to verify hash of rootfs on /dev/mapper/decrypted-irma6lvm-rootfs_b"; exit 1; }
-veritysetup verify /dev/mapper/decrypted-irma6lvm-rootfs_b /dev/mapper/irma6lvm-rootfs_b_hash $(cat /mnt/keystore/rootfs_b_roothash) || { echo "Error: dm-verity verification fail on /dev/mapper/decrypted-irma6lvm-rootfs_b"; exit 1; }
+mount -t vfat /dev/mapper/matrixlvm-keystore /mnt/keystore
+echo "Verify hash of rootfs on /dev/mapper/decrypted-matrixlvm-rootfs_a"
+head -c "$SIZE_ROOTFS" /dev/mapper/decrypted-matrixlvm-rootfs_a | sha256sum - | cut -d' ' -f1 | grep $HASH_ROOTFS || { echo "Error: Failed to verify hash of rootfs on /dev/mapper/decrypted-matrixlvm-rootfs_a"; exit 1; }
+veritysetup verify /dev/mapper/decrypted-matrixlvm-rootfs_a /dev/mapper/matrixlvm-rootfs_a_hash $(cat /mnt/keystore/rootfs_a_roothash) || { echo "Error: dm-verity verification fail on /dev/mapper/decrypted-matrixlvm-rootfs_a"; exit 1; }
+echo "Verify hash of rootfs on /dev/mapper/decrypted-matrixlvm-rootfs_b"
+head -c "$SIZE_ROOTFS" /dev/mapper/decrypted-matrixlvm-rootfs_b | sha256sum - | cut -d' ' -f1 | grep $HASH_ROOTFS || { echo "Error: Failed to verify hash of rootfs on /dev/mapper/decrypted-matrixlvm-rootfs_b"; exit 1; }
+veritysetup verify /dev/mapper/decrypted-matrixlvm-rootfs_b /dev/mapper/matrixlvm-rootfs_b_hash $(cat /mnt/keystore/rootfs_b_roothash) || { echo "Error: dm-verity verification fail on /dev/mapper/decrypted-matrixlvm-rootfs_b"; exit 1; }
 umount /mnt/keystore
