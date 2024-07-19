@@ -11,14 +11,14 @@ if [ -z "${INIT}" ];then
 fi
 
 mount_pseudo_fs() {
-	echo "Mount pseudo fs"
+	echo "Mount pseudo fs's"
 	${MOUNT} -t devtmpfs none /dev
 	${MOUNT} -t proc proc /proc
 	${MOUNT} -t sysfs sysfs /sys
 }
 
 move_pseudo_fs() {
-	echo "Umount pseudo fs"
+	echo "Move pseudo fs's"
 	${MOUNT} --move /dev ${ROOT_MNT}/dev
 	${MOUNT} --move /proc ${ROOT_MNT}/proc
 	${MOUNT} --move /sys ${ROOT_MNT}/sys
@@ -26,7 +26,7 @@ move_pseudo_fs() {
 
 parse_cmdline() {
 	CMDLINE="$(cat /proc/cmdline)"
-	echo "Kernel cmdline: $CMDLINE)"
+	echo "Kernel cmdline: $CMDLINE"
 
 	# Check if NFS boot is active
 	if grep -q 'nfsroot' /proc/cmdline;	then
