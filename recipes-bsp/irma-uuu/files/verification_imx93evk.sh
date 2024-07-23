@@ -25,7 +25,7 @@ umount /mnt/fat
 sync
 
 mkdir -p /mnt/keystore
-mount -t vfat /dev/mapper/matrixlvm-keystore /mnt/keystore
+mount /dev/mapper/matrixlvm-keystore /mnt/keystore
 echo "Verify hash of rootfs on /dev/mapper/decrypted-matrixlvm-rootfs_a"
 head -c "$SIZE_ROOTFS" /dev/mapper/decrypted-matrixlvm-rootfs_a | sha256sum - | cut -d' ' -f1 | grep $HASH_ROOTFS || { echo "Error: Failed to verify hash of rootfs on /dev/mapper/decrypted-matrixlvm-rootfs_a"; exit 1; }
 veritysetup verify /dev/mapper/decrypted-matrixlvm-rootfs_a /dev/mapper/matrixlvm-rootfs_a_hash $(cat /mnt/keystore/rootfs_a_roothash) || { echo "Error: dm-verity verification fail on /dev/mapper/decrypted-matrixlvm-rootfs_a"; exit 1; }

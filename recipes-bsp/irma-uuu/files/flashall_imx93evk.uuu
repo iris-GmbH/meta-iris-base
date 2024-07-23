@@ -81,8 +81,8 @@ FBK: ucmd vgchange -a y
 FBK: ucmd vgmknodes
 
 # Create fat data partition (keystore)
-FBK: ucmd mkfs.vfat /dev/mapper/matrixlvm-keystore
-FBK: ucmd mount -t vfat /dev/mapper/matrixlvm-keystore /mnt/keystore
+FBK: ucmd mkfs.ext4 /dev/mapper/matrixlvm-keystore
+FBK: ucmd mount /dev/mapper/matrixlvm-keystore /mnt/keystore
 
 # Generate, add and export a random trusted 32 byte kernel master key (blob)
 FBK: ucmd key_id=$(keyctl add trusted kmk "new 32" @us); keyctl pipe $key_id > /mnt/keystore/kmk.blob
