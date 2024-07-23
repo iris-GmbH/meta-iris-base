@@ -63,8 +63,8 @@ set_device_names() {
 
 unlock_device() {
 	# Add Black key to keyring
-	caam-keygen import $KEYSTORE/caam/volumeKey.bb importKey
-	keyctl padd logon logkey: @us < $KEYSTORE/caam/importKey
+	caam-keygen import $KEYSTORE/caam/volumeKey.bb volumeKey
+	keyctl padd logon logkey: @us < $KEYSTORE/caam/volumeKey
 
 	# Remove the volume from previous failed run
 	if [ -b "$DECRYPT_ROOT_DEV" ]; then
