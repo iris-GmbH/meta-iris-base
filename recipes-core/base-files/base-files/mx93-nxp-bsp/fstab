@@ -7,7 +7,7 @@ tmpfs                /var/volatile        tmpfs      defaults              0  0
 # initramfs will will choose A or B, and symlink to userdata
 /dev/mapper/decrypted-matrixlvm-userdata 	/mnt/iris ext4 defaults			0	0
 /dev/mapper/decrypted-matrixlvm-datastore 	/mnt/datastore ext4 defaults			0	0
-/dev/mapper/matrixlvm-datastore2 	/mnt/datastore2 ext4 defaults			0	0
+/dev/mapper/matrixlvm-devicedata 	/mnt/devicedata ext4 defaults			0	0
 
 # bind mount directories for r/w access
 /mnt/iris/counter    /etc/counter         none       defaults,bind         0  0
