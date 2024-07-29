@@ -89,11 +89,11 @@ FBK: ucmd mount /dev/mapper/matrixlvm-keystore /mnt/keystore
 FBK: ucmd key_id=$(keyctl add trusted kmk "new 32" @us); keyctl pipe $key_id > /mnt/keystore/kmk.blob
 
 # Setup encrypted volumes
-FBK: ucmd dmsetup -v create decrypted-matrixlvm-rootfs_a   --table "0 $(blockdev --getsz /dev/mapper/matrixlvm-rootfs_a)   crypt aes-cbc-plain :32:trusted:kmk 0 /dev/mapper/matrixlvm-rootfs_a   0 1 sector_size:4096"
-FBK: ucmd dmsetup -v create decrypted-matrixlvm-rootfs_b   --table "0 $(blockdev --getsz /dev/mapper/matrixlvm-rootfs_b)   crypt aes-cbc-plain :32:trusted:kmk 0 /dev/mapper/matrixlvm-rootfs_a   0 1 sector_size:4096"
-FBK: ucmd dmsetup -v create decrypted-matrixlvm-userdata_a --table "0 $(blockdev --getsz /dev/mapper/matrixlvm-userdata_a) crypt aes-cbc-plain :32:trusted:kmk 0 /dev/mapper/matrixlvm-userdata_a 0 1 sector_size:4096"
-FBK: ucmd dmsetup -v create decrypted-matrixlvm-userdata_b --table "0 $(blockdev --getsz /dev/mapper/matrixlvm-userdata_b) crypt aes-cbc-plain :32:trusted:kmk 0 /dev/mapper/matrixlvm-userdata_b 0 1 sector_size:4096"
-FBK: ucmd dmsetup -v create decrypted-matrixlvm-datastore  --table "0 $(blockdev --getsz /dev/mapper/matrixlvm-datastore)  crypt aes-cbc-plain :32:trusted:kmk 0 /dev/mapper/matrixlvm-datastore  0 1 sector_size:4096"
+FBK: ucmd dmsetup -v create decrypted-matrixlvm-rootfs_a   --table "0 $(blockdev --getsz /dev/mapper/matrixlvm-rootfs_a)   crypt aes-cbc-essiv:sha256 :32:trusted:kmk 0 /dev/mapper/matrixlvm-rootfs_a   0 1 sector_size:4096"
+FBK: ucmd dmsetup -v create decrypted-matrixlvm-rootfs_b   --table "0 $(blockdev --getsz /dev/mapper/matrixlvm-rootfs_b)   crypt aes-cbc-essiv:sha256 :32:trusted:kmk 0 /dev/mapper/matrixlvm-rootfs_a   0 1 sector_size:4096"
+FBK: ucmd dmsetup -v create decrypted-matrixlvm-userdata_a --table "0 $(blockdev --getsz /dev/mapper/matrixlvm-userdata_a) crypt aes-cbc-essiv:sha256 :32:trusted:kmk 0 /dev/mapper/matrixlvm-userdata_a 0 1 sector_size:4096"
+FBK: ucmd dmsetup -v create decrypted-matrixlvm-userdata_b --table "0 $(blockdev --getsz /dev/mapper/matrixlvm-userdata_b) crypt aes-cbc-essiv:sha256 :32:trusted:kmk 0 /dev/mapper/matrixlvm-userdata_b 0 1 sector_size:4096"
+FBK: ucmd dmsetup -v create decrypted-matrixlvm-datastore  --table "0 $(blockdev --getsz /dev/mapper/matrixlvm-datastore)  crypt aes-cbc-essiv:sha256 :32:trusted:kmk 0 /dev/mapper/matrixlvm-datastore  0 1 sector_size:4096"
 FBK: ucmd vgmknodes
 
 # Flash rootfs to both rootfs partitions
