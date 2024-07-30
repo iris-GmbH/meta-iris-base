@@ -41,20 +41,21 @@ FBK: ucmd mmc=`cat /tmp/mmcdev`; echo 1 > /sys/block/mmcblk${mmc}boot1/force_ro
 
 # flash fitImage.signed to both linuxboot partitions
 FBK: ucmd mmc=`cat /tmp/mmcdev`; while [ ! -e /dev/mmcblk${mmc}p2 ]; do sleep 1; done
-FBK: ucmd mmc=`cat /tmp/mmcdev`; mkfs.vfat /dev/mmcblk${mmc}p2
-FBK: ucmd mkdir -p /mnt/fat
-FBK: ucmd mmc=`cat /tmp/mmcdev`; mount -t vfat /dev/mmcblk${mmc}p2 /mnt/fat
-FBK: ucp  fitImage.signed t:/mnt/fat/fitImage.signed
-FBK: ucmd umount /mnt/fat
+FBK: ucmd mmc=`cat /tmp/mmcdev`; mkfs.ext4 /dev/mmcblk${mmc}p2
+FBK: ucmd mkdir -p /tmp/boot
+FBK: ucmd mmc=`cat /tmp/mmcdev`; mount /dev/mmcblk${mmc}p2 /tmp/boot
+FBK: ucp  fitImage.signed t:/tmp/boot/fitImage.signed
+FBK: ucmd umount /tmp/boot
 
-FBK: ucmd mmc=`cat /tmp/mmcdev`; mkfs.vfat /dev/mmcblk${mmc}p3
-FBK: ucmd mmc=`cat /tmp/mmcdev`; mount -t vfat /dev/mmcblk${mmc}p3 /mnt/fat
-FBK: ucp  fitImage.signed t:/mnt/fat/fitImage.signed
-FBK: ucmd umount /mnt/fat
+FBK: ucmd mmc=`cat /tmp/mmcdev`; mkfs.ext4 /dev/mmcblk${mmc}p3
+FBK: ucmd mmc=`cat /tmp/mmcdev`; mount /dev/mmcblk${mmc}p3 /tmp/boot
+FBK: ucp  fitImage.signed t:/tmp/boot/fitImage.signed
+FBK: ucmd umount /tmp/boot
+FBK: ucmd rm -rf /tmp/boot
 FBK: ucmd sync
 
-# create FAT on rescue partition
-FBK: ucmd mmc=`cat /tmp/mmcdev`; mkfs.vfat /dev/mmcblk${mmc}p4
+# create EXT4 on rescue partition
+FBK: ucmd mmc=`cat /tmp/mmcdev`; mkfs.ext4 /dev/mmcblk${mmc}p4
 
 # copy hashsum and filesizes file to board
 FBK: ucp hashsums t:/tmp
