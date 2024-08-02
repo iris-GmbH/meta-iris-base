@@ -53,6 +53,8 @@ SRC_URI:append:imx93-11x11-lpddr4x-evk = "\
 	file://0002-MARE-13-uboot-imx-Adapt-imx93evk-for-fitImage-boot.patch \
 	file://0003-MARE-133-u-boot-imx-Add-AHAB-Support-for-imx93evk.patch \
 	file://0004-MARE-140-Use-ext4load-instead-of-fatload-partitions.patch \
+	file://0005-MARE-42-defconfig-uboot-env-adaptions.patch \
+	file://0006-MARE-42-imx93_evk.h-Restrict-uboot-env-s-by-CONFIG_E.patch \
 "
 
 SRC_URI:append:poky-iris-deploy = "\
