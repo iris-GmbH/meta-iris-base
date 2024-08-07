@@ -69,7 +69,15 @@ SRC_URI:append:mx8mp-nxp-bsp = " \
 
 # irma-matrix specific patches
 SRC_URI:append:mx93-nxp-bsp = " \
+  file://0001-media-i2c-Add-marec-fpga-camera-driver.patch \
+  file://0002-dts-freescale-Add-imx93-evk-devicetree-with-marec-ca.patch \
+  file://0003-media-imx-Fix-parallel-camera-and-media-drivers.patch \
+  file://0004-media-imx-Add-RAW8-and-RAW10-format-and-default-to-R.patch \
+  file://0005-fpga-xilinx-spi-Make-DONE-gpio-optional.patch \
+  file://0006-LF-10512-media-imx-ci_pi-fix-green-line-at-frame-bot.patch \
 "
+
+KERNEL_DEVICETREE:append:mx93-nxp-bsp = " freescale/${KERNEL_DEVICETREE_BASENAME}-marec-fpga.dtb"
 
 SRC_URI:append:poky-iris-deploy = "\
 	file://deploy.cfg \
