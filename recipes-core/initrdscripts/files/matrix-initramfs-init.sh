@@ -56,6 +56,67 @@ parse_cmdline() {
 	DECRYPT_DATASTORE_NAME="decrypted-matrixlvm-datastore"
 }
 
+# sync_userdata_from_to
+# try to sync config from SRC to DST
+# $1: SRC_SUFFIX a/b
+# $2: DST_SUFFIX a/b
+# will return 1 if failed
+sync_userdata_from_to() {
+	if [ "$#" -lt 2 ] || [ "$1" = "$2" ]; then
+		echo "Error: Can not sync userdata"
+		return 1
+	fi
+
+	err=0
+	SRC_DEC_USER_NAME=decrypted-matrixlvm-userdata_$1
+	DST_DEC_USER_NAME=decrypted-matrixlvm-userdata_$2
+	SRC_USER_DEV=/dev/mapper/matrixlvm-userdata_$1
+	DST_USER_DEV=/dev/mapper/matrixlvm-userdata_$2
+
+	# decrypt existing userdata A/B
+	dmsetup create ${SRC_DEC_USER_NAME}  --table "0 $(blockdev --getsz ${SRC_USER_DEV})  crypt aes-cbc-essiv:sha256 :32:trusted:kmk 0 ${SRC_USER_DEV}  0 1 sector_size:4096"
+	dmsetup create ${DST_DEC_USER_NAME}  --table "0 $(blockdev --getsz ${DST_USER_DEV})  crypt aes-cbc-essiv:sha256 :32:trusted:kmk 0 ${DST_USER_DEV}  0 1 sector_size:4096"
+	vgmknodes
+
+	# mount userdata A/B
+	SRC_MNT_USER=/tmp/userdata_$1
+	DST_MNT_USER=/tmp/userdata_$2
+	mkdir -p "${SRC_MNT_USER}"  "${DST_MNT_USER}"
+	if ! findmnt "${SRC_MNT_USER}" > /dev/null || ! findmnt "${DST_MNT_USER}" > /dev/null; then
+		${MOUNT} "/dev/mapper/${SRC_DEC_USER_NAME}" "${SRC_MNT_USER}" || err=1
+		${MOUNT} "/dev/mapper/${DST_DEC_USER_NAME}" "${DST_MNT_USER}" || err=1
+	fi
+
+	if [ "$err" -eq 0 ]; then
+		# sync alternative -> current
+		# use persitent flag to sync only once
+		# sync file is removed on power on self test
+		SYNC_FILE=${DST_MNT_USER}/userdata_synced
+		if [ ! -f "$SYNC_FILE" ]; then
+			echo "Sync Userdata: $1 to $2"
+			rsync -a --delete "${SRC_MNT_USER}/" "${DST_MNT_USER}" && touch "$SYNC_FILE"
+			sync
+		fi
+	fi
+
+	${UMOUNT} "${SRC_MNT_USER}" "${DST_MNT_USER}"
+	rm -rf "${SRC_MNT_USER}" "${DST_MNT_USER}"
+	dmsetup remove "${SRC_DEC_USER_NAME}" "${DST_DEC_USER_NAME}"
+}
+
+check_user_data_sync() {
+	PENDING_UPDATE=$(fw_printenv upgrade_available | awk -F'=' '{print $2}')
+	BOOTCOUNT=$(fw_printenv bootcount | awk -F'=' '{print $2}')
+	BOOTLIMIT=$(fw_printenv bootlimit | awk -F'=' '{print $2}')
+
+	# check if we are updating and not on fallback
+	if [ "$PENDING_UPDATE" = "1" ] && [ "$BOOTCOUNT" -le "$BOOTLIMIT" ]; then
+		# get config from alternative userdata on update
+		sync_userdata_from_to "${ALT_FIRMWARE_SUFFIX}" "${FIRMWARE_SUFFIX}" || exit 1
+	fi
+}
+
+
 echo "Initramfs Bootstrap..."
 mount_pseudo_fs
 
@@ -83,6 +144,8 @@ else
 	echo "Add kmk to keystore"
 	keyctl add trusted kmk "load $(cat /mnt/keystore/kmk.blob)" @us
 	${UMOUNT} /mnt/keystore
+
+	check_user_data_sync
 
 	echo "Unlocking encrypted devices"
 	dmsetup create ${DECRYPT_NAME}           --table "0 $(blockdev --getsz ${ROOT_DEV})      crypt aes-cbc-essiv:sha256 :32:trusted:kmk 0 ${ROOT_DEV}      0 1 sector_size:4096"
