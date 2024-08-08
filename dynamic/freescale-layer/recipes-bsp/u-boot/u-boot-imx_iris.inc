@@ -43,12 +43,11 @@ SRC_URI:append:imx8mp-irma6r2 = "\
 FILESEXTRAPATHS:prepend:imx93-11x11-lpddr4x-evk := "${THISDIR}/u-boot-imx/imx93-11x11-lpddr4x-evk:"
 SRC_URI:append:imx93-11x11-lpddr4x-evk = "\
 	file://fw_env.config \
-	file://0001-MARE-13-imx93evk-Enable-CONFIG_FIT.patch \
-	file://0002-MARE-13-uboot-imx-Adapt-imx93evk-for-fitImage-boot.patch \
-	file://0003-MARE-133-u-boot-imx-Add-AHAB-Support-for-imx93evk.patch \
-	file://0004-MARE-140-Use-ext4load-instead-of-fatload-partitions.patch \
-	file://0005-MARE-42-defconfig-uboot-env-adaptions.patch \
-	file://0006-MARE-42-imx93_evk.h-Restrict-uboot-env-s-by-CONFIG_E.patch \
+	file://0001-Adapt-imx93evk-for-fitImage-boot.patch \
+	file://0002-Add-AHAB-Support-for-imx93evk.patch \
+	file://0003-Use-ext4load-instead-of-fatload-partitions.patch \
+	file://0004-defconfig-bootcount-and-env-adaptions.patch \
+	file://0005-imx93_evk.h-Restrict-uboot-env-s-by-CONFIG_ENV_WRITE.patch \
 "
 
 SRC_URI:append:poky-iris-deploy = "\

@@ -1,7 +1,7 @@
-From ce0e108d38b5051d59c6eba260ecb3b5c42f47ed Mon Sep 17 00:00:00 2001
+From 5a7e39b8fb77b0d54e1548617ce635c6678e02b4 Mon Sep 17 00:00:00 2001
 From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
 Date: Thu, 25 Jul 2024 11:37:11 +0200
-Subject: [PATCH 2/2] [MARE-140] Use ext4load instead of fatload partitions
+Subject: [PATCH] Use ext4load instead of fatload partitions
 
 We are using ext4 instead of vfat partitions from now on.
 
@@ -11,10 +11,10 @@ Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/include/configs/imx93_evk.h b/include/configs/imx93_evk.h
-index 56c42480d8d..362ef8c3c76 100644
+index 28256702471..8e50305a47e 100644
 --- a/include/configs/imx93_evk.h
 +++ b/include/configs/imx93_evk.h
-@@ -80,7 +80,7 @@
+@@ -90,7 +90,7 @@
  	"loadfdt=fatload mmc ${mmcdev}:${mmcpart} ${fdt_addr_r} ${fdtfile}\0" \
  	"fit_img=fitImage.signed\0" \
  	"fit_addr=0x88000000\0" \
@@ -24,5 +24,5 @@ index 56c42480d8d..362ef8c3c76 100644
  	"upgrade_available=0\0" \
  	"ustate=0\0" \
 -- 
-2.45.2
+2.44.0
 

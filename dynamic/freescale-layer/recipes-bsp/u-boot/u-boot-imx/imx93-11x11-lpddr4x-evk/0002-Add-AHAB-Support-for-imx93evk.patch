@@ -1,7 +1,7 @@
-From f7717cb5dfb5c54b83391c1dd74e49cbc329e06a Mon Sep 17 00:00:00 2001
+From 8f44e4c321ce0fb1127ad2be570c707c7d7feda8 Mon Sep 17 00:00:00 2001
 From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
 Date: Mon, 13 May 2024 11:16:22 +0000
-Subject: [PATCH] [MARE-133] u-boot-imx: Add AHAB Support for imx93evk
+Subject: [PATCH] Add AHAB Support for imx93evk
 
 Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
 ---
@@ -9,16 +9,16 @@ Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
  boot/Kconfig                         |  2 +-
  boot/bootm.c                         | 61 ++++++++++++++++++++++++++++
  cmd/bootm.c                          | 15 +++++++
- configs/imx93_11x11_evk_defconfig    |  7 ++++
+ configs/imx93_11x11_evk_defconfig    |  5 ++-
  include/configs/imx93_evk.h          |  2 +-
- 6 files changed, 86 insertions(+), 2 deletions(-)
+ 6 files changed, 83 insertions(+), 3 deletions(-)
 
 diff --git a/arch/arm/include/asm/mach-imx/ahab.h b/arch/arm/include/asm/mach-imx/ahab.h
-index 2b152d2d222..ae4b1df488a 100644
+index 016a7353f53..216b48b57a0 100644
 --- a/arch/arm/include/asm/mach-imx/ahab.h
 +++ b/arch/arm/include/asm/mach-imx/ahab.h
 @@ -11,5 +11,6 @@
- int ahab_auth_cntr_hdr(struct container_hdr *container, u16 length);
+ void *ahab_auth_cntr_hdr(struct container_hdr *container, u16 length);
  int ahab_auth_release(void);
  int ahab_verify_cntr_image(struct boot_img_t *img, int image_index);
 +int authenticate_os_container(ulong addr);
@@ -124,10 +124,10 @@ index 2eec60ec7b5..a66d9dc5884 100644
  	switch (genimg_get_format(buf)) {
  #if CONFIG_IS_ENABLED(LEGACY_IMAGE_FORMAT)
 diff --git a/cmd/bootm.c b/cmd/bootm.c
-index ff4d1442c41..b0f2f0d4dc7 100644
+index 796d5e23adb..b599ad6c0d9 100644
 --- a/cmd/bootm.c
 +++ b/cmd/bootm.c
-@@ -216,6 +216,21 @@ int do_bootm(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
+@@ -215,6 +215,21 @@ int do_bootm(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
  #endif
  #endif
  
@@ -150,10 +150,10 @@ index ff4d1442c41..b0f2f0d4dc7 100644
  		BOOTM_STATE_FINDOTHER | BOOTM_STATE_LOADOS |
  		BOOTM_STATE_OS_PREP | BOOTM_STATE_OS_FAKE_GO |
 diff --git a/configs/imx93_11x11_evk_defconfig b/configs/imx93_11x11_evk_defconfig
-index 0fa4699c2f4..2fc813819d9 100644
+index ece2fcf1a50..25e7d9cae54 100644
 --- a/configs/imx93_11x11_evk_defconfig
 +++ b/configs/imx93_11x11_evk_defconfig
-@@ -12,6 +12,7 @@ CONFIG_ENV_SECT_SIZE=0x10000
+@@ -11,6 +11,7 @@ CONFIG_ENV_OFFSET=0x700000
  CONFIG_DM_GPIO=y
  CONFIG_DEFAULT_DEVICE_TREE="imx93-11x11-evk"
  CONFIG_SPL_TEXT_BASE=0x2049A000
@@ -161,15 +161,7 @@ index 0fa4699c2f4..2fc813819d9 100644
  CONFIG_USB_TCPC=y
  CONFIG_TARGET_IMX93_11X11_EVK=y
  CONFIG_SYS_PROMPT="u-boot=> "
-@@ -28,6 +29,7 @@ CONFIG_SYS_MEMTEST_END=0x90000000
- CONFIG_REMAKE_ELF=y
- CONFIG_SYS_MONITOR_LEN=524288
- CONFIG_FIT=y
-+# CONFIG_LEGACY_IMAGE_FORMAT is not set
- CONFIG_DISTRO_DEFAULTS=y
- CONFIG_BOOTCOMMAND="run distro_bootcmd;run bsp_bootcmd"
- CONFIG_DEFAULT_FDT_FILE="imx93-11x11-evk.dtb"
-@@ -53,6 +55,9 @@ CONFIG_SPL_WATCHDOG=y
+@@ -54,6 +55,9 @@ CONFIG_SPL_WATCHDOG=y
  CONFIG_SYS_MAXARGS=64
  CONFIG_SYS_CBSIZE=2048
  CONFIG_SYS_PBSIZE=2074
@@ -178,21 +170,20 @@ index 0fa4699c2f4..2fc813819d9 100644
 +# CONFIG_CMD_ELF is not set
  CONFIG_CMD_ERASEENV=y
  CONFIG_CMD_NVEDIT_EFI=y
- CONFIG_CMD_CRC32=y
-@@ -189,6 +194,8 @@ CONFIG_BMP_32BPP=y
- CONFIG_VIDEO_LOGO=y
- CONFIG_VIDEO_LCD_RAYDIUM_RM67191=y
- CONFIG_VIDEO_ADV7535=y
-+# CONFIG_SPL_SHA1 is not set
-+# CONFIG_SPL_SHA256 is not set
- CONFIG_SYS_WHITE_ON_BLACK=y
- CONFIG_SPLASH_SCREEN=y
- CONFIG_SPLASH_SCREEN_ALIGN=y
+ CONFIG_CRC32_VERIFY=y
+@@ -177,7 +181,6 @@ CONFIG_VIDEO_ADV7535=y
+ CONFIG_ULP_WATCHDOG=y
+ CONFIG_SPL_RSA=y
+ CONFIG_SHA384=y
+-CONFIG_LEGACY_IMAGE_FORMAT=y
+ CONFIG_LZO=y
+ CONFIG_BZIP2=y
+ CONFIG_OF_LIBFDT_OVERLAY=y
 diff --git a/include/configs/imx93_evk.h b/include/configs/imx93_evk.h
-index a6b47661e34..56c42480d8d 100644
+index 97a4fabf058..28256702471 100644
 --- a/include/configs/imx93_evk.h
 +++ b/include/configs/imx93_evk.h
-@@ -80,7 +80,7 @@
+@@ -90,7 +90,7 @@
  	"loadfdt=fatload mmc ${mmcdev}:${mmcpart} ${fdt_addr_r} ${fdtfile}\0" \
  	"fit_img=fitImage.signed\0" \
  	"fit_addr=0x88000000\0" \
@@ -202,5 +193,5 @@ index a6b47661e34..56c42480d8d 100644
  	"upgrade_available=0\0" \
  	"ustate=0\0" \
 -- 
-2.39.3
+2.44.0
 

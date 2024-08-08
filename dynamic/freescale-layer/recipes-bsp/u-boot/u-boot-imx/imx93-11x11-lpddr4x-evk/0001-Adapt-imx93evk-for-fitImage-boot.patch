@@ -1,7 +1,7 @@
-From 29abbee303e2f3cc646d2c7cfe809e37ba840f02 Mon Sep 17 00:00:00 2001
+From 98b9cfd81c009a2afb7a85d76156b325a8328e71 Mon Sep 17 00:00:00 2001
 From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
 Date: Mon, 4 Mar 2024 10:24:00 +0100
-Subject: [PATCH] [MARE-13]: uboot-imx: Adapt imx93evk for fitImage boot
+Subject: [PATCH] Adapt imx93evk for fitImage boot
 
 Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
 ---
@@ -10,10 +10,10 @@ Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
  2 files changed, 61 insertions(+), 19 deletions(-)
 
 diff --git a/board/freescale/imx93_evk/imx93_evk.c b/board/freescale/imx93_evk/imx93_evk.c
-index 8ac57bf34e..bfdf5f61cb 100644
+index d0c5d00348b..e686816bc78 100644
 --- a/board/freescale/imx93_evk/imx93_evk.c
 +++ b/board/freescale/imx93_evk/imx93_evk.c
-@@ -256,6 +256,55 @@ static int setup_eqos(void)
+@@ -278,6 +278,55 @@ static int setup_eqos(void)
  	return 0;
  }
  
@@ -69,7 +69,7 @@ index 8ac57bf34e..bfdf5f61cb 100644
  static void board_gpio_init(void)
  {
  	struct gpio_desc desc;
-@@ -332,6 +381,7 @@ int board_late_init(void)
+@@ -354,6 +403,7 @@ int board_late_init(void)
  	env_set("board_name", "11X11_EVK");
  	env_set("board_rev", "iMX93");
  #endif
@@ -78,15 +78,15 @@ index 8ac57bf34e..bfdf5f61cb 100644
  }
  
 diff --git a/include/configs/imx93_evk.h b/include/configs/imx93_evk.h
-index e893b0b553..a26d3f96bc 100644
+index 218b8a9dfe6..97a4fabf058 100644
 --- a/include/configs/imx93_evk.h
 +++ b/include/configs/imx93_evk.h
-@@ -72,12 +72,21 @@
+@@ -82,12 +82,21 @@
  	"mmcpart=1\0" \
  	"mmcroot=/dev/mmcblk1p2 rootwait rw\0" \
  	"mmcautodetect=yes\0" \
--	"mmcargs=setenv bootargs ${jh_clk} console=${console} root=${mmcroot}\0 " \
-+	"mmcargs=setenv bootargs ${jh_clk} console=${console} root=${mmcroot} lpj=96000 ${mmcpart}\0 " \
+-	"mmcargs=setenv bootargs ${jh_clk} ${mcore_clk} console=${console} root=${mmcroot}\0 " \
++	"mmcargs=setenv bootargs ${jh_clk} ${mcore_clk} console=${console} root=${mmcroot} lpj=96000 ${mmcpart}\0 " \
  	"loadbootscript=fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${script};\0" \
  	"bootscript=echo Running bootscript from mmc ...; " \
  		"source\0" \
@@ -104,7 +104,7 @@ index e893b0b553..a26d3f96bc 100644
  	"loadcntr=fatload mmc ${mmcdev}:${mmcpart} ${cntr_addr} ${cntr_file}\0" \
  	"auth_os=auth_cntr ${cntr_addr}\0" \
  	"boot_os=booti ${loadaddr} - ${fdt_addr_r};\0" \
-@@ -129,24 +138,7 @@
+@@ -139,24 +148,7 @@
  				"fi; " \
  			"fi;" \
  		"fi;\0" \
@@ -131,5 +131,5 @@ index e893b0b553..a26d3f96bc 100644
  /* Link Definitions */
  
 -- 
-2.43.0
+2.44.0
 
