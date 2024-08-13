@@ -21,6 +21,7 @@ TOOLCHAIN_TARGET_TASK += " \
     libstdc++-staticdev \
     googletest \
     protobuf \
+    protobuf-staticdev \
     dlib \
     nlohmann-json \
     json-schema-validator \
@@ -29,6 +30,9 @@ TOOLCHAIN_TARGET_TASK += " \
 
 TOOLCHAIN_TARGET_TASK:append:poky-iris-0501 = " swupdate"
 TOOLCHAIN_TARGET_TASK:append:poky-iris-0602 = " swupdate"
+
+# Remove protobuf-staticdev from R1 kirkstone build because it only exists on scarthgap
+TOOLCHAIN_TARGET_TASK:remove:poky-iris-0601 = " protobuf-staticdev"
 
 PV = "${DISTRO_VERSION}"
 inherit irma-firmware-versioning
