@@ -44,3 +44,7 @@ BOARD ?= "sc573-gen6"
 DISTRO_FEATURES:remove = "ldconfig"
 
 IMAGE_FEATURES:remove = "read-only-rootfs"
+
+# force removal of user management tools
+# since ROOTFS_POSTUNINSTALL_COMMAND does not actively uninstall them
+FORCE_RO_REMOVE = "1"
