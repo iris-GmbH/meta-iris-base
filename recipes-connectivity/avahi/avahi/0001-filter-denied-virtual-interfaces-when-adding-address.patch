@@ -10,7 +10,7 @@ messages.
 It is therefore needed to check if a new address does belong to an allowed
 interface label before actually adding it to the hardware interface.
 
-Upstream-Status: Pending: http://jira.irisgmbh.local/browse/APC-3065
+Upstream-Status: Submitted [https://github.com/avahi/avahi/pull/115]
 ---
  avahi-core/iface-linux.c | 23 +++++++++++++++++++++--
  avahi-core/iface.c       | 27 ++++++++++++++++-----------
