@@ -1,19 +1,20 @@
-From fd0b0c213d859dc8b421e547034be75dcd16a357 Mon Sep 17 00:00:00 2001
+From 768d79c5ea5794e6337a0a895e34c9359dae449f Mon Sep 17 00:00:00 2001
 From: Ian Dannapel <ian.dannapel@iris-sensing.com>
 Date: Wed, 24 Apr 2024 14:00:07 +0000
 Subject: [PATCH] bl31: Use UART 3 for debug output
 
 Signed-off-by: Ian Dannapel <ian.dannapel@iris-sensing.com>
+Signed-off-by: Jasper Orschulko <jasper@fancydomain.eu>
 ---
  plat/imx/imx8m/imx8mp/imx8mp_bl31_setup.c | 2 +-
  plat/imx/imx8m/imx8mp/platform.mk         | 2 +-
  2 files changed, 2 insertions(+), 2 deletions(-)
 
 diff --git a/plat/imx/imx8m/imx8mp/imx8mp_bl31_setup.c b/plat/imx/imx8m/imx8mp/imx8mp_bl31_setup.c
-index 348f90045..488a39902 100644
+index ac39f5f79..867101d53 100644
 --- a/plat/imx/imx8m/imx8mp/imx8mp_bl31_setup.c
 +++ b/plat/imx/imx8m/imx8mp/imx8mp_bl31_setup.c
-@@ -135,7 +135,7 @@ static const struct imx_rdc_cfg rdc[] = {
+@@ -136,7 +136,7 @@ static const struct imx_rdc_cfg rdc[] = {
  	RDC_MDAn(RDC_MDA_M7, DID1),
  
  	/* peripherals domain permission */
@@ -23,10 +24,10 @@ index 348f90045..488a39902 100644
  	RDC_PDAPn(RDC_PDAP_RDC, D0R | D0W | D1R),
  
 diff --git a/plat/imx/imx8m/imx8mp/platform.mk b/plat/imx/imx8m/imx8mp/platform.mk
-index cbac42819..d8244722d 100644
+index b473e547f..238117741 100644
 --- a/plat/imx/imx8m/imx8mp/platform.mk
 +++ b/plat/imx/imx8m/imx8mp/platform.mk
-@@ -154,7 +154,7 @@ $(eval $(call add_define,BL32_BASE))
+@@ -155,7 +155,7 @@ $(eval $(call add_define,BL32_BASE))
  BL32_SIZE		?=	0x2000000
  $(eval $(call add_define,BL32_SIZE))
  
@@ -34,7 +35,7 @@ index cbac42819..d8244722d 100644
 +IMX_BOOT_UART_BASE	?=	0x30880000
  $(eval $(call add_define,IMX_BOOT_UART_BASE))
  
- $(eval $(call add_define,IMX8M_DDR4_DVFS))
+ EL3_EXCEPTION_HANDLING := $(SDEI_SUPPORT)
 -- 
-2.34.1
+2.45.0
 
