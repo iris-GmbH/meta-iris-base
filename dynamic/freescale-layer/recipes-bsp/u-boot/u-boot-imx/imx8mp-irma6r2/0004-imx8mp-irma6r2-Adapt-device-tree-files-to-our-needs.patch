@@ -1,32 +1,33 @@
-From 5d8e795d4fa3b0ac368b896f0a8a18859f8e56cb Mon Sep 17 00:00:00 2001
+From a3128a7778cabb218a2f3a9229658e94975595d4 Mon Sep 17 00:00:00 2001
 From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
 Date: Fri, 11 Mar 2022 09:32:10 +0100
 Subject: [PATCH] imx8mp-irma6r2: Adapt device tree files to our needs
 
 Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+Signed-off-by: Jasper Orschulko <jasper@fancydomain.eu>
 ---
  arch/arm/dts/Makefile                   |   1 +
  arch/arm/dts/imx8mp-irma6r2-u-boot.dtsi |  12 +-
- arch/arm/dts/imx8mp-irma6r2.dts         | 275 ++++++++++++------------
- 3 files changed, 150 insertions(+), 138 deletions(-)
+ arch/arm/dts/imx8mp-irma6r2.dts         | 331 ++++++++++--------------
+ 3 files changed, 146 insertions(+), 198 deletions(-)
 
 diff --git a/arch/arm/dts/Makefile b/arch/arm/dts/Makefile
-index 709fdaecd7..d13fa2fa36 100644
+index ceec5c074a4..b8d6ad0e0bd 100644
 --- a/arch/arm/dts/Makefile
 +++ b/arch/arm/dts/Makefile
-@@ -1000,6 +1000,7 @@ dtb-$(CONFIG_ARCH_IMX8M) += \
- 	imx8mq-phanbell.dtb \
+@@ -1074,6 +1074,7 @@ dtb-$(CONFIG_ARCH_IMX8M) += \
+ 	imx8mp-dhcom-pdk2.dtb \
  	imx8mp-ddr4-evk.dtb \
  	imx8mp-evk.dtb \
 +	imx8mp-irma6r2.dtb \
+ 	imx8mp-icore-mx8mp-edimm2.2.dtb \
+ 	imx8mp-msc-sm2s.dtb \
  	imx8mp-phyboard-pollux-rdk.dtb \
- 	imx8mp-verdin.dtb \
- 	imx8mq-pico-pi.dtb \
 diff --git a/arch/arm/dts/imx8mp-irma6r2-u-boot.dtsi b/arch/arm/dts/imx8mp-irma6r2-u-boot.dtsi
-index 203d05e66e..79cfde02af 100644
+index 4ca65cd8ae0..6a6a1556d01 100644
 --- a/arch/arm/dts/imx8mp-irma6r2-u-boot.dtsi
 +++ b/arch/arm/dts/imx8mp-irma6r2-u-boot.dtsi
-@@ -144,11 +144,15 @@
+@@ -148,11 +148,15 @@
  	u-boot,dm-spl;
  };
  
@@ -44,22 +45,22 @@ index 203d05e66e..79cfde02af 100644
  	u-boot,dm-spl;
  };
  
-@@ -181,11 +185,11 @@
+@@ -185,11 +189,11 @@
  	u-boot,dm-spl;
  };
  
--&{/soc@0/bus@30800000/i2c@30a20000/pca9450@25} {
-+&{/soc@0/bus@30800000/i2c@30a40000/pca9450@25} {
+-&{/soc@0/bus@30800000/i2c@30a20000/pmic@25} {
++&{/soc@0/bus@30800000/i2c@30a40000/pmic@25} {
  	u-boot,dm-spl;
  };
  
--&{/soc@0/bus@30800000/i2c@30a20000/pca9450@25/regulators} {
-+&{/soc@0/bus@30800000/i2c@30a40000/pca9450@25/regulators} {
+-&{/soc@0/bus@30800000/i2c@30a20000/pmic@25/regulators} {
++&{/soc@0/bus@30800000/i2c@30a40000/pmic@25/regulators} {
  	u-boot,dm-spl;
  };
  
 diff --git a/arch/arm/dts/imx8mp-irma6r2.dts b/arch/arm/dts/imx8mp-irma6r2.dts
-index 61e8a70196..fb35eca9f0 100644
+index f6f33cb7695..e7a301df8c1 100644
 --- a/arch/arm/dts/imx8mp-irma6r2.dts
 +++ b/arch/arm/dts/imx8mp-irma6r2.dts
 @@ -1,5 +1,6 @@
@@ -69,7 +70,7 @@ index 61e8a70196..fb35eca9f0 100644
   * Copyright 2019 NXP
   */
  
-@@ -9,7 +10,7 @@
+@@ -10,7 +11,7 @@
  #include "imx8mp.dtsi"
  
  / {
@@ -87,18 +88,18 @@ index 61e8a70196..fb35eca9f0 100644
 +		reg = <0x0 0x40000000 0 0x20000000>;
  	};
  
- 	reg_can1_stby: regulator-can1-stby {
-@@ -121,7 +121,7 @@
+ 	pcie0_refclk: pcie0-refclk {
+@@ -162,7 +162,7 @@
  &eqos {
  	pinctrl-names = "default";
  	pinctrl-0 = <&pinctrl_eqos>;
 -	phy-mode = "rgmii-id";
 +	phy-mode = "rmii";
  	phy-handle = <&ethphy0>;
- 	status = "okay";
- 
-@@ -145,26 +145,6 @@
- 	status = "disabled";/* can2 pin conflict with pdm */
+ 	snps,force_thresh_dma_mode;
+ 	snps,mtl-tx-config = <&mtl_tx_setup>;
+@@ -251,31 +251,6 @@
+ 	};
  };
  
 -&fec {
@@ -117,14 +118,19 @@ index 61e8a70196..fb35eca9f0 100644
 -			compatible = "ethernet-phy-ieee802.3-c22";
 -			reg = <1>;
 -			eee-broken-1000t;
+-			reset-gpios = <&gpio4 2 GPIO_ACTIVE_LOW>;
+-			reset-assert-us = <10000>;
+-			reset-deassert-us = <80000>;
+-			realtek,aldps-enable;
+-			realtek,clkout-disable;
 -		};
 -	};
 -};
 -
- &flexspi {
+ &flexcan1 {
  	pinctrl-names = "default";
- 	pinctrl-0 = <&pinctrl_flexspi0>;
-@@ -189,6 +169,87 @@
+ 	pinctrl-0 = <&pinctrl_flexcan1>;
+@@ -299,6 +274,87 @@
  	scl-gpios = <&gpio5 14 GPIO_ACTIVE_HIGH>;
  	sda-gpios = <&gpio5 15 GPIO_ACTIVE_HIGH>;
  	status = "okay";
@@ -210,9 +216,9 @@ index 61e8a70196..fb35eca9f0 100644
 +		#gpio-cells = <2>;
 +	};
  
- 	pmic: pca9450@25 {
- 		reg = <0x25>;
-@@ -298,85 +359,14 @@
+ 	pmic@25 {
+ 		compatible = "nxp,pca9450c";
+@@ -396,122 +452,14 @@
  	};
  };
  
@@ -299,101 +305,158 @@ index 61e8a70196..fb35eca9f0 100644
 -		reg = <0x20>;
 -		gpio-controller;
 -		#gpio-cells = <2>;
+-		interrupt-controller;
+-		#interrupt-cells = <2>;
+-		pinctrl-names = "default";
+-		pinctrl-0 = <&pinctrl_pca6416_int>;
+-		interrupt-parent = <&gpio1>;
+-		interrupts = <12 IRQ_TYPE_LEVEL_LOW>;
+-		gpio-line-names = "EXT_PWREN1",
+-			"EXT_PWREN2",
+-			"CAN1/I2C5_SEL",
+-			"PDM/CAN2_SEL",
+-			"FAN_EN",
+-			"PWR_MEAS_IO1",
+-			"PWR_MEAS_IO2",
+-			"EXP_P0_7",
+-			"EXP_P1_0",
+-			"EXP_P1_1",
+-			"EXP_P1_2",
+-			"EXP_P1_3",
+-			"EXP_P1_4",
+-			"EXP_P1_5",
+-			"EXP_P1_6",
+-			"EXP_P1_7";
 -	};
+-};
+-
+-/* I2C on expansion connector J22. */
+-&i2c5 {
+-	clock-frequency = <100000>; /* Lower clock speed for external bus. */
+-	pinctrl-names = "default";
+-	pinctrl-0 = <&pinctrl_i2c5>;
+-	status = "disabled"; /* can1 pins conflict with i2c5 */
+-
+-	/* GPIO 2 of PCA6416 is used to switch between CAN1 and I2C5 functions:
+-	 *     LOW:  CAN1 (default, pull-down)
+-	 *     HIGH: I2C5
+-	 * You need to set it to high to enable I2C5 (for example, add gpio-hog
+-	 * in pca6416 node).
+-	 */
  };
  
  &lcdif1 {
-@@ -404,12 +394,26 @@
+@@ -534,36 +482,28 @@
+ 	};
  };
  
- &uart2 {
--	/* console */
-+	/* A53 */
- 	pinctrl-names = "default";
- 	pinctrl-0 = <&pinctrl_uart2>;
+-&pcie_phy {
+-	fsl,refclk-pad-mode = <IMX8_PCIE_REFCLK_PAD_INPUT>;
+-	clocks = <&pcie0_refclk>;
+-	clock-names = "ref";
++&snvs_pwrkey {
  	status = "okay";
  };
  
+-&pcie {
++&uart2 {
++	/* A53 */
+ 	pinctrl-names = "default";
+-	pinctrl-0 = <&pinctrl_pcie0>;
+-	reset-gpio = <&gpio2 7 GPIO_ACTIVE_LOW>;
+-	clocks = <&clk IMX8MP_CLK_HSIO_ROOT>,
+-		 <&clk IMX8MP_CLK_PCIE_ROOT>,
+-		 <&clk IMX8MP_CLK_HSIO_AXI>;
+-	clock-names = "pcie", "pcie_aux", "pcie_bus";
+-	assigned-clocks = <&clk IMX8MP_CLK_PCIE_AUX>;
+-	assigned-clock-rates = <10000000>;
+-	assigned-clock-parents = <&clk IMX8MP_SYS_PLL2_50M>;
+-	vpcie-supply = <&reg_pcie0>;
++	pinctrl-0 = <&pinctrl_uart2>;
+ 	status = "okay";
+ };
+ 
+-&snvs_pwrkey {
 +&uart3 {
 +	/* uC */
 +	pinctrl-names = "default";
 +	pinctrl-0 = <&pinctrl_uart3>;
-+	status = "okay";
-+};
-+
+ 	status = "okay";
+ };
+ 
+-&uart2 {
+-	/* console */
 +&uart4 {
 +	/* M7 */
-+	pinctrl-names = "default";
+ 	pinctrl-names = "default";
+-	pinctrl-0 = <&pinctrl_uart2>;
 +	pinctrl-0 = <&pinctrl_uart4>;
-+	status = "okay";
-+};
-+
- &usb3_phy0 {
- 	vbus-power-supply = <&ptn5110>;
- 	fsl,phy-tx-vref-tune = <0xe>;
-@@ -493,39 +497,14 @@
+ 	status = "okay";
+ };
+ 
+@@ -653,39 +593,14 @@
  		fsl,pins = <
- 			MX8MP_IOMUXC_ENET_MDC__ENET_QOS_MDC	0x3
- 			MX8MP_IOMUXC_ENET_MDIO__ENET_QOS_MDIO	0x3
--			MX8MP_IOMUXC_ENET_RD0__ENET_QOS_RGMII_RD0	0x91
--			MX8MP_IOMUXC_ENET_RD1__ENET_QOS_RGMII_RD1	0x91
--			MX8MP_IOMUXC_ENET_RD2__ENET_QOS_RGMII_RD2	0x91
--			MX8MP_IOMUXC_ENET_RD3__ENET_QOS_RGMII_RD3	0x91
--			MX8MP_IOMUXC_ENET_RXC__CCM_ENET_QOS_CLOCK_GENERATE_RX_CLK	0x91
--			MX8MP_IOMUXC_ENET_RX_CTL__ENET_QOS_RGMII_RX_CTL	0x91
--			MX8MP_IOMUXC_ENET_TD0__ENET_QOS_RGMII_TD0		0x1f
--			MX8MP_IOMUXC_ENET_TD1__ENET_QOS_RGMII_TD1		0x1f
--			MX8MP_IOMUXC_ENET_TD2__ENET_QOS_RGMII_TD2		0x1f
--			MX8MP_IOMUXC_ENET_TD3__ENET_QOS_RGMII_TD3		0x1f
--			MX8MP_IOMUXC_ENET_TX_CTL__ENET_QOS_RGMII_TX_CTL	0x1f
--			MX8MP_IOMUXC_ENET_TXC__CCM_ENET_QOS_CLOCK_GENERATE_TX_CLK	0x1f
--			MX8MP_IOMUXC_SAI2_RXC__GPIO4_IO22		0x19
+ 			MX8MP_IOMUXC_ENET_MDC__ENET_QOS_MDC				0x2
+ 			MX8MP_IOMUXC_ENET_MDIO__ENET_QOS_MDIO				0x2
+-			MX8MP_IOMUXC_ENET_RD0__ENET_QOS_RGMII_RD0			0x90
+-			MX8MP_IOMUXC_ENET_RD1__ENET_QOS_RGMII_RD1			0x90
+-			MX8MP_IOMUXC_ENET_RD2__ENET_QOS_RGMII_RD2			0x90
+-			MX8MP_IOMUXC_ENET_RD3__ENET_QOS_RGMII_RD3			0x90
+-			MX8MP_IOMUXC_ENET_RXC__CCM_ENET_QOS_CLOCK_GENERATE_RX_CLK	0x90
+-			MX8MP_IOMUXC_ENET_RX_CTL__ENET_QOS_RGMII_RX_CTL			0x90
+-			MX8MP_IOMUXC_ENET_TD0__ENET_QOS_RGMII_TD0			0x16
+-			MX8MP_IOMUXC_ENET_TD1__ENET_QOS_RGMII_TD1			0x16
+-			MX8MP_IOMUXC_ENET_TD2__ENET_QOS_RGMII_TD2			0x16
+-			MX8MP_IOMUXC_ENET_TD3__ENET_QOS_RGMII_TD3			0x16
+-			MX8MP_IOMUXC_ENET_TX_CTL__ENET_QOS_RGMII_TX_CTL			0x16
+-			MX8MP_IOMUXC_ENET_TXC__CCM_ENET_QOS_CLOCK_GENERATE_TX_CLK	0x16
+-			MX8MP_IOMUXC_SAI2_RXC__GPIO4_IO22				0x10
 -		>;
 -	};
 -
 -	pinctrl_fec: fecgrp {
 -		fsl,pins = <
--			MX8MP_IOMUXC_SAI1_RXD2__ENET1_MDC		0x3
--			MX8MP_IOMUXC_SAI1_RXD3__ENET1_MDIO		0x3
--			MX8MP_IOMUXC_SAI1_RXD4__ENET1_RGMII_RD0		0x91
--			MX8MP_IOMUXC_SAI1_RXD5__ENET1_RGMII_RD1		0x91
--			MX8MP_IOMUXC_SAI1_RXD6__ENET1_RGMII_RD2		0x91
--			MX8MP_IOMUXC_SAI1_RXD7__ENET1_RGMII_RD3		0x91
--			MX8MP_IOMUXC_SAI1_TXC__ENET1_RGMII_RXC		0x91
--			MX8MP_IOMUXC_SAI1_TXFS__ENET1_RGMII_RX_CTL	0x91
--			MX8MP_IOMUXC_SAI1_TXD0__ENET1_RGMII_TD0		0x1f
--			MX8MP_IOMUXC_SAI1_TXD1__ENET1_RGMII_TD1		0x1f
--			MX8MP_IOMUXC_SAI1_TXD2__ENET1_RGMII_TD2		0x1f
--			MX8MP_IOMUXC_SAI1_TXD3__ENET1_RGMII_TD3		0x1f
--			MX8MP_IOMUXC_SAI1_TXD4__ENET1_RGMII_TX_CTL	0x1f
--			MX8MP_IOMUXC_SAI1_TXD5__ENET1_RGMII_TXC		0x1f
--			MX8MP_IOMUXC_SAI1_RXD0__GPIO4_IO02		0x19
-+			MX8MP_IOMUXC_ENET_RD0__ENET_QOS_RGMII_RD0	0x91        /* ETH-RX0 AG29 */
-+			MX8MP_IOMUXC_ENET_RD1__ENET_QOS_RGMII_RD1	0x91        /* ETH-RX1 AG28 */
-+			MX8MP_IOMUXC_ENET_RX_CTL__ENET_QOS_RGMII_RX_CTL	0x91    /* ETH-DV  AE28 */
-+			MX8MP_IOMUXC_ENET_TD0__ENET_QOS_RGMII_TD0		0x1f    /* ETH-TX0 AC25 */
-+			MX8MP_IOMUXC_ENET_TD1__ENET_QOS_RGMII_TD1		0x1f    /* ETH-TX1 AE26 */
-+			MX8MP_IOMUXC_ENET_TD2__CCM_ENET_QOS_CLOCK_GENERATE_REF_CLK 0x4000001f /* ETH-50 AF26 */
-+			MX8MP_IOMUXC_ENET_TX_CTL__ENET_QOS_RGMII_TX_CTL	0x1f    /* ETH-TXEN  AF24 */
-+			MX8MP_IOMUXC_SAI1_TXD2__GPIO4_IO14		0x19            /* ETH-RST AH11 */
+-			MX8MP_IOMUXC_SAI1_RXD2__ENET1_MDC		0x2
+-			MX8MP_IOMUXC_SAI1_RXD3__ENET1_MDIO		0x2
+-			MX8MP_IOMUXC_SAI1_RXD4__ENET1_RGMII_RD0		0x90
+-			MX8MP_IOMUXC_SAI1_RXD5__ENET1_RGMII_RD1		0x90
+-			MX8MP_IOMUXC_SAI1_RXD6__ENET1_RGMII_RD2		0x90
+-			MX8MP_IOMUXC_SAI1_RXD7__ENET1_RGMII_RD3		0x90
+-			MX8MP_IOMUXC_SAI1_TXC__ENET1_RGMII_RXC		0x90
+-			MX8MP_IOMUXC_SAI1_TXFS__ENET1_RGMII_RX_CTL	0x90
+-			MX8MP_IOMUXC_SAI1_TXD0__ENET1_RGMII_TD0		0x16
+-			MX8MP_IOMUXC_SAI1_TXD1__ENET1_RGMII_TD1		0x16
+-			MX8MP_IOMUXC_SAI1_TXD2__ENET1_RGMII_TD2		0x16
+-			MX8MP_IOMUXC_SAI1_TXD3__ENET1_RGMII_TD3		0x16
+-			MX8MP_IOMUXC_SAI1_TXD4__ENET1_RGMII_TX_CTL	0x16
+-			MX8MP_IOMUXC_SAI1_TXD5__ENET1_RGMII_TXC		0x16
+-			MX8MP_IOMUXC_SAI1_RXD0__GPIO4_IO02		0x10
++			MX8MP_IOMUXC_ENET_RD0__ENET_QOS_RGMII_RD0			0x90        /* ETH-RX0 AG29 */
++			MX8MP_IOMUXC_ENET_RD1__ENET_QOS_RGMII_RD1			0x90        /* ETH-RX1 AG28 */
++			MX8MP_IOMUXC_ENET_RX_CTL__ENET_QOS_RGMII_RX_CTL			0x90        /* ETH-DV  AE28 */
++			MX8MP_IOMUXC_ENET_TD0__ENET_QOS_RGMII_TD0			0x16        /* ETH-TX0 AC25 */
++			MX8MP_IOMUXC_ENET_TD1__ENET_QOS_RGMII_TD1			0x16        /* ETH-TX1 AE26 */
++			MX8MP_IOMUXC_ENET_TD2__CCM_ENET_QOS_CLOCK_GENERATE_REF_CLK	0x40000016  /* ETH-50  AF26 */
++			MX8MP_IOMUXC_ENET_TX_CTL__ENET_QOS_RGMII_TX_CTL			0x16        /* ETH-TXEN AF24 */
++			MX8MP_IOMUXC_SAI1_TXD2__GPIO4_IO14				0x19        /* ETH-RST AH11 */
  		>;
  	};
  
-@@ -593,6 +572,13 @@
+@@ -753,6 +668,13 @@
  		>;
  	};
  
 +	pinctrl_i2c4: i2c4grp {
 +		fsl,pins = <
-+			MX8MP_IOMUXC_I2C4_SCL__I2C4_SCL			0x400001c3
-+			MX8MP_IOMUXC_I2C4_SDA__I2C4_SDA			0x400001c3
++			MX8MP_IOMUXC_I2C4_SCL__I2C4_SCL         0x400001c2
++			MX8MP_IOMUXC_I2C4_SDA__I2C4_SDA         0x400001c2
 +		>;
 +	};
 +
- 	pinctrl_i2c1_gpio: i2c1grp-gpio {
+ 	pinctrl_i2c5: i2c5grp {
  		fsl,pins = <
- 			MX8MP_IOMUXC_I2C1_SCL__GPIO5_IO14        	0x1c3
-@@ -614,6 +600,13 @@
+ 			MX8MP_IOMUXC_SPDIF_RX__I2C5_SDA         0x400001c2
+@@ -819,6 +741,13 @@
  		>;
  	};
  
@@ -404,10 +467,10 @@ index 61e8a70196..fb35eca9f0 100644
 +		>;
 +	};
 +
- 	pinctrl_mipi_dsi_en: mipi_dsi_en {
+ 	pinctrl_typec: typec1grp {
  		fsl,pins = <
- 			MX8MP_IOMUXC_GPIO1_IO08__GPIO1_IO08	0x16
-@@ -651,6 +644,20 @@
+ 			MX8MP_IOMUXC_SAI1_TXD7__GPIO4_IO19	0x1c4
+@@ -838,6 +767,20 @@
  		>;
  	};
  
@@ -427,7 +490,7 @@ index 61e8a70196..fb35eca9f0 100644
 +
  	pinctrl_usb1_vbus: usb1grp {
  		fsl,pins = <
- 			MX8MP_IOMUXC_GPIO1_IO14__USB2_OTG_PWR	0x19
+ 			MX8MP_IOMUXC_GPIO1_IO14__USB2_PWR		0x10
 -- 
-2.39.0
+2.46.0
 

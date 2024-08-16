@@ -1,27 +1,27 @@
-From 68c227c676c136cbc2d53052ec7bd9e458b44046 Mon Sep 17 00:00:00 2001
+From 0bd2bf5d4d52fac516ed6064f9d3f240a2eff0b1 Mon Sep 17 00:00:00 2001
 From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
 Date: Wed, 1 Mar 2023 20:06:56 +0100
-Subject: [PATCH] imx8mp-irma6r2: Set lpj=32000 and remove double entry mmcargs
+Subject: [PATCH] imx8mp-irma6r2: Set lpj=32000
 
 Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+Signed-off-by: Jasper Orschulko <jasper@fancydomain.eu>
 ---
- include/configs/imx8mp_irma6r2.h | 3 +--
- 1 file changed, 1 insertion(+), 2 deletions(-)
+ include/configs/imx8mp_irma6r2.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/include/configs/imx8mp_irma6r2.h b/include/configs/imx8mp_irma6r2.h
-index d109533770..82a7b34ce3 100644
+index 394cce3f5b8..c1803e2846d 100644
 --- a/include/configs/imx8mp_irma6r2.h
 +++ b/include/configs/imx8mp_irma6r2.h
-@@ -144,8 +144,7 @@
- 	"mmcdev="__stringify(CONFIG_SYS_MMC_ENV_DEV)"\0" \
- 	"mmcroot=" CONFIG_MMCROOT " rootwait rw\0" \
+@@ -115,7 +115,7 @@
+ 	"mmcpart=1\0" \
+ 	"mmcroot=/dev/mmcblk1p2 rootwait rw\0" \
  	"mmcautodetect=yes\0" \
--	"mmcargs=setenv bootargs ${jh_clk} ${mcore_clk} console=${console} root=${mmcroot}\0 " \
 -	"mmcargs=setenv bootargs ${jh_clk} ${mcore_clk} console=${console} root=${mmcroot} ${mmcpart}\0 " \
 +	"mmcargs=setenv bootargs ${jh_clk} ${mcore_clk} console=${console} root=${mmcroot} lpj=32000 ${mmcpart}\0 " \
- 	"loadbootscript=fatload mmc ${mmcdev}#${mmcpart} ${loadaddr} ${script};\0" \
+ 	"loadbootscript=fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${bsp_script};\0" \
  	"bootscript=echo Running bootscript from mmc ...; " \
  		"source\0" \
 -- 
-2.39.2
+2.46.0
 

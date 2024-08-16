@@ -1,9 +1,10 @@
-From 29ca69e8dbc1502807111706cf5f3cc9b4e7914a Mon Sep 17 00:00:00 2001
+From 16d37f7ae755b3840f28064f46d6b212f9d187c9 Mon Sep 17 00:00:00 2001
 From: "philipp.schoewe" <Philipp.Schoewe@iris-sensing.com>
 Date: Fri, 8 Jul 2022 14:20:18 +0200
 Subject: [PATCH] imx8mp-irma6r2: Add IU EEPROM readout for configuring mac
  address and nfs boot
 
+Signed-off-by: Jasper Orschulko <jasper@fancydomain.eu>
 ---
  board/freescale/imx8mp_irma6r2/Makefile       |   2 +
  board/freescale/imx8mp_irma6r2/i2c_memory.c   |  64 +++++++++
@@ -18,7 +19,7 @@ Subject: [PATCH] imx8mp-irma6r2: Add IU EEPROM readout for configuring mac
  create mode 100644 board/freescale/imx8mp_irma6r2/interface_unit.h
 
 diff --git a/board/freescale/imx8mp_irma6r2/Makefile b/board/freescale/imx8mp_irma6r2/Makefile
-index d72fe0c253..304a81bd52 100644
+index d72fe0c253a..304a81bd522 100644
 --- a/board/freescale/imx8mp_irma6r2/Makefile
 +++ b/board/freescale/imx8mp_irma6r2/Makefile
 @@ -6,6 +6,8 @@
@@ -32,7 +33,7 @@ index d72fe0c253..304a81bd52 100644
  obj-y += spl.o
 diff --git a/board/freescale/imx8mp_irma6r2/i2c_memory.c b/board/freescale/imx8mp_irma6r2/i2c_memory.c
 new file mode 100644
-index 0000000000..f383992ca7
+index 00000000000..f383992ca7a
 --- /dev/null
 +++ b/board/freescale/imx8mp_irma6r2/i2c_memory.c
 @@ -0,0 +1,64 @@
@@ -102,7 +103,7 @@ index 0000000000..f383992ca7
 +
 diff --git a/board/freescale/imx8mp_irma6r2/i2c_memory.h b/board/freescale/imx8mp_irma6r2/i2c_memory.h
 new file mode 100644
-index 0000000000..c88f93496a
+index 00000000000..c88f93496ac
 --- /dev/null
 +++ b/board/freescale/imx8mp_irma6r2/i2c_memory.h
 @@ -0,0 +1,11 @@
@@ -118,7 +119,7 @@ index 0000000000..c88f93496a
 +
 +#endif /* BOARD_IMX8MP_I2C_MEMORY_H_ */
 diff --git a/board/freescale/imx8mp_irma6r2/imx8mp_irma6r2.c b/board/freescale/imx8mp_irma6r2/imx8mp_irma6r2.c
-index aa448ec926..e3d9b15b02 100644
+index aa448ec9267..e3d9b15b023 100644
 --- a/board/freescale/imx8mp_irma6r2/imx8mp_irma6r2.c
 +++ b/board/freescale/imx8mp_irma6r2/imx8mp_irma6r2.c
 @@ -1,5 +1,6 @@
@@ -177,7 +178,7 @@ index aa448ec926..e3d9b15b02 100644
      printf("bootcmd: %s . altbootcmd: %s \n", bootcmd, altbootcmd);
 diff --git a/board/freescale/imx8mp_irma6r2/interface_unit.c b/board/freescale/imx8mp_irma6r2/interface_unit.c
 new file mode 100644
-index 0000000000..88c5b1fe80
+index 00000000000..88c5b1fe803
 --- /dev/null
 +++ b/board/freescale/imx8mp_irma6r2/interface_unit.c
 @@ -0,0 +1,133 @@
@@ -316,7 +317,7 @@ index 0000000000..88c5b1fe80
 +}
 diff --git a/board/freescale/imx8mp_irma6r2/interface_unit.h b/board/freescale/imx8mp_irma6r2/interface_unit.h
 new file mode 100644
-index 0000000000..60ff24b9c5
+index 00000000000..60ff24b9c50
 --- /dev/null
 +++ b/board/freescale/imx8mp_irma6r2/interface_unit.h
 @@ -0,0 +1,24 @@
@@ -345,5 +346,5 @@ index 0000000000..60ff24b9c5
 +
 +#endif /* BOARD_IMX8MP_INTERFACE_UNIT_EEPROM_H_ */
 -- 
-2.39.0
+2.46.0
 

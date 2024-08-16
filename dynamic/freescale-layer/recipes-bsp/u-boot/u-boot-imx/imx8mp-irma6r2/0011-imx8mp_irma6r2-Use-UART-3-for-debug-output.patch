@@ -1,9 +1,10 @@
-From 92389d3e3fec9bf275f00e6716a2d23fdac890f5 Mon Sep 17 00:00:00 2001
+From 56f4a899e2089d464b6c4fef1f1021c6bea142ac Mon Sep 17 00:00:00 2001
 From: Ian Dannapel <ian.dannapel@iris-sensing.com>
 Date: Thu, 25 Apr 2024 11:12:11 +0200
 Subject: [PATCH] imx8mp_irma6r2: Use UART 3 for debug output
 
 Signed-off-by: Ian Dannapel <ian.dannapel@iris-sensing.com>
+Signed-off-by: Jasper Orschulko <jasper@fancydomain.eu>
 ---
  arch/arm/dts/imx8mp-irma6r2-u-boot.dtsi         |  4 ++--
  arch/arm/dts/imx8mp-irma6r2.dts                 | 10 +++++-----
@@ -12,7 +13,7 @@ Signed-off-by: Ian Dannapel <ian.dannapel@iris-sensing.com>
  4 files changed, 14 insertions(+), 14 deletions(-)
 
 diff --git a/arch/arm/dts/imx8mp-irma6r2-u-boot.dtsi b/arch/arm/dts/imx8mp-irma6r2-u-boot.dtsi
-index 79cfde02af..6b80133404 100644
+index 6a6a1556d01..287f127d892 100644
 --- a/arch/arm/dts/imx8mp-irma6r2-u-boot.dtsi
 +++ b/arch/arm/dts/imx8mp-irma6r2-u-boot.dtsi
 @@ -76,7 +76,7 @@
@@ -24,7 +25,7 @@ index 79cfde02af..6b80133404 100644
  	u-boot,dm-spl;
  };
  
-@@ -112,7 +112,7 @@
+@@ -116,7 +116,7 @@
  	u-boot,dm-spl;
  };
  
@@ -34,10 +35,10 @@ index 79cfde02af..6b80133404 100644
  };
  
 diff --git a/arch/arm/dts/imx8mp-irma6r2.dts b/arch/arm/dts/imx8mp-irma6r2.dts
-index fb35eca9f0..8690d468e2 100644
+index e7a301df8c1..954056a7038 100644
 --- a/arch/arm/dts/imx8mp-irma6r2.dts
 +++ b/arch/arm/dts/imx8mp-irma6r2.dts
-@@ -14,8 +14,8 @@
+@@ -15,8 +15,8 @@
  	compatible = "fsl,imx8mp-evk", "fsl,imx8mp";
  
  	chosen {
@@ -48,7 +49,7 @@ index fb35eca9f0..8690d468e2 100644
  	};
  
  	gpio-leds {
-@@ -394,14 +394,14 @@
+@@ -487,14 +487,14 @@
  };
  
  &uart2 {
@@ -67,7 +68,7 @@ index fb35eca9f0..8690d468e2 100644
  	pinctrl-0 = <&pinctrl_uart3>;
  	status = "okay";
 diff --git a/board/freescale/imx8mp_irma6r2/imx8mp_irma6r2.c b/board/freescale/imx8mp_irma6r2/imx8mp_irma6r2.c
-index 3af9db0961..291f87796a 100644
+index 3af9db0961b..291f87796ae 100644
 --- a/board/freescale/imx8mp_irma6r2/imx8mp_irma6r2.c
 +++ b/board/freescale/imx8mp_irma6r2/imx8mp_irma6r2.c
 @@ -41,8 +41,8 @@ DECLARE_GLOBAL_DATA_PTR;
@@ -91,10 +92,10 @@ index 3af9db0961..291f87796a 100644
  	return 0;
  }
 diff --git a/include/configs/imx8mp_irma6r2.h b/include/configs/imx8mp_irma6r2.h
-index 82a7b34ce3..32887f7c20 100644
+index c1803e2846d..3712cfeea42 100644
 --- a/include/configs/imx8mp_irma6r2.h
 +++ b/include/configs/imx8mp_irma6r2.h
-@@ -113,8 +113,8 @@
+@@ -82,8 +82,8 @@
  	"fdt_addr=0x43000000\0"			\
  	"fdt_high=0xffffffffffffffff\0" \
  	"mtdparts=" MFG_NAND_PARTITION "\0" \
@@ -105,7 +106,7 @@ index 82a7b34ce3..32887f7c20 100644
  		"root=ubi0:nandrootfs rootfstype=ubifs "		     \
  		MFG_NAND_PARTITION \
  		"\0" \
-@@ -133,7 +133,7 @@
+@@ -103,7 +103,7 @@
  	"bsp_script=boot.scr\0" \
  	"image=Image\0" \
  	"splashimage=0x50000000\0" \
@@ -114,15 +115,15 @@ index 82a7b34ce3..32887f7c20 100644
  	"fdt_addr_r=0x43000000\0"			\
  	"fdt_addr=0x43000000\0"			\
  	"boot_fdt=try\0" \
-@@ -205,7 +205,7 @@
+@@ -171,7 +171,7 @@
  #define PHYS_SDRAM			0x40000000
  #define PHYS_SDRAM_SIZE		0x20000000	/* 512MB */
  
--#define CONFIG_MXC_UART_BASE		UART2_BASE_ADDR
-+#define CONFIG_MXC_UART_BASE		UART3_BASE_ADDR
+-#define CFG_MXC_UART_BASE		UART2_BASE_ADDR
++#define CFG_MXC_UART_BASE		UART3_BASE_ADDR
  
- /* Monitor Command Prompt */
- #define CONFIG_SYS_CBSIZE		2048
+ #define CFG_SYS_NAND_BASE           0x20000000
+ 
 -- 
-2.34.1
+2.46.0
 
