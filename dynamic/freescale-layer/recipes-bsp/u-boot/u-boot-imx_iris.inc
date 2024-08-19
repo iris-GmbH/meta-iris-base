@@ -8,12 +8,9 @@ UBOOT_INITIAL_ENV = "u-boot-initial-env"
 
 FILESEXTRAPATHS:prepend := "${THISDIR}/u-boot-imx/common:"
 SRC_URI:append:mx8mp-nxp-bsp = "\
-	file://0001-env-Fix-prio-on-bad-CRC-case-with-ENV_APPEND-enabled.patch \
-	file://0002-env-Invert-gd-env_valid-for-env_mmc_save.patch \
-	file://0003-imx8m-soc.c-Use-arch-specific-env_get_location.patch \
-	file://0004-Add-HAB-image-authentication-for-FIT-Images.patch \
-	file://0005-crypto-caam-Add-fsl-caam-driver.patch \
-	file://0006-MLK-19053-crypto-caam-RNG4-TRNG-errata.patch \
+	file://0001-Add-HAB-image-authentication-for-FIT-Images.patch \
+	file://0002-crypto-caam-Add-fsl-caam-driver.patch \
+	file://0003-MLK-19053-crypto-caam-RNG4-TRNG-errata.patch \
 "
 
 FILESEXTRAPATHS:prepend:imx8mp-lpddr4-evk := "${THISDIR}/u-boot-imx/imx8mp-lpddr4-evk:"

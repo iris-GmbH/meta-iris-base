@@ -1,4 +1,4 @@
-From ab33df29332d16844c3efc0ad676aebc50e6446a Mon Sep 17 00:00:00 2001
+From dd3531d6ba0860b4df48c5b4c6f80e34d68434d3 Mon Sep 17 00:00:00 2001
 From: Aymen Sghaier <aymen.sghaier@nxp.com>
 Date: Thu, 13 Sep 2018 18:19:13 +0200
 Subject: [PATCH] MLK-19053: crypto: caam: RNG4 TRNG errata
@@ -12,13 +12,14 @@ Signed-off-by: Aymen Sghaier <aymen.sghaier@nxp.com>
 (cherry picked from commit 2aff5ffb2c4bb19106f3faa76415b51591cbc2b2)
 (cherry picked from commit 051a93febddac7e6fac557b0409203cfefb45b65)
 (cherry picked from commit 68cea9fd1df97f2dd48dae0c891325a444458f94)
+Signed-off-by: Jasper Orschulko <jasper@fancydomain.eu>
 ---
  drivers/crypto/fsl_caam.c          | 11 ++++++++---
  drivers/crypto/fsl_caam_internal.h |  1 +
  2 files changed, 9 insertions(+), 3 deletions(-)
 
 diff --git a/drivers/crypto/fsl_caam.c b/drivers/crypto/fsl_caam.c
-index ccdf131635..092635123d 100644
+index ccdf1316355..092635123d2 100644
 --- a/drivers/crypto/fsl_caam.c
 +++ b/drivers/crypto/fsl_caam.c
 @@ -315,7 +315,12 @@ static void kick_trng(u32 ent_delay)
@@ -54,7 +55,7 @@ index ccdf131635..092635123d 100644
  	__raw_writel(val, CAAM_RTMCTL);
  
 diff --git a/drivers/crypto/fsl_caam_internal.h b/drivers/crypto/fsl_caam_internal.h
-index 837562d3c4..553bb4cd10 100644
+index 837562d3c48..553bb4cd105 100644
 --- a/drivers/crypto/fsl_caam_internal.h
 +++ b/drivers/crypto/fsl_caam_internal.h
 @@ -122,6 +122,7 @@
@@ -66,5 +67,5 @@ index 837562d3c4..553bb4cd10 100644
  #define RDSTA_IF1        (2)
  #define RDSTA_SKVN       BIT(30)
 -- 
-2.39.0
+2.45.0
 

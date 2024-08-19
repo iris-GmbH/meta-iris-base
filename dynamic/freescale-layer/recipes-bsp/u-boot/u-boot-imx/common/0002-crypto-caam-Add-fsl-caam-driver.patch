@@ -1,4 +1,4 @@
-From f98dd48434ea6ab823f47fee68cd4586d802db7f Mon Sep 17 00:00:00 2001
+From 0219dbf5ad5196426e1101f0883776162085bd0a Mon Sep 17 00:00:00 2001
 From: Ye Li <ye.li@nxp.com>
 Date: Thu, 25 Mar 2021 09:30:00 +0000
 Subject: [PATCH] crypto: caam: Add fsl caam driver
@@ -17,6 +17,7 @@ orignal plain data.
 Signed-off-by: Aymen Sghaier <aymen.sghaier@nxp.com>
 Signed-off-by: Ye Li <ye.li@nxp.com>
 Signed-off-by: Peng Fan <peng.fan@nxp.com>
+Signed-off-by: Jasper Orschulko <jasper@fancydomain.eu>
 ---
  arch/arm/include/asm/arch-mx7/crm_regs.h |   8 +
  cmd/Kconfig                              |   6 +
@@ -33,7 +34,7 @@ Signed-off-by: Peng Fan <peng.fan@nxp.com>
  create mode 100644 include/fsl_caam.h
 
 diff --git a/arch/arm/include/asm/arch-mx7/crm_regs.h b/arch/arm/include/asm/arch-mx7/crm_regs.h
-index bfa68a9d2a..a000ae05d7 100644
+index bfa68a9d2a0..a000ae05d77 100644
 --- a/arch/arm/include/asm/arch-mx7/crm_regs.h
 +++ b/arch/arm/include/asm/arch-mx7/crm_regs.h
 @@ -1998,6 +1998,14 @@ struct mxc_ccm_anatop_reg {
@@ -52,10 +53,10 @@ index bfa68a9d2a..a000ae05d7 100644
  #define CCM_GPR(i)		(CCM_BASE_ADDR + CCM_GPR0_OFFSET + 0x10 * (i))
  #define CCM_OBSERVE(i)		(CCM_BASE_ADDR + CCM_OBSERVE0_OFFSET + 0x10 * (i))
 diff --git a/cmd/Kconfig b/cmd/Kconfig
-index f6bd71451b..c2c67fa5a0 100644
+index b696cb6ccb8..c84ad41b16d 100644
 --- a/cmd/Kconfig
 +++ b/cmd/Kconfig
-@@ -409,6 +409,12 @@ config CMD_SPL_WRITE_SIZE
+@@ -523,6 +523,12 @@ config CMD_SPL_WRITE_SIZE
  	  flash used by Falcon-mode boot. See the documentation until CMD_SPL
  	  for detail.
  
@@ -69,20 +70,20 @@ index f6bd71451b..c2c67fa5a0 100644
  	bool "thor - TIZEN 'thor' download"
  	select DFU
 diff --git a/cmd/Makefile b/cmd/Makefile
-index 166c652d98..ef0d2aa0e7 100644
+index 36d2daf22a1..a772695f433 100644
 --- a/cmd/Makefile
 +++ b/cmd/Makefile
-@@ -70,6 +70,7 @@ obj-$(CONFIG_CMD_FLASH) += flash.o
+@@ -83,6 +83,7 @@ obj-$(CONFIG_CMD_FLASH) += flash.o
  obj-$(CONFIG_CMD_FPGA) += fpga.o
  obj-$(CONFIG_CMD_FPGAD) += fpgad.o
  obj-$(CONFIG_CMD_FS_GENERIC) += fs.o
 +obj-$(CONFIG_CMD_FSL_CAAM_KB) += cmd_fsl_caam.o
  obj-$(CONFIG_CMD_FUSE) += fuse.o
+ obj-$(CONFIG_CMD_FWU_METADATA) += fwu_mdata.o
  obj-$(CONFIG_CMD_GETTIME) += gettime.o
- obj-$(CONFIG_CMD_GPIO) += gpio.o
 diff --git a/cmd/cmd_fsl_caam.c b/cmd/cmd_fsl_caam.c
 new file mode 100644
-index 0000000000..d41d672320
+index 00000000000..d41d672320e
 --- /dev/null
 +++ b/cmd/cmd_fsl_caam.c
 @@ -0,0 +1,88 @@
@@ -175,7 +176,7 @@ index 0000000000..d41d672320
 +	\n "
 +	);
 diff --git a/drivers/crypto/Makefile b/drivers/crypto/Makefile
-index 6b762565a1..e2eb482e45 100644
+index b9105186097..13aaa389285 100644
 --- a/drivers/crypto/Makefile
 +++ b/drivers/crypto/Makefile
 @@ -4,6 +4,7 @@
@@ -188,7 +189,7 @@ index 6b762565a1..e2eb482e45 100644
  obj-y += hash/
 diff --git a/drivers/crypto/fsl_caam.c b/drivers/crypto/fsl_caam.c
 new file mode 100644
-index 0000000000..ccdf131635
+index 00000000000..ccdf1316355
 --- /dev/null
 +++ b/drivers/crypto/fsl_caam.c
 @@ -0,0 +1,715 @@
@@ -909,7 +910,7 @@ index 0000000000..ccdf131635
 +
 diff --git a/drivers/crypto/fsl_caam_internal.h b/drivers/crypto/fsl_caam_internal.h
 new file mode 100644
-index 0000000000..837562d3c4
+index 00000000000..837562d3c48
 --- /dev/null
 +++ b/drivers/crypto/fsl_caam_internal.h
 @@ -0,0 +1,229 @@
@@ -1144,7 +1145,7 @@ index 0000000000..837562d3c4
 +#endif /* __CAAM_INTERNAL_H__ */
 diff --git a/include/fsl_caam.h b/include/fsl_caam.h
 new file mode 100644
-index 0000000000..c4345ae2b6
+index 00000000000..c4345ae2b6e
 --- /dev/null
 +++ b/include/fsl_caam.h
 @@ -0,0 +1,24 @@
@@ -1173,5 +1174,5 @@ index 0000000000..c4345ae2b6
 +
 +#endif /* __CAAM_H__ */
 -- 
-2.39.0
+2.45.0
 
