@@ -196,7 +196,7 @@ if [ "$1" = "postinst" ]; then
 	exit 0
 fi
 
-if [ "$1" = "failure" ]; then
+if [ "$1" = "failure" ] || [ "$1" = "postfailure" ]; then
 	parse_cmdline
 	set_device_names
 	lock_device
