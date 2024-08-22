@@ -249,6 +249,8 @@ create_webserver_symlinks() {
 }
 
 pending_update() {
+	# Remove upgrade_available check with Major Release 7.X
+	# Check is now performed in preupdatecmd see: /etc/swupdate.cfg
 	PENDING_UPDATE=$(fw_printenv upgrade_available | awk -F'=' '{print $2}')
 	if [ "$PENDING_UPDATE" = "1" ]; then
 		log_to_website "[Error] Update pending, device reboot required"

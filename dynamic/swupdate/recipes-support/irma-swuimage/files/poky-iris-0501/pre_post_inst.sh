@@ -125,12 +125,6 @@ set_upgrade_available() {
 }
 
 pending_update() {
-	PENDING_UPDATE=$(fw_printenv upgrade_available | awk -F'=' '{print $2}')
-	if [ "$PENDING_UPDATE" = "1" ]; then
-		echo "ERROR: Update pending, device reboot required"
-		exit 1
-	fi
-
 	wait_counter=8 # seconds
 	while [ -f "/tmp/power_on_selftest.lock" ]; do
 		wait_counter=$((wait_counter - 1))

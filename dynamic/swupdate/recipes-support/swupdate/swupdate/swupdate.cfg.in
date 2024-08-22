@@ -6,6 +6,7 @@ globals :
     syslog = true;
     public-key-file = "/etc/iris/ca-certificates/swupdate-ca.crt";
     aes-key-file = "/mnt/iris/swupdate/encryption.key";
+    preupdatecmd = "if [ \"$(fw_printenv upgrade_available | cut -d= -f2)\" = 1 ]; then exit 1; fi"
     postupdatecmd = "reboot;"
     no-downgrading = "FW_VERSION"
     max-version = "MAX_VERSION"
