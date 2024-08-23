@@ -4,20 +4,8 @@ if [ $# -lt 1 ]; then
 	exit 0;
 fi
 
-TAG=$0
-
-log() {
-	logger -t "$TAG" "$1"
-}
-
-log_to_website() {
-	# SWUpdate captures stdout and displays it on the website
-	echo "$1"
-	log "$1"
-}
-
 exists() {
-	command -v "$1" >/dev/null 2>&1 || { log "[Error] $1 not found"; exit 1; }
+	command -v "$1" >/dev/null 2>&1 || { echo "[Error] $1 not found"; exit 1; }
 }
 
 cmds_exist () {
@@ -37,7 +25,7 @@ parse_cmdline() {
 		FIRMWARE_SUFFIX="_b"
 		FIRMWARE_SUFFIX_ALT="_a"
 	fi
-	log "Update firmware${FIRMWARE_SUFFIX}"
+	echo "Update firmware${FIRMWARE_SUFFIX}"
 }
 
 set_device_names() {
@@ -83,7 +71,7 @@ get_bootdev_name() {
 	EMMC_DEV="/dev/mmcblk2"
 	KERNEL_DEV=$(sfdisk -J $EMMC_DEV | jq 'first(.partitiontable.partitions[] | select ((.name!=null) and (.name=="linuxboot'${FIRMWARE_SUFFIX}'")) | .node)' -r)
 	if ! [ -b "$KERNEL_DEV" ]; then
-		log "[Error] Could not locate boot partition for firmware${FIRMWARE_SUFFIX}"; exit 1;
+		echo "[Error] Could not locate boot partition for firmware${FIRMWARE_SUFFIX}"; exit 1;
 	fi
 }
 
@@ -119,7 +107,7 @@ imx_fuse_read () {
 	count=${2}	# count = number of words to be read
 
 	ocotp_patch=$(find /sys/bus/ -name "imx-ocotp0")
-	[ -z "${ocotp_patch}" ] && { log "[Error] No FUSE support!"; exit 1; }
+	[ -z "${ocotp_patch}" ] && { echo "[Error] No FUSE support!"; exit 1; }
 	ocotp_file=${ocotp_patch}/nvmem
 
 	dd if="${ocotp_file}" bs=4 count="${count}" skip="${idx}" 2>/dev/null | hexdump -e '"0x%04x\n"'
@@ -137,7 +125,7 @@ check_hab_srk() {
 	# check if secure boot is activated
 	boot_cfg=$(imx_fuse_read 7 1)
 	if [ "$(( 0x02000000 & boot_cfg ))" -eq 0 ]; then
-		log "Secure boot is not activated, skipping SRK fuses verification"
+		echo "Secure boot is not activated, skipping SRK fuses verification"
 		return
 	fi
 
@@ -148,7 +136,7 @@ check_hab_srk() {
 	for signed_image in $signed_images
 	do
 		if [ ! -e "$signed_image" ]; then
-			log "[Error] File $signed_image not present, cannot verify SRKs"; exit 1;
+			echo "[Error] File $signed_image not present, cannot verify SRKs"; exit 1;
 		fi
 
 		# decrypt image to read SRKs
@@ -157,24 +145,24 @@ check_hab_srk() {
 
 		# read SRKs from image
 		(cd /tmp/ && csf_parser -s "$file_decrypted" > /dev/null 2>&1)
-		[ ! -f /tmp/output/SRKTable.bin ] && { log "[Error] SRKTable.bin can not be extracted"; exit 1; }
+		[ ! -f /tmp/output/SRKTable.bin ] && { echo "[Error] SRKTable.bin can not be extracted"; exit 1; }
 
 		(cd /tmp/ && createSRKFuses output/SRKTable.bin "$n_of_srks" "$key_length" "$key_type" > /dev/null 2>&1)
-		[ ! -f /tmp/SRK_fuses.bin ] && { log "[Error] SRK_fuses.bin can not be created"; exit 1; }
+		[ ! -f /tmp/SRK_fuses.bin ] && { echo "[Error] SRK_fuses.bin can not be created"; exit 1; }
 		srk_image=$(hexdump -e '"0x%04x\n"' /tmp/SRK_fuses.bin)
 
 		# clean up
 		rm -rf /tmp/output/ /tmp/SRK_fuses.bin "$file_decrypted"
 
 		if [ "$srk_image" != "$srk_fuses" ]; then
-			log "[Error] SRK $signed_image does not match SRK Fuse!"
-			log "SRK Image: $srk_image"
-			log "SRK Fuse: $srk_fuses"
+			echo "[Error] SRK $signed_image does not match SRK Fuse!"
+			echo "SRK Image: $srk_image"
+			echo "SRK Fuse: $srk_fuses"
 			exit 1;
 		fi
 	done
 
-	log "SRK verification passed"
+	echo "SRK verification passed"
 }
 
 check_identity() {
@@ -182,7 +170,7 @@ check_identity() {
 	SENSOR_CRT="/mnt/iris/identity/sensor.crt"
 
 	if ! [ -f "$SENSOR_KEY" ] || ! [ -f "$SENSOR_CRT" ]; then
-		log "[Error] Device has no identity certificate or key"; exit 1;
+		echo "[Error] Device has no identity certificate or key"; exit 1;
 	fi
 }
 
@@ -191,7 +179,7 @@ resize_rootfs_lvm() {
 	rootfs_file=$(< /tmp/sw-description tr '\n' ' ' | grep -o '{[^}]*device = "/dev/swu_rootfs"[^}]*}' | grep -o 'filename = "[^"]*";' | cut -d'"' -f 2)
 	rootfs_file="/tmp/$rootfs_file"
 	if [ ! -e "$rootfs_file" ]; then
-		log "[Error] Could not find new rootfs during logical volume resize!"; exit 1;
+		echo "[Error] Could not find new rootfs during logical volume resize!"; exit 1;
 	fi
 
 	# get current rootfs size
@@ -200,10 +188,10 @@ resize_rootfs_lvm() {
 	# get new rootfs size
 	new_size=$(openssl enc -d -aes-256-cbc -K "$KEY" -iv "$IV" -in "$rootfs_file" | zcat | wc -c)
 	if [ "$new_size" -eq 0 ]; then
-		log "[Error] Could not retrieve new rootfs size during logical volume resize!"; exit 1;
+		echo "[Error] Could not retrieve new rootfs size during logical volume resize!"; exit 1;
 	fi
 	if [ "$new_size" != "$cur_size" ]; then
-		log "Resize rootfs logical volume: ${cur_size} to ${new_size}"
+		echo "Resize rootfs logical volume: ${cur_size} to ${new_size}"
 		lvresize --autobackup n --force --yes --quiet -L "$new_size"B "$ROOT_DEV" 2> /dev/null # this never returns 0
 		vgmknodes
 	fi
@@ -226,11 +214,11 @@ move_userdata_config() {
 
 create_webserver_symlinks() {
 	if [ ! -L "/mnt/iris/webtls" ]; then
-		log "Create default webtls symlink"
+		echo "Create default webtls symlink"
 		ln -sf /mnt/iris/identity /mnt/iris/webtls || exit 1
 	fi
 	if [ ! -L "/mnt/iris/nts" ]; then
-		log "Create default chrony symlink"
+		echo "Create default chrony symlink"
 		ln -sf /mnt/iris/identity /mnt/iris/nts || exit 1
 	fi
 	# if "disable_https" parameter has version 1.0, we must overwrite default_server with https
@@ -242,7 +230,7 @@ create_webserver_symlinks() {
 		fi
 	fi
 	if [ ! -L "/mnt/iris/nginx/sites-enabled/default_server" ]; then
-		log "Create default webserver server conf symlink"
+		echo "Create default webserver server conf symlink"
 		mkdir -p /mnt/iris/nginx/sites-enabled || exit 1
 		ln -sf /etc/nginx/sites-available/reverse_proxy_https.conf /mnt/iris/nginx/sites-enabled/default_server  || exit 1
 	fi
@@ -253,7 +241,7 @@ pending_update() {
 	# Check is now performed in preupdatecmd see: /etc/swupdate.cfg
 	PENDING_UPDATE=$(fw_printenv upgrade_available | awk -F'=' '{print $2}')
 	if [ "$PENDING_UPDATE" = "1" ]; then
-		log_to_website "[Error] Update pending, device reboot required"
+		echo "[Error] Update pending, device reboot required"
 		exit 1
 	fi
 
@@ -264,7 +252,7 @@ pending_update() {
 		wait_counter=$((wait_counter - 1))
 
 		if [ "$wait_counter" -eq 0 ]; then
-			log_to_website "[Error] power on self test running"
+			echo "[Error] power on self test running"
 			exit 1
 		fi
 		sleep 1
