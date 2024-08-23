@@ -124,19 +124,6 @@ set_upgrade_available() {
 	fw_setenv upgrade_available 1 || exit 1
 }
 
-pending_update() {
-	wait_counter=8 # seconds
-	while [ -f "/tmp/power_on_selftest.lock" ]; do
-		wait_counter=$((wait_counter - 1))
-		echo "WARN: Power on self test is still running"
-		if [ "$wait_counter" -eq 0 ]; then
-			echo "ERROR: Power on self test is still running. Abort!"
-			exit 1
-		fi
-		sleep 1
-	done
-}
-
 check_srks() {
 	# FIXME: MARE-183
 	echo "WARN: check_srks not yet implemented"
@@ -167,7 +154,6 @@ remove_userdata_sync_files() {
 }
 
 if [ "$1" = "preinst" ]; then
-	pending_update
 	parse_cmdline
 	echo "Update firmware ${FIRMWARE_SUFFIX}"
 	set_device_names
