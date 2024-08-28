@@ -4,7 +4,8 @@
 # remove unnecessary target dependencies
 PACKAGECONFIG:remove:class-target = "python"
 
-# removing python from PACKAGECONFIG:class-target will break libxml2-native
+# Removing python from PACKAGECONFIG:class-target will break libxml2-native
+# It is a known limitation: https://lists.openembedded.org/g/openembedded-core/topic/108139065
 # Therefore we force-include python3 class
 inherit python3targetconfig
 
