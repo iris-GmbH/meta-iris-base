@@ -1,0 +1,79 @@
+software =
+{
+    version = "@@SWU_FW_VERSION@@";
+    bootloader_transaction_marker = false;
+    description = "Firmware update for IRMA image";
+    hardware-compatibility = [ "@@SWU_HW_VERSION@@" ];
+
+    files: (
+        {
+            filename = "@@SWU_FITIMAGE@@";
+            path = "@@SWU_TARGET_FITIMAGE@@";
+            type = "rawfile";
+            device = "/dev/swu_kernel";
+            filesystem = "ext4";
+            properties = {atomic-install = true;}
+            version = "$swupdate_get_pkgvar(kernel)";
+            sha256 = "$swupdate_get_sha256(@@SWU_FITIMAGE@@)";
+            ivt = "@@SWU_IVT@@";
+            encrypted = true;
+        },
+        {
+            filename = "@@SWU_ROOTHASH@@";
+            type = "rawfile";
+            path = "/dev/swu_roothash";
+            properties = {atomic-install = true;}
+            sha256 = "$swupdate_get_sha256(@@SWU_ROOTHASH@@)";
+            ivt = "@@SWU_IVT@@";
+            encrypted = true;
+        },
+        {
+            filename = "@@SWU_ROOTHASH_SIGNATURE@@";
+            type = "rawfile";
+            path = "/dev/swu_roothash_signature";
+            properties = {atomic-install = true;}
+            sha256 = "$swupdate_get_sha256(@@SWU_ROOTHASH_SIGNATURE@@)";
+            ivt = "@@SWU_IVT@@";
+            encrypted = true;
+        },
+    );
+    images: (
+        {
+            filename = "@@SWU_ROOTFS@@";
+            type = "raw";
+            device = "/dev/swu_rootfs";
+            version = "@@SWU_VERSION_ROOTFS@@";
+            compressed = "zlib";
+            sha256 = "$swupdate_get_sha256(@@SWU_ROOTFS@@)";
+            ivt = "@@SWU_IVT@@";
+            encrypted = true;
+        },
+        {
+            filename = "@@SWU_BOOTLOADER@@";
+            type = "bootloader_update"
+            device = "/dev/swu_bootloader";
+            version = "$swupdate_get_pkgvar(@@IMAGE_BOOTLOADER@@)";
+            sha256 = "$swupdate_get_sha256(@@SWU_BOOTLOADER@@)";
+            install-if-higher = true;
+            ivt = "@@SWU_IVT@@";
+            encrypted = true;
+        },
+        {
+            filename = "@@SWU_HASHDEVICE@@";
+            type = "raw";
+            device = "/dev/swu_hash_dev";
+            sha256 = "$swupdate_get_sha256(@@SWU_HASHDEVICE@@)";
+            ivt = "@@SWU_IVT@@";
+            encrypted = true;
+        },
+    );
+    scripts: (
+        {
+            filename = "@@SWU_PRE_POST_SCRIPT@@";
+            type = "shellscript";
+            sha256 = "$swupdate_get_sha256(@@SWU_PRE_POST_SCRIPT@@)";
+            ivt = "@@SWU_IVT@@";
+            encrypted = true;
+        },
+    );
+}

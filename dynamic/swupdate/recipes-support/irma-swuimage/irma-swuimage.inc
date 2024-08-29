@@ -16,6 +16,8 @@ SRC_URI = " \
     file://pre_post_inst.sh \
 "
 
+IMAGE_BOOTLOADER ?= "imx-boot"
+
 IMAGE_DEPENDS = "\
 	${FITIMAGENAME} \
 	${IMAGENAME} \
