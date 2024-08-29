@@ -12,4 +12,8 @@ inherit python3targetconfig
 # overwrite default config for minimal build size with necessary features
 EXTRA_OECONF:class-target = "--with-minimum --with-tree --with-schemas --with-sax1 --with-output"
 
+# R2 irma-dev image installs gstreamer-plugins-bad which requires the imx-gpu package which requires wayland
+# and wayland does not compile with libxml2 when validation functions are missing, so add them back
+EXTRA_OECONF:append:class-target:poky-iris-0602 = " --with-valid"
+
 CFLAGS:append:poky-iris-0601 = " -Os"
