@@ -12,9 +12,8 @@ SRC_URI += "\
 	file://FindAvahi.cmake \
 "
 
-SRC_URI:append:mx8mp-nxp-bsp = " \
-    file://0001-APC-7307-Add-custom-mount-point-due-to-RO-FS.patch \
-"
+SRC_URI:append:poky-iris-0602 = " file://0001-APC-7307-Add-custom-mount-point-due-to-RO-FS.patch"
+SRC_URI:append:poky-iris-0501 = " file://0001-APC-7307-Add-custom-mount-point-due-to-RO-FS.patch"
 
 target_path = "/etc/avahi"
 
