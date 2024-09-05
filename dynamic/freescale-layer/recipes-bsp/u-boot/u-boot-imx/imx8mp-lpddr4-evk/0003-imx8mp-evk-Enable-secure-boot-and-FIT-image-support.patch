@@ -1,0 +1,26 @@
+From 1c39255cc372cc16d8cc2076fdc76970fb4e6e96 Mon Sep 17 00:00:00 2001
+From: Erik Schumacher <erik.schumacher@iris-sensing.com>
+Date: Wed, 4 Sep 2024 13:58:10 +0000
+Subject: [PATCH] imx8mp-evk: Enable secure boot and FIT image support
+
+Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+---
+ configs/imx8mp_evk_defconfig | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/configs/imx8mp_evk_defconfig b/configs/imx8mp_evk_defconfig
+index b31bc679d52..1827443e51a 100644
+--- a/configs/imx8mp_evk_defconfig
++++ b/configs/imx8mp_evk_defconfig
+@@ -20,6 +20,8 @@ CONFIG_SPL_DRIVERS_MISC=y
+ CONFIG_SPL_STACK=0x96dff0
+ CONFIG_SPL=y
+ CONFIG_IMX_BOOTAUX=y
++CONFIG_IMX_HAB=y
++# CONFIG_CMD_DEKBLOB is not set
+ CONFIG_SPL_IMX_ROMAPI_LOADADDR=0x48000000
+ CONFIG_SYS_LOAD_ADDR=0x40400000
+ CONFIG_OF_BOARD_FIXUP=y
+-- 
+2.44.1
+

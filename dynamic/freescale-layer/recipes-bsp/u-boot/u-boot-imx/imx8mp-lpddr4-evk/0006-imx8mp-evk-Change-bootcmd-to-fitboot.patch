@@ -1,4 +1,4 @@
-From 72775bf702de49db0ce530a987ea7b352334d6c6 Mon Sep 17 00:00:00 2001
+From d8b5d60aa77808a83986a8d825e58a4f2db9d46f Mon Sep 17 00:00:00 2001
 From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
 Date: Tue, 19 Apr 2022 15:03:59 +0200
 Subject: [PATCH] imx8mp-evk: Change bootcmd to fitboot
@@ -9,10 +9,10 @@ Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
  1 file changed, 1 insertion(+), 11 deletions(-)
 
 diff --git a/include/configs/imx8mp_evk.h b/include/configs/imx8mp_evk.h
-index 08fbfd4dcd..3b29fa88b7 100644
+index 79729d79730..8dc7aee9866 100644
 --- a/include/configs/imx8mp_evk.h
 +++ b/include/configs/imx8mp_evk.h
-@@ -174,17 +174,7 @@
+@@ -144,17 +144,7 @@
  				"echo WARN: Cannot load the DT; " \
  			"fi; " \
  		"fi;\0" \
@@ -32,5 +32,5 @@ index 08fbfd4dcd..3b29fa88b7 100644
  
  /* Link Definitions */
 -- 
-2.39.0
+2.44.1
 

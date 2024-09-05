@@ -1,6 +1,6 @@
-From a9bf17fbd6ccfa396103b95e5ebcd88bddf025f6 Mon Sep 17 00:00:00 2001
+From c8bee123f8621cb0ef9a8caa607dca3d0bb823fb Mon Sep 17 00:00:00 2001
 From: Erik Schumacher <erik.schumacher@iris-sensing.com>
-Date: Tue, 14 Dec 2021 11:53:31 +0100
+Date: Wed, 4 Sep 2024 15:53:25 +0200
 Subject: [PATCH] Use partition labels in environment and auto detect mmc
  partitions
 
@@ -12,10 +12,10 @@ Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
  2 files changed, 50 insertions(+), 4 deletions(-)
 
 diff --git a/board/freescale/imx8mp_evk/imx8mp_evk.c b/board/freescale/imx8mp_evk/imx8mp_evk.c
-index c183dc9f4b..868c79390a 100644
+index 5a8f619763e..874bda0ba9e 100644
 --- a/board/freescale/imx8mp_evk/imx8mp_evk.c
 +++ b/board/freescale/imx8mp_evk/imx8mp_evk.c
-@@ -488,6 +488,52 @@ int board_init(void)
+@@ -470,6 +470,52 @@ int board_init(void)
  	return 0;
  }
  
@@ -68,7 +68,7 @@ index c183dc9f4b..868c79390a 100644
  int board_late_init(void)
  {
  #ifdef CONFIG_ENV_IS_IN_MMC
-@@ -498,6 +544,7 @@ int board_late_init(void)
+@@ -480,6 +526,7 @@ int board_late_init(void)
  	env_set("board_rev", "iMX8MP");
  #endif
  
@@ -77,15 +77,15 @@ index c183dc9f4b..868c79390a 100644
  }
  
 diff --git a/include/configs/imx8mp_evk.h b/include/configs/imx8mp_evk.h
-index a26c651dcf..94035d74c9 100644
+index 9d34c54d66d..ef13ff888a0 100644
 --- a/include/configs/imx8mp_evk.h
 +++ b/include/configs/imx8mp_evk.h
-@@ -132,15 +132,14 @@
+@@ -102,15 +102,14 @@
  	"fdtfile=" CONFIG_DEFAULT_FDT_FILE "\0" \
  	"bootm_size=0x10000000\0" \
  	"mmcdev="__stringify(CONFIG_SYS_MMC_ENV_DEV)"\0" \
 -	"mmcpart=1\0" \
- 	"mmcroot=" CONFIG_MMCROOT " rootwait rw\0" \
+ 	"mmcroot=/dev/mmcblk1p2 rootwait rw\0" \
  	"mmcautodetect=yes\0" \
  	"mmcargs=setenv bootargs ${jh_clk} ${mcore_clk} console=${console} root=${mmcroot}\0 " \
 -	"loadbootscript=fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${bsp_script};\0" \
@@ -100,5 +100,5 @@ index a26c651dcf..94035d74c9 100644
  		"run mmcargs; " \
  		"if test ${boot_fit} = yes || test ${boot_fit} = try; then " \
 -- 
-2.39.0
+2.44.1
 

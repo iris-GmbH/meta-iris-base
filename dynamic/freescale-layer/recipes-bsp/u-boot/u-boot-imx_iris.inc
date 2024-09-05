@@ -17,11 +17,13 @@ FILESEXTRAPATHS:prepend:imx8mp-lpddr4-evk := "${THISDIR}/u-boot-imx/imx8mp-lpddr
 SRC_URI:append:imx8mp-lpddr4-evk = "\
 	file://fw_env.config \
 	file://0001-Use-partition-labels-in-environment-and-auto-detect-.patch \
-	file://0002-imx8mp-evk-Enable-secure-boot-and-FIT-image-support.patch \
-	file://0003-Remove-CONFIG_CMD_BOOTEFI-for-imx8mp_evk_defconfig.patch \
-	file://0004-imx8mp-evk-Add-cmd-for-booting-signed-fitImage.patch \
-	file://0005-imx8mp-evk-Change-bootcmd-to-fitboot.patch \
-	file://0006-Add-redundand-env-support.patch \
+	file://0002-Update-imx8mp_evk_defconfig.patch \
+	file://0003-imx8mp-evk-Enable-secure-boot-and-FIT-image-support.patch \
+	file://0004-Remove-CONFIG_CMD_BOOTEFI-for-imx8mp_evk_defconfig.patch \
+	file://0005-imx8mp-evk-Add-cmd-for-booting-signed-fitImage.patch \
+	file://0006-imx8mp-evk-Change-bootcmd-to-fitboot.patch \
+	file://0007-Add-redundand-env-support.patch \
+	file://0008-Disable-CONFIG_EFI_LOADER-and-CONFIG_CMD_DFU-to-fix-.patch \
 "
 
 FILESEXTRAPATHS:prepend:imx8mp-irma6r2 := "${THISDIR}/u-boot-imx/imx8mp-irma6r2:"
