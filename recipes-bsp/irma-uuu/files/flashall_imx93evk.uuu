@@ -134,8 +134,8 @@ FBK: ucmd ln -sr /mnt/iris/identity /mnt/iris/nts
 FBK: ucmd ln -sr /mnt/iris/identity /mnt/iris/eaptls
 FBK: ucmd mkdir -p /mnt/iris/nginx/sites-enabled
 
-# Default to HTTP
-FBK: ucmd ln -s /etc/nginx/sites-available/reverse_proxy_http.conf /mnt/iris/nginx/sites-enabled/default_server
+# Default to HTTPS
+FBK: ucmd ln -s /etc/nginx/sites-available/reverse_proxy_https.conf /mnt/iris/nginx/sites-enabled/default_server
 
 # Copy userdata A to B
 FBK: ucmd mkfs.ext4 /dev/mapper/decrypted-matrixlvm-userdata_b
