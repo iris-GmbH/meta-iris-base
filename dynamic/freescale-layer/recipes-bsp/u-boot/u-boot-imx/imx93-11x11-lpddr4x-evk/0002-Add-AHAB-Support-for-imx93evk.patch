@@ -1,0 +1,197 @@
+From 8f44e4c321ce0fb1127ad2be570c707c7d7feda8 Mon Sep 17 00:00:00 2001
+From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+Date: Mon, 13 May 2024 11:16:22 +0000
+Subject: [PATCH] Add AHAB Support for imx93evk
+
+Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+---
+ arch/arm/include/asm/mach-imx/ahab.h |  1 +
+ boot/Kconfig                         |  2 +-
+ boot/bootm.c                         | 61 ++++++++++++++++++++++++++++
+ cmd/bootm.c                          | 15 +++++++
+ configs/imx93_11x11_evk_defconfig    |  5 ++-
+ include/configs/imx93_evk.h          |  2 +-
+ 6 files changed, 83 insertions(+), 3 deletions(-)
+
+diff --git a/arch/arm/include/asm/mach-imx/ahab.h b/arch/arm/include/asm/mach-imx/ahab.h
+index 016a7353f53..216b48b57a0 100644
+--- a/arch/arm/include/asm/mach-imx/ahab.h
++++ b/arch/arm/include/asm/mach-imx/ahab.h
+@@ -11,5 +11,6 @@
+ void *ahab_auth_cntr_hdr(struct container_hdr *container, u16 length);
+ int ahab_auth_release(void);
+ int ahab_verify_cntr_image(struct boot_img_t *img, int image_index);
++int authenticate_os_container(ulong addr);
+ 
+ #endif
+diff --git a/boot/Kconfig b/boot/Kconfig
+index ad035695a4a..72eca494277 100644
+--- a/boot/Kconfig
++++ b/boot/Kconfig
+@@ -364,7 +364,7 @@ config BOOT_DEFAULTS
+ 	select CMD_PXE if CMD_NET
+ 	select SUPPORT_RAW_INITRD
+ 	select ENV_VARS_UBOOT_CONFIG
+-	select CMD_BOOTI if ARM64
++	select CMD_BOOTI if ARM64 && !AHAB_BOOT
+ 	select CMD_BOOTZ if ARM && !ARM64
+ 	imply CMD_MII if NET
+ 	imply USB_STORAGE
+diff --git a/boot/bootm.c b/boot/bootm.c
+index 2eec60ec7b5..a66d9dc5884 100644
+--- a/boot/bootm.c
++++ b/boot/bootm.c
+@@ -33,6 +33,55 @@
+ #include <bootm.h>
+ #include <image.h>
+ 
++#if CONFIG_IS_ENABLED(AHAB_BOOT)
++
++#define IV_MAX_LEN			32
++#define HASH_MAX_LEN			64
++#define MAX_NUM_IMGS			6
++
++#define IVT_HEADER_TAG_B0		0x87
++#define IVT_VERSION_B0			0x00
++#define CONTAINER_IMAGE_ARRAY_START_OFFSET	0x2000
++
++typedef struct {
++	uint8_t version;
++	uint16_t length;
++	uint8_t tag;
++	uint16_t srk_table_offset;
++	uint16_t cert_offset;
++	uint16_t blob_offset;
++	uint16_t signature_offset;
++	uint32_t reserved;
++} __packed sig_blk_hdr_t;
++
++typedef struct {
++	uint32_t offset;
++	uint32_t size;
++	uint64_t dst;
++	uint64_t entry;
++	uint32_t hab_flags;
++	uint32_t meta;
++	uint8_t hash[HASH_MAX_LEN];
++	uint8_t iv[IV_MAX_LEN];
++} __packed boot_img_t;
++
++typedef struct {
++	uint8_t version;
++	uint16_t length;
++	uint8_t tag;
++	uint32_t flags;
++	uint16_t sw_version;
++	uint8_t fuse_version;
++	uint8_t num_images;
++	uint16_t sig_blk_offset;
++	uint16_t reserved;
++	boot_img_t img[MAX_NUM_IMGS];
++	sig_blk_hdr_t sig_blk_hdr;
++	uint32_t sigblk_size;
++	uint32_t padding;
++} __packed flash_header_v3_t;
++#endif
++
+ #define MAX_CMDLINE_SIZE	SZ_4K
+ 
+ #define IH_INITRD_ARCH IH_ARCH_DEFAULT
+@@ -889,6 +938,10 @@ static const void *boot_get_kernel(struct cmd_tbl *cmdtp, int flag, int argc,
+ 	int		os_noffset;
+ #endif
+ 
++#if CONFIG_IS_ENABLED(AHAB_BOOT)
++	flash_header_v3_t *fhdr_v3;
++#endif
++
+ 	img_addr = genimg_get_kernel_addr_fit(argc < 1 ? NULL : argv[0],
+ 					      &fit_uname_config,
+ 					      &fit_uname_kernel);
+@@ -900,6 +953,14 @@ static const void *boot_get_kernel(struct cmd_tbl *cmdtp, int flag, int argc,
+ 
+ 	/* check image type, for FIT images get FIT kernel node */
+ 	*os_data = *os_len = 0;
++
++#if CONFIG_IS_ENABLED(AHAB_BOOT)
++	fhdr_v3 = (flash_header_v3_t *) map_sysmem(img_addr, 0);
++	if (fhdr_v3->version == IVT_VERSION_B0 && fhdr_v3->tag == IVT_HEADER_TAG_B0) {
++		printf("## Valid NXP Container Header found\n");
++		img_addr += CONTAINER_IMAGE_ARRAY_START_OFFSET;
++	}
++#endif
+ 	buf = map_sysmem(img_addr, 0);
+ 	switch (genimg_get_format(buf)) {
+ #if CONFIG_IS_ENABLED(LEGACY_IMAGE_FORMAT)
+diff --git a/cmd/bootm.c b/cmd/bootm.c
+index 796d5e23adb..b599ad6c0d9 100644
+--- a/cmd/bootm.c
++++ b/cmd/bootm.c
+@@ -215,6 +215,21 @@ int do_bootm(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
+ #endif
+ #endif
+ 
++#ifdef CONFIG_AHAB_BOOT
++	extern int authenticate_os_container(ulong addr);
++	ulong img_addr;
++	if(argc > 0) {
++		img_addr = simple_strtoul(argv[0], NULL, 16);
++	} else {
++		img_addr = image_load_addr;
++	}
++
++	if (authenticate_os_container(img_addr)) {
++		printf("ERROR: Authenticate FIT image Fail, Please check\n");
++		return 1;
++	}
++#endif
++
+ 	states = BOOTM_STATE_START | BOOTM_STATE_FINDOS | BOOTM_STATE_PRE_LOAD |
+ 		BOOTM_STATE_FINDOTHER | BOOTM_STATE_LOADOS |
+ 		BOOTM_STATE_OS_PREP | BOOTM_STATE_OS_FAKE_GO |
+diff --git a/configs/imx93_11x11_evk_defconfig b/configs/imx93_11x11_evk_defconfig
+index ece2fcf1a50..25e7d9cae54 100644
+--- a/configs/imx93_11x11_evk_defconfig
++++ b/configs/imx93_11x11_evk_defconfig
+@@ -11,6 +11,7 @@ CONFIG_ENV_OFFSET=0x700000
+ CONFIG_DM_GPIO=y
+ CONFIG_DEFAULT_DEVICE_TREE="imx93-11x11-evk"
+ CONFIG_SPL_TEXT_BASE=0x2049A000
++CONFIG_AHAB_BOOT=y
+ CONFIG_USB_TCPC=y
+ CONFIG_TARGET_IMX93_11X11_EVK=y
+ CONFIG_SYS_PROMPT="u-boot=> "
+@@ -54,6 +55,9 @@ CONFIG_SPL_WATCHDOG=y
+ CONFIG_SYS_MAXARGS=64
+ CONFIG_SYS_CBSIZE=2048
+ CONFIG_SYS_PBSIZE=2074
++# CONFIG_CMD_BOOTFLOW is not set
++# CONFIG_CMD_BOOTI is not set
++# CONFIG_CMD_ELF is not set
+ CONFIG_CMD_ERASEENV=y
+ CONFIG_CMD_NVEDIT_EFI=y
+ CONFIG_CRC32_VERIFY=y
+@@ -177,7 +181,6 @@ CONFIG_VIDEO_ADV7535=y
+ CONFIG_ULP_WATCHDOG=y
+ CONFIG_SPL_RSA=y
+ CONFIG_SHA384=y
+-CONFIG_LEGACY_IMAGE_FORMAT=y
+ CONFIG_LZO=y
+ CONFIG_BZIP2=y
+ CONFIG_OF_LIBFDT_OVERLAY=y
+diff --git a/include/configs/imx93_evk.h b/include/configs/imx93_evk.h
+index 97a4fabf058..28256702471 100644
+--- a/include/configs/imx93_evk.h
++++ b/include/configs/imx93_evk.h
+@@ -90,7 +90,7 @@
+ 	"loadfdt=fatload mmc ${mmcdev}:${mmcpart} ${fdt_addr_r} ${fdtfile}\0" \
+ 	"fit_img=fitImage.signed\0" \
+ 	"fit_addr=0x88000000\0" \
+-	"fitboot=fatload mmc ${mmcdev}#${mmcpart} ${fit_addr} ${fit_img}; run mmcargs; bootm ${fit_addr}\0" \
++	"fitboot=fatload mmc ${mmcdev}#${mmcpart} ${fit_addr} ${fit_img}; run mmcargs; bootm ${fit_addr}; reset;\0" \
+ 	"firmware=0\0" \
+ 	"upgrade_available=0\0" \
+ 	"ustate=0\0" \
+-- 
+2.44.0
+

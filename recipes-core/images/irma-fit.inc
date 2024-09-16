@@ -39,7 +39,7 @@ RESCUE_NAME_FULL ?= "${RESCUE_NAME}-${MACHINE}.cpio.zst"
 # Overwrite KERNEL_DEVICETREE as it is a multiline variable defined in meta-freescale/conf/machine
 KERNEL_DTB_FILE = "${KERNEL_DEVICETREE}"
 KERNEL_DTB_FILE:imx8mp-lpddr4-evk = "freescale/imx8mp-evk.dtb"
-KERNEL_DTB_FILE:imx93-11x11-lpddr4x-evk = "freescale/imx93-11x11-evk.dtb"
+KERNEL_DTB_FILE:imx93-11x11-lpddr4x-evk = "freescale/imx93-11x11-evk-marec-fpga.dtb"
 
 # Define load addresses for imx8mp hardware
 ITS_KERNEL_LOAD_ADDR:mx8mp-nxp-bsp = "0x40400000"

@@ -1,0 +1,29 @@
+From 6150855fef1f48eb090cbc56658640e6f062870c Mon Sep 17 00:00:00 2001
+From: Erik Schumacher <erik.schumacher@iris-sensing.com>
+Date: Mon, 24 Jun 2024 15:12:24 +0000
+Subject: [PATCH] tc358746.c: Add RAW12 to format list
+
+---
+ drivers/media/i2c/tc358746.c | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/drivers/media/i2c/tc358746.c b/drivers/media/i2c/tc358746.c
+index 92d46b08b583..9cd111c127f6 100644
+--- a/drivers/media/i2c/tc358746.c
++++ b/drivers/media/i2c/tc358746.c
+@@ -230,6 +230,12 @@ static const struct tc358746_format tc358746_formats[] = {
+ 		.bpp = 20,
+ 		.pdformat = PDFORMAT_YUV422_10BIT,
+ 		.pdataf = PDATAF_MODE0, /* don't care */
++	}, {
++		.code = MEDIA_BUS_FMT_Y12_1X12,
++		.bus_width = 12,
++		.bpp = 12,
++		.pdformat = PDFORMAT_RAW12,
++		.pdataf = PDATAF_MODE0, /* don't care */
+ 	}
+ };
+ 
+-- 
+2.46.0
+

@@ -1,0 +1,37 @@
+From beae3efa25c4c800d0766181c672c3af856a224d Mon Sep 17 00:00:00 2001
+From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+Date: Fri, 2 Aug 2024 10:55:11 +0200
+Subject: [PATCH] imx93_evk.h: Restrict uboot-env's by
+ CONFIG_ENV_WRITEABLE_LIST
+
+NOTE: Prefix of CFG_ENV_FLAGS_LIST_STATIC was renamed from CONFIG to CFG
+
+Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+---
+ include/configs/imx93_evk.h | 10 ++++++++++
+ 1 file changed, 10 insertions(+)
+
+diff --git a/include/configs/imx93_evk.h b/include/configs/imx93_evk.h
+index 8e50305a47e..4a22dd16c6e 100644
+--- a/include/configs/imx93_evk.h
++++ b/include/configs/imx93_evk.h
+@@ -56,6 +56,16 @@
+ 	"initrd_high=0xffffffffffffffff\0" \
+ 	"emmc_dev=0\0"\
+ 	"sd_dev=1\0" \
++	"firmware=0\0" \
++	"upgrade_available=0\0" \
++	"ustate=0\0"
++
++/* Limit write access to a minimum*/
++#define CFG_ENV_FLAGS_LIST_STATIC \
++	"upgrade_available:dw," \
++	"bootcount:dw," \
++	"ustate:dw," \
++	"firmware:dw"
+ 
+ /* Initial environment variables */
+ #define CFG_EXTRA_ENV_SETTINGS		\
+-- 
+2.44.0
+

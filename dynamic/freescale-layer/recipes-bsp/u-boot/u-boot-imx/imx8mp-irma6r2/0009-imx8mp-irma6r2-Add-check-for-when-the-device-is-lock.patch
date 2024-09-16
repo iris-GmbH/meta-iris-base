@@ -1,16 +1,17 @@
-From 3602424b29fe656f8d41b8d7214fea229249744a Mon Sep 17 00:00:00 2001
+From 47fc11c94d10cbe09d7f6ae3cf265fd7dee5ba83 Mon Sep 17 00:00:00 2001
 From: "philipp.schoewe" <Philipp.Schoewe@iris-sensing.com>
 Date: Tue, 16 Aug 2022 08:41:20 +0200
 Subject: [PATCH] imx8mp-irma6r2: Add check for when the device is locked to
  not nfs boot
 
 Signed-off-by: philipp.schoewe <Philipp.Schoewe@iris-sensing.com>
+Signed-off-by: Jasper Orschulko <jasper@fancydomain.eu>
 ---
  board/freescale/imx8mp_irma6r2/imx8mp_irma6r2.c | 17 ++++++++++++++++-
  1 file changed, 16 insertions(+), 1 deletion(-)
 
 diff --git a/board/freescale/imx8mp_irma6r2/imx8mp_irma6r2.c b/board/freescale/imx8mp_irma6r2/imx8mp_irma6r2.c
-index e3d9b15b02..3af9db0961 100644
+index e3d9b15b023..3af9db0961b 100644
 --- a/board/freescale/imx8mp_irma6r2/imx8mp_irma6r2.c
 +++ b/board/freescale/imx8mp_irma6r2/imx8mp_irma6r2.c
 @@ -31,6 +31,7 @@
@@ -52,5 +53,5 @@ index e3d9b15b02..3af9db0961 100644
  	
  	if (nfs_boot) {
 -- 
-2.39.0
+2.46.0
 

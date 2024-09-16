@@ -1,0 +1,30 @@
+From e337d73132f4c5b31265386d68ab9a8828468ce3 Mon Sep 17 00:00:00 2001
+From: Ian Dannapel <ian.dannapel@iris-sensing.com>
+Date: Fri, 13 Jan 2023 10:35:33 +0100
+Subject: [PATCH] epc660: respect reset timings
+
+Signed-off-by: Ian Dannapel <ian.dannapel@iris-sensing.com>
+Signed-off-by: Jasper Orschulko <jasper@fancydomain.eu>
+---
+ drivers/media/i2c/epc660.c | 5 ++---
+ 1 file changed, 2 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/media/i2c/epc660.c b/drivers/media/i2c/epc660.c
+index 3a596a354049..a8112cb7595a 100644
+--- a/drivers/media/i2c/epc660.c
++++ b/drivers/media/i2c/epc660.c
+@@ -411,9 +411,8 @@ static int epc660_reset_hw(struct v4l2_subdev *sd, u32 val)
+ 
+ 	dev_info(&client->dev, "pin reset: %d\n", val);
+ 
+-	if (val == 1) {
+-		usleep_range(7000, 10000);
+-	}
++	// wait for tSTARTUP
++	usleep_range(7000, 10000);
+ 
+ 	return ret;
+ }
+-- 
+2.46.0
+

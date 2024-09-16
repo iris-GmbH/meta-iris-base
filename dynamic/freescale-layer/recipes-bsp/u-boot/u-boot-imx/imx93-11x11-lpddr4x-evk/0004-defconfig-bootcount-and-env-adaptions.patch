@@ -1,0 +1,53 @@
+From 66a4b4e0a9bbfc21928bedfb30ed0758ac74402f Mon Sep 17 00:00:00 2001
+From: Erik Schumacher <erik.schumacher@iris-sensing.com>
+Date: Fri, 30 Aug 2024 09:32:33 +0000
+Subject: [PATCH] defconfig: bootcount and env adaptions
+
+- Enable redundand uboot-env support
+- Enable ENV_WRITEABLE_LIST
+- Enable BOOTCOUNT
+- Enable uboot version variable
+
+Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+---
+ configs/imx93_11x11_evk_defconfig | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+diff --git a/configs/imx93_11x11_evk_defconfig b/configs/imx93_11x11_evk_defconfig
+index 25e7d9cae54..af04289012b 100644
+--- a/configs/imx93_11x11_evk_defconfig
++++ b/configs/imx93_11x11_evk_defconfig
+@@ -17,8 +17,10 @@ CONFIG_TARGET_IMX93_11X11_EVK=y
+ CONFIG_SYS_PROMPT="u-boot=> "
+ CONFIG_SPL_SERIAL=y
+ CONFIG_SPL_DRIVERS_MISC=y
++CONFIG_BOOTCOUNT_BOOTLIMIT=3
+ CONFIG_SPL_STACK=0x20519dd0
+ CONFIG_SPL=y
++CONFIG_ENV_OFFSET_REDUND=0x704000
+ CONFIG_CMD_DEKBLOB=y
+ CONFIG_SPL_IMX_ROMAPI_LOADADDR=0x88000000
+ CONFIG_SPL_LOAD_IMX_CONTAINER=y
+@@ -88,13 +90,19 @@ CONFIG_SPL_OF_CONTROL=y
+ CONFIG_ENV_OVERWRITE=y
+ CONFIG_ENV_IS_NOWHERE=y
+ CONFIG_ENV_IS_IN_MMC=y
++CONFIG_SYS_REDUNDAND_ENVIRONMENT=y
+ CONFIG_SYS_RELOC_GD_ENV_ADDR=y
+ CONFIG_SYS_MMC_ENV_DEV=1
++CONFIG_ENV_WRITEABLE_LIST=y
++CONFIG_ENV_ACCESS_IGNORE_FORCE=y
+ CONFIG_USE_ETHPRIME=y
+ CONFIG_ETHPRIME="eth1"
++CONFIG_VERSION_VARIABLE=y
+ CONFIG_NET_RANDOM_ETHADDR=y
+ CONFIG_SPL_DM=y
+ CONFIG_SYSCON=y
++CONFIG_BOOTCOUNT_LIMIT=y
++CONFIG_BOOTCOUNT_ENV=y
+ CONFIG_SPL_CLK_IMX93=y
+ CONFIG_CLK_IMX93=y
+ CONFIG_DFU_MMC=y
+-- 
+2.44.0
+

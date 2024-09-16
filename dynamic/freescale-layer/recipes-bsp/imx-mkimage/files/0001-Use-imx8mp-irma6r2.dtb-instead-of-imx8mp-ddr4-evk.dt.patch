@@ -1,4 +1,4 @@
-From 46202153de99923ab4fb72361670e09590bc4712 Mon Sep 17 00:00:00 2001
+From 0c950c1df07fd17214ce561bccb0ce01c2672416 Mon Sep 17 00:00:00 2001
 From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
 Date: Tue, 14 Feb 2023 17:20:03 +0100
 Subject: [PATCH] Use imx8mp-irma6r2.dtb instead of imx8mp-ddr4-evk.dtb
@@ -7,23 +7,24 @@ Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
 
 Upstream-Status: Inappropriate [configuration]
 Signed-off-by: Jasper Orschulko <Jasper.Orschulko@iris-sensing.com>
+Signed-off-by: Jasper Orschulko <jasper@fancydomain.eu>
 ---
  iMX8M/soc.mak | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/iMX8M/soc.mak b/iMX8M/soc.mak
-index c505dea..9521097 100644
+index 6751759..441300c 100644
 --- a/iMX8M/soc.mak
 +++ b/iMX8M/soc.mak
-@@ -194,7 +194,7 @@ u-boot-ddr4.itb: $(dtb_ddr4)
+@@ -201,7 +201,7 @@ u-boot-ddr4.itb: $(dtb_ddr4) $(supp_dtbs)
  
  dtb_ddr4_evk = evkddr4.dtb
  $(dtb_ddr4_evk):
 -	./$(DTB_PREPROC) $(PLAT)-ddr4-evk.dtb $(dtb_ddr4_evk) $(dtbs)
-+	./$(DTB_PREPROC) $(PLAT)-irma6r2.dtb $(dtb_ddr4_evk) $(dtbs)
++	./$(DTB_PREPROC) $(PLAT)-irma6r2.dtb-sd $(dtb_ddr4_evk) $(dtbs)
  
- u-boot-ddr4-evk.itb: $(dtb_ddr4_evk)
+ u-boot-ddr4-evk.itb: $(dtb_ddr4_evk) $(supp_dtbs)
  	./$(PAD_IMAGE) $(TEE)
 -- 
-2.39.0
+2.45.0
 

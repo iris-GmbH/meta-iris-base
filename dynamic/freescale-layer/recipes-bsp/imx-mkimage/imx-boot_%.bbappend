@@ -1,8 +1,6 @@
 # SPDX-License-Identifier: MIT
 # Copyright (C) 2022 iris-GmbH infrared & intelligent sensors
 
-require imx-mkimage_iris.inc
-
 inherit irma6-bootloader-version hab
 PV = "${IRIS_IMX_BOOT_RELEASE}"
 

@@ -1,4 +1,4 @@
-From ff140866e567225c8bd96567ffdea3b40960e872 Mon Sep 17 00:00:00 2001
+From 626093ddc7258748cdb06caeff6c5f56311db67e Mon Sep 17 00:00:00 2001
 From: Ian Dannapel <ian.dannapel@iris-sensing.com>
 Date: Fri, 1 Apr 2022 09:05:57 +0200
 Subject: [PATCH] epc660: Add device driver support
@@ -7,50 +7,50 @@ Subject: [PATCH] epc660: Add device driver support
 
 Signed-off-by: Erik Schumacher <Erik.Schumacher@iris-sensing.com>
 Signed-off-by: Ian Dannapel <ian.dannapel@iris-sensing.com>
+Signed-off-by: Jasper Orschulko <jasper@fancydomain.eu>
 ---
- drivers/media/i2c/Kconfig           |   6 +
+ drivers/media/i2c/Kconfig           |   5 +
  drivers/media/i2c/Makefile          |   1 +
- drivers/media/i2c/epc660.c          | 719 ++++++++++++++++++++++++++++
+ drivers/media/i2c/epc660.c          | 716 ++++++++++++++++++++++++++++
  include/media/i2c/epc660_sequence.h | 258 ++++++++++
- 4 files changed, 984 insertions(+)
+ 4 files changed, 980 insertions(+)
  create mode 100644 drivers/media/i2c/epc660.c
  create mode 100644 include/media/i2c/epc660_sequence.h
 
 diff --git a/drivers/media/i2c/Kconfig b/drivers/media/i2c/Kconfig
-index 2620f36c52c6..0b4481ffbbe1 100644
+index 76983b07833a..a77308632350 100644
 --- a/drivers/media/i2c/Kconfig
 +++ b/drivers/media/i2c/Kconfig
-@@ -730,6 +730,12 @@ config VIDEO_APTINA_PLL
+@@ -41,6 +41,11 @@ config VIDEO_APTINA_PLL
  config VIDEO_CCS_PLL
  	tristate
  
 +config VIDEO_EPC660
 +	tristate "epc660 support"
-+	depends on I2C && VIDEO_V4L2 && VIDEO_V4L2_SUBDEV_API
 +	help
 +	  This driver supports EPC660 cameras from Espros
 +
- config VIDEO_HI556
- 	tristate "Hynix Hi-556 sensor support"
- 	depends on I2C && VIDEO_V4L2
+ config VIDEO_AR0521
+ 	tristate "ON Semiconductor AR0521 sensor support"
+ 	help
 diff --git a/drivers/media/i2c/Makefile b/drivers/media/i2c/Makefile
-index ecf74f1d1e92..15bf60054dfd 100644
+index 197dcc4b1822..319bc6ba3a18 100644
 --- a/drivers/media/i2c/Makefile
 +++ b/drivers/media/i2c/Makefile
-@@ -7,6 +7,7 @@ obj-$(CONFIG_VIDEO_ET8EK8)	+= et8ek8/
- obj-$(CONFIG_VIDEO_CX25840) += cx25840/
- obj-$(CONFIG_VIDEO_M5MOLS)	+= m5mols/
- 
+@@ -35,6 +35,7 @@ obj-$(CONFIG_VIDEO_DW9714) += dw9714.o
+ obj-$(CONFIG_VIDEO_DW9719) += dw9719.o
+ obj-$(CONFIG_VIDEO_DW9768) += dw9768.o
+ obj-$(CONFIG_VIDEO_DW9807_VCM) += dw9807-vcm.o
 +obj-$(CONFIG_VIDEO_EPC660)  += epc660.o
- obj-$(CONFIG_VIDEO_APTINA_PLL) += aptina-pll.o
- obj-$(CONFIG_VIDEO_TVAUDIO) += tvaudio.o
- obj-$(CONFIG_VIDEO_TDA7432) += tda7432.o
+ obj-$(CONFIG_VIDEO_ET8EK8) += et8ek8/
+ obj-$(CONFIG_VIDEO_HI556) += hi556.o
+ obj-$(CONFIG_VIDEO_HI846) += hi846.o
 diff --git a/drivers/media/i2c/epc660.c b/drivers/media/i2c/epc660.c
 new file mode 100644
-index 000000000000..f682aff37fc6
+index 000000000000..3a596a354049
 --- /dev/null
 +++ b/drivers/media/i2c/epc660.c
-@@ -0,0 +1,719 @@
+@@ -0,0 +1,716 @@
 +/*
 + * Driver for EPC660 ToF image sensor from Espros
 + *
@@ -635,8 +635,7 @@ index 000000000000..f682aff37fc6
 +	.pad = &epc660_subdev_pad_ops,
 +};
 +
-+static int epc660_probe(struct i2c_client *client,
-+			const struct i2c_device_id *did)
++static int epc660_probe(struct i2c_client *client)
 +{
 +	struct epc660 *epc660;
 +	struct i2c_adapter *adapter = to_i2c_adapter(client->dev.parent);
@@ -742,7 +741,7 @@ index 000000000000..f682aff37fc6
 +	return ret;
 +}
 +
-+static int epc660_remove(struct i2c_client *client)
++static void epc660_remove(struct i2c_client *client)
 +{
 +	struct epc660 *epc660 = to_epc660(client);
 +
@@ -750,8 +749,6 @@ index 000000000000..f682aff37fc6
 +
 +	v4l2_async_unregister_subdev(&epc660->subdev);
 +	v4l2_ctrl_handler_free(&epc660->hdl);
-+
-+	return 0;
 +}
 +static const struct i2c_device_id epc660_id[] = { { "epc660", 0 }, {} };
 +MODULE_DEVICE_TABLE(i2c, epc660_id);
@@ -1035,5 +1032,5 @@ index 000000000000..e3434ade82fa
 +
 +#endif 	/* _EPC660_SEQUENCE_H */
 -- 
-2.39.1
+2.46.0
 

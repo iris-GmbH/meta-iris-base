@@ -3,6 +3,7 @@ From: Erik Schumacher <erik.schumacher@iris-sensing.com>
 Date: Mon, 29 Jan 2024 14:49:21 +0100
 Subject: [PATCH 2/2] Add iris specific checks to wpa-supplicant.sh
 
+Upstream-Status: Inappropriate [change of default behavior]
 ---
  ./wpa-supplicant.sh          | 27 +++++++++++++++++++
  1 file changed, 27 insertions(+)
@@ -12,9 +13,9 @@ index 75df8d709e..f15bf7e2ba 100644
 --- a/wpa-supplicant.sh
 +++ b/wpa-supplicant.sh
 @@ -9,6 +9,33 @@ WPA_SUP_OPTIONS="-B -P $WPA_SUP_PIDFILE -i $IFACE -s"
- 
+
  VERBOSITY=0
- 
+
 +IRMA_CONFIG="/mnt/iris/counter/config_customer.json"
 +EAPTLS_DIR="/mnt/iris/eaptls"
 +EAPTLS_KEY="sensor.key"
@@ -42,9 +43,9 @@ index 75df8d709e..f15bf7e2ba 100644
 +       fi
 +       exit 0
 +fi
- 
+
  if [ -s "$IF_WPA_CONF" ]; then
  	WPA_SUP_CONF="-c $IF_WPA_CONF"
--- 
+--
 2.43.0
 
