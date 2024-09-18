@@ -1,4 +1,4 @@
-From beae3efa25c4c800d0766181c672c3af856a224d Mon Sep 17 00:00:00 2001
+From ed8650c5654ef04241064abdd28a0d6d2e776920 Mon Sep 17 00:00:00 2001
 From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
 Date: Fri, 2 Aug 2024 10:55:11 +0200
 Subject: [PATCH] imx93_evk.h: Restrict uboot-env's by
@@ -12,7 +12,7 @@ Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
  1 file changed, 10 insertions(+)
 
 diff --git a/include/configs/imx93_evk.h b/include/configs/imx93_evk.h
-index 8e50305a47e..4a22dd16c6e 100644
+index f98f62427fa..3bef544175a 100644
 --- a/include/configs/imx93_evk.h
 +++ b/include/configs/imx93_evk.h
 @@ -56,6 +56,16 @@
@@ -33,5 +33,5 @@ index 8e50305a47e..4a22dd16c6e 100644
  /* Initial environment variables */
  #define CFG_EXTRA_ENV_SETTINGS		\
 -- 
-2.44.0
+2.46.0
 
