@@ -1,0 +1,46 @@
+From 0e2fb0c77540dc705c2c45c3adef7b3a7e16bb5b Mon Sep 17 00:00:00 2001
+From: Jan Hannig <jan.hannig@iris-sensing.com>
+Date: Fri, 29 Sep 2023 15:03:30 +0200
+Subject: [PATCH 11/24] v4l2: Set VB2_MAX_FRAME/VIDEO_MAX_FRAME to 128
+
+The user space application requires up to 6 frame buffers in certain
+acquisition modes to respresent one image. This enables a higher
+buffer count request on VIDIOC_REQBUFS since practical tests have
+proven that user space queue requires up to 70 frames buffered.
+
+Signed-off-by: Jan Hannig <jan.hannig@iris-sensing.com>
+Signed-off-by: Jasper Orschulko <jasper@fancydomain.eu>
+---
+ include/media/videobuf2-core.h | 2 +-
+ include/uapi/linux/videodev2.h | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/include/media/videobuf2-core.h b/include/media/videobuf2-core.h
+index 4b6a9d2ea372..404fbe9cb8aa 100644
+--- a/include/media/videobuf2-core.h
++++ b/include/media/videobuf2-core.h
+@@ -20,7 +20,7 @@
+ #include <media/media-request.h>
+ #include <media/frame_vector.h>
+ 
+-#define VB2_MAX_FRAME	(32)
++#define VB2_MAX_FRAME (128)
+ #define VB2_MAX_PLANES	(8)
+ 
+ /**
+diff --git a/include/uapi/linux/videodev2.h b/include/uapi/linux/videodev2.h
+index 0c4867c44291..a8f8aeedea9c 100644
+--- a/include/uapi/linux/videodev2.h
++++ b/include/uapi/linux/videodev2.h
+@@ -70,7 +70,7 @@
+  * Common stuff for both V4L1 and V4L2
+  * Moved from videodev.h
+  */
+-#define VIDEO_MAX_FRAME               32
++#define VIDEO_MAX_FRAME              128
+ #define VIDEO_MAX_PLANES               8
+ 
+ /*
+-- 
+2.44.1
+

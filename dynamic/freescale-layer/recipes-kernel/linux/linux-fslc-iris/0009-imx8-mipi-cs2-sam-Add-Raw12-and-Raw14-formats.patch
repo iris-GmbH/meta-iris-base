@@ -1,0 +1,114 @@
+From d4d91336fbff14626023037c78e47a518e4a96a9 Mon Sep 17 00:00:00 2001
+From: Ian Dannapel <ian.dannapel@iris-sensing.com>
+Date: Fri, 13 May 2022 15:49:59 +0200
+Subject: [PATCH 09/24] imx8-mipi-cs2-sam: Add Raw12 and Raw14 formats
+
+- fix MEDIA MIX gasket0 dumps
+Somebody forgot that the gasket regmap for the media mix already starts
+at 0x60. Use an additional counter but keep the offsets within the
+print, since this is at least more clear to me.
+
+- Enable summary debug output
+- allow format propagation to the subdev
+- Hack: Set sink pad to force subdev format change
+
+Signed-off-by: Rouven Czerwinski <r.czerwinski@pengutronix.de>
+Signed-off-by: Erik Schumacher <erik.schumacher@iris-sensing.com>
+Signed-off-by: Ian Dannapel <ian.dannapel@iris-sensing.com>
+Signed-off-by: Jasper Orschulko <jasper@fancydomain.eu>
+---
+ .../staging/media/imx/imx8-mipi-csi2-sam.c    | 31 ++++++++++++++++---
+ 1 file changed, 26 insertions(+), 5 deletions(-)
+
+diff --git a/drivers/staging/media/imx/imx8-mipi-csi2-sam.c b/drivers/staging/media/imx/imx8-mipi-csi2-sam.c
+index c6af060c4497..b2f42948cac5 100644
+--- a/drivers/staging/media/imx/imx8-mipi-csi2-sam.c
++++ b/drivers/staging/media/imx/imx8-mipi-csi2-sam.c
+@@ -190,6 +190,7 @@
+ #define MIPI_CSIS_ISPCFG_FMT_RAW8		(0x2a << 2)
+ #define MIPI_CSIS_ISPCFG_FMT_RAW10		(0x2b << 2)
+ #define MIPI_CSIS_ISPCFG_FMT_RAW12		(0x2c << 2)
++#define MIPI_CSIS_ISPCFG_FMT_RAW14		(0x2d << 2)
+ #define MIPI_CSIS_ISPCFG_FMT_RGB888		(0x24 << 2)
+ #define MIPI_CSIS_ISPCFG_FMT_RGB565		(0x22 << 2)
+ /* User defined formats, x = 1...4 */
+@@ -446,7 +447,7 @@ struct csi_state {
+ 	u32 val;
+ };
+ 
+-static int debug;
++static int debug = 1;
+ module_param(debug, int, 0644);
+ MODULE_PARM_DESC(debug, "Debug level (0-2)");
+ 
+@@ -519,7 +520,15 @@ static const struct csis_pix_format mipi_csis_formats[] = {
+ 		.code = MEDIA_BUS_FMT_SRGGB12_1X12,
+ 		.fmt_reg = MIPI_CSIS_ISPCFG_FMT_RAW12,
+ 		.data_alignment = 16,
+-	},
++	},{
++		.code = MEDIA_BUS_FMT_Y12_1X12,
++		.fmt_reg = MIPI_CSIS_ISPCFG_FMT_RAW12,
++		.data_alignment = 16,
++	}, {
++		.code = MEDIA_BUS_FMT_Y14_1X14,
++		.fmt_reg = MIPI_CSIS_ISPCFG_FMT_RAW14,
++		.data_alignment = 16,
++	}
+ };
+ 
+ #define mipi_csis_write(__csis, __r, __v) writel(__v, __csis->regs + __r)
+@@ -575,13 +584,15 @@ static void dump_gasket_regs(struct csi_state *state, const char *label)
+ 		{ 0x64, "GPR_GASKET_0_HSIZE" },
+ 		{ 0x68, "GPR_GASKET_0_VSIZE" },
+ 	};
+-	u32 i, cfg;
++	u32 i, cfg, p;
+ 
+ 	v4l2_dbg(2, debug, &state->sd, "--- %s ---\n", label);
+ 
++	p = 0x0;
+ 	for (i = 0; i < ARRAY_SIZE(registers); i++) {
+-		regmap_read(state->gasket, registers[i].offset, &cfg);
++		regmap_read(state->gasket, p, &cfg);
+ 		v4l2_dbg(2, debug, &state->sd, "%20s[%x]: 0x%.8x\n", registers[i].name, registers[i].offset, cfg);
++		p += 0x4;
+ 	}
+ }
+ 
+@@ -992,6 +1003,7 @@ static void disp_mix_gasket_config(struct csi_state *state)
+ 		fmt_val = GASKET_0_CTRL_DATA_TYPE_RAW10;
+ 		break;
+ 	case MEDIA_BUS_FMT_SBGGR12_1X12:
++	case MEDIA_BUS_FMT_Y12_1X12:
+ 		fmt_val = GASKET_0_CTRL_DATA_TYPE_RAW12;
+ 		break;
+ 	case MEDIA_BUS_FMT_SGBRG12_1X12:
+@@ -1003,6 +1015,9 @@ static void disp_mix_gasket_config(struct csi_state *state)
+ 	case MEDIA_BUS_FMT_SRGGB12_1X12:
+ 		fmt_val = GASKET_0_CTRL_DATA_TYPE_RAW12;
+ 		break;
++	case MEDIA_BUS_FMT_Y14_1X14:
++		fmt_val = GASKET_0_CTRL_DATA_TYPE_RAW14;
++		break;
+ 	default:
+ 		pr_err("gasket not support format %d\n", fmt->code);
+ 		return;
+@@ -1160,7 +1175,13 @@ static int mipi_csis_set_fmt(struct v4l2_subdev *mipi_sd,
+ 		return -EINVAL;
+ 	}
+ 
+-	format->pad = source_pad->index;
++	/*
++	format->pad = source_pad->index; // pad = 1
++	Hack: set the sink instead of source pad to force format on subdev
++	pad = 0 -> tc358746 sink (connected to epc660)
++	pad = 1 -> tc358746 source (connected to this driver)
++	*/
++	format->pad = 0;
+ 	ret = v4l2_subdev_call(sen_sd, pad, set_fmt, NULL, format);
+ 	if (ret < 0) {
+ 		v4l2_err(&state->sd, "%s, set sensor format fail\n", __func__);
+-- 
+2.44.1
+

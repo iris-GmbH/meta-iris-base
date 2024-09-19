@@ -1,0 +1,37 @@
+From c7681581f4470a433861e603a2fc861734fa9b3c Mon Sep 17 00:00:00 2001
+From: Erik Schumacher <erik.schumacher@iris-sensing.com>
+Date: Mon, 24 Jun 2024 15:12:24 +0000
+Subject: [PATCH 22/24] tc358746.c: Add RAW12 and RAW14
+
+Signed-off-by: Erik Schumacher <erik.schumacher@iris-sensing.com>
+Signed-off-by: Ian Dannapel <ian.dannapel@iris-sensing.com>
+---
+ drivers/media/i2c/tc358746.c | 12 ++++++++++++
+ 1 file changed, 12 insertions(+)
+
+diff --git a/drivers/media/i2c/tc358746.c b/drivers/media/i2c/tc358746.c
+index 92d46b08b583..839e933d5f8a 100644
+--- a/drivers/media/i2c/tc358746.c
++++ b/drivers/media/i2c/tc358746.c
+@@ -230,6 +230,18 @@ static const struct tc358746_format tc358746_formats[] = {
+ 		.bpp = 20,
+ 		.pdformat = PDFORMAT_YUV422_10BIT,
+ 		.pdataf = PDATAF_MODE0, /* don't care */
++	}, {
++		.code = MEDIA_BUS_FMT_Y12_1X12,
++		.bus_width = 12,
++		.bpp = 12,
++		.pdformat = PDFORMAT_RAW12,
++		.pdataf = PDATAF_MODE0, /* don't care */
++	}, {
++		.code = MEDIA_BUS_FMT_Y14_1X14,
++		.bus_width = 14,
++		.bpp = 14,
++		.pdformat = PDFORMAT_RAW14,
++		.pdataf = PDATAF_MODE0, /* don't care */
+ 	}
+ };
+ 
+-- 
+2.44.1
+

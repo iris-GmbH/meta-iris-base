@@ -1,0 +1,230 @@
+From 61707f4a8377dcc8b0966d9c901a97451f852246 Mon Sep 17 00:00:00 2001
+From: Erik Schumacher <erik.schumacher@iris-sensing.com>
+Date: Mon, 24 Jun 2024 15:11:27 +0000
+Subject: [PATCH 21/24] tc358746.c: Move vb size calculation to seperate
+ function
+
+Run calculation also on set fmt
+
+Signed-off-by: Erik Schumacher <erik.schumacher@iris-sensing.com>
+---
+ drivers/media/i2c/tc358746.c | 168 ++++++++++++++++++++---------------
+ 1 file changed, 96 insertions(+), 72 deletions(-)
+
+diff --git a/drivers/media/i2c/tc358746.c b/drivers/media/i2c/tc358746.c
+index 4f54773886cc..92d46b08b583 100644
+--- a/drivers/media/i2c/tc358746.c
++++ b/drivers/media/i2c/tc358746.c
+@@ -770,12 +770,97 @@ static int tc358746_enum_mbus_code(struct v4l2_subdev *sd,
+ 	return 0;
+ }
+ 
++#define TC358746_PRECISION 10
++
++static int
++tc358746_calculate_vb_size(struct v4l2_subdev *sd,
++				struct v4l2_subdev *source)
++{
++	struct tc358746 *tc358746 = to_tc358746(sd);
++	const struct tc358746_format *fmt;
++	struct v4l2_subdev_state *sink_state;
++	struct v4l2_mbus_framefmt *mbusfmt;
++	unsigned int fifo_sz, tmp, n;
++	unsigned long csi_bitrate, source_bitrate;
++	s64 source_link_freq;
++
++	sink_state = v4l2_subdev_get_locked_active_state(sd);
++	mbusfmt = v4l2_subdev_get_pad_format(sd, sink_state, TC358746_SINK);
++
++	/* Check the FIFO settings */
++	fmt = tc358746_get_format_by_code(TC358746_SINK, mbusfmt->code);
++
++	source_link_freq = v4l2_get_link_freq(source->ctrl_handler, 0, 0);
++	if (source_link_freq <= 0) {
++		dev_err(tc358746->sd.dev,
++			"Failed to query or invalid source link frequency\n");
++		v4l2_subdev_unlock_state(sink_state);
++		/* Return -EINVAL in case of source_link_freq is 0 */
++		return source_link_freq ? : -EINVAL;
++	}
++	source_bitrate = source_link_freq * fmt->bus_width;
++
++	csi_bitrate = tc358746->dphy_cfg.lanes * tc358746->pll_rate;
++
++	dev_dbg(tc358746->sd.dev,
++		"Fifo settings params: source-bitrate:%lu csi-bitrate:%lu",
++		source_bitrate, csi_bitrate);
++
++	/* Avoid possible FIFO overflows */
++	if (csi_bitrate < source_bitrate) {
++		v4l2_subdev_unlock_state(sink_state);
++		return -EINVAL;
++	}
++
++	/* Best case */
++	if (csi_bitrate == source_bitrate) {
++		fifo_sz = TC358746_VB_DEFAULT_SIZE;
++		tc358746->vb_size = TC358746_VB_DEFAULT_SIZE;
++		goto out;
++	}
++
++	/*
++	 * Avoid possible FIFO underflow in case of
++	 * csi_bitrate > source_bitrate. For such case the chip has a internal
++	 * fifo which can be used to delay the line output.
++	 *
++	 * Fifo size calculation (excluding precision):
++	 *
++	 * fifo-sz, image-width - in bits
++	 * sbr                  - source_bitrate in bits/s
++	 * csir                 - csi_bitrate in bits/s
++	 *
++	 * image-width / csir >= (image-width - fifo-sz) / sbr
++	 * image-width * sbr / csir >= image-width - fifo-sz
++	 * fifo-sz >= image-width - image-width * sbr / csir; with n = csir/sbr
++	 * fifo-sz >= image-width - image-width / n
++	 */
++
++	source_bitrate /= TC358746_PRECISION;
++	n = csi_bitrate / source_bitrate;
++	tmp = (mbusfmt->width * TC358746_PRECISION) / n;
++	fifo_sz = mbusfmt->width - tmp;
++	fifo_sz *= fmt->bpp;
++	tc358746->vb_size = round_up(fifo_sz, 32);
++
++out:
++	dev_dbg(tc358746->sd.dev,
++		"Found FIFO size[bits]:%u -> aligned to size[bits]:%u\n",
++		fifo_sz, tc358746->vb_size);
++
++	v4l2_subdev_unlock_state(sink_state);
++	return 0;
++}
++
+ static int tc358746_set_fmt(struct v4l2_subdev *sd,
+ 			    struct v4l2_subdev_state *sd_state,
+ 			    struct v4l2_subdev_format *format)
+ {
++	struct tc358746 *tc358746 = to_tc358746(sd);
+ 	struct v4l2_mbus_framefmt *src_fmt, *sink_fmt;
++	struct v4l2_subdev *source;
+ 	const struct tc358746_format *fmt;
++	int err;
+ 
+ 	/* Source follows the sink */
+ 	if (format->pad == TC358746_SOURCE)
+@@ -800,6 +885,11 @@ static int tc358746_set_fmt(struct v4l2_subdev *sd,
+ 	*src_fmt = *sink_fmt;
+ 	src_fmt->code = tc358746_src_mbus_code(sink_fmt->code);
+ 
++	source = tc358746_get_remote_sd(&tc358746->pads[TC358746_SINK]);
++	err = tc358746_calculate_vb_size(sd, source);
++	if (err)
++		return err;
++
+ 	return 0;
+ }
+ 
+@@ -879,93 +969,27 @@ static unsigned long tc358746_find_pll_settings(struct tc358746 *tc358746,
+ 	return best_freq;
+ }
+ 
+-#define TC358746_PRECISION 10
+-
+ static int
+ tc358746_link_validate(struct v4l2_subdev *sd, struct media_link *link,
+ 		       struct v4l2_subdev_format *source_fmt,
+ 		       struct v4l2_subdev_format *sink_fmt)
+ {
+ 	struct tc358746 *tc358746 = to_tc358746(sd);
+-	unsigned long csi_bitrate, source_bitrate;
+-	struct v4l2_subdev_state *sink_state;
+-	struct v4l2_mbus_framefmt *mbusfmt;
+-	const struct tc358746_format *fmt;
+-	unsigned int fifo_sz, tmp, n;
++	struct v4l2_subdev_state *state;
+ 	struct v4l2_subdev *source;
+-	s64 source_link_freq;
+ 	int err;
+ 
+ 	err = v4l2_subdev_link_validate_default(sd, link, source_fmt, sink_fmt);
+ 	if (err)
+ 		return err;
+ 
+-	sink_state = v4l2_subdev_lock_and_get_active_state(sd);
+-	mbusfmt = v4l2_subdev_get_pad_format(sd, sink_state, TC358746_SINK);
+-
+-	/* Check the FIFO settings */
+-	fmt = tc358746_get_format_by_code(TC358746_SINK, mbusfmt->code);
+-
+ 	source = media_entity_to_v4l2_subdev(link->source->entity);
+-	source_link_freq = v4l2_get_link_freq(source->ctrl_handler, 0, 0);
+-	if (source_link_freq <= 0) {
+-		dev_err(tc358746->sd.dev,
+-			"Failed to query or invalid source link frequency\n");
+-		v4l2_subdev_unlock_state(sink_state);
+-		/* Return -EINVAL in case of source_link_freq is 0 */
+-		return source_link_freq ? : -EINVAL;
+-	}
+-	source_bitrate = source_link_freq * fmt->bus_width;
+-
+-	csi_bitrate = tc358746->dphy_cfg.lanes * tc358746->pll_rate;
+-
+-	dev_dbg(tc358746->sd.dev,
+-		"Fifo settings params: source-bitrate:%lu csi-bitrate:%lu",
+-		source_bitrate, csi_bitrate);
+-
+-	/* Avoid possible FIFO overflows */
+-	if (csi_bitrate < source_bitrate) {
+-		v4l2_subdev_unlock_state(sink_state);
+-		return -EINVAL;
+-	}
+ 
+-	/* Best case */
+-	if (csi_bitrate == source_bitrate) {
+-		fifo_sz = TC358746_VB_DEFAULT_SIZE;
+-		tc358746->vb_size = TC358746_VB_DEFAULT_SIZE;
+-		goto out;
+-	}
+-
+-	/*
+-	 * Avoid possible FIFO underflow in case of
+-	 * csi_bitrate > source_bitrate. For such case the chip has a internal
+-	 * fifo which can be used to delay the line output.
+-	 *
+-	 * Fifo size calculation (excluding precision):
+-	 *
+-	 * fifo-sz, image-width - in bits
+-	 * sbr                  - source_bitrate in bits/s
+-	 * csir                 - csi_bitrate in bits/s
+-	 *
+-	 * image-width / csir >= (image-width - fifo-sz) / sbr
+-	 * image-width * sbr / csir >= image-width - fifo-sz
+-	 * fifo-sz >= image-width - image-width * sbr / csir; with n = csir/sbr
+-	 * fifo-sz >= image-width - image-width / n
+-	 */
+-
+-	source_bitrate /= TC358746_PRECISION;
+-	n = csi_bitrate / source_bitrate;
+-	tmp = (mbusfmt->width * TC358746_PRECISION) / n;
+-	fifo_sz = mbusfmt->width - tmp;
+-	fifo_sz *= fmt->bpp;
+-	tc358746->vb_size = round_up(fifo_sz, 32);
+-
+-out:
+-	dev_dbg(tc358746->sd.dev,
+-		"Found FIFO size[bits]:%u -> aligned to size[bits]:%u\n",
+-		fifo_sz, tc358746->vb_size);
+-
+-	v4l2_subdev_unlock_state(sink_state);
++	state = v4l2_subdev_lock_and_get_active_state(sd);
++	err = tc358746_calculate_vb_size(sd, source);
++	v4l2_subdev_unlock_state(state);
++	if (err)
++		return err;
+ 
+ 	return tc358746->vb_size > TC358746_VB_MAX_SIZE ? -EINVAL : 0;
+ }
+-- 
+2.44.1
+
