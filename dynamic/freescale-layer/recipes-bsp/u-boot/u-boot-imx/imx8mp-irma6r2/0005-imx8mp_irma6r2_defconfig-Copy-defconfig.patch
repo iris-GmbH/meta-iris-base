@@ -1,11 +1,11 @@
-From 0307adbd1ddddecf4c80ea72718a47911aaa33b6 Mon Sep 17 00:00:00 2001
+From da39c9b8579f2a7dd162df7c31ec83b1f262a70a Mon Sep 17 00:00:00 2001
 From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
 Date: Mon, 13 Feb 2023 13:28:02 +0100
 Subject: [PATCH] imx8mp_irma6r2_defconfig: Copy defconfig
 
 Create and copy generic defconfig for irma62:
 
-$ make imx8mp-evk-ddr4_defconfig
+$ make imx8mp_ddr4_evk_defconfig
 $ make savedefconfig
 $ cp defconfig configs/imx8mp_irma6r2_defconfig
 
@@ -15,16 +15,16 @@ Upstream-Status: Inappropriate [configuration]
 Signed-off-by: Jasper Orschulko <Jasper.Orschulko@iris-sensing.com>
 Signed-off-by: Jasper Orschulko <jasper@fancydomain.eu>
 ---
- configs/imx8mp_irma6r2_defconfig | 166 +++++++++++++++++++++++++++++++
- 1 file changed, 166 insertions(+)
+ configs/imx8mp_irma6r2_defconfig | 165 +++++++++++++++++++++++++++++++
+ 1 file changed, 165 insertions(+)
  create mode 100644 configs/imx8mp_irma6r2_defconfig
 
 diff --git a/configs/imx8mp_irma6r2_defconfig b/configs/imx8mp_irma6r2_defconfig
 new file mode 100644
-index 00000000000..ded23348ecb
+index 00000000000..f55738d1052
 --- /dev/null
 +++ b/configs/imx8mp_irma6r2_defconfig
-@@ -0,0 +1,166 @@
+@@ -0,0 +1,165 @@
 +CONFIG_ARM=y
 +CONFIG_ARCH_IMX8M=y
 +CONFIG_TEXT_BASE=0x40200000
@@ -40,7 +40,8 @@ index 00000000000..ded23348ecb
 +CONFIG_SPL_TEXT_BASE=0x920000
 +CONFIG_USB_TCPC=y
 +CONFIG_TARGET_IMX8MP_DDR4_EVK=y
-+CONFIG_SYS_PROMPT="u-boot=> "
++CONFIG_OF_LIBFDT_OVERLAY=y
++CONFIG_SYS_MONITOR_LEN=524288
 +CONFIG_SPL_SERIAL=y
 +CONFIG_SPL_DRIVERS_MISC=y
 +CONFIG_SPL_STACK=0x96dff0
@@ -52,15 +53,17 @@ index 00000000000..ded23348ecb
 +CONFIG_SYS_MEMTEST_START=0x60000000
 +CONFIG_SYS_MEMTEST_END=0xC0000000
 +CONFIG_REMAKE_ELF=y
-+CONFIG_SYS_MONITOR_LEN=524288
 +CONFIG_FIT=y
 +CONFIG_FIT_EXTERNAL_OFFSET=0x3000
 +CONFIG_SPL_LOAD_FIT=y
++CONFIG_SYS_BOOTM_LEN=0x2000000
++CONFIG_DISTRO_DEFAULTS=y
 +CONFIG_OF_BOARD_SETUP=y
 +CONFIG_OF_SYSTEM_SETUP=y
-+CONFIG_DISTRO_DEFAULTS=y
 +CONFIG_BOOTCOMMAND="run distro_bootcmd;run bsp_bootcmd"
 +CONFIG_DEFAULT_FDT_FILE="imx8mp-ddr4-evk.dtb"
++CONFIG_SYS_CBSIZE=2048
++CONFIG_SYS_PBSIZE=2074
 +CONFIG_BOARD_EARLY_INIT_F=y
 +CONFIG_BOARD_LATE_INIT=y
 +CONFIG_SPL_MAX_SIZE=0x26000
@@ -70,20 +73,17 @@ index 00000000000..ded23348ecb
 +CONFIG_SPL_BOARD_INIT=y
 +CONFIG_SPL_BOOTROM_SUPPORT=y
 +# CONFIG_SPL_SHARES_INIT_SP_ADDR is not set
-+CONFIG_SYS_SPL_MALLOC=y
-+CONFIG_HAS_CUSTOM_SPL_MALLOC_START=y
-+CONFIG_CUSTOM_SYS_SPL_MALLOC_ADDR=0x42200000
-+CONFIG_SYS_SPL_MALLOC_SIZE=0x80000
++CONFIG_SPL_SYS_MALLOC=y
++CONFIG_SPL_HAS_CUSTOM_MALLOC_START=y
++CONFIG_SPL_CUSTOM_SYS_MALLOC_ADDR=0x42200000
++CONFIG_SPL_SYS_MALLOC_SIZE=0x80000
 +CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_USE_SECTOR=y
 +CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_SECTOR=0x300
 +CONFIG_SPL_I2C=y
 +CONFIG_SPL_POWER=y
 +CONFIG_SPL_WATCHDOG=y
-+CONFIG_SYS_MAXARGS=64
-+CONFIG_SYS_CBSIZE=2048
-+CONFIG_SYS_PBSIZE=2074
++CONFIG_SYS_PROMPT="u-boot=> "
 +# CONFIG_BOOTM_NETBSD is not set
-+CONFIG_SYS_BOOTM_LEN=0x2000000
 +# CONFIG_CMD_EXPORTENV is not set
 +# CONFIG_CMD_IMPORTENV is not set
 +CONFIG_CMD_ERASEENV=y
@@ -190,7 +190,6 @@ index 00000000000..ded23348ecb
 +CONFIG_BMP_24BPP=y
 +CONFIG_BMP_32BPP=y
 +CONFIG_VIDEO_ADV7535=y
-+CONFIG_OF_LIBFDT_OVERLAY=y
 -- 
-2.46.0
+2.44.1
 

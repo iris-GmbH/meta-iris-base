@@ -1,4 +1,4 @@
-From 0bd2bf5d4d52fac516ed6064f9d3f240a2eff0b1 Mon Sep 17 00:00:00 2001
+From 0115e7531441c9edae831d3b59ecaa038ebd4798 Mon Sep 17 00:00:00 2001
 From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
 Date: Wed, 1 Mar 2023 20:06:56 +0100
 Subject: [PATCH] imx8mp-irma6r2: Set lpj=32000
@@ -23,5 +23,5 @@ index 394cce3f5b8..c1803e2846d 100644
  	"bootscript=echo Running bootscript from mmc ...; " \
  		"source\0" \
 -- 
-2.46.0
+2.44.1
 

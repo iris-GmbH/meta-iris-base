@@ -1,4 +1,4 @@
-From a3128a7778cabb218a2f3a9229658e94975595d4 Mon Sep 17 00:00:00 2001
+From 4862187f99990c6de84505c944640fecc35121aa Mon Sep 17 00:00:00 2001
 From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
 Date: Fri, 11 Mar 2022 09:32:10 +0100
 Subject: [PATCH] imx8mp-irma6r2: Adapt device tree files to our needs
@@ -12,11 +12,11 @@ Signed-off-by: Jasper Orschulko <jasper@fancydomain.eu>
  3 files changed, 146 insertions(+), 198 deletions(-)
 
 diff --git a/arch/arm/dts/Makefile b/arch/arm/dts/Makefile
-index ceec5c074a4..b8d6ad0e0bd 100644
+index e494d16ffce..c048ab7e0b3 100644
 --- a/arch/arm/dts/Makefile
 +++ b/arch/arm/dts/Makefile
-@@ -1074,6 +1074,7 @@ dtb-$(CONFIG_ARCH_IMX8M) += \
- 	imx8mp-dhcom-pdk2.dtb \
+@@ -1168,6 +1168,7 @@ dtb-$(CONFIG_ARCH_IMX8M) += \
+ 	imx8mp-dhcom-pdk3-overlay-rev100.dtbo \
  	imx8mp-ddr4-evk.dtb \
  	imx8mp-evk.dtb \
 +	imx8mp-irma6r2.dtb \
@@ -24,43 +24,50 @@ index ceec5c074a4..b8d6ad0e0bd 100644
  	imx8mp-msc-sm2s.dtb \
  	imx8mp-phyboard-pollux-rdk.dtb \
 diff --git a/arch/arm/dts/imx8mp-irma6r2-u-boot.dtsi b/arch/arm/dts/imx8mp-irma6r2-u-boot.dtsi
-index 4ca65cd8ae0..6a6a1556d01 100644
+index 445f45214b0..15d6d96f0c2 100644
 --- a/arch/arm/dts/imx8mp-irma6r2-u-boot.dtsi
 +++ b/arch/arm/dts/imx8mp-irma6r2-u-boot.dtsi
-@@ -148,11 +148,15 @@
- 	u-boot,dm-spl;
+@@ -61,11 +61,11 @@
+ 	};
  };
  
 -&pinctrl_i2c1 {
-+&i2c4 {
- 	u-boot,dm-spl;
++&pinctrl_i2c3 {
+ 	bootph-all;
  };
  
 -&pinctrl_i2c1_gpio {
-+&pinctrl_i2c3 {
-+	u-boot,dm-spl;
-+};
-+
 +&pinctrl_i2c3_gpio {
- 	u-boot,dm-spl;
+ 	bootph-all;
  };
  
-@@ -185,11 +189,11 @@
- 	u-boot,dm-spl;
+@@ -73,11 +73,11 @@
+ 	bootph-all;
  };
  
 -&{/soc@0/bus@30800000/i2c@30a20000/pmic@25} {
 +&{/soc@0/bus@30800000/i2c@30a40000/pmic@25} {
- 	u-boot,dm-spl;
+ 	bootph-all;
  };
  
 -&{/soc@0/bus@30800000/i2c@30a20000/pmic@25/regulators} {
 +&{/soc@0/bus@30800000/i2c@30a40000/pmic@25/regulators} {
- 	u-boot,dm-spl;
+ 	bootph-all;
  };
  
+@@ -146,6 +146,10 @@
+ 	bootph-pre-ram;
+ };
+ 
++&i2c4 {
++	bootph-pre-ram;
++};
++
+ &usdhc1 {
+ 	bootph-pre-ram;
+ 	assigned-clocks = <&clk IMX8MP_CLK_USDHC1>;
 diff --git a/arch/arm/dts/imx8mp-irma6r2.dts b/arch/arm/dts/imx8mp-irma6r2.dts
-index f6f33cb7695..e7a301df8c1 100644
+index 36b860125e0..2d859f0af45 100644
 --- a/arch/arm/dts/imx8mp-irma6r2.dts
 +++ b/arch/arm/dts/imx8mp-irma6r2.dts
 @@ -1,5 +1,6 @@
@@ -346,7 +353,7 @@ index f6f33cb7695..e7a301df8c1 100644
  };
  
  &lcdif1 {
-@@ -534,36 +482,28 @@
+@@ -536,36 +484,28 @@
  	};
  };
  
@@ -394,7 +401,7 @@ index f6f33cb7695..e7a301df8c1 100644
  	status = "okay";
  };
  
-@@ -653,39 +593,14 @@
+@@ -655,39 +595,14 @@
  		fsl,pins = <
  			MX8MP_IOMUXC_ENET_MDC__ENET_QOS_MDC				0x2
  			MX8MP_IOMUXC_ENET_MDIO__ENET_QOS_MDIO				0x2
@@ -442,7 +449,7 @@ index f6f33cb7695..e7a301df8c1 100644
  		>;
  	};
  
-@@ -753,6 +668,13 @@
+@@ -755,6 +670,13 @@
  		>;
  	};
  
@@ -456,7 +463,7 @@ index f6f33cb7695..e7a301df8c1 100644
  	pinctrl_i2c5: i2c5grp {
  		fsl,pins = <
  			MX8MP_IOMUXC_SPDIF_RX__I2C5_SDA         0x400001c2
-@@ -819,6 +741,13 @@
+@@ -821,6 +743,13 @@
  		>;
  	};
  
@@ -470,7 +477,7 @@ index f6f33cb7695..e7a301df8c1 100644
  	pinctrl_typec: typec1grp {
  		fsl,pins = <
  			MX8MP_IOMUXC_SAI1_TXD7__GPIO4_IO19	0x1c4
-@@ -838,6 +767,20 @@
+@@ -840,6 +769,20 @@
  		>;
  	};
  
@@ -492,5 +499,5 @@ index f6f33cb7695..e7a301df8c1 100644
  		fsl,pins = <
  			MX8MP_IOMUXC_GPIO1_IO14__USB2_PWR		0x10
 -- 
-2.46.0
+2.44.1
 

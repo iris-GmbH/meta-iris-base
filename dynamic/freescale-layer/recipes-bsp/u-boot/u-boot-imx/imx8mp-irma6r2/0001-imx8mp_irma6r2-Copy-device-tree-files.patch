@@ -1,4 +1,4 @@
-From 4512f39ccfde087137e664e05385ad49d3bec07f Mon Sep 17 00:00:00 2001
+From ac86882fdd400ad622fdbbfdf03ba9c054a90322 Mon Sep 17 00:00:00 2001
 From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
 Date: Wed, 15 Feb 2023 11:25:31 +0100
 Subject: [PATCH] imx8mp_irma6r2: Copy device tree files
@@ -8,18 +8,18 @@ Based on evk: Based on: 181859317bfafef1da79c59a4498650168ad9df6 lf-5.15.71-2.2.
 Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
 Signed-off-by: Jasper Orschulko <jasper@fancydomain.eu>
 ---
- arch/arm/dts/imx8mp-irma6r2-u-boot.dtsi | 240 ++++++
- arch/arm/dts/imx8mp-irma6r2.dts         | 942 ++++++++++++++++++++++++
- 2 files changed, 1182 insertions(+)
+ arch/arm/dts/imx8mp-irma6r2-u-boot.dtsi | 216 ++++++
+ arch/arm/dts/imx8mp-irma6r2.dts         | 944 ++++++++++++++++++++++++
+ 2 files changed, 1160 insertions(+)
  create mode 100644 arch/arm/dts/imx8mp-irma6r2-u-boot.dtsi
  create mode 100644 arch/arm/dts/imx8mp-irma6r2.dts
 
 diff --git a/arch/arm/dts/imx8mp-irma6r2-u-boot.dtsi b/arch/arm/dts/imx8mp-irma6r2-u-boot.dtsi
 new file mode 100644
-index 00000000000..4ca65cd8ae0
+index 00000000000..445f45214b0
 --- /dev/null
 +++ b/arch/arm/dts/imx8mp-irma6r2-u-boot.dtsi
-@@ -0,0 +1,240 @@
+@@ -0,0 +1,216 @@
 +// SPDX-License-Identifier: GPL-2.0+
 +/*
 + * Copyright 2019, 2021 NXP
@@ -32,13 +32,7 @@ index 00000000000..4ca65cd8ae0
 +	wdt-reboot {
 +		compatible = "wdt-reboot";
 +		wdt = <&wdog1>;
-+		u-boot,dm-spl;
-+	};
-+	firmware {
-+		optee {
-+			compatible = "linaro,optee-tz";
-+			method = "smc";
-+		};
++		bootph-pre-ram;
 +	};
 +
 +	mcu_rdc {
@@ -89,104 +83,100 @@ index 00000000000..4ca65cd8ae0
 +	};
 +};
 +
-+&pinctrl_reg_usdhc2_vmmc {
-+	u-boot,dm-spl;
-+};
-+
-+&reg_usdhc2_vmmc {
-+	u-boot,dm-spl;
-+	u-boot,off-on-delay-us = <20000>;
-+};
-+
-+&pinctrl_uart2 {
-+	u-boot,dm-spl;
-+};
-+
-+&pinctrl_usdhc2_gpio {
-+	u-boot,dm-spl;
-+};
-+
-+&pinctrl_usdhc2 {
-+	u-boot,dm-spl;
-+};
-+
-+&pinctrl_usdhc3 {
-+	u-boot,dm-spl;
-+};
-+
-+&pinctrl_wdog {
-+	u-boot,dm-spl;
-+};
-+
-+&gpio1 {
-+	u-boot,dm-spl;
-+};
-+
-+&gpio2 {
-+	u-boot,dm-spl;
-+};
-+
-+&gpio3 {
-+	u-boot,dm-spl;
-+};
-+
-+&gpio4 {
-+	u-boot,dm-spl;
-+};
-+
-+&gpio5 {
-+	u-boot,dm-spl;
-+};
-+
-+&uart2 {
-+	u-boot,dm-spl;
-+};
-+
-+&crypto {
-+	u-boot,dm-spl;
-+};
-+
-+&sec_jr0 {
-+	u-boot,dm-spl;
-+};
-+
-+&sec_jr1 {
-+	u-boot,dm-spl;
-+};
-+
-+&sec_jr2 {
-+	u-boot,dm-spl;
-+};
-+
-+&i2c1 {
-+	u-boot,dm-spl;
-+};
-+
-+&i2c2 {
-+	u-boot,dm-spl;
-+};
-+
-+&i2c3 {
-+	u-boot,dm-spl;
-+};
-+
 +&pinctrl_i2c1 {
-+	u-boot,dm-spl;
++	bootph-all;
 +};
 +
 +&pinctrl_i2c1_gpio {
-+	u-boot,dm-spl;
++	bootph-all;
++};
++
++&pinctrl_pmic {
++	bootph-all;
++};
++
++&{/soc@0/bus@30800000/i2c@30a20000/pmic@25} {
++	bootph-all;
++};
++
++&{/soc@0/bus@30800000/i2c@30a20000/pmic@25/regulators} {
++	bootph-all;
++};
++
++&reg_usdhc2_vmmc {
++	bootph-pre-ram;
++	u-boot,off-on-delay-us = <20000>;
++};
++
++&pinctrl_reg_usdhc2_vmmc {
++	bootph-pre-ram;
++};
++
++&pinctrl_uart2 {
++	bootph-pre-ram;
++};
++
++&pinctrl_usdhc2_gpio {
++	bootph-pre-ram;
++};
++
++&pinctrl_usdhc2 {
++	bootph-pre-ram;
++};
++
++&pinctrl_usdhc3 {
++	bootph-pre-ram;
++};
++
++&pinctrl_wdog {
++	bootph-pre-ram;
++};
++
++&gpio1 {
++	bootph-pre-ram;
++};
++
++&gpio2 {
++	bootph-pre-ram;
++};
++
++&gpio3 {
++	bootph-pre-ram;
++};
++
++&gpio4 {
++	bootph-pre-ram;
++};
++
++&gpio5 {
++	bootph-pre-ram;
++};
++
++&uart2 {
++	bootph-pre-ram;
++};
++
++&i2c1 {
++	bootph-all;
++};
++
++&i2c2 {
++	bootph-pre-ram;
++};
++
++&i2c3 {
++	bootph-pre-ram;
 +};
 +
 +&usdhc1 {
-+	u-boot,dm-spl;
++	bootph-pre-ram;
 +	assigned-clocks = <&clk IMX8MP_CLK_USDHC1>;
 +	assigned-clock-rates = <400000000>;
 +	assigned-clock-parents = <&clk IMX8MP_SYS_PLL1_400M>;
 +};
 +
 +&usdhc2 {
-+	u-boot,dm-spl;
++	bootph-pre-ram;
 +	sd-uhs-sdr104;
 +	sd-uhs-ddr50;
 +	assigned-clocks = <&clk IMX8MP_CLK_USDHC2>;
@@ -195,7 +185,7 @@ index 00000000000..4ca65cd8ae0
 +};
 +
 +&usdhc3 {
-+	u-boot,dm-spl;
++	bootph-pre-ram;
 +	mmc-hs400-1_8v;
 +	mmc-hs400-enhanced-strobe;
 +	assigned-clocks = <&clk IMX8MP_CLK_USDHC3>;
@@ -204,25 +194,7 @@ index 00000000000..4ca65cd8ae0
 +};
 +
 +&wdog1 {
-+	u-boot,dm-spl;
-+};
-+
-+&{/soc@0/bus@30800000/i2c@30a20000/pmic@25} {
-+	u-boot,dm-spl;
-+};
-+
-+&{/soc@0/bus@30800000/i2c@30a20000/pmic@25/regulators} {
-+	u-boot,dm-spl;
-+};
-+
-+&pinctrl_pmic {
-+	u-boot,dm-spl;
-+};
-+
-+&eqos {
-+	/delete-property/ assigned-clocks;
-+	/delete-property/ assigned-clock-parents;
-+	/delete-property/ assigned-clock-rates;
++	bootph-pre-ram;
 +};
 +
 +&ethphy0 {
@@ -247,6 +219,10 @@ index 00000000000..4ca65cd8ae0
 +	/delete-property/ assigned-clock-rates;
 +};
 +
++&media_blk_ctrl {
++	assigned-clock-rates = <500000000>, <200000000>;
++};
++
 +&usb_dwc3_0 {
 +	compatible = "fsl,imx8mq-dwc3", "snps,dwc3";
 +	assigned-clocks = <&clk IMX8MP_CLK_HSIO_AXI>;
@@ -262,10 +238,10 @@ index 00000000000..4ca65cd8ae0
 +};
 diff --git a/arch/arm/dts/imx8mp-irma6r2.dts b/arch/arm/dts/imx8mp-irma6r2.dts
 new file mode 100644
-index 00000000000..f6f33cb7695
+index 00000000000..36b860125e0
 --- /dev/null
 +++ b/arch/arm/dts/imx8mp-irma6r2.dts
-@@ -0,0 +1,942 @@
+@@ -0,0 +1,944 @@
 +// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
 +/*
 + * Copyright 2019 NXP
@@ -789,15 +765,17 @@ index 00000000000..f6f33cb7695
 +&mipi_dsi {
 +	status = "okay";
 +
-+	port@1 {
-+		dsim_to_adv7535: endpoint {
-+			remote-endpoint = <&adv7535_from_dsim>;
++	ports {
++		port@1 {
++			dsim_to_adv7535: endpoint {
++				remote-endpoint = <&adv7535_from_dsim>;
++			};
 +		};
-+	};
 +
-+	port@2 {
-+		dsim_to_rm67191: endpoint {
-+			remote-endpoint = <&rm67191_from_dsim>;
++		port@2 {
++			dsim_to_rm67191: endpoint {
++				remote-endpoint = <&rm67191_from_dsim>;
++			};
 +		};
 +	};
 +};
@@ -1209,5 +1187,5 @@ index 00000000000..f6f33cb7695
 +	};
 +};
 -- 
-2.46.0
+2.44.1
 

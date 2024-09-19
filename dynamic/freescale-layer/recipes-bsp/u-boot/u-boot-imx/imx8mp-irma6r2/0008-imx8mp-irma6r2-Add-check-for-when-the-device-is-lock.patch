@@ -1,4 +1,4 @@
-From 47fc11c94d10cbe09d7f6ae3cf265fd7dee5ba83 Mon Sep 17 00:00:00 2001
+From faf2f77f4de8e6cbd83e137da536189119819678 Mon Sep 17 00:00:00 2001
 From: "philipp.schoewe" <Philipp.Schoewe@iris-sensing.com>
 Date: Tue, 16 Aug 2022 08:41:20 +0200
 Subject: [PATCH] imx8mp-irma6r2: Add check for when the device is locked to
@@ -11,18 +11,18 @@ Signed-off-by: Jasper Orschulko <jasper@fancydomain.eu>
  1 file changed, 16 insertions(+), 1 deletion(-)
 
 diff --git a/board/freescale/imx8mp_irma6r2/imx8mp_irma6r2.c b/board/freescale/imx8mp_irma6r2/imx8mp_irma6r2.c
-index e3d9b15b023..3af9db0961b 100644
+index fbb45c84666..d731a56c4dd 100644
 --- a/board/freescale/imx8mp_irma6r2/imx8mp_irma6r2.c
 +++ b/board/freescale/imx8mp_irma6r2/imx8mp_irma6r2.c
-@@ -31,6 +31,7 @@
- #include <linux/arm-smccc.h>
+@@ -28,6 +28,7 @@
+ #include <dwc3-uboot.h>
  #include "interface_unit.h"
  #include <mmc.h>
 +#include <fuse.h>
  
  DECLARE_GLOBAL_DATA_PTR;
  
-@@ -494,6 +495,16 @@ int board_init(void)
+@@ -434,6 +435,16 @@ int board_init(void)
  	return 0;
  }
  
@@ -39,7 +39,7 @@ index e3d9b15b023..3af9db0961b 100644
  void board_autogenerate_bootcmd (void)
  {
      int firmware_env = env_get_ulong("firmware", 10, 0);
-@@ -557,7 +568,11 @@ void board_autogenerate_bootcmd (void)
+@@ -497,7 +508,11 @@ void board_autogenerate_bootcmd (void)
  	if (IU_read_eeprom() == 0) {
  		IU_print_eeprom_content();
  		IU_set_mac("eth1addr");
@@ -53,5 +53,5 @@ index e3d9b15b023..3af9db0961b 100644
  	
  	if (nfs_boot) {
 -- 
-2.46.0
+2.44.1
 

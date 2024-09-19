@@ -12,10 +12,10 @@ Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
  2 files changed, 50 insertions(+), 4 deletions(-)
 
 diff --git a/board/freescale/imx8mp_evk/imx8mp_evk.c b/board/freescale/imx8mp_evk/imx8mp_evk.c
-index 5a8f619763e..874bda0ba9e 100644
+index 9fa9b4c8071..7c367372ccc 100644
 --- a/board/freescale/imx8mp_evk/imx8mp_evk.c
 +++ b/board/freescale/imx8mp_evk/imx8mp_evk.c
-@@ -470,6 +470,52 @@ int board_init(void)
+@@ -430,6 +430,52 @@ int board_init(void)
  	return 0;
  }
  
@@ -68,7 +68,7 @@ index 5a8f619763e..874bda0ba9e 100644
  int board_late_init(void)
  {
  #ifdef CONFIG_ENV_IS_IN_MMC
-@@ -480,6 +526,7 @@ int board_late_init(void)
+@@ -440,6 +486,7 @@ int board_late_init(void)
  	env_set("board_rev", "iMX8MP");
  #endif
  

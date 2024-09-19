@@ -1,4 +1,4 @@
-From db1d8c18a312d428e92b13fe695716c84448fc3d Mon Sep 17 00:00:00 2001
+From 854002f779a6b69b8d9eeb46a601324c46264b4d Mon Sep 17 00:00:00 2001
 From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
 Date: Tue, 19 Apr 2022 11:32:41 +0200
 Subject: [PATCH] imx8mp-evk: Add cmd for booting signed fitImage

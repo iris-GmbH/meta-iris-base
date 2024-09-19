@@ -1,4 +1,4 @@
-From 16d37f7ae755b3840f28064f46d6b212f9d187c9 Mon Sep 17 00:00:00 2001
+From c0c39029a36e1499ccedb0aaa4e167b9476a9036 Mon Sep 17 00:00:00 2001
 From: "philipp.schoewe" <Philipp.Schoewe@iris-sensing.com>
 Date: Fri, 8 Jul 2022 14:20:18 +0200
 Subject: [PATCH] imx8mp-irma6r2: Add IU EEPROM readout for configuring mac
@@ -119,7 +119,7 @@ index 00000000000..c88f93496ac
 +
 +#endif /* BOARD_IMX8MP_I2C_MEMORY_H_ */
 diff --git a/board/freescale/imx8mp_irma6r2/imx8mp_irma6r2.c b/board/freescale/imx8mp_irma6r2/imx8mp_irma6r2.c
-index aa448ec9267..e3d9b15b023 100644
+index 3a9e91d1ee4..fbb45c84666 100644
 --- a/board/freescale/imx8mp_irma6r2/imx8mp_irma6r2.c
 +++ b/board/freescale/imx8mp_irma6r2/imx8mp_irma6r2.c
 @@ -1,5 +1,6 @@
@@ -129,10 +129,10 @@ index aa448ec9267..e3d9b15b023 100644
   * Copyright 2019 NXP
   */
  
-@@ -28,10 +29,13 @@
+@@ -25,10 +26,13 @@
+ #include "../common/tcpc.h"
+ #include <usb.h>
  #include <dwc3-uboot.h>
- #include <imx_sip.h>
- #include <linux/arm-smccc.h>
 +#include "interface_unit.h"
  #include <mmc.h>
  
@@ -143,7 +143,7 @@ index aa448ec9267..e3d9b15b023 100644
  #define UART_PAD_CTRL	(PAD_CTL_DSE6 | PAD_CTL_FSEL1)
  #define WDOG_PAD_CTRL	(PAD_CTL_DSE6 | PAD_CTL_ODE | PAD_CTL_PUE | PAD_CTL_PE)
  
-@@ -548,13 +552,25 @@ void board_autogenerate_bootcmd (void)
+@@ -488,13 +492,25 @@ void board_autogenerate_bootcmd (void)
  #endif
      }
  
@@ -346,5 +346,5 @@ index 00000000000..60ff24b9c50
 +
 +#endif /* BOARD_IMX8MP_INTERFACE_UNIT_EEPROM_H_ */
 -- 
-2.46.0
+2.44.1
 

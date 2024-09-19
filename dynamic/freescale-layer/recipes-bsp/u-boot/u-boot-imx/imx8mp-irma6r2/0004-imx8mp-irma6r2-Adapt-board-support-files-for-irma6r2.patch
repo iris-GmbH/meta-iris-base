@@ -1,4 +1,4 @@
-From c88fcd5de4e984e7d67907461f76515133b20d6b Mon Sep 17 00:00:00 2001
+From 714f0143aa9ae87b1d27a92424f4138bcb13d375 Mon Sep 17 00:00:00 2001
 From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
 Date: Mon, 13 Feb 2023 11:11:31 +0100
 Subject: [PATCH] imx8mp-irma6r2: Adapt board support files for irma6r2 for our
@@ -12,17 +12,17 @@ Signed-off-by: Jasper Orschulko <jasper@fancydomain.eu>
  board/freescale/imx8mp_irma6r2/MAINTAINERS    |   11 +-
  board/freescale/imx8mp_irma6r2/Makefile       |    8 +-
  board/freescale/imx8mp_irma6r2/ddr4_timing.c  | 1250 +++++++++++++++++
- .../freescale/imx8mp_irma6r2/imx8mp_irma6r2.c |  123 +-
+ .../freescale/imx8mp_irma6r2/imx8mp_irma6r2.c |  113 +-
  board/freescale/imx8mp_irma6r2/spl.c          |    3 +
  include/configs/imx8mp_irma6r2.h              |   51 +-
- 8 files changed, 1377 insertions(+), 88 deletions(-)
+ 8 files changed, 1371 insertions(+), 84 deletions(-)
  create mode 100644 board/freescale/imx8mp_irma6r2/ddr4_timing.c
 
 diff --git a/arch/arm/mach-imx/imx8m/Kconfig b/arch/arm/mach-imx/imx8m/Kconfig
-index b124027910d..c4cff076dd2 100644
+index 473cfa8e5e3..c8140e94169 100644
 --- a/arch/arm/mach-imx/imx8m/Kconfig
 +++ b/arch/arm/mach-imx/imx8m/Kconfig
-@@ -337,6 +337,16 @@ config TARGET_IMX8MP_DDR4_EVK
+@@ -336,6 +336,16 @@ config TARGET_IMX8MP_DDR4_EVK
  	select ARCH_MISC_INIT
  	select SPL_CRYPTO if SPL
  
@@ -38,9 +38,9 @@ index b124027910d..c4cff076dd2 100644
 +
  config TARGET_PICO_IMX8MQ
  	bool "Support Technexion Pico iMX8MQ"
- 	select BINMAN
-@@ -467,6 +477,7 @@ source "board/freescale/imx8mm_evk/Kconfig"
- source "board/freescale/imx8mm_val/Kconfig"
+ 	select IMX8MQ
+@@ -465,6 +475,7 @@ source "board/freescale/imx8mm_ab2/Kconfig"
+ source "board/freescale/imx8mm_evk/Kconfig"
  source "board/freescale/imx8mn_evk/Kconfig"
  source "board/freescale/imx8mp_evk/Kconfig"
 +source "board/freescale/imx8mp_irma6r2/Kconfig"
@@ -1369,29 +1369,10 @@ index 00000000000..c0c7248827d
 +};
 +
 diff --git a/board/freescale/imx8mp_irma6r2/imx8mp_irma6r2.c b/board/freescale/imx8mp_irma6r2/imx8mp_irma6r2.c
-index 868c79390af..aa448ec9267 100644
+index 7c367372ccc..3a9e91d1ee4 100644
 --- a/board/freescale/imx8mp_irma6r2/imx8mp_irma6r2.c
 +++ b/board/freescale/imx8mp_irma6r2/imx8mp_irma6r2.c
-@@ -431,12 +431,14 @@ static int setup_eqos(void)
- 	struct iomuxc_gpr_base_regs *gpr =
- 		(struct iomuxc_gpr_base_regs *)IOMUXC_GPR_BASE_ADDR;
- 
--	/* set INTF as RGMII, enable RGMII TXC clock */
-+	/* set INTF as RMII */
- 	clrsetbits_le32(&gpr->gpr[1],
--			IOMUXC_GPR_GPR1_GPR_ENET_QOS_INTF_SEL_MASK, BIT(16));
--	setbits_le32(&gpr->gpr[1], BIT(19) | BIT(21));
-+			IOMUXC_GPR_GPR1_GPR_ENET_QOS_INTF_SEL_MASK, BIT(18));
- 
--	return set_clk_eqos(ENET_125MHZ);
-+	/* GPR_ENET_QOS_CLK_GEN_EN (Bit19), IOMUXC_GPR_ENET_QOS_CLK_TX_CLK_SEL (Bit20)=1 loopback*/
-+	setbits_le32(&gpr->gpr[1], BIT(19) | BIT(20));
-+
-+	return set_clk_eqos(ENET_50MHZ);
- }
- 
- #if CONFIG_IS_ENABLED(NET)
-@@ -488,50 +490,77 @@ int board_init(void)
+@@ -430,50 +430,77 @@ int board_init(void)
  	return 0;
  }
  
@@ -1511,7 +1492,7 @@ index 868c79390af..aa448ec9267 100644
  }
  
  int board_late_init(void)
-@@ -544,7 +573,7 @@ int board_late_init(void)
+@@ -486,7 +513,7 @@ int board_late_init(void)
  	env_set("board_rev", "iMX8MP");
  #endif
  
@@ -1521,10 +1502,10 @@ index 868c79390af..aa448ec9267 100644
  }
  
 diff --git a/board/freescale/imx8mp_irma6r2/spl.c b/board/freescale/imx8mp_irma6r2/spl.c
-index 362751e23a3..97e484dfc56 100644
+index b7b21f0b490..2cf78a7a486 100644
 --- a/board/freescale/imx8mp_irma6r2/spl.c
 +++ b/board/freescale/imx8mp_irma6r2/spl.c
-@@ -124,6 +124,9 @@ int power_init_board(void)
+@@ -128,6 +128,9 @@ int power_init_board(void)
  	pmic_reg_write(dev, PCA9450_BUCK6OUT, 0x18);
  #endif
  
@@ -1642,5 +1623,5 @@ index 9d34c54d66d..394cce3f5b8 100644
  #define CFG_MXC_UART_BASE		UART2_BASE_ADDR
  
 -- 
-2.46.0
+2.44.1
 

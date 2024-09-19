@@ -1,4 +1,4 @@
-From ca7817efd25ba4219235fbd82fb06e6334b68fcf Mon Sep 17 00:00:00 2001
+From ee914946a40edd5cdbb62f6674f0856f00056849 Mon Sep 17 00:00:00 2001
 From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
 Date: Wed, 15 Feb 2023 11:33:48 +0100
 Subject: [PATCH] imx8mp-irma6r2: Copy board support files for irma6r2
@@ -14,11 +14,11 @@ Signed-off-by: Jasper Orschulko <jasper@fancydomain.eu>
  board/freescale/imx8mp_irma6r2/Kconfig        |  15 +
  board/freescale/imx8mp_irma6r2/MAINTAINERS    |   6 +
  board/freescale/imx8mp_irma6r2/Makefile       |  17 +
- .../freescale/imx8mp_irma6r2/imx8mp_irma6r2.c | 578 ++++++++++++++++++
+ .../freescale/imx8mp_irma6r2/imx8mp_irma6r2.c | 520 ++++++++++++++++++
  .../imx8mp_irma6r2/imximage-8mp-lpddr4.cfg    |   9 +
- board/freescale/imx8mp_irma6r2/spl.c          | 179 ++++++
- include/configs/imx8mp_irma6r2.h              | 189 ++++++
- 7 files changed, 993 insertions(+)
+ board/freescale/imx8mp_irma6r2/spl.c          | 183 ++++++
+ include/configs/imx8mp_irma6r2.h              | 189 +++++++
+ 7 files changed, 939 insertions(+)
  create mode 100644 board/freescale/imx8mp_irma6r2/Kconfig
  create mode 100644 board/freescale/imx8mp_irma6r2/MAINTAINERS
  create mode 100644 board/freescale/imx8mp_irma6r2/Makefile
@@ -85,16 +85,15 @@ index 00000000000..1421e46628a
 +endif
 diff --git a/board/freescale/imx8mp_irma6r2/imx8mp_irma6r2.c b/board/freescale/imx8mp_irma6r2/imx8mp_irma6r2.c
 new file mode 100644
-index 00000000000..868c79390af
+index 00000000000..7c367372ccc
 --- /dev/null
 +++ b/board/freescale/imx8mp_irma6r2/imx8mp_irma6r2.c
-@@ -0,0 +1,578 @@
+@@ -0,0 +1,520 @@
 +// SPDX-License-Identifier: GPL-2.0+
 +/*
 + * Copyright 2019 NXP
 + */
 +
-+#include <common.h>
 +#include <efi_loader.h>
 +#include <env.h>
 +#include <errno.h>
@@ -117,8 +116,6 @@ index 00000000000..868c79390af
 +#include "../common/tcpc.h"
 +#include <usb.h>
 +#include <dwc3-uboot.h>
-+#include <imx_sip.h>
-+#include <linux/arm-smccc.h>
 +#include <mmc.h>
 +
 +DECLARE_GLOBAL_DATA_PTR;
@@ -154,10 +151,10 @@ index 00000000000..868c79390af
 +
 +struct efi_capsule_update_info update_info = {
 +	.dfu_string = "mmc 2=flash-bin raw 0 0x2000 mmcpart 1",
++	.num_images = ARRAY_SIZE(fw_images),
 +	.images = fw_images,
 +};
 +
-+u8 num_image_type_guids = ARRAY_SIZE(fw_images);
 +#endif /* EFI_HAVE_CAPSULE_SUPPORT */
 +
 +int board_early_init_f(void)
@@ -398,9 +395,9 @@ index 00000000000..868c79390af
 +	.power_down_scale = 2,
 +};
 +
-+int usb_gadget_handle_interrupts(int index)
++int dm_usb_gadget_handle_interrupts(struct udevice *dev)
 +{
-+	dwc3_uboot_handle_interrupt(index);
++	dwc3_uboot_handle_interrupt(dev);
 +	return 0;
 +}
 +
@@ -447,9 +444,9 @@ index 00000000000..868c79390af
 +int board_usb_init(int index, enum usb_init_type init)
 +{
 +	int ret = 0;
-+	imx8m_usb_power(index, true);
 +
 +	if (index == 0 && init == USB_INIT_DEVICE) {
++		imx8m_usb_power(index, true);
 +#ifdef CONFIG_USB_TCPC
 +		ret = tcpc_setup_ufp_mode(&port1);
 +		if (ret)
@@ -472,13 +469,12 @@ index 00000000000..868c79390af
 +	int ret = 0;
 +	if (index == 0 && init == USB_INIT_DEVICE) {
 +		dwc3_uboot_exit(index);
++		imx8m_usb_power(index, false);
 +	} else if (index == 0 && init == USB_INIT_HOST) {
 +#ifdef CONFIG_USB_TCPC
 +		ret = tcpc_disable_src_vbus(&port1);
 +#endif
 +	}
-+
-+	imx8m_usb_power(index, false);
 +
 +	return ret;
 +}
@@ -508,59 +504,11 @@ index 00000000000..868c79390af
 +#endif
 +#endif
 +
-+static void setup_fec(void)
-+{
-+	struct iomuxc_gpr_base_regs *gpr =
-+		(struct iomuxc_gpr_base_regs *)IOMUXC_GPR_BASE_ADDR;
-+
-+	/* Enable RGMII TX clk output */
-+	setbits_le32(&gpr->gpr[1], BIT(22));
-+}
-+
-+static int setup_eqos(void)
-+{
-+	struct iomuxc_gpr_base_regs *gpr =
-+		(struct iomuxc_gpr_base_regs *)IOMUXC_GPR_BASE_ADDR;
-+
-+	/* set INTF as RGMII, enable RGMII TXC clock */
-+	clrsetbits_le32(&gpr->gpr[1],
-+			IOMUXC_GPR_GPR1_GPR_ENET_QOS_INTF_SEL_MASK, BIT(16));
-+	setbits_le32(&gpr->gpr[1], BIT(19) | BIT(21));
-+
-+	return set_clk_eqos(ENET_125MHZ);
-+}
-+
-+#if CONFIG_IS_ENABLED(NET)
-+int board_phy_config(struct phy_device *phydev)
-+{
-+	if (phydev->drv->config)
-+		phydev->drv->config(phydev);
-+	return 0;
-+}
-+#endif
-+
-+#define DISPMIX				13
-+#define MIPI				15
-+
 +int board_init(void)
 +{
-+	struct arm_smccc_res res;
-+
 +#ifdef CONFIG_USB_TCPC
 +	setup_typec();
-+
-+	/* Enable USB power default */
-+	imx8m_usb_power(0, true);
-+	imx8m_usb_power(1, true);
 +#endif
-+
-+	if (CONFIG_IS_ENABLED(FEC_MXC)) {
-+		setup_fec();
-+	}
-+
-+	if (CONFIG_IS_ENABLED(DWC_ETH_QOS)) {
-+		setup_eqos();
-+	}
 +
 +#ifdef CONFIG_NAND_MXS
 +	setup_gpmi_nand();
@@ -569,12 +517,6 @@ index 00000000000..868c79390af
 +#if defined(CONFIG_USB_DWC3) || defined(CONFIG_USB_XHCI_IMX8M)
 +	init_usb_clk();
 +#endif
-+
-+	/* enable the dispmix & mipi phy power domain */
-+	arm_smccc_smc(IMX_SIP_GPC, IMX_SIP_GPC_PM_DOMAIN,
-+		      DISPMIX, true, 0, 0, 0, 0, &res);
-+	arm_smccc_smc(IMX_SIP_GPC, IMX_SIP_GPC_PM_DOMAIN,
-+		      MIPI, true, 0, 0, 0, 0, &res);
 +
 +	return 0;
 +}
@@ -647,7 +589,7 @@ index 00000000000..868c79390af
 +
 +#ifdef CONFIG_SPL_MMC
 +#define UBOOT_RAW_SECTOR_OFFSET 0x40
-+unsigned long spl_mmc_get_uboot_raw_sector(struct mmc *mmc)
++unsigned long spl_mmc_get_uboot_raw_sector(struct mmc *mmc, unsigned long raw_sect)
 +{
 +	u32 boot_dev = spl_boot_device();
 +	switch (boot_dev) {
@@ -684,10 +626,10 @@ index 00000000000..6dedf1724ab
 +LOADER		u-boot-spl-ddr.bin	0x920000
 diff --git a/board/freescale/imx8mp_irma6r2/spl.c b/board/freescale/imx8mp_irma6r2/spl.c
 new file mode 100644
-index 00000000000..362751e23a3
+index 00000000000..b7b21f0b490
 --- /dev/null
 +++ b/board/freescale/imx8mp_irma6r2/spl.c
-@@ -0,0 +1,179 @@
+@@ -0,0 +1,183 @@
 +// SPDX-License-Identifier: GPL-2.0-or-later
 +/*
 + * Copyright 2018-2019, 2021 NXP
@@ -717,6 +659,7 @@ index 00000000000..362751e23a3
 +#include <fsl_esdhc_imx.h>
 +#include <mmc.h>
 +#include <asm/arch/ddr.h>
++#include <asm/sections.h>
 +
 +DECLARE_GLOBAL_DATA_PTR;
 +
@@ -778,10 +721,10 @@ index 00000000000..362751e23a3
 +
 +	ret = pmic_get("pmic@25", &dev);
 +	if (ret == -ENODEV) {
-+		puts("No pca9450@25\n");
++		puts("No pmic@25\n");
 +		return 0;
 +	}
-+	if (ret != 0)
++	if (ret < 0)
 +		return ret;
 +
 +	/* BUCKxOUT_DVS0/1 control BUCK123 output */
@@ -789,22 +732,25 @@ index 00000000000..362751e23a3
 +
 +#ifdef CONFIG_IMX8M_LPDDR4
 +	/*
-+	 * increase VDD_SOC to typical value 0.95V before first
-+	 * DRAM access, set DVS1 to 0.85v for suspend.
++	 * Increase VDD_SOC to typical value 0.95V before first
++	 * DRAM access, set DVS1 to 0.85V for suspend.
 +	 * Enable DVS control through PMIC_STBY_REQ and
 +	 * set B1_ENMODE=1 (ON by PMIC_ON_REQ=H)
 +	 */
-+#ifdef CONFIG_IMX8M_VDD_SOC_850MV
-+	/* set DVS0 to 0.85v for special case*/
-+	pmic_reg_write(dev, PCA9450_BUCK1OUT_DVS0, 0x14);
-+#else
-+	pmic_reg_write(dev, PCA9450_BUCK1OUT_DVS0, 0x1C);
-+#endif
++	if (CONFIG_IS_ENABLED(IMX8M_VDD_SOC_850MV))
++		pmic_reg_write(dev, PCA9450_BUCK1OUT_DVS0, 0x14);
++	else
++		pmic_reg_write(dev, PCA9450_BUCK1OUT_DVS0, 0x1C);
++
 +	pmic_reg_write(dev, PCA9450_BUCK1OUT_DVS1, 0x14);
 +	pmic_reg_write(dev, PCA9450_BUCK1CTRL, 0x59);
 +
-+	/* Kernel uses OD/OD freq for SOC */
-+	/* To avoid timing risk from SOC to ARM,increase VDD_ARM to OD voltage 0.95v */
++	/*
++	 * Kernel uses OD/OD freq for SOC.
++	 * To avoid timing risk from SOC to ARM,increase VDD_ARM to OD
++	 * voltage 0.95V.
++	 */
++
 +	pmic_reg_write(dev, PCA9450_BUCK2OUT_DVS0, 0x1C);
 +#elif defined(CONFIG_IMX8M_DDR4)
 +	/* DDR4 runs at 3200MTS, uses default ND 0.85v for VDD_SOC and VDD_ARM */
@@ -1063,5 +1009,5 @@ index 00000000000..9d34c54d66d
 +
 +#endif
 -- 
-2.46.0
+2.44.1
 

@@ -1,4 +1,4 @@
-From 56f4a899e2089d464b6c4fef1f1021c6bea142ac Mon Sep 17 00:00:00 2001
+From 6ea517fda6de90d455158709f65ff346192a6311 Mon Sep 17 00:00:00 2001
 From: Ian Dannapel <ian.dannapel@iris-sensing.com>
 Date: Thu, 25 Apr 2024 11:12:11 +0200
 Subject: [PATCH] imx8mp_irma6r2: Use UART 3 for debug output
@@ -13,29 +13,29 @@ Signed-off-by: Jasper Orschulko <jasper@fancydomain.eu>
  4 files changed, 14 insertions(+), 14 deletions(-)
 
 diff --git a/arch/arm/dts/imx8mp-irma6r2-u-boot.dtsi b/arch/arm/dts/imx8mp-irma6r2-u-boot.dtsi
-index 6a6a1556d01..287f127d892 100644
+index 15d6d96f0c2..fd940d2fbac 100644
 --- a/arch/arm/dts/imx8mp-irma6r2-u-boot.dtsi
 +++ b/arch/arm/dts/imx8mp-irma6r2-u-boot.dtsi
-@@ -76,7 +76,7 @@
- 	u-boot,off-on-delay-us = <20000>;
+@@ -90,7 +90,7 @@
+ 	bootph-pre-ram;
  };
  
 -&pinctrl_uart2 {
 +&pinctrl_uart3 {
- 	u-boot,dm-spl;
+ 	bootph-pre-ram;
  };
  
-@@ -116,7 +116,7 @@
- 	u-boot,dm-spl;
+@@ -130,7 +130,7 @@
+ 	bootph-pre-ram;
  };
  
 -&uart2 {
 +&uart3 {
- 	u-boot,dm-spl;
+ 	bootph-pre-ram;
  };
  
 diff --git a/arch/arm/dts/imx8mp-irma6r2.dts b/arch/arm/dts/imx8mp-irma6r2.dts
-index e7a301df8c1..954056a7038 100644
+index 2d859f0af45..9566a20d617 100644
 --- a/arch/arm/dts/imx8mp-irma6r2.dts
 +++ b/arch/arm/dts/imx8mp-irma6r2.dts
 @@ -15,8 +15,8 @@
@@ -49,7 +49,7 @@ index e7a301df8c1..954056a7038 100644
  	};
  
  	gpio-leds {
-@@ -487,14 +487,14 @@
+@@ -489,14 +489,14 @@
  };
  
  &uart2 {
@@ -68,10 +68,10 @@ index e7a301df8c1..954056a7038 100644
  	pinctrl-0 = <&pinctrl_uart3>;
  	status = "okay";
 diff --git a/board/freescale/imx8mp_irma6r2/imx8mp_irma6r2.c b/board/freescale/imx8mp_irma6r2/imx8mp_irma6r2.c
-index 3af9db0961b..291f87796ae 100644
+index d731a56c4dd..799e9906457 100644
 --- a/board/freescale/imx8mp_irma6r2/imx8mp_irma6r2.c
 +++ b/board/freescale/imx8mp_irma6r2/imx8mp_irma6r2.c
-@@ -41,8 +41,8 @@ DECLARE_GLOBAL_DATA_PTR;
+@@ -38,8 +38,8 @@ DECLARE_GLOBAL_DATA_PTR;
  #define WDOG_PAD_CTRL	(PAD_CTL_DSE6 | PAD_CTL_ODE | PAD_CTL_PUE | PAD_CTL_PE)
  
  static iomux_v3_cfg_t const uart_pads[] = {
@@ -82,7 +82,7 @@ index 3af9db0961b..291f87796ae 100644
  };
  
  static iomux_v3_cfg_t const wdog_pads[] = {
-@@ -84,7 +84,7 @@ int board_early_init_f(void)
+@@ -81,7 +81,7 @@ int board_early_init_f(void)
  
  	imx_iomux_v3_setup_multiple_pads(uart_pads, ARRAY_SIZE(uart_pads));
  
@@ -125,5 +125,5 @@ index c1803e2846d..3712cfeea42 100644
  #define CFG_SYS_NAND_BASE           0x20000000
  
 -- 
-2.46.0
+2.44.1
 
