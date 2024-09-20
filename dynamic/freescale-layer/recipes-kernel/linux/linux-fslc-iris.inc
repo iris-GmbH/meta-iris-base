@@ -38,7 +38,7 @@ SRC_URI:append = " \
     file://0024-tc358746.c-Implement-hsync-vsync-polarity-config.patch \
 "
 
-KERNEL_DEVICETREE:append:mx93-nxp-bsp = " freescale/${KERNEL_DEVICETREE_BASENAME}-marec-fpga.dtb"
+KERNEL_DEVICETREE:mx93-nxp-bsp = " freescale/${KERNEL_DEVICETREE_BASENAME}-marec-fpga.dtb"
 
 SRC_URI:append:poky-iris-deploy = "\
     file://deploy.cfg \
