@@ -1,21 +1,21 @@
-From e129be22ecbce1fe4b02652a7018a637c84bfd22 Mon Sep 17 00:00:00 2001
+From 73a74c638037d205e98bb7ceb1ef370b52ee2774 Mon Sep 17 00:00:00 2001
 From: Erik Schumacher <erik.schumacher@iris-sensing.com>
-Date: Wed, 4 Sep 2024 14:03:25 +0000
+Date: Thu, 19 Sep 2024 11:53:33 +0000
 Subject: [PATCH] Add redundand env support
 
 Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
 ---
- configs/imx8mp_evk_defconfig | 6 +++---
- 1 file changed, 3 insertions(+), 3 deletions(-)
+ configs/imx8mp_evk_defconfig | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
 
 diff --git a/configs/imx8mp_evk_defconfig b/configs/imx8mp_evk_defconfig
-index 27172051a08..8dddc317843 100644
+index e853dbd0108..8224b1fa77d 100644
 --- a/configs/imx8mp_evk_defconfig
 +++ b/configs/imx8mp_evk_defconfig
-@@ -6,9 +6,8 @@ CONFIG_SPL_GPIO=y
- CONFIG_SPL_LIBCOMMON_SUPPORT=y
- CONFIG_SPL_LIBGENERIC_SUPPORT=y
+@@ -8,9 +8,8 @@ CONFIG_SPL_LIBGENERIC_SUPPORT=y
  CONFIG_NR_DRAM_BANKS=3
+ CONFIG_SF_DEFAULT_SPEED=40000000
+ CONFIG_SF_DEFAULT_MODE=0
 -CONFIG_ENV_SIZE=0x4000
 +CONFIG_ENV_SIZE=0x2000
  CONFIG_ENV_OFFSET=0x700000
@@ -23,15 +23,21 @@ index 27172051a08..8dddc317843 100644
  CONFIG_DM_GPIO=y
  CONFIG_DEFAULT_DEVICE_TREE="imx8mp-evk"
  CONFIG_SPL_TEXT_BASE=0x920000
-@@ -19,6 +18,7 @@ CONFIG_SPL_SERIAL=y
- CONFIG_SPL_DRIVERS_MISC=y
+@@ -19,11 +18,12 @@ CONFIG_TARGET_IMX8MP_EVK=y
+ CONFIG_OF_LIBFDT_OVERLAY=y
+ CONFIG_SYS_MONITOR_LEN=524288
+ CONFIG_SPL_SERIAL=y
+-CONFIG_SPL_DRIVERS_MISC=y
  CONFIG_SPL_STACK=0x96dff0
  CONFIG_SPL=y
 +CONFIG_ENV_OFFSET_REDUND=0x702000
  CONFIG_IMX_BOOTAUX=y
  CONFIG_IMX_HAB=y
++CONFIG_IMX_SPL_FIT_FDT_SIGNATURE=y
  # CONFIG_CMD_DEKBLOB is not set
-@@ -94,7 +94,7 @@ CONFIG_SPL_OF_CONTROL=y
+ CONFIG_SPL_IMX_ROMAPI_LOADADDR=0x48000000
+ CONFIG_SYS_LOAD_ADDR=0x40400000
+@@ -98,7 +98,7 @@ CONFIG_SPL_OF_CONTROL=y
  CONFIG_ENV_OVERWRITE=y
  CONFIG_ENV_IS_NOWHERE=y
  CONFIG_ENV_IS_IN_MMC=y

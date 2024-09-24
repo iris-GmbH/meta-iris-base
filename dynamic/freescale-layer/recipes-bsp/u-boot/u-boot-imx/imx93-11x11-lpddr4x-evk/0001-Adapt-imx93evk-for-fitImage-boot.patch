@@ -1,4 +1,4 @@
-From 98b9cfd81c009a2afb7a85d76156b325a8328e71 Mon Sep 17 00:00:00 2001
+From 3742e5923608853e2f042856465acae75622d003 Mon Sep 17 00:00:00 2001
 From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
 Date: Mon, 4 Mar 2024 10:24:00 +0100
 Subject: [PATCH] Adapt imx93evk for fitImage boot
@@ -10,10 +10,10 @@ Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
  2 files changed, 61 insertions(+), 19 deletions(-)
 
 diff --git a/board/freescale/imx93_evk/imx93_evk.c b/board/freescale/imx93_evk/imx93_evk.c
-index d0c5d00348b..e686816bc78 100644
+index 105e4d585e3..d20977c0f85 100644
 --- a/board/freescale/imx93_evk/imx93_evk.c
 +++ b/board/freescale/imx93_evk/imx93_evk.c
-@@ -278,6 +278,55 @@ static int setup_eqos(void)
+@@ -259,6 +259,55 @@ int board_phy_config(struct phy_device *phydev)
  	return 0;
  }
  
@@ -69,7 +69,7 @@ index d0c5d00348b..e686816bc78 100644
  static void board_gpio_init(void)
  {
  	struct gpio_desc desc;
-@@ -354,6 +403,7 @@ int board_late_init(void)
+@@ -332,6 +381,7 @@ int board_late_init(void)
  	env_set("board_name", "11X11_EVK");
  	env_set("board_rev", "iMX93");
  #endif
@@ -78,7 +78,7 @@ index d0c5d00348b..e686816bc78 100644
  }
  
 diff --git a/include/configs/imx93_evk.h b/include/configs/imx93_evk.h
-index 218b8a9dfe6..97a4fabf058 100644
+index 27313d272bd..dd96a7aa8ad 100644
 --- a/include/configs/imx93_evk.h
 +++ b/include/configs/imx93_evk.h
 @@ -82,12 +82,21 @@
@@ -131,5 +131,5 @@ index 218b8a9dfe6..97a4fabf058 100644
  /* Link Definitions */
  
 -- 
-2.44.0
+2.46.0
 

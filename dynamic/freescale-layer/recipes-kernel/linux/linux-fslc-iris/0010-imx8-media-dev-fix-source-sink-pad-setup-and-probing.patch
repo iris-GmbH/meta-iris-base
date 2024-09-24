@@ -1,0 +1,64 @@
+From 23fb004a153036406295e756439ed41321c11337 Mon Sep 17 00:00:00 2001
+From: Rouven Czerwinski <r.czerwinski@pengutronix.de>
+Date: Thu, 24 Mar 2022 10:04:31 +0100
+Subject: [PATCH 10/24] imx8-media-dev: fix source sink pad setup and probing
+
+Pads:
+The NXP media driver assumes that there are only sensors connected to
+the CSI interface. However for the bridge we don't want to connect to
+ep0 which is the sink for the parallel input. Hard code it to source_pad
+1 which is the sink port of the MIPI CSI output.
+
+Probing:
+Due to different probing order this probe function will run at a
+different time which leads to the wrong assumption that there are no
+subdevices. By removing this section, the async notifier will be called
+when the subdevices appear and the media linking will run.
+
+Signed-off-by: Rouven Czerwinski <r.czerwinski@pengutronix.de>
+Signed-off-by: Ian Dannapel <ian.dannapel@iris-sensing.com>
+Signed-off-by: Jasper Orschulko <jasper@fancydomain.eu>
+---
+ drivers/staging/media/imx/imx8-media-dev.c | 19 ++-----------------
+ 1 file changed, 2 insertions(+), 17 deletions(-)
+
+diff --git a/drivers/staging/media/imx/imx8-media-dev.c b/drivers/staging/media/imx/imx8-media-dev.c
+index 534fa5a4cd14..3a4a76e7a901 100644
+--- a/drivers/staging/media/imx/imx8-media-dev.c
++++ b/drivers/staging/media/imx/imx8-media-dev.c
+@@ -519,8 +519,8 @@ static int mxc_md_create_links(struct mxc_md *mxc_md)
+ 
+ 			source = &sensor->sd->entity;
+ 			sink = find_entity_by_name(mxc_md, mipi_csi2->sd_name);
+-			source_pad = 0;
+-			sink_pad = source_pad;
++			source_pad = 1;
++			sink_pad = 0;
+ 
+ 			mipi_vc = (mipi_csi2->vchannel) ? 4 : 1;
+ 			for (j = 0; j < mipi_vc; j++) {
+@@ -1107,21 +1107,6 @@ static int mxc_md_probe(struct platform_device *pdev)
+ 			dev_warn(&mxc_md->pdev->dev, "Sensor register failed\n");
+ 			goto clean_ents;
+ 		}
+-
+-		if (!mxc_md->link_status) {
+-			if (mxc_md->valid_num_sensors > 0) {
+-				ret = subdev_notifier_complete(&mxc_md->subdev_notifier);
+-				if (ret < 0)
+-					goto err_register_nf;
+-
+-				mxc_md_clean_unlink_channels(mxc_md);
+-			} else {
+-				/* no sensors connected */
+-				mxc_md_unregister_all(mxc_md);
+-				v4l2_async_nf_unregister(&mxc_md->subdev_notifier);
+-				v4l2_async_nf_cleanup(&mxc_md->subdev_notifier);
+-			}
+-		}
+ 	}
+ 
+ 	return 0;
+-- 
+2.44.1
+

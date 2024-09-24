@@ -1,4 +1,4 @@
-From d8b5d60aa77808a83986a8d825e58a4f2db9d46f Mon Sep 17 00:00:00 2001
+From 781d878a6ea38c5dc938a824d0973aeab93ae565 Mon Sep 17 00:00:00 2001
 From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
 Date: Tue, 19 Apr 2022 15:03:59 +0200
 Subject: [PATCH] imx8mp-evk: Change bootcmd to fitboot

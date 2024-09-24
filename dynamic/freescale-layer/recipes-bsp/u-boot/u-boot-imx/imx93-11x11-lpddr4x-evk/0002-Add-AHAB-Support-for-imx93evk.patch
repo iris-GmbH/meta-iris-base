@@ -1,4 +1,4 @@
-From 8f44e4c321ce0fb1127ad2be570c707c7d7feda8 Mon Sep 17 00:00:00 2001
+From 99e2fa17f72d97fe83b984e4417ec33c6cf3686f Mon Sep 17 00:00:00 2001
 From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
 Date: Mon, 13 May 2024 11:16:22 +0000
 Subject: [PATCH] Add AHAB Support for imx93evk
@@ -7,14 +7,14 @@ Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
 ---
  arch/arm/include/asm/mach-imx/ahab.h |  1 +
  boot/Kconfig                         |  2 +-
- boot/bootm.c                         | 61 ++++++++++++++++++++++++++++
+ boot/bootm.c                         | 62 ++++++++++++++++++++++++++++
  cmd/bootm.c                          | 15 +++++++
  configs/imx93_11x11_evk_defconfig    |  5 ++-
  include/configs/imx93_evk.h          |  2 +-
- 6 files changed, 83 insertions(+), 3 deletions(-)
+ 6 files changed, 84 insertions(+), 3 deletions(-)
 
 diff --git a/arch/arm/include/asm/mach-imx/ahab.h b/arch/arm/include/asm/mach-imx/ahab.h
-index 016a7353f53..216b48b57a0 100644
+index dad170cee47..cccc61c0931 100644
 --- a/arch/arm/include/asm/mach-imx/ahab.h
 +++ b/arch/arm/include/asm/mach-imx/ahab.h
 @@ -11,5 +11,6 @@
@@ -25,23 +25,23 @@ index 016a7353f53..216b48b57a0 100644
  
  #endif
 diff --git a/boot/Kconfig b/boot/Kconfig
-index ad035695a4a..72eca494277 100644
+index 3d7aabd27d6..91a928a99c8 100644
 --- a/boot/Kconfig
 +++ b/boot/Kconfig
-@@ -364,7 +364,7 @@ config BOOT_DEFAULTS
+@@ -381,7 +381,7 @@ config BOOT_DEFAULTS_CMDS
+ 	select CMD_DHCP if CMD_NET
+ 	select CMD_PING if CMD_NET
  	select CMD_PXE if CMD_NET
- 	select SUPPORT_RAW_INITRD
- 	select ENV_VARS_UBOOT_CONFIG
 -	select CMD_BOOTI if ARM64
 +	select CMD_BOOTI if ARM64 && !AHAB_BOOT
  	select CMD_BOOTZ if ARM && !ARM64
  	imply CMD_MII if NET
- 	imply USB_STORAGE
+ 
 diff --git a/boot/bootm.c b/boot/bootm.c
-index 2eec60ec7b5..a66d9dc5884 100644
+index d071537d692..f1097510302 100644
 --- a/boot/bootm.c
 +++ b/boot/bootm.c
-@@ -33,6 +33,55 @@
+@@ -35,6 +35,55 @@
  #include <bootm.h>
  #include <image.h>
  
@@ -97,18 +97,19 @@ index 2eec60ec7b5..a66d9dc5884 100644
  #define MAX_CMDLINE_SIZE	SZ_4K
  
  #define IH_INITRD_ARCH IH_ARCH_DEFAULT
-@@ -889,6 +938,10 @@ static const void *boot_get_kernel(struct cmd_tbl *cmdtp, int flag, int argc,
- 	int		os_noffset;
+@@ -135,6 +184,11 @@ static int boot_get_kernel(const char *addr_fit, struct bootm_headers *images,
+ 	const void *boot_img;
+ 	const void *vendor_boot_img;
  #endif
- 
++
 +#if CONFIG_IS_ENABLED(AHAB_BOOT)
 +	flash_header_v3_t *fhdr_v3;
 +#endif
 +
- 	img_addr = genimg_get_kernel_addr_fit(argc < 1 ? NULL : argv[0],
- 					      &fit_uname_config,
+ 	img_addr = genimg_get_kernel_addr_fit(addr_fit, &fit_uname_config,
  					      &fit_uname_kernel);
-@@ -900,6 +953,14 @@ static const void *boot_get_kernel(struct cmd_tbl *cmdtp, int flag, int argc,
+ 
+@@ -145,6 +199,14 @@ static int boot_get_kernel(const char *addr_fit, struct bootm_headers *images,
  
  	/* check image type, for FIT images get FIT kernel node */
  	*os_data = *os_len = 0;
@@ -124,10 +125,10 @@ index 2eec60ec7b5..a66d9dc5884 100644
  	switch (genimg_get_format(buf)) {
  #if CONFIG_IS_ENABLED(LEGACY_IMAGE_FORMAT)
 diff --git a/cmd/bootm.c b/cmd/bootm.c
-index 796d5e23adb..b599ad6c0d9 100644
+index 56519cfc6fb..35bf6ef8769 100644
 --- a/cmd/bootm.c
 +++ b/cmd/bootm.c
-@@ -215,6 +215,21 @@ int do_bootm(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
+@@ -216,6 +216,21 @@ int do_bootm(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
  #endif
  #endif
  
@@ -146,41 +147,41 @@ index 796d5e23adb..b599ad6c0d9 100644
 +	}
 +#endif
 +
- 	states = BOOTM_STATE_START | BOOTM_STATE_FINDOS | BOOTM_STATE_PRE_LOAD |
- 		BOOTM_STATE_FINDOTHER | BOOTM_STATE_LOADOS |
- 		BOOTM_STATE_OS_PREP | BOOTM_STATE_OS_FAKE_GO |
+ 	bootm_init(&bmi);
+ 	if (argc)
+ 		bmi.addr_img = argv[0];
 diff --git a/configs/imx93_11x11_evk_defconfig b/configs/imx93_11x11_evk_defconfig
-index ece2fcf1a50..25e7d9cae54 100644
+index 93b5c5a6575..2a2aad9650e 100644
 --- a/configs/imx93_11x11_evk_defconfig
 +++ b/configs/imx93_11x11_evk_defconfig
-@@ -11,6 +11,7 @@ CONFIG_ENV_OFFSET=0x700000
+@@ -12,6 +12,7 @@ CONFIG_ENV_OFFSET=0x700000
  CONFIG_DM_GPIO=y
  CONFIG_DEFAULT_DEVICE_TREE="imx93-11x11-evk"
  CONFIG_SPL_TEXT_BASE=0x2049A000
 +CONFIG_AHAB_BOOT=y
  CONFIG_USB_TCPC=y
  CONFIG_TARGET_IMX93_11X11_EVK=y
- CONFIG_SYS_PROMPT="u-boot=> "
-@@ -54,6 +55,9 @@ CONFIG_SPL_WATCHDOG=y
- CONFIG_SYS_MAXARGS=64
+ CONFIG_OF_LIBFDT_OVERLAY=y
+@@ -34,6 +35,9 @@ CONFIG_BOOTCOMMAND="run sr_ir_v2_cmd;run distro_bootcmd;run bsp_bootcmd"
+ CONFIG_DEFAULT_FDT_FILE="imx93-11x11-evk.dtb"
  CONFIG_SYS_CBSIZE=2048
  CONFIG_SYS_PBSIZE=2074
 +# CONFIG_CMD_BOOTFLOW is not set
 +# CONFIG_CMD_BOOTI is not set
 +# CONFIG_CMD_ELF is not set
- CONFIG_CMD_ERASEENV=y
- CONFIG_CMD_NVEDIT_EFI=y
- CONFIG_CRC32_VERIFY=y
-@@ -177,7 +181,6 @@ CONFIG_VIDEO_ADV7535=y
+ CONFIG_ARCH_MISC_INIT=y
+ CONFIG_BOARD_EARLY_INIT_F=y
+ CONFIG_BOARD_LATE_INIT=y
+@@ -184,7 +188,6 @@ CONFIG_VIDEO_ADV7535=y
  CONFIG_ULP_WATCHDOG=y
  CONFIG_SPL_RSA=y
  CONFIG_SHA384=y
 -CONFIG_LEGACY_IMAGE_FORMAT=y
  CONFIG_LZO=y
  CONFIG_BZIP2=y
- CONFIG_OF_LIBFDT_OVERLAY=y
+ CONFIG_EFI_MM_COMM_TEE=y
 diff --git a/include/configs/imx93_evk.h b/include/configs/imx93_evk.h
-index 97a4fabf058..28256702471 100644
+index dd96a7aa8ad..06c7a8315b9 100644
 --- a/include/configs/imx93_evk.h
 +++ b/include/configs/imx93_evk.h
 @@ -90,7 +90,7 @@
@@ -193,5 +194,5 @@ index 97a4fabf058..28256702471 100644
  	"upgrade_available=0\0" \
  	"ustate=0\0" \
 -- 
-2.44.0
+2.46.0
 

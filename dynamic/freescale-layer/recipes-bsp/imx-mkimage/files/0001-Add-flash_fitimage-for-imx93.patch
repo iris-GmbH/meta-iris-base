@@ -1,6 +1,6 @@
-From f4410c7ccef837a3aede76365e59a1ec05718343 Mon Sep 17 00:00:00 2001
-From: Erik Schumacher <erik.schumacher@iris-sensing.com>
-Date: Thu, 8 Aug 2024 16:26:54 +0200
+From 67f9ce121d23894308fa599f4f40aa500a40b3b9 Mon Sep 17 00:00:00 2001
+From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+Date: Sat, 25 May 2024 16:30:00 +0200
 Subject: [PATCH] Add flash_fitimage for imx93
 
 ---
@@ -8,20 +8,20 @@ Subject: [PATCH] Add flash_fitimage for imx93
  1 file changed, 6 insertions(+)
 
 diff --git a/iMX93/soc.mak b/iMX93/soc.mak
-index d94d115..02194d8 100644
+index 560d38e..8b33c95 100644
 --- a/iMX93/soc.mak
 +++ b/iMX93/soc.mak
-@@ -40,6 +40,9 @@ CAPSULE_GUID = bc550d86-da26-4b70-ac05-2a448eda6f21
- FCB_LOAD_ADDR ?= $(ATF_LOAD_ADDR)
- MCU_IMG = m33_image.bin
+@@ -37,6 +37,9 @@ KERNEL_ADDR ?= 0x80400000
+ # This Capsule_GUID is reserved by NXP
+ CAPSULE_GUID = bc550d86-da26-4b70-ac05-2a448eda6f21
  
 +FITIMAGE ?= irma-fitimage.itb
 +FITIMAGE_ADDR ?= $(KERNEL_ADDR)
 +
- TEE ?= tee.bin
- TEE_LOAD_ADDR ?= 0x96000000
- MCU_XIP_ADDR ?= 0x28032000 # Point entry of m33 in flexspi0 nor flash
-@@ -303,6 +306,9 @@ flash_sentinel: $(MKIMG) ahabfw.bin
+ FCB_LOAD_ADDR ?= $(ATF_LOAD_ADDR)
+ MCU_IMG = m33_image.bin
+ 
+@@ -308,6 +311,9 @@ flash_sentinel: $(MKIMG) ahabfw.bin
  flash_kernel: $(MKIMG) Image $(KERNEL_DTB)
  	./$(MKIMG) -soc IMX9 -c -ap Image a55 $(KERNEL_ADDR) --data $(KERNEL_DTB) a55 $(KERNEL_DTB_ADDR) -out flash.bin
  

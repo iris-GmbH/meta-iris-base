@@ -53,10 +53,10 @@ index bfa68a9d2a0..a000ae05d77 100644
  #define CCM_GPR(i)		(CCM_BASE_ADDR + CCM_GPR0_OFFSET + 0x10 * (i))
  #define CCM_OBSERVE(i)		(CCM_BASE_ADDR + CCM_OBSERVE0_OFFSET + 0x10 * (i))
 diff --git a/cmd/Kconfig b/cmd/Kconfig
-index b696cb6ccb8..c84ad41b16d 100644
+index 413051ac4a1..dbf94dc5b1d 100644
 --- a/cmd/Kconfig
 +++ b/cmd/Kconfig
-@@ -523,6 +523,12 @@ config CMD_SPL_WRITE_SIZE
+@@ -573,6 +573,12 @@ config CMD_SPL_WRITE_SIZE
  	  flash used by Falcon-mode boot. See the documentation until CMD_SPL
  	  for detail.
  
@@ -70,10 +70,10 @@ index b696cb6ccb8..c84ad41b16d 100644
  	bool "thor - TIZEN 'thor' download"
  	select DFU
 diff --git a/cmd/Makefile b/cmd/Makefile
-index 36d2daf22a1..a772695f433 100644
+index 0337a53b6e9..34c45233a30 100644
 --- a/cmd/Makefile
 +++ b/cmd/Makefile
-@@ -83,6 +83,7 @@ obj-$(CONFIG_CMD_FLASH) += flash.o
+@@ -87,6 +87,7 @@ obj-$(CONFIG_CMD_FLASH) += flash.o
  obj-$(CONFIG_CMD_FPGA) += fpga.o
  obj-$(CONFIG_CMD_FPGAD) += fpgad.o
  obj-$(CONFIG_CMD_FS_GENERIC) += fs.o

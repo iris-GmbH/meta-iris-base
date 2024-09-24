@@ -10,10 +10,10 @@ Signed-off-by: Jasper Orschulko <jasper@fancydomain.eu>
  1 file changed, 16 insertions(+), 1 deletion(-)
 
 diff --git a/cmd/bootm.c b/cmd/bootm.c
-index 796d5e23adb..9ffbbc9c304 100644
+index 56519cfc6fb..e89df6bcc73 100644
 --- a/cmd/bootm.c
 +++ b/cmd/bootm.c
-@@ -192,8 +192,14 @@ int do_bootm(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
+@@ -193,8 +193,14 @@ int do_bootm(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
  	}
  
  #else
@@ -29,7 +29,7 @@ index 796d5e23adb..9ffbbc9c304 100644
  #if defined(CONFIG_LEGACY_IMAGE_FORMAT)
  	case IMAGE_FORMAT_LEGACY:
  		if (authenticate_image(image_load_addr,
-@@ -207,6 +213,15 @@ int do_bootm(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
+@@ -208,6 +214,15 @@ int do_bootm(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
  	case IMAGE_FORMAT_ANDROID:
  		/* Do this authentication in boota command */
  		break;
