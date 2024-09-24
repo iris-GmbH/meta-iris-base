@@ -1,51 +1,75 @@
-From 5f516528d0c4eb524c04e53cd53cfe9c701652ab Mon Sep 17 00:00:00 2001
-From: Erik Schumacher <erik.schumacher@iris-sensing.com>
-Date: Mon, 29 Jan 2024 14:49:21 +0100
+From 896416272016fe308da344b7baf0ab724e049ad5 Mon Sep 17 00:00:00 2001
+From: Ian Dannapel <ian.dannapel@iris-sensing.com>
+Date: Thu, 12 Sep 2024 14:54:11 +0200
 Subject: [PATCH 2/2] Add iris specific checks to wpa-supplicant.sh
 
 Upstream-Status: Inappropriate [change of default behavior]
 ---
- ./wpa-supplicant.sh          | 27 +++++++++++++++++++
- 1 file changed, 27 insertions(+)
+ ./wpa-supplicant.sh          | 49 ++++++++++++++++++-
+ 1 file changed, 48 insertions(+), 1 deletion(-)
 
 diff --git a/wpa-supplicant.sh b/wpa-supplicant.sh
-index 75df8d709e..f15bf7e2ba 100644
+index 75df8d709e..f246465790 100644
 --- a/wpa-supplicant.sh
 +++ b/wpa-supplicant.sh
-@@ -9,6 +9,33 @@ WPA_SUP_OPTIONS="-B -P $WPA_SUP_PIDFILE -i $IFACE -s"
-
+@@ -9,9 +9,56 @@ WPA_SUP_OPTIONS="-B -P $WPA_SUP_PIDFILE -i $IFACE -s"
+ 
  VERBOSITY=0
-
+ 
++WPA_RW_CONF_DIR="/mnt/iris/wpa_supplicant"
++WPA_RW_CONF="$WPA_RW_CONF_DIR/wpa_supplicant.conf"
++
 +IRMA_CONFIG="/mnt/iris/counter/config_customer.json"
 +EAPTLS_DIR="/mnt/iris/eaptls"
 +EAPTLS_KEY="sensor.key"
 +EAPTLS_CRT="sensor.crt"
 +EAPTLS_CA="sensor.ca"
++EAPTLS_CRT_NAME="name.txt"
 +
 +if [ ! -f "$IRMA_CONFIG" ]; then
-+       if [ "$VERBOSITY" = "1" ]; then
-+               echo "customer configuration file is missing: $IRMA_CONFIG"
-+       fi
-+       exit 0
++	if [ "$VERBOSITY" = "1" ]; then
++		echo "customer configuration file is missing: $IRMA_CONFIG"
++	fi
++	exit 0
 +fi
 +
 +val=$(jq ".sets.IRMA6_Customer.parameters[\"pa.communication.enable_eaptls\"].value" "$IRMA_CONFIG")
 +if [ "$val" != "true" ]; then
-+       if [ "$VERBOSITY" = "1" ]; then
-+               echo "\"pa.communication.enableeaptls\" flag is disabled or invalid in configuration file"
-+       fi
-+       exit 0
++	if [ "$VERBOSITY" = "1" ]; then
++		echo "\"pa.communication.enableeaptls\" flag is disabled or invalid in configuration file"
++	fi
++	exit 0
 +fi
 +
-+if [ ! -d "$EAPTLS_DIR" ] || [ ! -f "$EAPTLS_DIR/$EAPTLS_KEY" ] || [ ! -f "$EAPTLS_DIR/$EAPTLS_CRT" ] || [ ! -f "$EAPTLS_DIR/$EAPTLS_CA" ]; then
-+       if [ "$VERBOSITY" = "1" ]; then
-+               echo "EAP-TLS is enabled but the key material is missing from $EAPTLS_DIR"
-+       fi
-+       exit 0
++if [ ! -d "$EAPTLS_DIR" ] || [ ! -f "$EAPTLS_DIR/$EAPTLS_KEY" ] || [ ! -f "$EAPTLS_DIR/$EAPTLS_CRT" ] || [ ! -f "$EAPTLS_DIR/$EAPTLS_CA" ] || [ ! -f "$EAPTLS_DIR/$EAPTLS_CRT_NAME" ]; then
++	if [ "$VERBOSITY" = "1" ]; then
++		echo "EAP-TLS is enabled but the key material/name is missing from $EAPTLS_DIR"
++	fi
++	exit 0
 +fi
-
+ 
  if [ -s "$IF_WPA_CONF" ]; then
- 	WPA_SUP_CONF="-c $IF_WPA_CONF"
---
-2.43.0
+-	WPA_SUP_CONF="-c $IF_WPA_CONF"
++	mkdir -p "$WPA_RW_CONF_DIR"
++	# copy reference config to rw config
++	cp "$IF_WPA_CONF" "$WPA_RW_CONF"
++
++	# get identity name from certificate
++	IDENTITY=$(cat "$EAPTLS_DIR/$EAPTLS_CRT_NAME")
++	if [ -z "$IDENTITY" ]; then
++		[ "$VERBOSITY" = "1" ] && echo "Identity in $EAPTLS_DIR/$EAPTLS_CRT_NAME is empty."
++		exit 0
++	fi
++	# write identity to config
++	sed -i "s/identity=\"[^\"]*\"/identity=\"$IDENTITY\"/" "$WPA_RW_CONF"
++	if [ $? -ne 0 ]; then
++		[ "$VERBOSITY" = "1" ] && echo "Failed to write identity to the $WPA_RW_CONF"
++		exit 0
++	fi
++	WPA_SUP_CONF="-c $WPA_RW_CONF"
+ else
+ 	exit 0
+ fi
+-- 
+2.34.1
 
