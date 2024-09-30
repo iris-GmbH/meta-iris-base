@@ -36,6 +36,7 @@ SRC_URI:append = " \
     file://0022-tc358746.c-Add-RAW12-and-RAW14.patch \
     file://0023-tc358746.c-Add-empty-s_power-and-link_setup-function.patch \
     file://0024-tc358746.c-Implement-hsync-vsync-polarity-config.patch \
+    file://0025-tc358746.c-Hack-Do-not-call-remote-epc660-s_stream.patch \
 "
 
 KERNEL_DEVICETREE:mx93-nxp-bsp = " freescale/${KERNEL_DEVICETREE_BASENAME}-marec-fpga.dtb"
