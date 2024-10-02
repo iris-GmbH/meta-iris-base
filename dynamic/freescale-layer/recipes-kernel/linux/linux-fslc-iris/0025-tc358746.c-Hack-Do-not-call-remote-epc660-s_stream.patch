@@ -1,0 +1,40 @@
+From 693b319d9e5653a82ecf1c2c66a36040d9e5c761 Mon Sep 17 00:00:00 2001
+From: Ian Dannapel <ian.dannapel@iris-sensing.com>
+Date: Mon, 30 Sep 2024 14:23:21 +0000
+Subject: [PATCH] tc358746.c: Hack: Do not call remote (epc660) s_stream
+
+The .s_stream() operation is first called by imx8-isi-cap.c and
+must never be called twice.
+
+Signed-off-by: Ian Dannapel <ian.dannapel@iris-sensing.com>
+---
+ drivers/media/i2c/tc358746.c | 6 +-----
+ 1 file changed, 1 insertion(+), 5 deletions(-)
+
+diff --git a/drivers/media/i2c/tc358746.c b/drivers/media/i2c/tc358746.c
+index ee6747a3ee92..2aeb8ebe3691 100644
+--- a/drivers/media/i2c/tc358746.c
++++ b/drivers/media/i2c/tc358746.c
+@@ -725,10 +725,6 @@ static int tc358746_s_stream(struct v4l2_subdev *sd, int enable)
+ 		if (err)
+ 			goto err_out;
+ 
+-		err = v4l2_subdev_call(src, video, s_stream, 1);
+-		if (err)
+-			goto err_out;
+-
+ 		return 0;
+ 
+ err_out:
+@@ -757,7 +753,7 @@ static int tc358746_s_stream(struct v4l2_subdev *sd, int enable)
+ 	pm_runtime_mark_last_busy(sd->dev);
+ 	pm_runtime_put_sync_autosuspend(sd->dev);
+ 
+-	return v4l2_subdev_call(src, video, s_stream, 0);
++	return 0;
+ }
+ 
+ static int tc358746_init_cfg(struct v4l2_subdev *sd,
+-- 
+2.44.1
+
