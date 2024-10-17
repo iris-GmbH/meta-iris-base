@@ -1,0 +1,76 @@
+From 0a832bc750cacd8104afd04ad07457cd272abffb Mon Sep 17 00:00:00 2001
+From: Ian Dannapel <ian.dannapel@iris-sensing.com>
+Date: Wed, 16 Oct 2024 15:40:41 +0000
+Subject: [PATCH] imx8mp-irma6r2.dts: tc358746: csi-dphy: 450Mhz
+
+Signed-off-by: Ian Dannapel <ian.dannapel@iris-sensing.com>
+---
+ .../boot/dts/freescale/imx8mp-irma6r2.dts      | 18 +++++++++---------
+ 1 file changed, 9 insertions(+), 9 deletions(-)
+
+diff --git a/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts b/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
+index 58584030b0ee..e22111131aa7 100644
+--- a/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
++++ b/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
+@@ -47,9 +47,9 @@ reg_usdhc2_vmmc: regulator-usdhc2 {
+ 	clk_serializer: serializer_clock {
+ 		compatible = "pwm-clock";
+ 		#clock-cells = <0>;
+-		clock-frequency = <23800000>;
++		clock-frequency = <25000000>;
+ 		clock-output-names = "serializer_clk";
+-		pwms = <&pwm2 0 42 0>; /* 42ns - 23.8 MHz */
++		pwms = <&pwm2 0 40 0>; /* 40ns - 25.0 MHz */
+ 	};
+ 
+ 	gpio-keys {
+@@ -182,7 +182,7 @@ &i2c2 {
+ 	force-atomic-rw;
+ 	status = "okay";
+ 
+-	epc660_mipi: epc660_mipi@22 {
++	epc660-camera@22 {
+ 		compatible = "epc660";
+ 		reg = <0x22>;
+ 		status = "okay";
+@@ -207,7 +207,7 @@ epc660_parallel_out: endpoint {
+ 		};
+ 	};
+ 
+-	tc358748_adapter: csi-bridge@e {
++	toshiba-bridge@e {
+ 		compatible = "toshiba,tc358746";
+ 		reg = <0x0e>;
+ 		status = "okay";
+@@ -239,8 +239,8 @@ port@1 {
+ 				tc358748_mipi_out: endpoint {
+ 					data-lanes = <1 2>;
+ 					clock-noncontinuous;
+-					link-frequencies = /bits/ 64 <216000000>;
+-					remote-endpoint = <&mipi1_csi_in>;
++					link-frequencies = /bits/ 64 <450000000>;
++					remote-endpoint = <&mipi0_csi_in>;
+ 				};
+ 			};
+ 		};
+@@ -259,14 +259,14 @@ &mipi_csi_0 {
+ 
+ 	port@0 {
+ 		reg = <0>;
+-		mipi1_csi_in: endpoint {
++		mipi0_csi_in: endpoint {
+ 			data-lanes = <2>;
+ 			clock-lanes = <1>;
+ 			remote-endpoint = <&tc358748_mipi_out>;
+-			csis-hs-settle = <4>;
++			// https://community.nxp.com/t5/i-MX-Processors/Explenation-for-HS-SETTLE-parameter-in-MIPI-CSI-D-PHY-registers/m-p/764266#M118735
++			csis-hs-settle = <19>;
+ 			csis-clk-settle = <0>;
+ 			csis-wclk;
+-			link-frequencies = /bits/ 64 <216000000>;
+ 		};
+ 	};
+ };
+-- 
+2.44.1
+
