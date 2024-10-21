@@ -33,11 +33,14 @@ B = "${S}"
 
 ITB_FNAME = "${PN}.itb"
 FITIMAGE_RUNNING_VERSION = "1.0"
+FITIMAGE_RUNNING_VERSION:mx8mp-nxp-bsp = "2.0"
 FITIMAGE_DESCRIPTION = "IRMA FIT image"
 RESCUE_NAME_FULL ?= "${RESCUE_NAME}-${MACHINE}.cpio.zst"
 
 # Overwrite KERNEL_DEVICETREE as it is a multiline variable defined in meta-freescale/conf/machine
-KERNEL_DTB_FILE = "${KERNEL_DEVICETREE}"
+KERNEL_DTB_FILE = "${@' '.join([d for d in '${KERNEL_DEVICETREE}'.split() if d.endswith('.dtb')])}"
+KERNEL_DTBO_REV3_FILE:mx8mp-nxp-bsp = "${@' '.join([d for d in '${KERNEL_DEVICETREE}'.split() if d.endswith('.dtbo')])}"
+
 KERNEL_DTB_FILE:imx8mp-lpddr4-evk = "freescale/imx8mp-evk.dtb"
 KERNEL_DTB_FILE:imx93-11x11-lpddr4x-evk = "freescale/imx93-11x11-evk-marec-fpga.dtb"
 
@@ -45,6 +48,7 @@ KERNEL_DTB_FILE:imx93-11x11-lpddr4x-evk = "freescale/imx93-11x11-evk-marec-fpga.
 ITS_KERNEL_LOAD_ADDR:mx8mp-nxp-bsp = "0x40400000"
 ITS_KERNEL_ENTRY_ADDR:mx8mp-nxp-bsp = "0x40400000"
 ITS_DTB_LOAD_ADDR:mx8mp-nxp-bsp = "0x43000000"
+ITS_DTBO_REV3_LOAD_ADDR:mx8mp-nxp-bsp = "0x43100000"
 
 # Define load addresses for imx93 hardware
 ITS_KERNEL_LOAD_ADDR:mx9-nxp-bsp = "0x80400000"
@@ -58,6 +62,7 @@ do_assemble_fit() {
 	echo "KERNEL_SRC_PATH" ${KERNEL_SRC_PATH}
 	export DEPLOY_DIR_IMAGE=${DEPLOY_DIR_IMAGE}
 	export KERNEL_DTB_FILE=${KERNEL_DTB_FILE}
+	export KERNEL_DTBO_REV3_FILE=${KERNEL_DTBO_REV3_FILE}
 	export RESCUE_NAME_FULL=${RESCUE_NAME_FULL}
 	export FITIMAGE_DESCRIPTION="${FITIMAGE_DESCRIPTION}"
 	export FITIMAGE_RUNNING_VERSION=${FITIMAGE_RUNNING_VERSION}
@@ -65,6 +70,7 @@ do_assemble_fit() {
 	export ITS_KERNEL_LOAD_ADDR=${ITS_KERNEL_LOAD_ADDR}
 	export ITS_KERNEL_ENTRY_ADDR=${ITS_KERNEL_ENTRY_ADDR}
 	export ITS_DTB_LOAD_ADDR=${ITS_DTB_LOAD_ADDR}
+	export ITS_DTBO_REV3_LOAD_ADDR=${ITS_DTBO_REV3_LOAD_ADDR}
 	export KERNEL_IMAGETYPE=${KERNEL_IMAGETYPE}
 	if [ "${KERNEL_IMAGETYPE}" = "Image.gz" ]; then
 		export KERNEL_COMPRESSION=gzip
@@ -93,6 +99,8 @@ do_assemble_fit() {
 	sed -i "s|KERNEL_DTB_FILE|$(basename $KERNEL_DTB_FILE)|g" rescue.its
 	sed -i "s|ITS_KERNEL_LOAD_ADDR|$ITS_KERNEL_LOAD_ADDR|g" rescue.its
 	sed -i "s|ITS_DTB_LOAD_ADDR|$ITS_DTB_LOAD_ADDR|g" rescue.its
+	sed -i "s|KERNEL_DTBO_REV3_FILE|$(basename $KERNEL_DTBO_REV3_FILE)|g" rescue.its
+	sed -i "s|ITS_DTBO_REV3_LOAD_ADDR|$ITS_DTBO_REV3_LOAD_ADDR|g" rescue.its
 	sed -i "s|ITS_KERNEL_ENTRY_ADDR|$ITS_KERNEL_ENTRY_ADDR|g" rescue.its
 	cat rescue.its
 	echo "======== create itb file ==========="
