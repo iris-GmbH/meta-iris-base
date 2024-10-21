@@ -89,7 +89,7 @@ case "$1" in
 		[ -n "$domain" ] && R="domain $domain"
 		for i in $dns; do
 			echo "$0: Adding DNS $i"
-			R="${R}nameserver $i"
+			R="${R}nameserver $i"$'\n'
 		done
 
 		if [ -x /sbin/resolvconf ]; then
