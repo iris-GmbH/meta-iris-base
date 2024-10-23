@@ -26,6 +26,7 @@ TOOLCHAIN_TARGET_TASK += " \
     nlohmann-json \
     json-schema-validator \
     libnmea \
+    libpng \
 "
 
 TOOLCHAIN_TARGET_TASK:append:poky-iris-0501 = " swupdate"
