@@ -1,0 +1,70 @@
+From 5f0bfce08adfd38f12579a16110a04e1d0d7286d Mon Sep 17 00:00:00 2001
+From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+Date: Wed, 2 Oct 2024 08:19:51 +0000
+Subject: [PATCH] imx93-matrixup.dts: Remove lcdif / adv7535 / dsi
+
+---
+ .../boot/dts/freescale/imx93-matrixup.dts     | 33 -------------------
+ 1 file changed, 33 deletions(-)
+
+diff --git a/arch/arm64/boot/dts/freescale/imx93-matrixup.dts b/arch/arm64/boot/dts/freescale/imx93-matrixup.dts
+index 5c23cfe611516..8d0e5b3e3b5ff 100644
+--- a/arch/arm64/boot/dts/freescale/imx93-matrixup.dts
++++ b/arch/arm64/boot/dts/freescale/imx93-matrixup.dts
+@@ -336,20 +336,6 @@ &dphy {
+ 	status = "okay";
+ };
+ 
+-&dsi {
+-	status = "okay";
+-
+-	ports {
+-		port@1 {
+-			reg = <1>;
+-
+-			dsi_to_adv7535: endpoint {
+-				remote-endpoint = <&adv7535_to_dsi>;
+-			};
+-		};
+-	};
+-};
+-
+ &mu1 {
+ 	status = "okay";
+ };
+@@ -383,11 +369,6 @@ ethphy1: ethernet-phy@1 {
+ 	};
+ };
+ 
+-&lcdif {
+-	status = "okay";
+-	assigned-clock-rates = <445333333>, <148444444>, <400000000>, <133333333>;
+-};
+-
+ &lpm {
+ 	soc-supply = <&buck1>;
+ 	status = "okay";
+@@ -428,20 +409,6 @@ codec: wm8962@1a {
+ 		>;
+ 	};
+ 
+-	adv7535: hdmi@3d {
+-		compatible = "adi,adv7535";
+-		reg = <0x3d>;
+-		adi,addr-cec = <0x3b>;
+-		adi,dsi-lanes = <4>;
+-		status = "okay";
+-
+-		port {
+-			adv7535_to_dsi: endpoint {
+-				remote-endpoint = <&dsi_to_adv7535>;
+-			};
+-		};
+-	};
+-
+ 	lsm6dsm@6a {
+ 		compatible = "st,lsm6dso";
+ 		reg = <0x6a>;
+-- 
+2.46.0
+

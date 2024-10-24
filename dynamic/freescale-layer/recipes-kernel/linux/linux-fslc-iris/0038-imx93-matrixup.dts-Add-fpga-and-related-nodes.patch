@@ -1,0 +1,228 @@
+From aba0409c8c964e5982812a92badb9edd1d341aec Mon Sep 17 00:00:00 2001
+From: Erik Schumacher <erik.schumacher@iris-sensing.com>
+Date: Fri, 18 Oct 2024 12:14:20 +0000
+Subject: [PATCH] imx93-matrixup.dts: Add fpga and related nodes
+
+Add nodes for:
+- fpga spi device
+- fpga mclk, including tpm pwm and pinctrl
+- ad7814 as spi temperature sensor
+- marec imager as i2c device
+- activate imx media nodes and ports
+---
+ .../boot/dts/freescale/imx93-matrixup.dts     | 157 ++++++++++++++++++
+ 1 file changed, 157 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/freescale/imx93-matrixup.dts b/arch/arm64/boot/dts/freescale/imx93-matrixup.dts
+index a7fa24c505862..4c632166bbb44 100644
+--- a/arch/arm64/boot/dts/freescale/imx93-matrixup.dts
++++ b/arch/arm64/boot/dts/freescale/imx93-matrixup.dts
+@@ -90,6 +90,13 @@ reg_vref_1v8: regulator-adc-vref {
+ 		regulator-min-microvolt = <1800000>;
+ 		regulator-max-microvolt = <1800000>;
+ 	};
++
++	clk_fpga_mclk: fpga_mclk {
++		compatible = "pwm-clock";
++		#clock-cells = <0>;
++		clock-output-names = "fpga_mclk";
++		pwms = <&tpm5 0 17 0>; /* 17ns - 58.8 MHz */
++	};
+ };
+ 	
+ &adc1 {
+@@ -157,6 +164,16 @@ &lpm {
+ 	status = "okay";
+ };
+ 
++&tpm5 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_tpm5>;
++
++	assigned-clocks = <&clk IMX93_CLK_TPM5>;
++	assigned-clock-parents = <&clk IMX93_CLK_SYS_PLL_PFD0>;
++
++	status = "okay";
++};
++
+ /*
+  * When add, delete or change any target device setting in &lpi2c1,
+  * please synchronize the changes to the &i3c1 bus in imx93-11x11-evk-i3c.dts.
+@@ -246,6 +263,34 @@ ldo5: LDO5 {
+ 			};
+ 		};
+ 	};
++
++	marec_fpga: marec_fpga@54 {
++		compatible = "marec-fpga";
++		reg = <0x54>;
++		pinctrl-names    = "default";
++		pinctrl-0        = <&pinctrl_parallel_csi>, <&pinctrl_pwrsv_en>;
++		status = "okay";
++
++		clocks = <&clk_fpga_mclk>;
++		clock-names = "mclk";
++
++		pwrsv-en1-gpios = <&gpio3 25 GPIO_ACTIVE_HIGH>;
++		pwrsv-en2-gpios = <&gpio3 24 GPIO_ACTIVE_HIGH>;
++
++		fpga-mgr = <&fpga_mgr_spi>;
++		fpga-bin = "marec-fpga-firmware.bit";
++
++		port {
++			marec_ep: endpoint {
++				remote-endpoint = <&parallel_csi_ep>;
++				bus-type = <5>; /* V4L2_FWNODE_BUS_TYPE_PARALLEL */
++				bus-width = <8>;
++				vsync-active = <1>;
++				hsync-active = <1>;
++				pclk-sample = <1>;
++			};
++		};
++	};
+ };
+ 
+ &lpi2c2 {
+@@ -268,6 +313,35 @@ &lpi2c3 {
+ 	status = "okay";
+ };
+ 
++&lpspi4 {
++	fsl,spi-num-chipselects = <3>;
++	num-cs = <3>;
++	pinctrl-names = "default", "sleep";
++	pinctrl-0 = <&pinctrl_lpspi4>;
++	pinctrl-1 = <&pinctrl_lpspi4>;
++	cs-gpios = <&gpio2 18 GPIO_ACTIVE_LOW>, <&gpio2 17 GPIO_ACTIVE_LOW>, <&gpio2 16 GPIO_ACTIVE_LOW>;
++	status = "okay";
++
++	fpga_mgr_spi: fpga-mgr@0 {
++		compatible = "xlnx,fpga-slave-serial";
++
++		spi-max-frequency = <25000000>;
++		reg = <0>;
++		pinctrl-names = "default";
++		pinctrl-0 = <&pinctrl_fpga_spi>;
++		prog_b-gpios = <&gpio2 12 GPIO_ACTIVE_LOW>;
++		init-b-gpios = <&gpio2 13 GPIO_ACTIVE_LOW>;
++		cclk_cycles = <8>;
++	};
++
++	ad7814: ad7814@1 {
++		status = "okay";
++		compatible = "adi,ad7314";
++		spi-max-frequency = <2000000>;
++		reg = <1>;
++	};
++};
++
+ &lpuart1 { /* console */
+ 	pinctrl-names = "default";
+ 	pinctrl-0 = <&pinctrl_uart1>;
+@@ -278,6 +352,34 @@ &media_blk_ctrl {
+ 	status = "okay";
+ };
+ 
++&cameradev {
++	parallel_csi;
++	status = "okay";
++};
++
++&isi_0 {
++	interface = <6 0 2>;
++	status = "okay";
++
++	cap_device {
++		status = "okay";
++	};
++};
++
++&parallel_csi {
++	#address-cells = <1>;
++	#size-cells = <0>;
++	status = "okay";
++	assigned-clock-rates = <40000000>;
++
++	port@0 {
++		reg = <0>;
++		parallel_csi_ep: endpoint {
++			remote-endpoint = <&marec_ep>;
++		};
++	};
++};
++
+ &usbotg1 {
+ 	dr_mode = "otg";
+ 	hnp-disable;
+@@ -335,6 +437,12 @@ MX93_PAD_SD3_DATA0__GPIO3_IO22                          0x31e /* E_INT */
+ 		>;
+ 	};
+ 
++	pinctrl_tpm5: tpm5grp {
++		fsl,pins = <
++			MX93_PAD_GPIO_IO06__TPM5_CH0	0x57e
++		>;
++	};
++
+ 	pinctrl_lpi2c1: lpi2c1grp {
+ 		fsl,pins = <
+ 			MX93_PAD_I2C1_SCL__LPI2C1_SCL			0x40000b9e
+@@ -356,6 +464,55 @@ MX93_PAD_GPIO_IO29__LPI2C3_SCL			0x40000b9e
+ 		>;
+ 	};
+ 
++	pinctrl_lpspi4: lpspi4grp {
++		fsl,pins = <
++			MX93_PAD_GPIO_IO16__LPSPI4_PCS2  0x3fe
++			MX93_PAD_GPIO_IO17__LPSPI4_PCS1  0x3fe
++			MX93_PAD_GPIO_IO18__LPSPI4_PCS0  0x3fe
++
++			MX93_PAD_GPIO_IO19__LPSPI4_SIN	 0x3fe
++			MX93_PAD_GPIO_IO20__LPSPI4_SOUT  0x3fe
++			MX93_PAD_GPIO_IO21__LPSPI4_SCK   0x3fe
++		>;
++	};
++
++	pinctrl_fpga_spi: fpgaspigrp {
++		fsl,pins = <
++			// FPGA PROG
++			MX93_PAD_GPIO_IO12__GPIO2_IO12  0x31e
++
++			// FPGA INIT
++			MX93_PAD_GPIO_IO13__GPIO2_IO13  0x31e
++		>;
++	};
++
++	pinctrl_pwrsv_en: pwrsvengrp {
++		fsl,pins = <
++			// PWRSV_EN2 - tristate or low - use open drain
++			MX93_PAD_SD3_DATA2__GPIO3_IO24  0x91e
++
++			// PWRSV_EN1
++			MX93_PAD_SD3_DATA3__GPIO3_IO25  0x31e
++		>;
++	};
++
++	pinctrl_parallel_csi: parallelcsigrp {
++		fsl,pins = <
++			MX93_PAD_GPIO_IO01__MEDIAMIX_CAM_DATA00		0xb9e
++			MX93_PAD_GPIO_IO07__MEDIAMIX_CAM_DATA01		0xb9e
++			MX93_PAD_GPIO_IO08__MEDIAMIX_CAM_DATA02		0xb9e
++			MX93_PAD_GPIO_IO09__MEDIAMIX_CAM_DATA03		0xb9e
++			MX93_PAD_GPIO_IO10__MEDIAMIX_CAM_DATA04		0xb9e
++			MX93_PAD_GPIO_IO11__MEDIAMIX_CAM_DATA05		0xb9e
++			MX93_PAD_GPIO_IO14__MEDIAMIX_CAM_DATA06		0xb9e
++			MX93_PAD_GPIO_IO15__MEDIAMIX_CAM_DATA07		0xb9e
++
++			MX93_PAD_GPIO_IO00__MEDIAMIX_CAM_CLK		0xb9e
++			MX93_PAD_GPIO_IO02__MEDIAMIX_CAM_VSYNC		0xb9e
++			MX93_PAD_GPIO_IO03__MEDIAMIX_CAM_HSYNC		0xb9e
++		>;
++	};
++
+ 	pinctrl_uart1: uart1grp {
+ 		fsl,pins = <
+ 			MX93_PAD_UART1_RXD__LPUART1_RX			0x31e
+-- 
+2.46.0
+

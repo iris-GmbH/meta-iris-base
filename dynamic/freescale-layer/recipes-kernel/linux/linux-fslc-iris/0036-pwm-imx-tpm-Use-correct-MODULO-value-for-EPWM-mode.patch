@@ -1,0 +1,37 @@
+From 2bee5c0acafa35b91c1cbc8a0489d3f5e0e9b9e2 Mon Sep 17 00:00:00 2001
+From: Erik Schumacher <erik.schumacher@iris-sensing.com>
+Date: Wed, 23 Oct 2024 09:36:12 +0000
+Subject: [PATCH] pwm: imx-tpm: Use correct MODULO value for EPWM mode
+
+The modulo register defines the period of the edge-aligned PWM mode
+(which is the only mode implemented). The reference manual states:
+"The EPWM period is determined by (MOD + 0001h) ..." So the value that
+is written to the MOD register must therefore be one less than the
+calculated period length.
+A correct MODULO value is particularly relevant if the PWM has to output
+a high frequency due to a low period value.
+
+Upstream-Status: Submitted
+[https://patchwork.ozlabs.org/project/linux-pwm/list/?series=429368]
+
+Signed-off-by: Erik Schumacher <erik.schumacher@iris-sensing.com>
+---
+ drivers/pwm/pwm-imx-tpm.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/drivers/pwm/pwm-imx-tpm.c b/drivers/pwm/pwm-imx-tpm.c
+index a3a1342e29a47..e3e0bd5c852fd 100644
+--- a/drivers/pwm/pwm-imx-tpm.c
++++ b/drivers/pwm/pwm-imx-tpm.c
+@@ -107,7 +107,7 @@ static int pwm_imx_tpm_round_state(struct pwm_chip *chip,
+ 	p->prescale = prescale;
+ 
+ 	period_count = (clock_unit + ((1 << prescale) >> 1)) >> prescale;
+-	p->mod = period_count;
++	p->mod = period_count - 1;
+ 
+ 	/* calculate real period HW can support */
+ 	tmp = (u64)period_count << prescale;
+-- 
+2.46.0
+

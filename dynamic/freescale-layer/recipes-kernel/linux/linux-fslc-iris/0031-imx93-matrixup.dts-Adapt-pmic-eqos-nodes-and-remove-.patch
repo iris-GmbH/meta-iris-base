@@ -1,0 +1,345 @@
+From 7259acba6dfa4e1e2d085cb1697c2eb94d719742 Mon Sep 17 00:00:00 2001
+From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+Date: Wed, 2 Oct 2024 08:55:26 +0000
+Subject: [PATCH] imx93-matrixup.dts: Adapt pmic, eqos nodes and remove
+ pcal6524 node
+
+---
+ .../boot/dts/freescale/imx93-matrixup.dts     | 234 +++---------------
+ 1 file changed, 34 insertions(+), 200 deletions(-)
+
+diff --git a/arch/arm64/boot/dts/freescale/imx93-matrixup.dts b/arch/arm64/boot/dts/freescale/imx93-matrixup.dts
+index 20b89c075efc0..a15c3c114dfd9 100644
+--- a/arch/arm64/boot/dts/freescale/imx93-matrixup.dts
++++ b/arch/arm64/boot/dts/freescale/imx93-matrixup.dts
+@@ -102,36 +102,6 @@ reg_usdhc2_vmmc: regulator-usdhc2 {
+ 		off-on-delay-us = <12000>;
+ 		enable-active-high;
+ 	};
+-
+-	reg_vdd_12v: regulator-vdd-12v {
+-		compatible = "regulator-fixed";
+-		regulator-name = "reg_vdd_12v";
+-		regulator-min-microvolt = <12000000>;
+-		regulator-max-microvolt = <12000000>;
+-		gpio = <&pcal6524 14 GPIO_ACTIVE_HIGH>;
+-		enable-active-high;
+-	};
+-
+-	reg_usdhc3_vmmc: regulator-usdhc3 {
+-		compatible = "regulator-fixed";
+-		regulator-name = "WLAN_EN";
+-		regulator-min-microvolt = <3300000>;
+-		regulator-max-microvolt = <3300000>;
+-		gpio = <&pcal6524 20 GPIO_ACTIVE_HIGH>;
+-		/*
+-		 * IW612 wifi chip needs more delay than other wifi chips to complete
+-		 * the host interface initialization after power up, otherwise the
+-		 * internal state of IW612 may be unstable, resulting in the failure of
+-		 * the SDIO3.0 switch voltage.
+-		 */
+-		startup-delay-us = <20000>;
+-		enable-active-high;
+-	};
+-
+-	usdhc3_pwrseq: usdhc3_pwrseq {
+-		compatible = "mmc-pwrseq-simple";
+-		reset-gpios = <&pcal6524 12 GPIO_ACTIVE_LOW>;
+-	};
+ };
+ 	
+ &adc1 {
+@@ -163,12 +133,12 @@ &mu2 {
+ };
+ 
+ &eqos {
+-	pinctrl-names = "default", "sleep";
++	pinctrl-names = "default";
+ 	pinctrl-0 = <&pinctrl_eqos>;
+-	pinctrl-1 = <&pinctrl_eqos_sleep>;
+-	phy-mode = "rgmii-id";
++	phy-mode = "rmii";
+ 	phy-handle = <&ethphy1>;
+ 	status = "okay";
++	assigned-clock-rates = <100000000>, <50000000>;
+ 
+ 	mdio {
+ 		compatible = "snps,dwmac-mdio";
+@@ -176,10 +146,11 @@ mdio {
+ 		#size-cells = <0>;
+ 		clock-frequency = <5000000>;
+ 
+-		ethphy1: ethernet-phy@1 {
+-			reg = <1>;
++		ethphy1: ethernet-phy@0 {
++			compatible = "ethernet-phy-ieee802.3-c22";
++			reg = <0>;
+ 			eee-broken-1000t;
+-			reset-gpios = <&pcal6524 15 GPIO_ACTIVE_LOW>;
++			reset-gpios = <&gpio3 21 GPIO_ACTIVE_LOW>;
+ 			reset-assert-us = <10000>;
+ 			reset-deassert-us = <80000>;
+ 			realtek,clkout-disable;
+@@ -204,22 +175,14 @@ &lpi2c1 {
+ 	pinctrl-0 = <&pinctrl_lpi2c1>;
+ 	pinctrl-1 = <&pinctrl_lpi2c1>;
+ 	status = "okay";
+-};
+-
+-&lpi2c2 {
+-	#address-cells = <1>;
+-	#size-cells = <0>;
+-	clock-frequency = <400000>;
+-	pinctrl-names = "default", "sleep";
+-	pinctrl-0 = <&pinctrl_lpi2c2>;
+-	pinctrl-1 = <&pinctrl_lpi2c2>;
+-	status = "okay";
+ 
+ 	pmic@25 {
+ 		compatible = "nxp,pca9451a";
+ 		reg = <0x25>;
+-		interrupt-parent = <&pcal6524>;
+-		interrupts = <11 IRQ_TYPE_EDGE_FALLING>;
++		pinctrl-names = "default";
++		pinctrl-0 = <&pinctrl_pmic>;
++		interrupt-parent = <&gpio3>;
++		interrupts = <20 IRQ_TYPE_EDGE_FALLING>;
+ 
+ 		regulators {
+ 			buck1: BUCK1 {
+@@ -289,19 +252,16 @@ ldo5: LDO5 {
+ 			};
+ 		};
+ 	};
++};
+ 
+-	pcal6524: gpio@22 {
+-		compatible = "nxp,pcal6524";
+-		pinctrl-names = "default";
+-		pinctrl-0 = <&pinctrl_pcal6524>;
+-		reg = <0x22>;
+-		gpio-controller;
+-		#gpio-cells = <2>;
+-		interrupt-controller;
+-		#interrupt-cells = <2>;
+-		interrupt-parent = <&gpio3>;
+-		interrupts = <27 IRQ_TYPE_LEVEL_LOW>;
+-	};
++&lpi2c2 {
++	#address-cells = <1>;
++	#size-cells = <0>;
++	clock-frequency = <400000>;
++	pinctrl-names = "default", "sleep";
++	pinctrl-0 = <&pinctrl_lpi2c2>;
++	pinctrl-1 = <&pinctrl_lpi2c2>;
++	status = "okay";
+ };
+ 
+ &lpi2c3 {
+@@ -313,14 +273,6 @@ &lpi2c3 {
+ 	pinctrl-1 = <&pinctrl_lpi2c3>;
+ 	status = "okay";
+ 
+-	pcf2131: rtc@53 {
+-			compatible = "nxp,pcf2131";
+-			reg = <0x53>;
+-			interrupt-parent = <&pcal6524>;
+-			interrupts = <1 IRQ_TYPE_EDGE_FALLING>;
+-			status = "okay";
+-	};
+-
+ 	ptn5110: tcpc@50 {
+ 		compatible = "nxp,ptn5110";
+ 		reg = <0x50>;
+@@ -382,18 +334,6 @@ &lpuart1 { /* console */
+ 	status = "okay";
+ };
+ 
+-&lpuart5 {
+-	/* BT */
+-	pinctrl-names = "default";
+-	pinctrl-assert-gpios = <&pcal6524 19 GPIO_ACTIVE_HIGH>;
+-	pinctrl-0 = <&pinctrl_uart5>;
+-	status = "okay";
+-
+-	bluetooth {
+-		compatible = "nxp,88w8987-bt";
+-	};
+-};
+-
+ &media_blk_ctrl {
+ 	status = "okay";
+ };
+@@ -459,29 +399,6 @@ &usdhc2 {
+ 	no-mmc;
+ };
+ 
+-&usdhc3 {
+-	pinctrl-names = "default", "state_100mhz", "state_200mhz", "sleep";
+-	pinctrl-0 = <&pinctrl_usdhc3>, <&pinctrl_usdhc3_wlan>;
+-	pinctrl-1 = <&pinctrl_usdhc3_100mhz>, <&pinctrl_usdhc3_wlan>;
+-	pinctrl-2 = <&pinctrl_usdhc3_200mhz>, <&pinctrl_usdhc3_wlan>;
+-	pinctrl-3 = <&pinctrl_usdhc3_sleep>, <&pinctrl_usdhc3_wlan>;
+-	mmc-pwrseq = <&usdhc3_pwrseq>;
+-	vmmc-supply = <&reg_usdhc3_vmmc>;
+-	pinctrl-assert-gpios = <&pcal6524 13 GPIO_ACTIVE_HIGH>;
+-	bus-width = <4>;
+-	keep-power-in-suspend;
+-	non-removable;
+-	wakeup-source;
+-	status = "okay";
+-
+-	wifi_wake_host {
+-		compatible = "nxp,wifi-wake-host";
+-		interrupt-parent = <&gpio3>;
+-		interrupts = <26 IRQ_TYPE_LEVEL_LOW>;
+-		interrupt-names = "host-wake";
+-	};
+-};
+-
+ &wdog3 {
+ 	status = "okay";
+ };
+@@ -489,39 +406,18 @@ &wdog3 {
+ &iomuxc {
+ 	pinctrl_eqos: eqosgrp {
+ 		fsl,pins = <
+-			MX93_PAD_ENET1_MDC__ENET_QOS_MDC			0x57e
+-			MX93_PAD_ENET1_MDIO__ENET_QOS_MDIO			0x57e
+-			MX93_PAD_ENET1_RD0__ENET_QOS_RGMII_RD0			0x57e
+-			MX93_PAD_ENET1_RD1__ENET_QOS_RGMII_RD1			0x57e
+-			MX93_PAD_ENET1_RD2__ENET_QOS_RGMII_RD2			0x57e
+-			MX93_PAD_ENET1_RD3__ENET_QOS_RGMII_RD3			0x57e
+-			MX93_PAD_ENET1_RXC__CCM_ENET_QOS_CLOCK_GENERATE_RX_CLK	0x58e
+-			MX93_PAD_ENET1_RX_CTL__ENET_QOS_RGMII_RX_CTL		0x57e
+-			MX93_PAD_ENET1_TD0__ENET_QOS_RGMII_TD0			0x57e
+-			MX93_PAD_ENET1_TD1__ENET_QOS_RGMII_TD1			0x57e
+-			MX93_PAD_ENET1_TD2__ENET_QOS_RGMII_TD2			0x57e
+-			MX93_PAD_ENET1_TD3__ENET_QOS_RGMII_TD3			0x57e
+-			MX93_PAD_ENET1_TXC__CCM_ENET_QOS_CLOCK_GENERATE_TX_CLK	0x58e
+-			MX93_PAD_ENET1_TX_CTL__ENET_QOS_RGMII_TX_CTL		0x57e
+-		>;
+-	};
+-
+-	pinctrl_eqos_sleep: eqosgrpsleep {
+-		fsl,pins = <
+-			MX93_PAD_ENET1_MDC__GPIO4_IO00				0x31e
+-			MX93_PAD_ENET1_MDIO__GPIO4_IO01				0x31e
+-			MX93_PAD_ENET1_RD0__GPIO4_IO10                          0x31e
+-			MX93_PAD_ENET1_RD1__GPIO4_IO11				0x31e
+-			MX93_PAD_ENET1_RD2__GPIO4_IO12				0x31e
+-			MX93_PAD_ENET1_RD3__GPIO4_IO13				0x31e
+-			MX93_PAD_ENET1_RXC__GPIO4_IO09                          0x31e
+-			MX93_PAD_ENET1_RX_CTL__GPIO4_IO08			0x31e
+-			MX93_PAD_ENET1_TD0__GPIO4_IO05                          0x31e
+-			MX93_PAD_ENET1_TD1__GPIO4_IO04                          0x31e
+-			MX93_PAD_ENET1_TD2__GPIO4_IO03				0x31e
+-			MX93_PAD_ENET1_TD3__GPIO4_IO02				0x31e
+-			MX93_PAD_ENET1_TXC__GPIO4_IO07                          0x31e
+-			MX93_PAD_ENET1_TX_CTL__GPIO4_IO06                       0x31e
++			MX93_PAD_ENET1_MDC__ENET_QOS_MDC                        0x57e
++			MX93_PAD_ENET1_MDIO__ENET_QOS_MDIO                      0x57e
++			MX93_PAD_ENET1_RD0__ENET_QOS_RGMII_RD0                  0x57e
++			MX93_PAD_ENET1_RD1__ENET_QOS_RGMII_RD1                  0x57e
++			MX93_PAD_ENET1_RX_CTL__ENET_QOS_RGMII_RX_CTL            0x57e
++			MX93_PAD_ENET1_TD0__ENET_QOS_RGMII_TD0                  0x57e
++			MX93_PAD_ENET1_TD1__ENET_QOS_RGMII_TD1					0x57e
++			MX93_PAD_ENET1_TX_CTL__ENET_QOS_RGMII_TX_CTL            0x57e
++			MX93_PAD_ENET1_RXC__ENET_QOS_RX_ER                      0x57e
++			MX93_PAD_ENET1_TD2__CCM_ENET_QOS_CLOCK_GENERATE_REF_CLK 0x400005fe
++			MX93_PAD_SD3_CMD__GPIO3_IO21                            0x31e /* E_NRST */
++			MX93_PAD_SD3_DATA0__GPIO3_IO22                          0x31e /* E_INT */
+ 		>;
+ 	};
+ 
+@@ -546,12 +442,6 @@ MX93_PAD_GPIO_IO29__LPI2C3_SCL			0x40000b9e
+ 		>;
+ 	};
+ 
+-	pinctrl_pcal6524: pcal6524grp {
+-		fsl,pins = <
+-			MX93_PAD_CCM_CLKO2__GPIO3_IO27			0x31e
+-		>;
+-	};
+-
+ 	pinctrl_uart1: uart1grp {
+ 		fsl,pins = <
+ 			MX93_PAD_UART1_RXD__LPUART1_RX			0x31e
+@@ -559,12 +449,9 @@ MX93_PAD_UART1_TXD__LPUART1_TX			0x31e
+ 		>;
+ 	};
+ 
+-	pinctrl_uart5: uart5grp {
++	pinctrl_pmic: pmicgrp {
+ 		fsl,pins = <
+-			MX93_PAD_DAP_TDO_TRACESWO__LPUART5_TX	0x31e
+-			MX93_PAD_DAP_TDI__LPUART5_RX		0x31e
+-			MX93_PAD_DAP_TMS_SWDIO__LPUART5_RTS_B	0x31e
+-			MX93_PAD_DAP_TCLK_SWCLK__LPUART5_CTS_B	0x31e
++			MX93_PAD_SD3_CLK__GPIO3_IO20			0x31e
+ 		>;
+ 	};
+ 
+@@ -687,59 +574,6 @@ MX93_PAD_SD2_DATA3__GPIO3_IO06		0x51e
+ 			MX93_PAD_SD2_VSELECT__GPIO3_IO19	0x51e
+ 		>;
+ 	};
+-
+-	/* need to config the SION for data and cmd pad, refer to ERR052021 */
+-	pinctrl_usdhc3: usdhc3grp {
+-		fsl,pins = <
+-			MX93_PAD_SD3_CLK__USDHC3_CLK		0x1582
+-			MX93_PAD_SD3_CMD__USDHC3_CMD		0x40001382
+-			MX93_PAD_SD3_DATA0__USDHC3_DATA0	0x40001382
+-			MX93_PAD_SD3_DATA1__USDHC3_DATA1	0x40001382
+-			MX93_PAD_SD3_DATA2__USDHC3_DATA2	0x40001382
+-			MX93_PAD_SD3_DATA3__USDHC3_DATA3	0x40001382
+-		>;
+-	};
+-
+-	/* need to config the SION for data and cmd pad, refer to ERR052021 */
+-	pinctrl_usdhc3_100mhz: usdhc3-100mhzgrp {
+-		fsl,pins = <
+-			MX93_PAD_SD3_CLK__USDHC3_CLK		0x158e
+-			MX93_PAD_SD3_CMD__USDHC3_CMD		0x4000138e
+-			MX93_PAD_SD3_DATA0__USDHC3_DATA0	0x4000138e
+-			MX93_PAD_SD3_DATA1__USDHC3_DATA1	0x4000138e
+-			MX93_PAD_SD3_DATA2__USDHC3_DATA2	0x4000138e
+-			MX93_PAD_SD3_DATA3__USDHC3_DATA3	0x4000138e
+-		>;
+-	};
+-
+-	/* need to config the SION for data and cmd pad, refer to ERR052021 */
+-	pinctrl_usdhc3_200mhz: usdhc3-200mhzgrp {
+-		fsl,pins = <
+-			MX93_PAD_SD3_CLK__USDHC3_CLK		0x15fe
+-			MX93_PAD_SD3_CMD__USDHC3_CMD		0x400013fe
+-			MX93_PAD_SD3_DATA0__USDHC3_DATA0	0x400013fe
+-			MX93_PAD_SD3_DATA1__USDHC3_DATA1	0x400013fe
+-			MX93_PAD_SD3_DATA2__USDHC3_DATA2	0x400013fe
+-			MX93_PAD_SD3_DATA3__USDHC3_DATA3	0x400013fe
+-		>;
+-	};
+-
+-	pinctrl_usdhc3_sleep: usdhc3grpsleep {
+-		fsl,pins = <
+-			MX93_PAD_SD3_CLK__GPIO3_IO20		0x31e
+-			MX93_PAD_SD3_CMD__GPIO3_IO21		0x31e
+-			MX93_PAD_SD3_DATA0__GPIO3_IO22		0x31e
+-			MX93_PAD_SD3_DATA1__GPIO3_IO23		0x31e
+-			MX93_PAD_SD3_DATA2__GPIO3_IO24		0x31e
+-			MX93_PAD_SD3_DATA3__GPIO3_IO25		0x31e
+-		>;
+-	};
+-
+-	pinctrl_usdhc3_wlan: usdhc3wlangrp {
+-		fsl,pins = <
+-			MX93_PAD_CCM_CLKO1__GPIO3_IO26		0x31e
+-		>;
+-	};
+ };
+ 
+ &epxp {
+-- 
+2.46.0
+

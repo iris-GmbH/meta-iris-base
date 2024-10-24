@@ -1,0 +1,51 @@
+From 5a9f224370579871586699ceb1af9ad472f84f44 Mon Sep 17 00:00:00 2001
+From: Erik Schumacher <erik.schumacher@iris-sensing.com>
+Date: Thu, 24 Oct 2024 09:45:56 +0000
+Subject: [PATCH] WIP - force imx93-matrixup to only use HS200 for mmc
+
+---
+ arch/arm64/boot/dts/freescale/imx93-matrixup.dts | 1 +
+ drivers/mmc/host/sdhci-esdhc-imx.c               | 8 ++++++++
+ 2 files changed, 9 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/freescale/imx93-matrixup.dts b/arch/arm64/boot/dts/freescale/imx93-matrixup.dts
+index 4c632166bbb44..695dd530a54a6 100644
+--- a/arch/arm64/boot/dts/freescale/imx93-matrixup.dts
++++ b/arch/arm64/boot/dts/freescale/imx93-matrixup.dts
+@@ -392,6 +392,7 @@ &usbotg1 {
+ };
+ 
+ &usdhc1 {
++	compatible = "fsl,imx93-hs200only-usdhc";
+ 	pinctrl-names = "default", "state_100mhz", "state_200mhz";
+ 	pinctrl-0 = <&pinctrl_usdhc1>;
+ 	pinctrl-1 = <&pinctrl_usdhc1_100mhz>;
+diff --git a/drivers/mmc/host/sdhci-esdhc-imx.c b/drivers/mmc/host/sdhci-esdhc-imx.c
+index 6143b80d7c6e0..b1e282712fb37 100644
+--- a/drivers/mmc/host/sdhci-esdhc-imx.c
++++ b/drivers/mmc/host/sdhci-esdhc-imx.c
+@@ -357,6 +357,13 @@ static struct esdhc_soc_data usdhc_imx8mq_data = {
+ 			| ESDHC_FLAG_BUSFREQ,
+ };
+ 
++static struct esdhc_soc_data usdhc_imx93_hs200only_data = {
++	.flags = ESDHC_FLAG_USDHC | ESDHC_FLAG_STD_TUNING
++			| ESDHC_FLAG_HAVE_CAP1 | ESDHC_FLAG_HS200
++			| ESDHC_FLAG_STATE_LOST_IN_LPMODE
++			| ESDHC_FLAG_BUSFREQ,
++};
++
+ static struct esdhc_soc_data usdhc_s32v234_data = {
+ 	.flags = ESDHC_FLAG_USDHC,
+ };
+@@ -406,6 +413,7 @@ static const struct of_device_id imx_esdhc_dt_ids[] = {
+ 	{ .compatible = "fsl,imx8qxp-usdhc", .data = &usdhc_imx8qxp_data, },
+ 	{ .compatible = "fsl,imx8mm-usdhc", .data = &usdhc_imx8mm_data, },
+ 	{ .compatible = "fsl,imx8mq-usdhc", .data = &usdhc_imx8mq_data, },
++	{ .compatible = "fsl,imx93-hs200only-usdhc", .data = &usdhc_imx93_hs200only_data, },
+ 	{ .compatible = "fsl,imxrt1050-usdhc", .data = &usdhc_imxrt1050_data, },
+ 	{ .compatible = "nxp,s32g2-usdhc", .data = &usdhc_s32g2_data, },
+ 	{ .compatible = "fsl,s32v234-usdhc", .data = &usdhc_s32v234_data, },
+-- 
+2.44.1
+
