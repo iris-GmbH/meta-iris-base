@@ -1,0 +1,62 @@
+From 1f7b5b587c6d3e6b9747213badab4fa8690300bb Mon Sep 17 00:00:00 2001
+From: Erik Schumacher <erik.schumacher@iris-sensing.com>
+Date: Thu, 26 Sep 2024 12:07:11 +0000
+Subject: [PATCH] Modify include/configs/imx93_matrixup.h
+
+---
+ include/configs/imx93_matrixup.h | 20 ++------------------
+ 1 file changed, 2 insertions(+), 18 deletions(-)
+
+diff --git a/include/configs/imx93_matrixup.h b/include/configs/imx93_matrixup.h
+index 3bef544175a..cee3d604e4e 100644
+--- a/include/configs/imx93_matrixup.h
++++ b/include/configs/imx93_matrixup.h
+@@ -3,8 +3,8 @@
+  * Copyright 2022 NXP
+  */
+ 
+-#ifndef __IMX93_EVK_H
+-#define __IMX93_EVK_H
++#ifndef __IMX93_MATRIXUP_H
++#define __IMX93_MATRIXUP_H
+ 
+ #include <linux/sizes.h>
+ #include <linux/stringify.h>
+@@ -31,17 +31,6 @@
+ #define BOOTENV
+ #endif
+ 
+-#define JH_ROOT_DTB    "imx93-11x11-evk-root.dtb"
+-
+-#define JAILHOUSE_ENV \
+-	"jh_root_dtb=" JH_ROOT_DTB "\0" \
+-	"jh_mmcboot=setenv fdtfile ${jh_root_dtb}; " \
+-		    "setenv jh_clk clk_ignore_unused mem=1248MB kvm-arm.mode=nvhe; " \
+-		    "if run loadimage; then run mmcboot;" \
+-		    "else run jh_netboot; fi; \0" \
+-	"jh_netboot=setenv fdtfile ${jh_root_dtb}; " \
+-		    "setenv jh_clk clk_ignore_unused mem=1248MB kvm-arm.mode=nvhe; run netboot; \0 "
+-
+ #define SR_IR_V2_COMMAND \
+ 	"nodes=/usbg1 /usbg2 /wdt-reboot /rm67199_panel /dsi-host /display-subsystem /soc@0/bus@44000000/dma-controller@44000000 /soc@0/bus@44000000/sai@443b0000 /soc@0/bus@44000000/mqs1 /soc@0/bus@44000000/bbnsm@44440000 /soc@0/bus@44000000/system-controller@44460000 /soc@0/bus@44000000/tmu@44482000 /soc@0/bus@44000000/micfil@44520000 /soc@0/bus@42000000/dma-controller@42000000 /soc@0/bus@44000000/i3c-master@44330000 /soc@0/bus@42000000/i3c-master@42520000 /soc@0/bus@42000000/sai@42650000 /soc@0/bus@42000000/sai@42660000 /soc@0/bus@42000000/mqs2 /soc@0/bus@42000000/xcvr@42680000 /soc@0/bus@42000000/flexio@425c0000 /soc@0/bus@42800000/epxp@4ae20000 /soc@0/bus@42800000/camera /soc@0/efuse@47510000 /soc@0/system-controller@4ac10000 /soc@0/ldb@4ac10020 /soc@0/phy@4ac10024 /soc@0/ele-mu /soc@0/dsi@4ae10000 /soc@0/lcd-controller@4ae30000 /soc@0/blk-ctrl@4e010000 /soc@0/memory-controller@4e300000 /soc@0/bus@44000000/i2c@44350000/pmic@25 /imx93-lpm  \0" \
+ 	"sr_ir_v2_cmd=cp.b ${fdtcontroladdr} ${fdt_addr_r} 0x10000;"\
+@@ -69,7 +58,6 @@
+ 
+ /* Initial environment variables */
+ #define CFG_EXTRA_ENV_SETTINGS		\
+-	JAILHOUSE_ENV \
+ 	CFG_MFG_ENV_SETTINGS \
+ 	BOOTENV \
+ 	AHAB_ENV \
+@@ -180,8 +168,4 @@
+ #define NS_ARCH_ARM64 1
+ #endif
+ 
+-#ifdef CONFIG_ANDROID_SUPPORT
+-#include "imx93_evk_android.h"
+-#endif
+-
+ #endif
+-- 
+2.46.0
+

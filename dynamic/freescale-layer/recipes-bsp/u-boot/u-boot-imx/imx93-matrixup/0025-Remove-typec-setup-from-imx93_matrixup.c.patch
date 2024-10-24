@@ -1,0 +1,62 @@
+From 925dced7b5318fd52f5067b8668c506023b847ed Mon Sep 17 00:00:00 2001
+From: Erik Schumacher <erik.schumacher@iris-sensing.com>
+Date: Fri, 27 Sep 2024 08:30:07 +0000
+Subject: [PATCH] Remove typec setup from imx93_matrixup.c
+
+---
+ .../freescale/imx93_matrixup/imx93_matrixup.c | 32 -------------------
+ 1 file changed, 32 deletions(-)
+
+diff --git a/board/freescale/imx93_matrixup/imx93_matrixup.c b/board/freescale/imx93_matrixup/imx93_matrixup.c
+index d20977c0f85..56586fceaa7 100644
+--- a/board/freescale/imx93_matrixup/imx93_matrixup.c
++++ b/board/freescale/imx93_matrixup/imx93_matrixup.c
+@@ -154,34 +154,6 @@ struct tcpc_port_config port2_config = {
+ 	.disable_pd = true,
+ };
+ 
+-static int setup_typec(void)
+-{
+-	int ret;
+-
+-	debug("tcpc_init port pd\n");
+-	ret = tcpc_init(&portpd, portpd_config, NULL);
+-	if (ret) {
+-		printf("%s: tcpc portpd init failed, err=%d\n",
+-		       __func__, ret);
+-	}
+-
+-	debug("tcpc_init port 2\n");
+-	ret = tcpc_init(&port2, port2_config, NULL);
+-	if (ret) {
+-		printf("%s: tcpc port2 init failed, err=%d\n",
+-		       __func__, ret);
+-	}
+-
+-	debug("tcpc_init port 1\n");
+-	ret = tcpc_init(&port1, port1_config, NULL);
+-	if (ret) {
+-		printf("%s: tcpc port1 init failed, err=%d\n",
+-		       __func__, ret);
+-	}
+-
+-	return ret;
+-}
+-
+ int board_usb_init(int index, enum usb_init_type init)
+ {
+ 	int ret = 0;
+@@ -354,10 +326,6 @@ static void board_gpio_init(void)
+ 
+ int board_init(void)
+ {
+-#ifdef CONFIG_USB_TCPC
+-	setup_typec();
+-#endif
+-
+ 	if (IS_ENABLED(CONFIG_FEC_MXC))
+ 		setup_fec();
+ 
+-- 
+2.46.0
+

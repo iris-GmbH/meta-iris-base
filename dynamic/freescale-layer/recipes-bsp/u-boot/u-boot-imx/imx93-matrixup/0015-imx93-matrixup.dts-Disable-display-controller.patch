@@ -1,0 +1,28 @@
+From 14635b0ff9caf52d23ce703c4628a400350fc4cb Mon Sep 17 00:00:00 2001
+From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+Date: Thu, 26 Sep 2024 13:05:46 +0200
+Subject: [PATCH] imx93-matrixup.dts: Disable display controller
+
+---
+ arch/arm/dts/imx93-matrixup.dts | 5 -----
+ 1 file changed, 5 deletions(-)
+
+diff --git a/arch/arm/dts/imx93-matrixup.dts b/arch/arm/dts/imx93-matrixup.dts
+index 82380b8e004..477199bce97 100644
+--- a/arch/arm/dts/imx93-matrixup.dts
++++ b/arch/arm/dts/imx93-matrixup.dts
+@@ -110,11 +110,6 @@
+ 	};
+ };
+ 
+-&lcdif {
+-	status = "okay";
+-	assigned-clock-rates = <484000000>, <121000000>, <400000000>, <133333333>;
+-};
+-
+ &lpi2c1 {
+ 	#address-cells = <1>;
+ 	#size-cells = <0>;
+-- 
+2.46.0
+

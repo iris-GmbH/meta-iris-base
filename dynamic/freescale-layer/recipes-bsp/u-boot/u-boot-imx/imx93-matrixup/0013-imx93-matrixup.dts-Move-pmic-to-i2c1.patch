@@ -1,0 +1,50 @@
+From f31f51ba7154389d57f2f8dc252cf19ac3162828 Mon Sep 17 00:00:00 2001
+From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+Date: Thu, 26 Sep 2024 12:57:38 +0200
+Subject: [PATCH] imx93-matrixup.dts: Move pmic to i2c1
+
+---
+ arch/arm/dts/imx93-matrixup.dts | 20 ++++++++++----------
+ 1 file changed, 10 insertions(+), 10 deletions(-)
+
+diff --git a/arch/arm/dts/imx93-matrixup.dts b/arch/arm/dts/imx93-matrixup.dts
+index c232583d6a7..dd5d0f152b1 100644
+--- a/arch/arm/dts/imx93-matrixup.dts
++++ b/arch/arm/dts/imx93-matrixup.dts
+@@ -179,16 +179,6 @@
+ 			};
+ 		};
+ 	};
+-};
+-
+-&lpi2c2 {
+-	#address-cells = <1>;
+-	#size-cells = <0>;
+-	clock-frequency = <400000>;
+-	pinctrl-names = "default", "sleep";
+-	pinctrl-0 = <&pinctrl_lpi2c2>;
+-	pinctrl-1 = <&pinctrl_lpi2c2>;
+-	status = "okay";
+ 
+ 	pmic@25 {
+ 		compatible = "nxp,pca9451a";
+@@ -264,6 +254,16 @@
+ 			};
+ 		};
+ 	};
++};
++
++&lpi2c2 {
++	#address-cells = <1>;
++	#size-cells = <0>;
++	clock-frequency = <400000>;
++	pinctrl-names = "default", "sleep";
++	pinctrl-0 = <&pinctrl_lpi2c2>;
++	pinctrl-1 = <&pinctrl_lpi2c2>;
++	status = "okay";
+ 
+ 	pcal6524: gpio@22 {
+ 		compatible = "nxp,pcal6524";
+-- 
+2.46.0
+
