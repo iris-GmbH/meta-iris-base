@@ -1,0 +1,57 @@
+From 83060d24a79e11d34c63ab23101f263538ef28a6 Mon Sep 17 00:00:00 2001
+From: Erik Schumacher <erik.schumacher@iris-sensing.com>
+Date: Mon, 24 Jun 2024 15:12:55 +0000
+Subject: [PATCH 23/24] tc358746.c: Add empty s_power and link_setup functions
+
+Signed-off-by: Erik Schumacher <erik.schumacher@iris-sensing.com>
+---
+ drivers/media/i2c/tc358746.c | 14 ++++++++++++++
+ 1 file changed, 14 insertions(+)
+
+diff --git a/drivers/media/i2c/tc358746.c b/drivers/media/i2c/tc358746.c
+index 839e933d5f8a..93604fd5d872 100644
+--- a/drivers/media/i2c/tc358746.c
++++ b/drivers/media/i2c/tc358746.c
+@@ -1006,6 +1006,13 @@ tc358746_link_validate(struct v4l2_subdev *sd, struct media_link *link,
+ 	return tc358746->vb_size > TC358746_VB_MAX_SIZE ? -EINVAL : 0;
+ }
+ 
++static int tc358746_link_setup(struct media_entity *entity,
++			       const struct media_pad *local,
++			       const struct media_pad *remote, u32 flags)
++{
++	return 0;
++}
++
+ static int tc358746_get_mbus_config(struct v4l2_subdev *sd, unsigned int pad,
+ 				    struct v4l2_mbus_config *config)
+ {
+@@ -1058,11 +1065,17 @@ tc358746_s_register(struct v4l2_subdev *sd, const struct v4l2_dbg_register *reg)
+ 	return 0;
+ }
+ 
++static int tc358746_s_power(struct v4l2_subdev *sd, int on)
++{
++	return 0;
++}
++
+ static const struct v4l2_subdev_core_ops tc358746_core_ops = {
+ #ifdef CONFIG_VIDEO_ADV_DEBUG
+ 	.g_register = tc358746_g_register,
+ 	.s_register = tc358746_s_register,
+ #endif
++	.s_power = tc358746_s_power,
+ };
+ 
+ static const struct v4l2_subdev_video_ops tc358746_video_ops = {
+@@ -1087,6 +1100,7 @@ static const struct v4l2_subdev_ops tc358746_ops = {
+ static const struct media_entity_operations tc358746_entity_ops = {
+ 	.get_fwnode_pad = v4l2_subdev_get_fwnode_pad_1_to_1,
+ 	.link_validate = v4l2_subdev_link_validate,
++	.link_setup = tc358746_link_setup,
+ };
+ 
+ static int tc358746_mclk_enable(struct clk_hw *hw)
+-- 
+2.44.1
+

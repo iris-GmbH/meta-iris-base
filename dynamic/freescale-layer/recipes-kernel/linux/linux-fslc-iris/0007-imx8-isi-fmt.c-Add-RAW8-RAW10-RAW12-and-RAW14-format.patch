@@ -1,0 +1,60 @@
+From ebd499146a3a60e90a2f0f2a6462082bf67b4b0f Mon Sep 17 00:00:00 2001
+From: Ian Dannapel <ian.dannapel@iris-sensing.com>
+Date: Wed, 18 Sep 2024 12:57:49 +0000
+Subject: [PATCH 07/24] imx8-isi-fmt.c: Add RAW8, RAW10, RAW12 and RAW14
+ formats
+
+Signed-off-by: Erik Schumacher <erik.schumacher@iris-sensing.com>
+Signed-off-by: Ian Dannapel <ian.dannapel@iris-sensing.com>
+---
+ drivers/staging/media/imx/imx8-isi-fmt.c | 34 ++++++++++++++++++++++++
+ 1 file changed, 34 insertions(+)
+
+diff --git a/drivers/staging/media/imx/imx8-isi-fmt.c b/drivers/staging/media/imx/imx8-isi-fmt.c
+index db11c809a3d3..54c399274cc6 100644
+--- a/drivers/staging/media/imx/imx8-isi-fmt.c
++++ b/drivers/staging/media/imx/imx8-isi-fmt.c
+@@ -97,6 +97,40 @@ struct mxc_isi_fmt mxc_isi_out_formats[] = {
+ 		.colplanes	= 1,
+ 		.align		= 2,
+ 		.mbus_code	= MEDIA_BUS_FMT_RGB888_1X24,
++	}, {
++		.name		= "RAW8",
++		.fourcc		= V4L2_PIX_FMT_GREY,
++		.depth		= { 8 },
++		.color		= MXC_ISI_OUT_FMT_RAW8,
++		.memplanes	= 1,
++		.colplanes	= 1,
++		.align		= 1,
++		.mbus_code	= MEDIA_BUS_FMT_Y8_1X8,
++	}, {
++		.name		= "RAW10",
++		.fourcc		= V4L2_PIX_FMT_Y10,
++		.depth		= { 16 },
++		.color		= MXC_ISI_OUT_FMT_RAW10,
++		.memplanes	= 1,
++		.colplanes	= 1,
++		.align		= 2,
++		.mbus_code	= MEDIA_BUS_FMT_Y10_1X10,
++	}, {
++		.name		= "RAW12",
++		.fourcc		= V4L2_PIX_FMT_Y12,
++		.depth		= { 16 },
++		.color		= MXC_ISI_OUT_FMT_RAW12,
++		.memplanes	= 1,
++		.colplanes	= 1,
++		.mbus_code	= MEDIA_BUS_FMT_Y12_1X12,
++	}, {
++		.name		= "RAW14",
++		.fourcc		= V4L2_PIX_FMT_Y14,
++		.depth		= { 16 },
++		.color		= MXC_ISI_OUT_FMT_RAW14,
++		.memplanes	= 1,
++		.colplanes	= 1,
++		.mbus_code	= MEDIA_BUS_FMT_Y14_1X14,
+ 	}
+ };
+ 
+-- 
+2.44.1
+

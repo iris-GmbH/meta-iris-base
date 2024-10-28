@@ -1,0 +1,72 @@
+From a9fd87b980939ab1b06d91c7fc9ce584a32d1d73 Mon Sep 17 00:00:00 2001
+From: Ian Dannapel <ian.dannapel@iris-sensing.com>
+Date: Wed, 18 Sep 2024 12:52:48 +0000
+Subject: [PATCH 06/24] imx8-parallel-csi.c: Fix missing first frames and
+ format propagation
+
+- Fix missing first 3 frames due to vsync counter
+- Allow format code propagation to sub devices instead of hardcoded MEDIA_BUS_FMTs
+- Set raw10 as imx93 default capture (hack to fix raw8 alignment)
+
+Signed-off-by: Erik Schumacher <erik.schumacher@iris-sensing.com>
+---
+ drivers/staging/media/imx/imx8-parallel-csi.c | 11 +++++++----
+ 1 file changed, 7 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/staging/media/imx/imx8-parallel-csi.c b/drivers/staging/media/imx/imx8-parallel-csi.c
+index 664d99aa8956..23e25cd94b9f 100644
+--- a/drivers/staging/media/imx/imx8-parallel-csi.c
++++ b/drivers/staging/media/imx/imx8-parallel-csi.c
+@@ -269,6 +269,9 @@ static void disp_mix_gasket_config(struct mxc_parallel_csi_dev *pcsidev)
+ 
+ 	regmap_read(gasket, DISP_MIX_CAMERA_MUX, &val);
+ 	val |= (SRC_TYPE_PARALLEL << 17);
++	val |= DISP_MIX_CAMERA_MUX_GASKET_ENABLE;
++	val &= ~(DISP_MIX_CAMERA_MUX_DATA_TYPE(0xff));
++	val |= DISP_MIX_CAMERA_MUX_DATA_TYPE(0x2a); // 0x2a = RAW8, 0x2b = RAW10
+ 	regmap_write(gasket, DISP_MIX_CAMERA_MUX, val);
+ }
+ 
+@@ -372,7 +375,7 @@ static void mxc_pcsi_csr_config(struct mxc_parallel_csi_dev *pcsidev)
+ 
+ 	/* Config PL Data Type */
+ 	val = readl(pcsidev->csr_regs + pdata->if_ctrl_reg);
+-	val |= IF_CTRL_REG_DATA_TYPE(DATA_TYPE_OUT_YUV444);
++	val |= IF_CTRL_REG_DATA_TYPE(DATA_TYPE_OUT_RAW);
+ 	writel(val, pcsidev->csr_regs + pdata->if_ctrl_reg);
+ 
+ 	/* Enable sync Force */
+@@ -393,11 +396,12 @@ static void mxc_pcsi_csr_config(struct mxc_parallel_csi_dev *pcsidev)
+ 	/* Config CTRL REG */
+ 	val = readl(pcsidev->csr_regs + pdata->interface_ctrl_reg);
+ 
++	val &= ~(CSI_CTRL_REG_MASK_VSYNC_COUNTER(3));
+ 	val |= (CSI_CTRL_REG_DATA_TYPE_IN(pdata->def_csi_in_data_type) |
+ 		pdata->def_hsync_pol << CSI_CTRL_REG_HSYNC_POL_OFFSET |
+ 		pdata->def_vsync_pol << CSI_CTRL_REG_VSYNC_POL_OFFSET |
+ 		pdata->def_pixel_clk_pol << CSI_CTRL_REG_PIXEL_CLK_POL_OFFSET |
+-		CSI_CTRL_REG_MASK_VSYNC_COUNTER(3) |
++		CSI_CTRL_REG_MASK_VSYNC_COUNTER(0) |
+ 		CSI_CTRL_REG_HSYNC_PULSE(2));
+ 
+ 	if (pcsidev->uv_swap)
+@@ -657,7 +661,6 @@ static int mxc_pcsi_set_fmt(struct v4l2_subdev *sd,
+ 	}
+ 
+ 	fmt->pad = source_pad->index;
+-	fmt->format.code = MEDIA_BUS_FMT_UYVY8_2X8;
+ 	ret = v4l2_subdev_call(sen_sd, pad, set_fmt, NULL, fmt);
+ 	if (ret < 0 && ret != -ENOIOCTLCMD)
+ 		return ret;
+@@ -989,7 +992,7 @@ static const struct mxc_pcsi_plat_data imx93_pdata = {
+ 	.def_hsync_pol		= 0,
+ 	.def_vsync_pol		= 1,
+ 	.def_pixel_clk_pol	= 0,
+-	.def_csi_in_data_type	= CSI_IN_DT_YVYU_8,
++	.def_csi_in_data_type	= CSI_IN_DT_RAW_10,
+ 	.pd_ops			= NULL,
+ };
+ 
+-- 
+2.34.1
+

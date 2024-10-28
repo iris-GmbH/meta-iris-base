@@ -34,13 +34,4 @@ UBOOT_LOADADDRESS = "0x82000000"
 
 IMAGE_BOOT_FILES ?= "u-boot.${UBOOT_SUFFIX}"
 
-#Disable rtc in busybox
-MACHINE_FEATURES_BACKFILL_CONSIDERED = "rtc"
-
 BOARD ?= "sc573-gen6"
-
-# ldconfig is used to rebuild the /etc/ld.so.cache when new libraries are introduced during runtime
-# this is not needed and /etc/ld.so.cache is already populated by Yocto, disabling this saves ~250kB
-DISTRO_FEATURES:remove = "ldconfig"
-
-IMAGE_FEATURES:remove = "read-only-rootfs"

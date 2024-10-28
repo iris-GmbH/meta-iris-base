@@ -1,0 +1,97 @@
+From 281bd7674254ec4d3d2c3546c10f70037714740b Mon Sep 17 00:00:00 2001
+From: Ian Dannapel <ian.dannapel@iris-sensing.com>
+Date: Wed, 18 Sep 2024 12:43:49 +0000
+Subject: [PATCH 04/24] imx8-isi-cap.c: Allow format code propagation and add
+ raw formats
+
+- Add RAW8, RAW10, RAW12 and RAW14 formats
+
+Signed-off-by: Ian Dannapel <ian.dannapel@iris-sensing.com>
+Signed-off-by: Erik Schumacher <erik.schumacher@iris-sensing.com>
+---
+ drivers/staging/media/imx/imx8-isi-cap.c | 48 +++++++++++++++++++++---
+ 1 file changed, 43 insertions(+), 5 deletions(-)
+
+diff --git a/drivers/staging/media/imx/imx8-isi-cap.c b/drivers/staging/media/imx/imx8-isi-cap.c
+index c3d6bbeed6a2..80b9e1053f79 100644
+--- a/drivers/staging/media/imx/imx8-isi-cap.c
++++ b/drivers/staging/media/imx/imx8-isi-cap.c
+@@ -54,6 +54,34 @@ struct mxc_isi_fmt mxc_isi_src_formats[] = {
+ 		.memplanes	= 1,
+ 		.colplanes	= 1,
+ 		.align		= 2,
++	}, {
++		.name		= "RAW8",
++		.fourcc		= V4L2_PIX_FMT_GREY,
++		.depth		= { 8 },
++		.memplanes	= 1,
++		.colplanes	= 1,
++		.align		= 1,
++	}, {
++		.name		= "RAW10",
++		.fourcc		= V4L2_PIX_FMT_Y10,
++		.depth		= { 16 },
++		.memplanes	= 1,
++		.colplanes	= 1,
++		.align		= 2,
++	}, {
++		.name		= "RAW12",
++		.fourcc		= V4L2_PIX_FMT_Y12,
++		.depth		= { 16 },
++		.memplanes	= 1,
++		.colplanes	= 1,
++		.align		= 2,
++	}, {
++		.name		= "RAW14",
++		.fourcc		= V4L2_PIX_FMT_Y14,
++		.depth		= { 16 },
++		.memplanes	= 1,
++		.colplanes	= 1,
++		.align		= 2,
+ 	}
+ };
+ 
+@@ -91,17 +119,27 @@ struct mxc_isi_fmt *mxc_isi_find_format(const u32 *pixelformat,
+ struct mxc_isi_fmt *mxc_isi_get_src_fmt(struct v4l2_subdev_format *sd_fmt)
+ {
+ 	u32 index;
+-
+ 	/* two fmt RGB32 and YUV444 from pixellink */
+-	if (sd_fmt->format.code == MEDIA_BUS_FMT_YUYV8_1X16 ||
++	if (sd_fmt->format.code == MEDIA_BUS_FMT_Y14_1X14) {
++		index = 5;
++	} else if (sd_fmt->format.code == MEDIA_BUS_FMT_Y12_1X12) {
++		index = 4; 
++	} else if (sd_fmt->format.code == MEDIA_BUS_FMT_Y10_1X10 ||
++		sd_fmt->format.code == MEDIA_BUS_FMT_SBGGR10_1X10) {
++		index = 3;
++	} else if (sd_fmt->format.code == MEDIA_BUS_FMT_Y8_1X8 ||
++		sd_fmt->format.code == MEDIA_BUS_FMT_SBGGR8_1X8) {
++		index = 2;
++	} else if (sd_fmt->format.code == MEDIA_BUS_FMT_YUYV8_1X16 ||
+ 	    sd_fmt->format.code == MEDIA_BUS_FMT_YVYU8_2X8 ||
+ 	    sd_fmt->format.code == MEDIA_BUS_FMT_AYUV8_1X32 ||
+ 	    sd_fmt->format.code == MEDIA_BUS_FMT_UYVY8_2X8 ||
+ 	    sd_fmt->format.code == MEDIA_BUS_FMT_UYVY8_1X16||
+-	    sd_fmt->format.code == MEDIA_BUS_FMT_YUYV8_2X8)
++	    sd_fmt->format.code == MEDIA_BUS_FMT_YUYV8_2X8) {
+ 		index = 1;
+-	else
++	} else {
+ 		index = 0;
++	}
+ 	return &mxc_isi_src_formats[index];
+ }
+ 
+@@ -960,7 +998,7 @@ static int mxc_isi_source_fmt_init(struct mxc_isi_cap_dev *isi_cap)
+ 
+ 	src_fmt.pad = source_pad->index;
+ 	src_fmt.which = V4L2_SUBDEV_FORMAT_ACTIVE;
+-	src_fmt.format.code = MEDIA_BUS_FMT_UYVY8_1X16;
++	src_fmt.format.code = dst_f->fmt->mbus_code;
+ 	src_fmt.format.width = dst_f->width;
+ 	src_fmt.format.height = dst_f->height;
+ 	ret = v4l2_subdev_call(src_sd, pad, set_fmt, NULL, &src_fmt);
+-- 
+2.44.1
+

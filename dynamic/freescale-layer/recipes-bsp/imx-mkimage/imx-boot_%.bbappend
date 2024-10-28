@@ -1,8 +1,6 @@
 # SPDX-License-Identifier: MIT
 # Copyright (C) 2022 iris-GmbH infrared & intelligent sensors
 
-require imx-mkimage_iris.inc
-
 inherit irma6-bootloader-version hab
 PV = "${IRIS_IMX_BOOT_RELEASE}"
 
@@ -46,7 +44,7 @@ set_imxboot_vars() {
 	        IMAGE_IMXBOOT_TARGET="$target"
         fi
     done
-    BOOT_CONFIG_MACHINE_EXTRA="${BOOT_NAME}-${MACHINE}-${UBOOT_CONFIG}.bin"
+    BOOT_CONFIG_MACHINE_EXTRA="imx-boot-${MACHINE}-${UBOOT_CONFIG}.bin"
     BOOT_IMAGE_SD="${BOOT_CONFIG_MACHINE_EXTRA}-${IMAGE_IMXBOOT_TARGET}"
 }
 
@@ -104,7 +102,7 @@ deploy_boot_image() {
     set_imxboot_vars
     if [ -e "${S}/${BOOT_IMAGE_SD}.signed" ]; then
         install -m 0644 ${S}/${BOOT_IMAGE_SD}.signed ${DEPLOY_DIR_IMAGE}/
-        ln -srf ${DEPLOY_DIR_IMAGE}/${BOOT_IMAGE_SD}.signed ${DEPLOY_DIR_IMAGE}/${BOOT_NAME}.signed
+        ln -srf ${DEPLOY_DIR_IMAGE}/${BOOT_IMAGE_SD}.signed ${DEPLOY_DIR_IMAGE}/imx-boot.signed
     else
         bbfatal "ERROR: Could not deploy Signed image"
     fi

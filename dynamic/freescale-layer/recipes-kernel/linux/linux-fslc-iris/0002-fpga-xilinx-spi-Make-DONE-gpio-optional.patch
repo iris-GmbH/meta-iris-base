@@ -1,0 +1,165 @@
+From f2dd64f350839c85a1b7d7aa66fb6b6a79d6bf09 Mon Sep 17 00:00:00 2001
+From: Erik Schumacher <erik.schumacher@iris-sensing.com>
+Date: Fri, 26 Apr 2024 06:58:25 +0000
+Subject: [PATCH 02/24] fpga/xilinx-spi: Make DONE gpio optional
+
+A hardware setup on which the DONE pin of the FPGA is not connected to
+any GPIO should still be able to initialize the FPGA. With a well-tested
+firmware the risk of returning success when the unconnected DONE pin
+would have indicated a failure is minimal. Dependend tasks should still
+check if the FPGA is fully configured.
+When the DONE pin is omitted, the number of trailing cclk cycles must be
+given. After sending the firmware, the driver will send a fixed number
+of dummy bytes (to provide cclk) instead of sending them until the DONE
+pin toggles.
+
+Update Documentation accordingly
+
+Upstream-Status: Pending
+
+Signed-off-by: Erik Schumacher <erik.schumacher@iris-sensing.com>
+---
+ .../bindings/fpga/xlnx,fpga-slave-serial.yaml | 10 +++-
+ drivers/fpga/xilinx-spi.c                     | 46 ++++++++++++++-----
+ 2 files changed, 43 insertions(+), 13 deletions(-)
+
+diff --git a/Documentation/devicetree/bindings/fpga/xlnx,fpga-slave-serial.yaml b/Documentation/devicetree/bindings/fpga/xlnx,fpga-slave-serial.yaml
+index 614d86ad825f..915de1dd2fbe 100644
+--- a/Documentation/devicetree/bindings/fpga/xlnx,fpga-slave-serial.yaml
++++ b/Documentation/devicetree/bindings/fpga/xlnx,fpga-slave-serial.yaml
+@@ -43,7 +43,14 @@ properties:
+ 
+   done-gpios:
+     description:
+-      config status pin (referred to as DONE in the manual)
++      config status pin (referred to as DONE in the manual), use this
++      property instead of "cclk_cycles" whenever possible
++    maxItems: 1
++
++  cclk_cycles:
++    description:
++      number of cclk cycles to issue after sending the bitstream
++      must be set if "done-gpios" is not given
+     maxItems: 1
+ 
+   init-b-gpios:
+@@ -57,6 +64,7 @@ required:
+   - reg
+   - prog_b-gpios
+   - done-gpios
++  - cclk_cycles
+   - init-b-gpios
+ 
+ additionalProperties: false
+diff --git a/drivers/fpga/xilinx-spi.c b/drivers/fpga/xilinx-spi.c
+index e1a227e7ff2a..4738b50f5935 100644
+--- a/drivers/fpga/xilinx-spi.c
++++ b/drivers/fpga/xilinx-spi.c
+@@ -25,6 +25,7 @@ struct xilinx_spi_conf {
+ 	struct gpio_desc *prog_b;
+ 	struct gpio_desc *init_b;
+ 	struct gpio_desc *done;
++	uint32_t cclk_cycles;
+ };
+ 
+ static int get_done_gpio(struct fpga_manager *mgr)
+@@ -32,17 +33,24 @@ static int get_done_gpio(struct fpga_manager *mgr)
+ 	struct xilinx_spi_conf *conf = mgr->priv;
+ 	int ret;
+ 
+-	ret = gpiod_get_value(conf->done);
++	if (conf->done) {
++		ret = gpiod_get_value(conf->done);
+ 
+-	if (ret < 0)
+-		dev_err(&mgr->dev, "Error reading DONE (%d)\n", ret);
++		if (ret < 0)
++			dev_err(&mgr->dev, "Error reading DONE (%d)\n", ret);
+ 
+-	return ret;
++		return ret;
++	} else {
++		/* this function should not be called when DONE is not given,
++		 * but return DONE=0 to return something valid in this case */
++		return 0;
++	}
+ }
+ 
+ static enum fpga_mgr_states xilinx_spi_state(struct fpga_manager *mgr)
+ {
+-	if (!get_done_gpio(mgr))
++	struct xilinx_spi_conf *conf = mgr->priv;
++	if (conf->done && !get_done_gpio(mgr))
+ 		return FPGA_MGR_STATE_RESET;
+ 
+ 	return FPGA_MGR_STATE_UNKNOWN;
+@@ -117,7 +125,8 @@ static int xilinx_spi_write_init(struct fpga_manager *mgr,
+ 	if (err)
+ 		return err;
+ 
+-	if (get_done_gpio(mgr)) {
++	/* if there is no DONE pin we assume that everything is fine */
++	if (conf->done && get_done_gpio(mgr)) {
+ 		dev_err(&mgr->dev, "Unexpected DONE pin state...\n");
+ 		return -EIO;
+ 	}
+@@ -172,6 +181,7 @@ static int xilinx_spi_write_complete(struct fpga_manager *mgr,
+ 	struct xilinx_spi_conf *conf = mgr->priv;
+ 	unsigned long timeout = jiffies + usecs_to_jiffies(info->config_complete_timeout_us);
+ 	bool expired = false;
++	uint32_t cclk_cycles_done = 0;
+ 	int done;
+ 	int ret;
+ 
+@@ -181,11 +191,17 @@ static int xilinx_spi_write_complete(struct fpga_manager *mgr,
+ 	 * before giving up and we apply 8 extra CCLK cycles in all cases.
+ 	 */
+ 	while (!expired) {
+-		expired = time_after(jiffies, timeout);
+-
+-		done = get_done_gpio(mgr);
+-		if (done < 0)
+-			return done;
++		if (conf->done) {
++			expired = time_after(jiffies, timeout);
++
++			done = get_done_gpio(mgr);
++			if (done < 0)
++				return done;
++		} else {
++			/* Loop conf->cclk_cycles/8 times, return 0 afterwards */
++			done = (conf->cclk_cycles >= cclk_cycles_done);
++			cclk_cycles_done += 8;
++		}
+ 
+ 		ret = xilinx_spi_apply_cclk_cycles(conf);
+ 		if (ret)
+@@ -224,6 +240,7 @@ static int xilinx_spi_probe(struct spi_device *spi)
+ {
+ 	struct xilinx_spi_conf *conf;
+ 	struct fpga_manager *mgr;
++	int ret;
+ 
+ 	conf = devm_kzalloc(&spi->dev, sizeof(*conf), GFP_KERNEL);
+ 	if (!conf)
+@@ -242,11 +259,16 @@ static int xilinx_spi_probe(struct spi_device *spi)
+ 		return dev_err_probe(&spi->dev, PTR_ERR(conf->init_b),
+ 				     "Failed to get INIT_B gpio\n");
+ 
+-	conf->done = devm_gpiod_get(&spi->dev, "done", GPIOD_IN);
++	conf->done = devm_gpiod_get_optional(&spi->dev, "done", GPIOD_IN);
+ 	if (IS_ERR(conf->done))
+ 		return dev_err_probe(&spi->dev, PTR_ERR(conf->done),
+ 				     "Failed to get DONE gpio\n");
+ 
++	ret = of_property_read_u32(spi->dev.of_node, "cclk_cycles", &conf->cclk_cycles);
++	if (!conf->done && ret)
++		return dev_err_probe(&spi->dev, -EINVAL,
++				     "Neither DONE gpio nor cclk_cycles is given\n");
++
+ 	mgr = devm_fpga_mgr_register(&spi->dev,
+ 				     "Xilinx Slave Serial FPGA Manager",
+ 				     &xilinx_spi_ops, conf);
+-- 
+2.44.1
+

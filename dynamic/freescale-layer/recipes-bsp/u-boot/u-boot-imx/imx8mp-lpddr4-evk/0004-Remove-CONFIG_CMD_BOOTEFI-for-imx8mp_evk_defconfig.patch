@@ -1,0 +1,30 @@
+From 64473626164ef83e30d27683a1216c445eaf2ec8 Mon Sep 17 00:00:00 2001
+From: Erik Schumacher <erik.schumacher@iris-sensing.com>
+Date: Thu, 19 Sep 2024 11:51:32 +0000
+Subject: [PATCH] Remove CONFIG_CMD_BOOTEFI for imx8mp_evk_defconfig
+
+As the function "efi_set_bootdev" called within this compiler switch
+causes the error msg "**Bad device specification mmc 2#linuxboot_a **".
+
+Signed-off-by: Jan.Hannig <jan.hannig@irisgmbh.de>
+---
+ configs/imx8mp_evk_defconfig | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/configs/imx8mp_evk_defconfig b/configs/imx8mp_evk_defconfig
+index 9f0e3ad8a59..e853dbd0108 100644
+--- a/configs/imx8mp_evk_defconfig
++++ b/configs/imx8mp_evk_defconfig
+@@ -63,7 +63,9 @@ CONFIG_SPL_I2C=y
+ CONFIG_SPL_POWER=y
+ CONFIG_SPL_WATCHDOG=y
+ CONFIG_SYS_PROMPT="u-boot=> "
++# CONFIG_BOOTM_EFI is not set
+ # CONFIG_BOOTM_NETBSD is not set
++# CONFIG_CMD_BOOTEFI is not set
+ # CONFIG_CMD_EXPORTENV is not set
+ # CONFIG_CMD_IMPORTENV is not set
+ CONFIG_CMD_ERASEENV=y
+-- 
+2.44.1
+

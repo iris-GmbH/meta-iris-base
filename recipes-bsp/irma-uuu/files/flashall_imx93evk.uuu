@@ -41,20 +41,21 @@ FBK: ucmd mmc=`cat /tmp/mmcdev`; echo 1 > /sys/block/mmcblk${mmc}boot1/force_ro
 
 # flash fitImage.signed to both linuxboot partitions
 FBK: ucmd mmc=`cat /tmp/mmcdev`; while [ ! -e /dev/mmcblk${mmc}p2 ]; do sleep 1; done
-FBK: ucmd mmc=`cat /tmp/mmcdev`; mkfs.vfat /dev/mmcblk${mmc}p2
-FBK: ucmd mkdir -p /mnt/fat
-FBK: ucmd mmc=`cat /tmp/mmcdev`; mount -t vfat /dev/mmcblk${mmc}p2 /mnt/fat
-FBK: ucp  fitImage.signed t:/mnt/fat/fitImage.signed
-FBK: ucmd umount /mnt/fat
+FBK: ucmd mmc=`cat /tmp/mmcdev`; mkfs.ext4 /dev/mmcblk${mmc}p2
+FBK: ucmd mkdir -p /tmp/boot
+FBK: ucmd mmc=`cat /tmp/mmcdev`; mount /dev/mmcblk${mmc}p2 /tmp/boot
+FBK: ucp  fitImage.signed t:/tmp/boot/fitImage.signed
+FBK: ucmd umount /tmp/boot
 
-FBK: ucmd mmc=`cat /tmp/mmcdev`; mkfs.vfat /dev/mmcblk${mmc}p3
-FBK: ucmd mmc=`cat /tmp/mmcdev`; mount -t vfat /dev/mmcblk${mmc}p3 /mnt/fat
-FBK: ucp  fitImage.signed t:/mnt/fat/fitImage.signed
-FBK: ucmd umount /mnt/fat
+FBK: ucmd mmc=`cat /tmp/mmcdev`; mkfs.ext4 /dev/mmcblk${mmc}p3
+FBK: ucmd mmc=`cat /tmp/mmcdev`; mount /dev/mmcblk${mmc}p3 /tmp/boot
+FBK: ucp  fitImage.signed t:/tmp/boot/fitImage.signed
+FBK: ucmd umount /tmp/boot
+FBK: ucmd rm -rf /tmp/boot
 FBK: ucmd sync
 
-# create FAT on rescue partition
-FBK: ucmd mmc=`cat /tmp/mmcdev`; mkfs.vfat /dev/mmcblk${mmc}p4
+# create EXT4 on rescue partition
+FBK: ucmd mmc=`cat /tmp/mmcdev`; mkfs.ext4 /dev/mmcblk${mmc}p4
 
 # copy hashsum and filesizes file to board
 FBK: ucp hashsums t:/tmp
@@ -65,46 +66,59 @@ FBK: ucmd sh -c '. /tmp/hashsums; echo "((($SIZE_ROOTFSVERITY/(4*1024*1024)) + (
 
 # Create LVM
 FBK: ucmd mmc=`cat /tmp/mmcdev`; pvcreate -ff -y /dev/mmcblk${mmc}p5
-FBK: ucmd mmc=`cat /tmp/mmcdev`; vgcreate irma6lvm /dev/mmcblk${mmc}p5
+FBK: ucmd mmc=`cat /tmp/mmcdev`; vgcreate matrixlvm /dev/mmcblk${mmc}p5
 # start udev daemon so lvm can synchronize devices
 FBK: ucmd /etc/init.d/udev start
-FBK: ucmd lvcreate -y -n rootfs_a -L "$(cat /tmp/size_rootfs)"B irma6lvm
-FBK: ucmd lvcreate -y -n rootfs_a_hash -L "$(cat /tmp/size_rootfsverity)"B irma6lvm
-FBK: ucmd lvcreate -y -n rootfs_b -L "$(cat /tmp/size_rootfs)"B irma6lvm
-FBK: ucmd lvcreate -y -n rootfs_b_hash -L "$(cat /tmp/size_rootfsverity)"B irma6lvm
-FBK: ucmd lvcreate -y -n userdata_a -L 256MB irma6lvm
-FBK: ucmd lvcreate -y -n userdata_b -L 256MB irma6lvm
-FBK: ucmd lvcreate -y -n datastore -L 512MB irma6lvm
-FBK: ucmd lvcreate -y -n keystore -L 128MB irma6lvm
+FBK: ucmd lvcreate -y -n rootfs_a -L "$(cat /tmp/size_rootfs)"B matrixlvm
+FBK: ucmd lvcreate -y -n rootfs_a_hash -L "$(cat /tmp/size_rootfsverity)"B matrixlvm
+FBK: ucmd lvcreate -y -n rootfs_b -L "$(cat /tmp/size_rootfs)"B matrixlvm
+FBK: ucmd lvcreate -y -n rootfs_b_hash -L "$(cat /tmp/size_rootfsverity)"B matrixlvm
+FBK: ucmd lvcreate -y -n userdata_a -L 256MB matrixlvm
+FBK: ucmd lvcreate -y -n userdata_b -L 256MB matrixlvm
+FBK: ucmd lvcreate -y -n datastore -L 512MB matrixlvm
+# devicedata is not encrypted
+FBK: ucmd lvcreate -y -n devicedata -L 128MB matrixlvm
+FBK: ucmd lvcreate -y -n keystore -L 128MB matrixlvm
 FBK: ucmd vgchange -a y
 FBK: ucmd vgmknodes
 
 # Create fat data partition (keystore)
-FBK: ucmd mkfs.vfat /dev/mapper/irma6lvm-keystore
-FBK: ucmd mount -t vfat /dev/mapper/irma6lvm-keystore /mnt/keystore
+FBK: ucmd mkfs.ext4 /dev/mapper/matrixlvm-keystore
+FBK: ucmd mount /dev/mapper/matrixlvm-keystore /mnt/keystore
+
+# Generate, add and export a random trusted 32 byte kernel master key (blob)
+FBK: ucmd key_id=$(keyctl add trusted kmk "new 32" @us); keyctl pipe $key_id > /mnt/keystore/kmk.blob
+
+# Setup encrypted volumes
+FBK: ucmd dmsetup create decrypted-matrixlvm-rootfs_a   --table "0 $(blockdev --getsz /dev/mapper/matrixlvm-rootfs_a)   crypt aes-cbc-essiv:sha256 :32:trusted:kmk 0 /dev/mapper/matrixlvm-rootfs_a   0 1 sector_size:4096"
+FBK: ucmd dmsetup create decrypted-matrixlvm-rootfs_b   --table "0 $(blockdev --getsz /dev/mapper/matrixlvm-rootfs_b)   crypt aes-cbc-essiv:sha256 :32:trusted:kmk 0 /dev/mapper/matrixlvm-rootfs_b   0 1 sector_size:4096"
+FBK: ucmd dmsetup create decrypted-matrixlvm-userdata_a --table "0 $(blockdev --getsz /dev/mapper/matrixlvm-userdata_a) crypt aes-cbc-essiv:sha256 :32:trusted:kmk 0 /dev/mapper/matrixlvm-userdata_a 0 1 sector_size:4096"
+FBK: ucmd dmsetup create decrypted-matrixlvm-userdata_b --table "0 $(blockdev --getsz /dev/mapper/matrixlvm-userdata_b) crypt aes-cbc-essiv:sha256 :32:trusted:kmk 0 /dev/mapper/matrixlvm-userdata_b 0 1 sector_size:4096"
+FBK: ucmd dmsetup create decrypted-matrixlvm-datastore  --table "0 $(blockdev --getsz /dev/mapper/matrixlvm-datastore)  crypt aes-cbc-essiv:sha256 :32:trusted:kmk 0 /dev/mapper/matrixlvm-datastore  0 1 sector_size:4096"
+FBK: ucmd vgmknodes
 
 # Flash rootfs to both rootfs partitions
-FBK: acmd zcat | dd of=/dev/mapper/irma6lvm-rootfs_a
+FBK: acmd zcat | dd of=/dev/mapper/decrypted-matrixlvm-rootfs_a
 FBK: ucp rootfs.ext4.gz t:-
-FBK: acmd zcat | dd of=/dev/mapper/irma6lvm-rootfs_b
+FBK: acmd zcat | dd of=/dev/mapper/decrypted-matrixlvm-rootfs_b
 FBK: ucp rootfs.ext4.gz t:-
 FBK: sync
 FBK: ucmd sync
 
-FBK: acmd cat | dd of=/dev/mapper/irma6lvm-rootfs_a_hash
+FBK: acmd cat | dd of=/dev/mapper/matrixlvm-rootfs_a_hash
 FBK: ucp rootfs.ext4.hashdevice t:-
 FBK: sync
 FBK: ucmd sync
 
-FBK: acmd cat | dd of=/dev/mapper/irma6lvm-rootfs_b_hash
+FBK: acmd cat | dd of=/dev/mapper/matrixlvm-rootfs_b_hash
 FBK: ucp rootfs.ext4.hashdevice t:-
 FBK: sync
 FBK: ucmd sync
 
 # Create ext4 partition for userdata A/B
-FBK: ucmd mkfs.ext4 /dev/mapper/irma6lvm-userdata_a
+FBK: ucmd mkfs.ext4 /dev/mapper/decrypted-matrixlvm-userdata_a
 FBK: ucmd mkdir -p /mnt/iris
-FBK: ucmd mount -t ext4 /dev/mapper/irma6lvm-userdata_a /mnt/iris
+FBK: ucmd mount -t ext4 /dev/mapper/decrypted-matrixlvm-userdata_a /mnt/iris
 FBK: ucmd mkdir -p /mnt/iris/counter
 FBK: ucmd mkdir -p /mnt/iris/irma6webserver
 FBK: ucmd mkdir -p /mnt/iris/dropbear
@@ -120,23 +134,27 @@ FBK: ucmd ln -sr /mnt/iris/identity /mnt/iris/nts
 FBK: ucmd ln -sr /mnt/iris/identity /mnt/iris/eaptls
 FBK: ucmd mkdir -p /mnt/iris/nginx/sites-enabled
 
-# Default to HTTP
-FBK: ucmd ln -s /etc/nginx/sites-available/reverse_proxy_http.conf /mnt/iris/nginx/sites-enabled/default_server
+# Default to HTTPS
+FBK: ucmd ln -s /etc/nginx/sites-available/reverse_proxy_https.conf /mnt/iris/nginx/sites-enabled/default_server
 
 # Copy userdata A to B
-FBK: ucmd mkfs.ext4 /dev/mapper/irma6lvm-userdata_b
+FBK: ucmd mkfs.ext4 /dev/mapper/decrypted-matrixlvm-userdata_b
 FBK: ucmd mkdir -p /tmp/userdata_b
-FBK: ucmd mount -t ext4 /dev/mapper/irma6lvm-userdata_b /tmp/userdata_b
+FBK: ucmd mount -t ext4 /dev/mapper/decrypted-matrixlvm-userdata_b /tmp/userdata_b
 FBK: ucmd cp -r /mnt/iris/* /tmp/userdata_b
 
 # datastore
-FBK: ucmd mkfs.ext4 /dev/mapper/irma6lvm-datastore
+FBK: ucmd mkfs.ext4 /dev/mapper/decrypted-matrixlvm-datastore
+FBK: ucmd mkfs.ext4 /dev/mapper/matrixlvm-devicedata
 
 # Clean up
 FBK: ucmd sync
 FBK: ucmd umount /mnt/iris
 FBK: ucmd umount /tmp/userdata_b
 FBK: ucmd rm -rf /tmp/userdata_b
+FBK: ucmd dmsetup remove decrypted-matrixlvm-userdata_a
+FBK: ucmd dmsetup remove decrypted-matrixlvm-userdata_b
+FBK: ucmd dmsetup remove decrypted-matrixlvm-datastore
 
 FBK: ucp rootfs.ext4.roothash t:/mnt/keystore/rootfs_a_roothash
 FBK: ucp rootfs.ext4.roothash t:/mnt/keystore/rootfs_b_roothash

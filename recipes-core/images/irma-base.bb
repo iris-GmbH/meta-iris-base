@@ -21,14 +21,19 @@ TOOLCHAIN_TARGET_TASK += " \
     libstdc++-staticdev \
     googletest \
     protobuf \
+    protobuf-staticdev \
     dlib \
     nlohmann-json \
     json-schema-validator \
     libnmea \
+    libpng \
 "
 
 TOOLCHAIN_TARGET_TASK:append:poky-iris-0501 = " swupdate"
 TOOLCHAIN_TARGET_TASK:append:poky-iris-0602 = " swupdate"
+
+# Remove protobuf-staticdev from R1 kirkstone build because it only exists on scarthgap
+TOOLCHAIN_TARGET_TASK:remove:poky-iris-0601 = " protobuf-staticdev"
 
 PV = "${DISTRO_VERSION}"
 inherit irma-firmware-versioning
@@ -89,6 +94,8 @@ python () {
     compat_machines = (d.getVar('MACHINEOVERRIDES') or "").split(":")
     if ('mx8mp-nxp-bsp' in compat_machines or 'mx93-nxp-bsp' in compat_machines) and 'ext4' in image_fstypes:
         bb.build.addtask('do_generate_dmverity_hashes', 'do_image_complete', 'do_image_ext4', d)
+        d.prependVarFlag('do_generate_dmverity_hashes', 'postfuncs', 'create_symlinks ')
+        d.appendVarFlag('do_generate_dmverity_hashes', 'subimages', ' ' + ' '.join(["ext4.roothash", "ext4.roothash.signature", "ext4.hashdevice"]))
 }
 
 # Generate dm-verity root hash
@@ -101,7 +108,7 @@ do_generate_dmverity_hashes () {
     hashdev=$(mktemp)
 
     # unzip ext4.gz image to tempfile
-    ext4img="${IMGDEPLOYDIR}/${IMAGE_NAME}${IMAGE_NAME_SUFFIX}.ext4.gz"
+    ext4img="${IMGDEPLOYDIR}/${IMAGE_NAME}.ext4.gz"
     gzip -dc "${ext4img}" > "${blockdev}"
 
     # get size of ext4 image and pad it to next 4MB block
@@ -114,7 +121,7 @@ do_generate_dmverity_hashes () {
     roothash=$(echo "$output" | grep "^Root hash:" | cut -f2)
 
     # write roothash to image directory
-    roothashfile="${IMGDEPLOYDIR}/${IMAGE_NAME}${IMAGE_NAME_SUFFIX}.ext4.roothash"
+    roothashfile="${IMGDEPLOYDIR}/${IMAGE_NAME}.ext4.roothash"
     echo "${roothash}" > "${roothashfile}"
 
     # sign roothash and write signature to image directory
@@ -126,17 +133,8 @@ do_generate_dmverity_hashes () {
     fi
 
     # copy hash device to image directory
-    hashdevfile="${IMGDEPLOYDIR}/${IMAGE_NAME}${IMAGE_NAME_SUFFIX}.ext4.hashdevice"
+    hashdevfile="${IMGDEPLOYDIR}/${IMAGE_NAME}.ext4.hashdevice"
     cp "${hashdev}" "${hashdevfile}"
-
-    # create symlinks
-    roothash_sym="${IMGDEPLOYDIR}/${PN}-${MACHINE}.ext4.roothash"
-    roothash_sig_sym="${IMGDEPLOYDIR}/${PN}-${MACHINE}.ext4.roothash.signature"
-    hashdevice_sym="${IMGDEPLOYDIR}/${PN}-${MACHINE}.ext4.hashdevice"
-
-    ln -sfr "${roothashfile}" "${roothash_sym}"
-    ln -sfr "${roothash_signature_file}" "${roothash_sig_sym}"
-    ln -sfr "${hashdevfile}" "${hashdevice_sym}"
 
     # delete tempfiles
     rm "${blockdev}" "${paddeddev}" "${hashdev}"
