@@ -1,0 +1,91 @@
+From 8530d6bdcb2792b7b79bb051c5b0d38ca119ee10 Mon Sep 17 00:00:00 2001
+From: Erik Schumacher <erik.schumacher@iris-sensing.com>
+Date: Fri, 18 Oct 2024 12:11:27 +0000
+Subject: [PATCH] media: marec-fpga: Support mclk and pwrsv pins in dtb
+
+Parse and enable the mclk (60 MHz clock).
+Parse and set pwrsv_en1/2 pins to 1.
+---
+ drivers/media/i2c/marec-fpga.c | 41 ++++++++++++++++++++++++++++++----
+ 1 file changed, 37 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/media/i2c/marec-fpga.c b/drivers/media/i2c/marec-fpga.c
+index a136b0de633b4..cfa8451956fd6 100644
+--- a/drivers/media/i2c/marec-fpga.c
++++ b/drivers/media/i2c/marec-fpga.c
+@@ -4,6 +4,7 @@
+  *
+  */
+ 
++#include <linux/clk.h>
+ #include <linux/delay.h>
+ #include <linux/errno.h>
+ #include <linux/fpga/fpga-mgr.h>
+@@ -28,6 +29,8 @@ struct marec_fpga {
+ 	struct media_pad pad;
+ 	struct v4l2_fwnode_endpoint ep;
+ 	struct i2c_client *i2c_client;
++	struct gpio_desc *powersave_en1;
++	struct gpio_desc *powersave_en2;
+ };
+ 
+ static int marec_fpga_read_reg(struct marec_fpga *sensor, u8 reg, u8 *val)
+@@ -225,10 +228,44 @@ static int marec_fpga_probe(struct i2c_client *client)
+ 	struct device_node *fpga_mgr_node;
+ 	struct fpga_manager *fpga_mgr;
+ 	struct fpga_image_info fpga_image;
++	struct clk *mclk;
+ 	const char *fpga_bitfile;
+ 	u8 read_buffer;
+ 	int ret;
+ 
++	sensor = devm_kzalloc(&client->dev, sizeof(*sensor), GFP_KERNEL);
++	if (!sensor)
++		return -ENOMEM;
++
++	/* Before doing anything, start the mclk */
++	mclk = devm_clk_get(dev, "mclk");
++	if (IS_ERR(mclk))
++		return dev_err_probe(dev, PTR_ERR(mclk),
++				     "Could not retrieve fpga mclk\n");
++
++	ret = clk_prepare_enable(mclk);
++	if (ret)
++		return dev_err_probe(dev, ret, "Failed to enable fpga mclk\n");
++
++	/* read and set pwrsv_en1/2 gpios */
++	sensor->powersave_en1 = devm_gpiod_get(dev, "pwrsv-en1", GPIOD_OUT_HIGH);
++	if (IS_ERR(sensor->powersave_en1))
++		return dev_err_probe(dev, PTR_ERR(sensor->powersave_en1),
++				     "Could not retrieve pwrsv-en1 GPIO\n");
++
++	sensor->powersave_en2 = devm_gpiod_get(dev, "pwrsv-en2", GPIOD_OUT_HIGH);
++	if (IS_ERR(sensor->powersave_en2))
++		return dev_err_probe(dev, PTR_ERR(sensor->powersave_en2),
++				     "Could not retrieve pwrsv-en2 GPIO\n");
++
++	/* set PWRSV_EN1 to high */
++	gpiod_set_value(sensor->powersave_en1, 1);
++
++	/* PWRSV_EN2 is open drain, so setting '1' will put pin in tri-state */
++	gpiod_set_value(sensor->powersave_en2, 1);
++
++	udelay(1000);
++
+ 	/* This is not a i2c device yet, it needs to be loaded by fpga manager */
+ 	fpga_mgr_node = of_parse_phandle(dev->of_node, "fpga-mgr", 0);
+ 	fpga_mgr = of_fpga_mgr_get(fpga_mgr_node);
+@@ -258,10 +295,6 @@ static int marec_fpga_probe(struct i2c_client *client)
+ 		return ret;
+ 	}
+ 
+-	sensor = devm_kzalloc(&client->dev, sizeof(*sensor), GFP_KERNEL);
+-	if (!sensor)
+-		return -ENOMEM;
+-
+ 	sensor->i2c_client = client;
+ 
+ 	/* do dummy read from i2c */
+-- 
+2.46.0
+

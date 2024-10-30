@@ -1,0 +1,27 @@
+From c54390f254575dda800ef0e61b20510706d0e4af Mon Sep 17 00:00:00 2001
+From: Erik Schumacher <erik.schumacher@iris-sensing.com>
+Date: Fri, 27 Sep 2024 07:14:14 +0000
+Subject: [PATCH] imx93-matrixup.dts: Set board model name
+
+---
+ arch/arm/dts/imx93-matrixup.dts | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/arch/arm/dts/imx93-matrixup.dts b/arch/arm/dts/imx93-matrixup.dts
+index e4a7fe1c29a..79aa3533e86 100644
+--- a/arch/arm/dts/imx93-matrixup.dts
++++ b/arch/arm/dts/imx93-matrixup.dts
+@@ -9,8 +9,8 @@
+ #include "imx93.dtsi"
+ 
+ / {
+-	model = "NXP i.MX93 11X11 EVK board";
+-	compatible = "fsl,imx93-11x11-evk", "fsl,imx93";
++	model = "NXP i.MX93 MATRIX UP board";
++	compatible = "fsl,imx93-matrixup", "fsl,imx93";
+ 
+ 	aliases {
+ 		rtc0 = &pcf2131;
+-- 
+2.46.0
+

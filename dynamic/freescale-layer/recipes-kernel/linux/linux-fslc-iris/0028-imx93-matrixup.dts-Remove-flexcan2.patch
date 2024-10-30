@@ -1,0 +1,68 @@
+From ed9cf93979a65045171ae7a0f4a2f214876cfae9 Mon Sep 17 00:00:00 2001
+From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+Date: Wed, 2 Oct 2024 08:15:44 +0000
+Subject: [PATCH] imx93-matrixup.dts: Remove flexcan2
+
+---
+ .../boot/dts/freescale/imx93-matrixup.dts     | 31 -------------------
+ 1 file changed, 31 deletions(-)
+
+diff --git a/arch/arm64/boot/dts/freescale/imx93-matrixup.dts b/arch/arm64/boot/dts/freescale/imx93-matrixup.dts
+index a9fff768a2de3..5c23cfe611516 100644
+--- a/arch/arm64/boot/dts/freescale/imx93-matrixup.dts
++++ b/arch/arm64/boot/dts/freescale/imx93-matrixup.dts
+@@ -84,15 +84,6 @@ ethosu {
+ 		power-domains = <&mlmix>;
+ 	};
+ 
+-	reg_can2_stby: regulator-can2-stby {
+-		compatible = "regulator-fixed";
+-		regulator-name = "can2-stby";
+-		regulator-min-microvolt = <3300000>;
+-		regulator-max-microvolt = <3300000>;
+-		gpio = <&adp5585gpio 5 GPIO_ACTIVE_LOW>;
+-		enable-active-low;
+-	};
+-
+ 	reg_vref_1v8: regulator-adc-vref {
+ 		compatible = "regulator-fixed";
+ 		regulator-name = "vref_1v8";
+@@ -359,14 +350,6 @@ dsi_to_adv7535: endpoint {
+ 	};
+ };
+ 
+-&flexcan2 {
+-	pinctrl-names = "default", "sleep";
+-	pinctrl-0 = <&pinctrl_flexcan2>;
+-	pinctrl-1 = <&pinctrl_flexcan2_sleep>;
+-	xceiver-supply = <&reg_can2_stby>;
+-	status = "okay";
+-};
+-
+ &mu1 {
+ 	status = "okay";
+ };
+@@ -834,20 +817,6 @@ MX93_PAD_ENET1_TX_CTL__GPIO4_IO06                       0x31e
+ 		>;
+ 	};
+ 
+-	pinctrl_flexcan2: flexcan2grp {
+-		fsl,pins = <
+-			MX93_PAD_GPIO_IO25__CAN2_TX	0x139e
+-			MX93_PAD_GPIO_IO27__CAN2_RX	0x139e
+-		>;
+-	};
+-	pinctrl_flexcan2_sleep: flexcan2sleepgrp {
+-		fsl,pins = <
+-			MX93_PAD_GPIO_IO25__GPIO2_IO25  0x31e
+-			MX93_PAD_GPIO_IO27__GPIO2_IO27	0x31e
+-		>;
+-	};
+-
+-
+ 	pinctrl_lpi2c1: lpi2c1grp {
+ 		fsl,pins = <
+ 			MX93_PAD_I2C1_SCL__LPI2C1_SCL			0x40000b9e
+-- 
+2.46.0
+

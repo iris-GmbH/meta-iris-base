@@ -1,0 +1,38 @@
+From 917293efdd8d51e51cf5f0d59381d65d09cb95de Mon Sep 17 00:00:00 2001
+From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+Date: Fri, 27 Sep 2024 11:12:52 +0200
+Subject: [PATCH] imx93_matrixup.c: Remove fec clock setup
+
+---
+ board/freescale/imx93_matrixup/imx93_matrixup.c | 8 --------
+ 1 file changed, 8 deletions(-)
+
+diff --git a/board/freescale/imx93_matrixup/imx93_matrixup.c b/board/freescale/imx93_matrixup/imx93_matrixup.c
+index 56586fceaa7..47fea8694fa 100644
+--- a/board/freescale/imx93_matrixup/imx93_matrixup.c
++++ b/board/freescale/imx93_matrixup/imx93_matrixup.c
+@@ -218,11 +218,6 @@ int board_ehci_usb_phy_mode(struct udevice *dev)
+ }
+ #endif
+ 
+-static int setup_fec(void)
+-{
+-	return set_clk_enet(ENET_125MHZ);
+-}
+-
+ int board_phy_config(struct phy_device *phydev)
+ {
+ 	if (phydev->drv->config)
+@@ -326,9 +321,6 @@ static void board_gpio_init(void)
+ 
+ int board_init(void)
+ {
+-	if (IS_ENABLED(CONFIG_FEC_MXC))
+-		setup_fec();
+-
+ 	board_gpio_init();
+ 
+ 	return 0;
+-- 
+2.46.0
+

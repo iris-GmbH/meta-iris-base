@@ -1,0 +1,52 @@
+From d8f9299baac58a44b7493e8e1a6842b41c0fd17b Mon Sep 17 00:00:00 2001
+From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+Date: Thu, 26 Sep 2024 14:03:57 +0200
+Subject: [PATCH] imx93-matrixup.dts: Remove Port Expander pcal6524
+
+---
+ arch/arm/dts/imx93-matrixup.dts | 22 ----------------------
+ 1 file changed, 22 deletions(-)
+
+diff --git a/arch/arm/dts/imx93-matrixup.dts b/arch/arm/dts/imx93-matrixup.dts
+index f7ee6e85914..e4a7fe1c29a 100644
+--- a/arch/arm/dts/imx93-matrixup.dts
++++ b/arch/arm/dts/imx93-matrixup.dts
+@@ -53,15 +53,6 @@
+ 		off-on-delay-us = <12000>;
+ 		enable-active-high;
+ 	};
+-
+-	reg_vdd_12v: regulator-vdd-12v {
+-		compatible = "regulator-fixed";
+-		regulator-name = "reg_vdd_12v";
+-		regulator-min-microvolt = <12000000>;
+-		regulator-max-microvolt = <12000000>;
+-		gpio = <&pcal6524 14 GPIO_ACTIVE_HIGH>;
+-		enable-active-high;
+-	};
+ };
+ 
+ &adc1 {
+@@ -196,19 +187,6 @@
+ 	pinctrl-0 = <&pinctrl_lpi2c2>;
+ 	pinctrl-1 = <&pinctrl_lpi2c2>;
+ 	status = "okay";
+-
+-	pcal6524: gpio@22 {
+-		compatible = "nxp,pcal6524";
+-		pinctrl-names = "default";
+-		pinctrl-0 = <&pinctrl_pcal6524>;
+-		reg = <0x22>;
+-		gpio-controller;
+-		#gpio-cells = <2>;
+-		interrupt-controller;
+-		#interrupt-cells = <2>;
+-		interrupt-parent = <&gpio3>;
+-		interrupts = <27 IRQ_TYPE_LEVEL_LOW>;
+-	};
+ };
+ 
+ &lpi2c3 {
+-- 
+2.46.0
+

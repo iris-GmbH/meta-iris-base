@@ -1,0 +1,47 @@
+From ceedee9dc68b0316c2abd2feec3cb07c46d0de36 Mon Sep 17 00:00:00 2001
+From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+Date: Thu, 26 Sep 2024 13:11:19 +0200
+Subject: [PATCH] imx93-matrixup.dts: Remove support for keypad decoder:
+ adp5585
+
+---
+ arch/arm/dts/imx93-matrixup.dts | 16 ----------------
+ 1 file changed, 16 deletions(-)
+
+diff --git a/arch/arm/dts/imx93-matrixup.dts b/arch/arm/dts/imx93-matrixup.dts
+index 477199bce97..12b34702b10 100644
+--- a/arch/arm/dts/imx93-matrixup.dts
++++ b/arch/arm/dts/imx93-matrixup.dts
+@@ -35,15 +35,6 @@
+ 		};
+ 	};
+ 
+-	reg_can2_stby: regulator-can2-stby {
+-		compatible = "regulator-fixed";
+-		regulator-name = "can2-stby";
+-		regulator-min-microvolt = <3300000>;
+-		regulator-max-microvolt = <3300000>;
+-		gpio = <&adp5585gpio 5 GPIO_ACTIVE_LOW>;
+-		enable-active-low;
+-	};
+-
+ 	reg_vref_1v8: regulator-adc-vref {
+ 		compatible = "regulator-fixed";
+ 		regulator-name = "vref_1v8";
+@@ -216,13 +207,6 @@
+ 		interrupt-parent = <&gpio3>;
+ 		interrupts = <27 IRQ_TYPE_LEVEL_LOW>;
+ 	};
+-
+-	adp5585gpio: gpio@34 {
+-		compatible = "adp5585";
+-		reg = <0x34>;
+-		gpio-controller;
+-		#gpio-cells = <2>;
+-	};
+ };
+ 
+ &lpi2c3 {
+-- 
+2.46.0
+

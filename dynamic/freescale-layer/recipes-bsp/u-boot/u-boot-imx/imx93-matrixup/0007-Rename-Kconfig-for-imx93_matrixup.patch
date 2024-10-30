@@ -1,0 +1,64 @@
+From 19c0801707baf87c8587a8c57eb952a3e02ba5cc Mon Sep 17 00:00:00 2001
+From: Erik Schumacher <erik.schumacher@iris-sensing.com>
+Date: Fri, 27 Sep 2024 07:16:10 +0000
+Subject: [PATCH] Rename Kconfig for imx93_matrixup
+
+---
+ board/freescale/imx93_matrixup/Kconfig  | 2 +-
+ board/freescale/imx93_matrixup/Makefile | 4 ++--
+ board/freescale/imx93_matrixup/spl.c    | 4 ++--
+ 3 files changed, 5 insertions(+), 5 deletions(-)
+
+diff --git a/board/freescale/imx93_matrixup/Kconfig b/board/freescale/imx93_matrixup/Kconfig
+index 804f82899d0..a358c6cda99 100644
+--- a/board/freescale/imx93_matrixup/Kconfig
++++ b/board/freescale/imx93_matrixup/Kconfig
+@@ -9,7 +9,7 @@ config SYS_VENDOR
+ config SYS_CONFIG_NAME
+ 	default "imx93_matrixup"
+ 
+-config IMX93_EVK_LPDDR4X
++config IMX93_MATRIXUP_LPDDR4X
+ 	bool "Using LPDDR4X Timing and PMIC voltage"
+ 	default y
+ 	select IMX9_LPDDR4X
+diff --git a/board/freescale/imx93_matrixup/Makefile b/board/freescale/imx93_matrixup/Makefile
+index ebb46997364..54a083ad266 100644
+--- a/board/freescale/imx93_matrixup/Makefile
++++ b/board/freescale/imx93_matrixup/Makefile
+@@ -9,8 +9,8 @@ obj-y += imx93_matrixup.o
+ ifdef CONFIG_SPL_BUILD
+ obj-y += spl.o
+ ifdef CONFIG_IMX9_DRAM_INLINE_ECC
+-obj-$(CONFIG_IMX93_EVK_LPDDR4X) += lpddr4x_timing_ecc.o lpddr4x_timing_1866mts_ecc.o
++obj-$(CONFIG_IMX93_MATRIXUP_LPDDR4X) += lpddr4x_timing_ecc.o lpddr4x_timing_1866mts_ecc.o
+ else
+-obj-$(CONFIG_IMX93_EVK_LPDDR4X) += lpddr4x_timing.o lpddr4x_timing_1866mts.o
++obj-$(CONFIG_IMX93_MATRIXUP_LPDDR4X) += lpddr4x_timing.o lpddr4x_timing_1866mts.o
+ endif
+ endif
+diff --git a/board/freescale/imx93_matrixup/spl.c b/board/freescale/imx93_matrixup/spl.c
+index e52a95522ab..8d5017069a8 100644
+--- a/board/freescale/imx93_matrixup/spl.c
++++ b/board/freescale/imx93_matrixup/spl.c
+@@ -71,7 +71,7 @@ extern struct dram_timing_info dram_timing_1866mts;
+ void spl_dram_init(void)
+ {
+ 	struct dram_timing_info *ptiming = &dram_timing;
+-#if IS_ENABLED(CONFIG_IMX93_EVK_LPDDR4X)
++#if IS_ENABLED(CONFIG_IMX93_MATRIXUP_LPDDR4X)
+ 	if (is_voltage_mode(VOLT_LOW_DRIVE))
+ 		ptiming = &dram_timing_1866mts;
+ #endif
+@@ -192,7 +192,7 @@ int power_init_board(void)
+ 		pmic_reg_write(dev, PCA9450_BUCK3OUT_DVS0, buck_val + 0x4);
+ 	}
+ 
+-	if (IS_ENABLED(CONFIG_IMX93_EVK_LPDDR4)) {
++	if (IS_ENABLED(CONFIG_IMX93_MATRIXUP_LPDDR4)) {
+ 		/* Set VDDQ to 1.1V from buck2 */
+ 		pmic_reg_write(dev, PCA9450_BUCK2OUT_DVS0, 0x28);
+ 	}
+-- 
+2.46.0
+
