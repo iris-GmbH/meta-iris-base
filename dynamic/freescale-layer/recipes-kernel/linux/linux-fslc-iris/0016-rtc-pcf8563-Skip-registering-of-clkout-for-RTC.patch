@@ -1,7 +1,7 @@
-From fd0cc510831731af2313d47922dc4d776b70a9d5 Mon Sep 17 00:00:00 2001
+From 83f894868dd02e530641aabb1464c431d08aea50 Mon Sep 17 00:00:00 2001
 From: Erik Schumacher <erik.schumacher@iris-sensing.com>
 Date: Thu, 26 Jan 2023 15:04:08 +0100
-Subject: [PATCH 16/24] rtc-pcf8563: Skip registering of clkout for RTC
+Subject: [PATCH] rtc-pcf8563: Skip registering of clkout for RTC
 
 Calling clk_disable_unused() later might hang in rtc pcf8563
 is_prepared() function. We don't use the clkout so we don't need to
@@ -71,5 +71,5 @@ index ea82b89d8929..216cd5ea67c8 100644
  }
  
 -- 
-2.44.1
+2.47.0
 

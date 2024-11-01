@@ -1,4 +1,4 @@
-From 5474d5bbb6a264fa47d787253367b02b20b4f272 Mon Sep 17 00:00:00 2001
+From 4ca3b2f5c6cc85e12daf3c768554ca2409035d19 Mon Sep 17 00:00:00 2001
 From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
 Date: Wed, 2 Oct 2024 08:41:38 +0000
 Subject: [PATCH] imx93-matrixup.dts: Remove unused nodes
@@ -8,7 +8,7 @@ Subject: [PATCH] imx93-matrixup.dts: Remove unused nodes
  1 file changed, 341 deletions(-)
 
 diff --git a/arch/arm64/boot/dts/freescale/imx93-matrixup.dts b/arch/arm64/boot/dts/freescale/imx93-matrixup.dts
-index 8d0e5b3e3b5ff..20b89c075efc0 100644
+index 8d0e5b3e3b5f..20b89c075efc 100644
 --- a/arch/arm64/boot/dts/freescale/imx93-matrixup.dts
 +++ b/arch/arm64/boot/dts/freescale/imx93-matrixup.dts
 @@ -132,188 +132,6 @@ usdhc3_pwrseq: usdhc3_pwrseq {
@@ -392,5 +392,5 @@ index 8d0e5b3e3b5ff..20b89c075efc0 100644
 -	};
 -};
 -- 
-2.46.0
+2.47.0
 

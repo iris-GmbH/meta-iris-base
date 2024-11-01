@@ -1,4 +1,4 @@
-From 98349126757e12f8df26ab61176f3239a15fd230 Mon Sep 17 00:00:00 2001
+From 53fd31ca986875e6db441e5ab6bb8607c8bdf469 Mon Sep 17 00:00:00 2001
 From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
 Date: Wed, 2 Oct 2024 08:14:06 +0000
 Subject: [PATCH] imx93-matrixup.dts: Remove FEC node
@@ -8,7 +8,7 @@ Subject: [PATCH] imx93-matrixup.dts: Remove FEC node
  1 file changed, 63 deletions(-)
 
 diff --git a/arch/arm64/boot/dts/freescale/imx93-matrixup.dts b/arch/arm64/boot/dts/freescale/imx93-matrixup.dts
-index b0c6a952b3464..a9fff768a2de3 100644
+index b0c6a952b346..a9fff768a2de 100644
 --- a/arch/arm64/boot/dts/freescale/imx93-matrixup.dts
 +++ b/arch/arm64/boot/dts/freescale/imx93-matrixup.dts
 @@ -400,31 +400,6 @@ ethphy1: ethernet-phy@1 {
@@ -89,5 +89,5 @@ index b0c6a952b3464..a9fff768a2de3 100644
  		fsl,pins = <
  			MX93_PAD_GPIO_IO25__CAN2_TX	0x139e
 -- 
-2.46.0
+2.47.0
 

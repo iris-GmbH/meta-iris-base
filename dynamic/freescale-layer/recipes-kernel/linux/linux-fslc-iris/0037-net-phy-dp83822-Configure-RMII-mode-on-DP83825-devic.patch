@@ -1,0 +1,114 @@
+From 8c36a7a1e00811f70cd6c3b4ff8a6626d97d11c6 Mon Sep 17 00:00:00 2001
+From: Erik Schumacher <erik.schumacher@iris-sensing.com>
+Date: Thu, 24 Oct 2024 13:36:25 +0200
+Subject: [PATCH] net: phy: dp83822: Configure RMII mode on DP83825 devices
+
+Like the DP83826, the DP83825 can also be configured as an RMII master or
+slave via a control register. The existing function responsible for this
+configuration is renamed to a general dp8382x function. The DP83825 only
+supports RMII so nothing more needs to be configured.
+
+With this change, the dp83822_driver list is reorganized according to the
+device name.
+
+Upstream-Status: Backport [9e114ec80840, probably in 6.13]
+
+Signed-off-by: Erik Schumacher <erik.schumacher@iris-sensing.com>
+---
+ drivers/net/phy/dp83822.c | 31 ++++++++++++++++++-------------
+ 1 file changed, 18 insertions(+), 13 deletions(-)
+
+diff --git a/drivers/net/phy/dp83822.c b/drivers/net/phy/dp83822.c
+index 3ab64e04a01c..cf8b6d0bfaa9 100644
+--- a/drivers/net/phy/dp83822.c
++++ b/drivers/net/phy/dp83822.c
+@@ -506,7 +506,7 @@ static int dp83822_config_init(struct phy_device *phydev)
+ 	return dp83822_config_wol(phydev, &dp83822->wol);
+ }
+ 
+-static int dp83826_config_rmii_mode(struct phy_device *phydev)
++static int dp8382x_config_rmii_mode(struct phy_device *phydev)
+ {
+ 	struct device *dev = &phydev->mdio.dev;
+ 	const char *of_val;
+@@ -544,7 +544,7 @@ static int dp83826_config_init(struct phy_device *phydev)
+ 		if (ret)
+ 			return ret;
+ 
+-		ret = dp83826_config_rmii_mode(phydev);
++		ret = dp8382x_config_rmii_mode(phydev);
+ 		if (ret)
+ 			return ret;
+ 	} else {
+@@ -585,9 +585,14 @@ static int dp83826_config_init(struct phy_device *phydev)
+ 	return dp83822_config_wol(phydev, &dp83822->wol);
+ }
+ 
+-static int dp8382x_config_init(struct phy_device *phydev)
++static int dp83825_config_init(struct phy_device *phydev)
+ {
+ 	struct dp83822_private *dp83822 = phydev->priv;
++	int ret;
++
++	ret = dp8382x_config_rmii_mode(phydev);
++	if (ret)
++		return ret;
+ 
+ 	return dp83822_config_wol(phydev, &dp83822->wol);
+ }
+@@ -782,14 +787,14 @@ static int dp83822_resume(struct phy_device *phydev)
+ 		.resume = dp83822_resume,			\
+ 	}
+ 
+-#define DP83826_PHY_DRIVER(_id, _name)				\
++#define DP83825_PHY_DRIVER(_id, _name)				\
+ 	{							\
+ 		PHY_ID_MATCH_MODEL(_id),			\
+ 		.name		= (_name),			\
+ 		/* PHY_BASIC_FEATURES */			\
+-		.probe          = dp83826_probe,		\
++		.probe          = dp8382x_probe,		\
+ 		.soft_reset	= dp83822_phy_reset,		\
+-		.config_init	= dp83826_config_init,		\
++		.config_init	= dp83825_config_init,		\
+ 		.get_wol = dp83822_get_wol,			\
+ 		.set_wol = dp83822_set_wol,			\
+ 		.config_intr = dp83822_config_intr,		\
+@@ -798,14 +803,14 @@ static int dp83822_resume(struct phy_device *phydev)
+ 		.resume = dp83822_resume,			\
+ 	}
+ 
+-#define DP8382X_PHY_DRIVER(_id, _name)				\
++#define DP83826_PHY_DRIVER(_id, _name)				\
+ 	{							\
+ 		PHY_ID_MATCH_MODEL(_id),			\
+ 		.name		= (_name),			\
+ 		/* PHY_BASIC_FEATURES */			\
+-		.probe          = dp8382x_probe,		\
++		.probe          = dp83826_probe,		\
+ 		.soft_reset	= dp83822_phy_reset,		\
+-		.config_init	= dp8382x_config_init,		\
++		.config_init	= dp83826_config_init,		\
+ 		.get_wol = dp83822_get_wol,			\
+ 		.set_wol = dp83822_set_wol,			\
+ 		.config_intr = dp83822_config_intr,		\
+@@ -816,12 +821,12 @@ static int dp83822_resume(struct phy_device *phydev)
+ 
+ static struct phy_driver dp83822_driver[] = {
+ 	DP83822_PHY_DRIVER(DP83822_PHY_ID, "TI DP83822"),
+-	DP8382X_PHY_DRIVER(DP83825I_PHY_ID, "TI DP83825I"),
++	DP83825_PHY_DRIVER(DP83825I_PHY_ID, "TI DP83825I"),
++	DP83825_PHY_DRIVER(DP83825S_PHY_ID, "TI DP83825S"),
++	DP83825_PHY_DRIVER(DP83825CM_PHY_ID, "TI DP83825M"),
++	DP83825_PHY_DRIVER(DP83825CS_PHY_ID, "TI DP83825CS"),
+ 	DP83826_PHY_DRIVER(DP83826C_PHY_ID, "TI DP83826C"),
+ 	DP83826_PHY_DRIVER(DP83826NC_PHY_ID, "TI DP83826NC"),
+-	DP8382X_PHY_DRIVER(DP83825S_PHY_ID, "TI DP83825S"),
+-	DP8382X_PHY_DRIVER(DP83825CM_PHY_ID, "TI DP83825M"),
+-	DP8382X_PHY_DRIVER(DP83825CS_PHY_ID, "TI DP83825CS"),
+ };
+ module_phy_driver(dp83822_driver);
+ 
+-- 
+2.47.0
+

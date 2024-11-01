@@ -1,4 +1,4 @@
-From a1c792bde0b6123961fd7d0e192494b892ffac6d Mon Sep 17 00:00:00 2001
+From a17ae64ad5ad85faacfba8a8d409ed2ae9680b57 Mon Sep 17 00:00:00 2001
 From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
 Date: Mon, 21 Oct 2024 15:24:32 +0200
 Subject: [PATCH] imx93-matrixup.dts: Configure pinctrl for GPIO3's
@@ -9,7 +9,7 @@ Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
  1 file changed, 20 insertions(+), 96 deletions(-)
 
 diff --git a/arch/arm64/boot/dts/freescale/imx93-matrixup.dts b/arch/arm64/boot/dts/freescale/imx93-matrixup.dts
-index 446d7a86d1119..91b5e52713d7b 100644
+index be9c01a5d6b5..5c3475170204 100644
 --- a/arch/arm64/boot/dts/freescale/imx93-matrixup.dts
 +++ b/arch/arm64/boot/dts/freescale/imx93-matrixup.dts
 @@ -90,18 +90,6 @@ reg_vref_1v8: regulator-adc-vref {
@@ -162,5 +162,5 @@ index 446d7a86d1119..91b5e52713d7b 100644
  
  &epxp {
 -- 
-2.46.0
+2.47.0
 

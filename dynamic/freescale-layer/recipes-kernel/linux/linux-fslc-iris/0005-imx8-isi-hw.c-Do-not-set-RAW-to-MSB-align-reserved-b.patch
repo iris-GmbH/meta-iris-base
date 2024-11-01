@@ -1,8 +1,7 @@
-From 20fafc91839dfdb51785e23711636ad0df44185f Mon Sep 17 00:00:00 2001
+From b376fbe6c8dda2e634606554a3915d0ab484951f Mon Sep 17 00:00:00 2001
 From: Ian Dannapel <ian.dannapel@iris-sensing.com>
 Date: Wed, 18 Sep 2024 12:44:27 +0000
-Subject: [PATCH 05/24] imx8-isi-hw.c: Do not set RAW to MSB align & reserved
- bits
+Subject: [PATCH] imx8-isi-hw.c: Do not set RAW to MSB align & reserved bits
 
 Signed-off-by: Erik Schumacher <erik.schumacher@iris-sensing.com>
 ---
@@ -23,5 +22,5 @@ index f3b2b98798be..29aab0911702 100644
  	if (m2m_enabled) {
  		val &= ~(CHNL_CTRL_SRC_TYPE_MASK | CHNL_CTRL_SRC_INPUT_MASK);
 -- 
-2.44.1
+2.47.0
 

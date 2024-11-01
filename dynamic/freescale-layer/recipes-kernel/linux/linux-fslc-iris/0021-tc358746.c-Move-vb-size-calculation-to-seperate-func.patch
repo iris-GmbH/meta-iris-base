@@ -1,8 +1,7 @@
-From 61707f4a8377dcc8b0966d9c901a97451f852246 Mon Sep 17 00:00:00 2001
+From ae4ef7aa37eba4c4023757484c45e2b27f1907a3 Mon Sep 17 00:00:00 2001
 From: Erik Schumacher <erik.schumacher@iris-sensing.com>
 Date: Mon, 24 Jun 2024 15:11:27 +0000
-Subject: [PATCH 21/24] tc358746.c: Move vb size calculation to seperate
- function
+Subject: [PATCH] tc358746.c: Move vb size calculation to seperate function
 
 Run calculation also on set fmt
 
@@ -226,5 +225,5 @@ index 4f54773886cc..92d46b08b583 100644
  	return tc358746->vb_size > TC358746_VB_MAX_SIZE ? -EINVAL : 0;
  }
 -- 
-2.44.1
+2.47.0
 

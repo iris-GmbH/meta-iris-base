@@ -1,8 +1,8 @@
-From a9fd87b980939ab1b06d91c7fc9ce584a32d1d73 Mon Sep 17 00:00:00 2001
+From eb08ed2bafc6c022f9d206817c41bdd62ada64fe Mon Sep 17 00:00:00 2001
 From: Ian Dannapel <ian.dannapel@iris-sensing.com>
 Date: Wed, 18 Sep 2024 12:52:48 +0000
-Subject: [PATCH 06/24] imx8-parallel-csi.c: Fix missing first frames and
- format propagation
+Subject: [PATCH] imx8-parallel-csi.c: Fix missing first frames and format
+ propagation
 
 - Fix missing first 3 frames due to vsync counter
 - Allow format code propagation to sub devices instead of hardcoded MEDIA_BUS_FMTs
@@ -68,5 +68,5 @@ index 664d99aa8956..23e25cd94b9f 100644
  };
  
 -- 
-2.34.1
+2.47.0
 

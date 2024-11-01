@@ -1,7 +1,7 @@
-From 12647d519cf41fec7e72638f140e5ca34f6216a1 Mon Sep 17 00:00:00 2001
+From 96f4bb006eaa12f4b92285ac7cb6208828f928ce Mon Sep 17 00:00:00 2001
 From: Ian Dannapel <ian.dannapel@iris-sensing.com>
 Date: Fri, 1 Apr 2022 09:05:57 +0200
-Subject: [PATCH 12/24] epc660: Add device driver support
+Subject: [PATCH] epc660: Add device driver support
 
 - copied & adapted from https://github.com/iris-GmbH/linux-gen6/commit/cd9b44db816f06c20501a830c5ed589f55f6170a
 
@@ -19,7 +19,7 @@ Signed-off-by: Jasper Orschulko <jasper@fancydomain.eu>
  create mode 100644 include/media/i2c/epc660_sequence.h
 
 diff --git a/drivers/media/i2c/Kconfig b/drivers/media/i2c/Kconfig
-index 4c96ada1dbfc..206fccddeac7 100644
+index 4334fa1e98c1..e5cc712d37ff 100644
 --- a/drivers/media/i2c/Kconfig
 +++ b/drivers/media/i2c/Kconfig
 @@ -41,6 +41,11 @@ config VIDEO_APTINA_PLL
@@ -35,7 +35,7 @@ index 4c96ada1dbfc..206fccddeac7 100644
  	tristate "ON Semiconductor AR0521 sensor support"
  	help
 diff --git a/drivers/media/i2c/Makefile b/drivers/media/i2c/Makefile
-index da8e5b4c69d7..5a2fda724b50 100644
+index a303d1450093..e58902ddbc8f 100644
 --- a/drivers/media/i2c/Makefile
 +++ b/drivers/media/i2c/Makefile
 @@ -35,6 +35,7 @@ obj-$(CONFIG_VIDEO_DW9714) += dw9714.o
@@ -1049,5 +1049,5 @@ index 000000000000..1249ebd06e27
 +
 +#endif 	/* _EPC660_SEQUENCE_H */
 -- 
-2.44.1
+2.47.0
 
