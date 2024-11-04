@@ -42,15 +42,14 @@ SRC_URI:append = " \
     file://0028-imx93-matrixup.dts-Remove-flexcan2.patch \
     file://0029-imx93-matrixup.dts-Remove-lcdif-adv7535-dsi.patch \
     file://0030-imx93-matrixup.dts-Remove-unused-nodes.patch \
-    file://0031-imx93-matrixup.dts-Adapt-pmic-eqos-nodes-and-remove-.patch \
+    file://0031-imx93-matrixup.dts-Adapt-pmic-eqos-phy-nodes-and-rem.patch \
     file://0032-imx93-matrixup.dts-Remove-ptn5110-usbotg-nodes.patch \
     file://0033-imx93-matrixup.dts-Configure-pinctrl-for-GPIO3-s.patch \
-    file://0034-usb-usbmisc_imx-Workaround-for-i.MX93-ERR051725.patch \
-    file://0035-net-dp83822-Add-dt-option-to-force-phy-into-slave-mo.patch \
-    file://0036-pwm-imx-tpm-Use-correct-MODULO-value-for-EPWM-mode.patch \
-    file://0037-media-marec-fpga-Support-mclk-and-pwrsv-pins-in-dtb.patch \
-    file://0038-imx93-matrixup.dts-Add-fpga-and-related-nodes.patch \
-    file://0039-WIP-force-imx93-matrixup-to-only-use-HS200-for-mmc.patch \
+    file://0034-imx93-matrixup.dts-Add-fpga-and-related-nodes.patch \
+    file://0035-usb-usbmisc_imx-Workaround-for-i.MX93-ERR051725.patch \
+    file://0036-Backport-dp83822.c.patch \
+    file://0037-net-phy-dp83822-Configure-RMII-mode-on-DP83825-devic.patch \
+    file://0038-pwm-imx-tpm-Use-correct-MODULO-value-for-EPWM-mode.patch \
 "
 
 # It has no effect to set KERNEL_DEVICETREE in the conf/multiconfig/imx93-evk.conf,

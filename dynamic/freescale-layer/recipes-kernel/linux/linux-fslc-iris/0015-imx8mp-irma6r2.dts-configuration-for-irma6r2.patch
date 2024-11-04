@@ -1,7 +1,7 @@
-From 9a424fe234666bda0955edc32b6a45e872fe8b84 Mon Sep 17 00:00:00 2001
+From 8c9fcc266bf076acad6e617dc2053f124e8d972d Mon Sep 17 00:00:00 2001
 From: Ian Dannapel <ian.dannapel@iris-sensing.com>
 Date: Fri, 25 Mar 2022 18:15:13 +0100
-Subject: [PATCH 15/24] imx8mp-irma6r2.dts: configuration for irma6r2
+Subject: [PATCH] imx8mp-irma6r2.dts: configuration for irma6r2
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
@@ -1234,5 +1234,5 @@ index c451d4b2872b..8b4918bfddbf 100644
  
  &isi_1 {
 -- 
-2.44.1
+2.47.0
 

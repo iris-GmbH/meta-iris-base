@@ -1,8 +1,7 @@
-From ebd499146a3a60e90a2f0f2a6462082bf67b4b0f Mon Sep 17 00:00:00 2001
+From 8c337c6e8b5f9d57f494b94fdb78005840054a5a Mon Sep 17 00:00:00 2001
 From: Ian Dannapel <ian.dannapel@iris-sensing.com>
 Date: Wed, 18 Sep 2024 12:57:49 +0000
-Subject: [PATCH 07/24] imx8-isi-fmt.c: Add RAW8, RAW10, RAW12 and RAW14
- formats
+Subject: [PATCH] imx8-isi-fmt.c: Add RAW8, RAW10, RAW12 and RAW14 formats
 
 Signed-off-by: Erik Schumacher <erik.schumacher@iris-sensing.com>
 Signed-off-by: Ian Dannapel <ian.dannapel@iris-sensing.com>
@@ -56,5 +55,5 @@ index db11c809a3d3..54c399274cc6 100644
  };
  
 -- 
-2.44.1
+2.47.0
 

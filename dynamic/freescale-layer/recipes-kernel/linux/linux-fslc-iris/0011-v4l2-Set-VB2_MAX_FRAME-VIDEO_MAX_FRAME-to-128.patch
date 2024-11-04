@@ -1,7 +1,7 @@
-From 0e2fb0c77540dc705c2c45c3adef7b3a7e16bb5b Mon Sep 17 00:00:00 2001
+From 863126bf0ad2bd10881862baade6df49ee9befd1 Mon Sep 17 00:00:00 2001
 From: Jan Hannig <jan.hannig@iris-sensing.com>
 Date: Fri, 29 Sep 2023 15:03:30 +0200
-Subject: [PATCH 11/24] v4l2: Set VB2_MAX_FRAME/VIDEO_MAX_FRAME to 128
+Subject: [PATCH] v4l2: Set VB2_MAX_FRAME/VIDEO_MAX_FRAME to 128
 
 The user space application requires up to 6 frame buffers in certain
 acquisition modes to respresent one image. This enables a higher
@@ -42,5 +42,5 @@ index 0c4867c44291..a8f8aeedea9c 100644
  
  /*
 -- 
-2.44.1
+2.47.0
 

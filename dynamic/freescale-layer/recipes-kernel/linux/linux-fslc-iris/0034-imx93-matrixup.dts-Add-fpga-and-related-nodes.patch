@@ -1,4 +1,4 @@
-From aba0409c8c964e5982812a92badb9edd1d341aec Mon Sep 17 00:00:00 2001
+From 3c158133515cd00bea9b64cefe6a5863e8d3897e Mon Sep 17 00:00:00 2001
 From: Erik Schumacher <erik.schumacher@iris-sensing.com>
 Date: Fri, 18 Oct 2024 12:14:20 +0000
 Subject: [PATCH] imx93-matrixup.dts: Add fpga and related nodes
@@ -14,7 +14,7 @@ Add nodes for:
  1 file changed, 157 insertions(+)
 
 diff --git a/arch/arm64/boot/dts/freescale/imx93-matrixup.dts b/arch/arm64/boot/dts/freescale/imx93-matrixup.dts
-index a7fa24c505862..4c632166bbb44 100644
+index 5c3475170204..44bc63b87fd7 100644
 --- a/arch/arm64/boot/dts/freescale/imx93-matrixup.dts
 +++ b/arch/arm64/boot/dts/freescale/imx93-matrixup.dts
 @@ -90,6 +90,13 @@ reg_vref_1v8: regulator-adc-vref {
@@ -224,5 +224,5 @@ index a7fa24c505862..4c632166bbb44 100644
  		fsl,pins = <
  			MX93_PAD_UART1_RXD__LPUART1_RX			0x31e
 -- 
-2.46.0
+2.47.0
 

@@ -1,4 +1,4 @@
-From 2eb86cd60530e5f18bb7de151856efd15c73c03c Mon Sep 17 00:00:00 2001
+From 27fb13a51654342e54c9bd493df01e075b4e9ec9 Mon Sep 17 00:00:00 2001
 From: Erik Schumacher <erik.schumacher@iris-sensing.com>
 Date: Thu, 17 Oct 2024 13:07:15 +0000
 Subject: [PATCH] usb: usbmisc_imx: Workaround for i.MX93 ERR051725
@@ -16,7 +16,7 @@ Signed-off-by: Erik Schumacher <erik.schumacher@iris-sensing.com>
  1 file changed, 13 insertions(+)
 
 diff --git a/drivers/usb/chipidea/usbmisc_imx.c b/drivers/usb/chipidea/usbmisc_imx.c
-index b2550cfddd9d2..19f9385d2e661 100644
+index b2550cfddd9d..19f9385d2e66 100644
 --- a/drivers/usb/chipidea/usbmisc_imx.c
 +++ b/drivers/usb/chipidea/usbmisc_imx.c
 @@ -673,6 +673,19 @@ static int usbmisc_imx7d_init(struct imx_usbmisc_data *data)
@@ -40,5 +40,5 @@ index b2550cfddd9d2..19f9385d2e661 100644
  			| MX7D_USBNC_AUTO_RESUME,
  			usbmisc->base + MX7D_USBNC_USB_CTRL2);
 -- 
-2.46.0
+2.47.0
 

@@ -1,15 +1,15 @@
-From 7259acba6dfa4e1e2d085cb1697c2eb94d719742 Mon Sep 17 00:00:00 2001
+From 74e42fa7056c18699128242e0ed7750f3bef2465 Mon Sep 17 00:00:00 2001
 From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
 Date: Wed, 2 Oct 2024 08:55:26 +0000
-Subject: [PATCH] imx93-matrixup.dts: Adapt pmic, eqos nodes and remove
+Subject: [PATCH] imx93-matrixup.dts: Adapt pmic, eqos, phy nodes and remove
  pcal6524 node
 
 ---
- .../boot/dts/freescale/imx93-matrixup.dts     | 234 +++---------------
- 1 file changed, 34 insertions(+), 200 deletions(-)
+ .../boot/dts/freescale/imx93-matrixup.dts     | 236 +++---------------
+ 1 file changed, 35 insertions(+), 201 deletions(-)
 
 diff --git a/arch/arm64/boot/dts/freescale/imx93-matrixup.dts b/arch/arm64/boot/dts/freescale/imx93-matrixup.dts
-index 20b89c075efc0..a15c3c114dfd9 100644
+index 20b89c075efc..48c0d9033908 100644
 --- a/arch/arm64/boot/dts/freescale/imx93-matrixup.dts
 +++ b/arch/arm64/boot/dts/freescale/imx93-matrixup.dts
 @@ -102,36 +102,6 @@ reg_usdhc2_vmmc: regulator-usdhc2 {
@@ -65,7 +65,7 @@ index 20b89c075efc0..a15c3c114dfd9 100644
  
  	mdio {
  		compatible = "snps,dwmac-mdio";
-@@ -176,10 +146,11 @@ mdio {
+@@ -176,13 +146,14 @@ mdio {
  		#size-cells = <0>;
  		clock-frequency = <5000000>;
  
@@ -79,7 +79,11 @@ index 20b89c075efc0..a15c3c114dfd9 100644
 +			reset-gpios = <&gpio3 21 GPIO_ACTIVE_LOW>;
  			reset-assert-us = <10000>;
  			reset-deassert-us = <80000>;
- 			realtek,clkout-disable;
+-			realtek,clkout-disable;
++			ti,rmii-mode = "slave";
+ 		};
+ 	};
+ };
 @@ -204,22 +175,14 @@ &lpi2c1 {
  	pinctrl-0 = <&pinctrl_lpi2c1>;
  	pinctrl-1 = <&pinctrl_lpi2c1>;
@@ -341,5 +345,5 @@ index 20b89c075efc0..a15c3c114dfd9 100644
  
  &epxp {
 -- 
-2.46.0
+2.47.0
 

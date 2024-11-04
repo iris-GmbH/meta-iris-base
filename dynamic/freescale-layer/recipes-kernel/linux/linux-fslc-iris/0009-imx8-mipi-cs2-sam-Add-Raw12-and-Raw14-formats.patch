@@ -1,7 +1,7 @@
-From d4d91336fbff14626023037c78e47a518e4a96a9 Mon Sep 17 00:00:00 2001
+From 310257f3fbe17021e6d5b6e3dfe71f1ef2984a5b Mon Sep 17 00:00:00 2001
 From: Ian Dannapel <ian.dannapel@iris-sensing.com>
 Date: Fri, 13 May 2022 15:49:59 +0200
-Subject: [PATCH 09/24] imx8-mipi-cs2-sam: Add Raw12 and Raw14 formats
+Subject: [PATCH] imx8-mipi-cs2-sam: Add Raw12 and Raw14 formats
 
 - fix MEDIA MIX gasket0 dumps
 Somebody forgot that the gasket regmap for the media mix already starts
@@ -110,5 +110,5 @@ index c6af060c4497..b2f42948cac5 100644
  	if (ret < 0) {
  		v4l2_err(&state->sd, "%s, set sensor format fail\n", __func__);
 -- 
-2.44.1
+2.47.0
 

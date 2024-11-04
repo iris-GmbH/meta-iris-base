@@ -1,4 +1,4 @@
-From 5f0bfce08adfd38f12579a16110a04e1d0d7286d Mon Sep 17 00:00:00 2001
+From eaa7168780676d00926e111627c31af17c2b6509 Mon Sep 17 00:00:00 2001
 From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
 Date: Wed, 2 Oct 2024 08:19:51 +0000
 Subject: [PATCH] imx93-matrixup.dts: Remove lcdif / adv7535 / dsi
@@ -8,7 +8,7 @@ Subject: [PATCH] imx93-matrixup.dts: Remove lcdif / adv7535 / dsi
  1 file changed, 33 deletions(-)
 
 diff --git a/arch/arm64/boot/dts/freescale/imx93-matrixup.dts b/arch/arm64/boot/dts/freescale/imx93-matrixup.dts
-index 5c23cfe611516..8d0e5b3e3b5ff 100644
+index 5c23cfe61151..8d0e5b3e3b5f 100644
 --- a/arch/arm64/boot/dts/freescale/imx93-matrixup.dts
 +++ b/arch/arm64/boot/dts/freescale/imx93-matrixup.dts
 @@ -336,20 +336,6 @@ &dphy {
@@ -66,5 +66,5 @@ index 5c23cfe611516..8d0e5b3e3b5ff 100644
  		compatible = "st,lsm6dso";
  		reg = <0x6a>;
 -- 
-2.46.0
+2.47.0
 

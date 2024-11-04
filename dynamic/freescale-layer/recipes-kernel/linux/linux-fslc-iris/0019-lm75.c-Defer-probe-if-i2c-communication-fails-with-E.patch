@@ -1,8 +1,7 @@
-From dfd844734181efbab09d8c051d25bd290d10a304 Mon Sep 17 00:00:00 2001
+From 88ce476b273d210c939aafc028830d49e366ec82 Mon Sep 17 00:00:00 2001
 From: Erik Schumacher <erik.schumacher@iris-sensing.com>
 Date: Tue, 14 Mar 2023 09:56:44 +0100
-Subject: [PATCH 19/24] lm75.c: Defer probe if i2c communication fails with
- EAGAIN
+Subject: [PATCH] lm75.c: Defer probe if i2c communication fails with EAGAIN
 
 The lm75 sits on the same i2c bus as the epc660 which is blocking the
 bus until the epc660 probe function configures the device. If a i2c
@@ -28,5 +27,5 @@ index 5b2ea05c951e..e10ac02f889e 100644
  	}
  	data->orig_conf = status;
 -- 
-2.44.1
+2.47.0
 

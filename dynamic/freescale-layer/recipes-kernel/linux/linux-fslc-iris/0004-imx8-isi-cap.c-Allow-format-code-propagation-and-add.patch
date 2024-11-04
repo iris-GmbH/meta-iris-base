@@ -1,8 +1,8 @@
-From 281bd7674254ec4d3d2c3546c10f70037714740b Mon Sep 17 00:00:00 2001
+From 7ee3c782db074735e49952a87251d44a23318496 Mon Sep 17 00:00:00 2001
 From: Ian Dannapel <ian.dannapel@iris-sensing.com>
 Date: Wed, 18 Sep 2024 12:43:49 +0000
-Subject: [PATCH 04/24] imx8-isi-cap.c: Allow format code propagation and add
- raw formats
+Subject: [PATCH] imx8-isi-cap.c: Allow format code propagation and add raw
+ formats
 
 - Add RAW8, RAW10, RAW12 and RAW14 formats
 
@@ -93,5 +93,5 @@ index c3d6bbeed6a2..80b9e1053f79 100644
  	src_fmt.format.height = dst_f->height;
  	ret = v4l2_subdev_call(src_sd, pad, set_fmt, NULL, &src_fmt);
 -- 
-2.44.1
+2.47.0
 

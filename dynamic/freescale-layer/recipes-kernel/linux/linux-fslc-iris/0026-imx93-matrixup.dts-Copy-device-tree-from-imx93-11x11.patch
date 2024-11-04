@@ -1,4 +1,4 @@
-From 4774a92bc1f83cff82a25198edb76f94f9d80bff Mon Sep 17 00:00:00 2001
+From cc70ca0c49b2842a325d0119b4c7d7bee3b49315 Mon Sep 17 00:00:00 2001
 From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
 Date: Wed, 2 Oct 2024 07:51:03 +0000
 Subject: [PATCH] imx93-matrixup.dts: Copy device tree from imx93-11x11-evk.dts
@@ -10,10 +10,10 @@ Subject: [PATCH] imx93-matrixup.dts: Copy device tree from imx93-11x11-evk.dts
  create mode 100644 arch/arm64/boot/dts/freescale/imx93-matrixup.dts
 
 diff --git a/arch/arm64/boot/dts/freescale/Makefile b/arch/arm64/boot/dts/freescale/Makefile
-index d8975193d9505..b1d435dfa57d2 100644
+index d9d27fafdbc6..a9afaac0c6a5 100644
 --- a/arch/arm64/boot/dts/freescale/Makefile
 +++ b/arch/arm64/boot/dts/freescale/Makefile
-@@ -376,7 +376,8 @@ dtb-$(CONFIG_ARCH_MXC) += imx93-11x11-evk.dtb \
+@@ -384,7 +384,8 @@ dtb-$(CONFIG_ARCH_MXC) += imx93-11x11-evk.dtb \
  			  imx93-11x11-evk-ld.dtb \
  			  imx93-11x11-evk-iw612-otbr.dtb \
  			  imx93-11x11-evk-rpmsg.dtb imx93-11x11-evk-rpmsg-lpv.dtb \
@@ -25,7 +25,7 @@ index d8975193d9505..b1d435dfa57d2 100644
  			  imx91-11x11-evk-flexspi-m2.dtb imx91-11x11-evk-flexspi-nand-m2.dtb \
 diff --git a/arch/arm64/boot/dts/freescale/imx93-matrixup.dts b/arch/arm64/boot/dts/freescale/imx93-matrixup.dts
 new file mode 100644
-index 0000000000000..b0c6a952b3464
+index 000000000000..b0c6a952b346
 --- /dev/null
 +++ b/arch/arm64/boot/dts/freescale/imx93-matrixup.dts
 @@ -0,0 +1,1227 @@
@@ -1257,5 +1257,5 @@ index 0000000000000..b0c6a952b3464
 +	};
 +};
 -- 
-2.46.0
+2.47.0
 

@@ -1,7 +1,7 @@
-From 6f66a349658d99b0aa4b737743937813f701393a Mon Sep 17 00:00:00 2001
+From c9f99da494f33909e05af1c15427073e38e81db5 Mon Sep 17 00:00:00 2001
 From: Erik Schumacher <erik.schumacher@iris-sensing.com>
 Date: Tue, 19 Mar 2024 16:48:51 +0000
-Subject: [PATCH 18/24] i2c-imx: Introduce optional busy polling for xfer
+Subject: [PATCH] i2c-imx: Introduce optional busy polling for xfer
 
 Mode can be selected in the device tree. Due to an unknown source
 somewhere in the interrupt and wait queue handling, a delay of 300 us (or
@@ -111,5 +111,5 @@ index 1d248ec1a9e7..5864f3a72015 100644
  	 * This limit caused by an i.MX7D hardware issue(e7805 in Errata).
  	 * If there is no limit, when the bitrate set up to 400KHz, it will
 -- 
-2.44.1
+2.47.0
 

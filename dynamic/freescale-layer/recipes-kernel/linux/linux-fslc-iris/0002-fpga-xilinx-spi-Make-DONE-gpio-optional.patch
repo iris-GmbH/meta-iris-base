@@ -1,7 +1,7 @@
-From f2dd64f350839c85a1b7d7aa66fb6b6a79d6bf09 Mon Sep 17 00:00:00 2001
+From d67d6a681da3eb9c25b9c441a02f03529bdfcfaf Mon Sep 17 00:00:00 2001
 From: Erik Schumacher <erik.schumacher@iris-sensing.com>
 Date: Fri, 26 Apr 2024 06:58:25 +0000
-Subject: [PATCH 02/24] fpga/xilinx-spi: Make DONE gpio optional
+Subject: [PATCH] fpga/xilinx-spi: Make DONE gpio optional
 
 A hardware setup on which the DONE pin of the FPGA is not connected to
 any GPIO should still be able to initialize the FPGA. With a well-tested
@@ -161,5 +161,5 @@ index e1a227e7ff2a..4738b50f5935 100644
  				     "Xilinx Slave Serial FPGA Manager",
  				     &xilinx_spi_ops, conf);
 -- 
-2.44.1
+2.47.0
 
