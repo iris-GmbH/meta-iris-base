@@ -1,18 +1,14 @@
+require cst.inc
+
 DESCRIPTION = "Code Signing Tool for NXP's High Assurance Boot with i.MX processors."
-AUTHOR = "NXP"
-HOMEPAGE = "http://www.nxp.com"
-LICENSE = "BSD-3-Clause & OpenSSL & hidapi"
-LIC_FILES_CHKSUM = "file://${S}/LICENSE.bsd3;md5=1fbcd66ae51447aa94da10cbf6271530 \
-                    file://${S}/LICENSE.openssl;md5=06698624268f7be8151210879bbcbcab \
-                    file://${S}/LICENSE.hidapi;md5=e0ea014f523f64f0adb13409055ee59e"
+
+SRC_URI[sha256sum] = "17814909d0193f6c7dbb84bc4c51ecd47231a5571cbe9b32527d128bdb727b7d"
 
 INSANE_SKIP:${PN} += " \
  already-stripped \
 "
 
 inherit native
-
-S = "${WORKDIR}/cst-${PV}"
 
 do_patch[noexec] = "1"
 do_configure[noexec] = "1"
