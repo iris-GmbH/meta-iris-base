@@ -1,0 +1,62 @@
+From 4834473c63de90799bc40fed32a425d6d17ef3ac Mon Sep 17 00:00:00 2001
+From: Erik Schumacher <erik.schumacher@iris-sensing.com>
+Date: Mon, 28 Oct 2024 15:30:17 +0000
+Subject: [PATCH] net: dwc_eth_qos_imx: Add platform specific reset for i.MX93
+
+The EQOS on i.MX93 fails to finish the reset procedure in RMII mode.
+This is described in errata ERR051683. This patch implements the
+provided workaround which sets the PS and FES bits after the SWR is set
+by using the eqos_fix_soc_reset function.
+
+Adapted from linux-kernel commit b536f32b5b03 ("net: stmmac: dwmac-imx:
+use platform specific reset for imx93 SoCs")
+
+Signed-off-by: Erik Schumacher <erik.schumacher@iris-sensing.com>
+Upstream-Status: Backport [43b89455]
+---
+ drivers/net/dwc_eth_qos_imx.c | 22 ++++++++++++++++++++++
+ 1 file changed, 22 insertions(+)
+
+diff --git a/drivers/net/dwc_eth_qos_imx.c b/drivers/net/dwc_eth_qos_imx.c
+index 8976b2ed06a..5b3d52fe324 100644
+--- a/drivers/net/dwc_eth_qos_imx.c
++++ b/drivers/net/dwc_eth_qos_imx.c
+@@ -215,6 +215,27 @@ static int eqos_get_enetaddr_imx(struct udevice *dev)
+ 	return 0;
+ }
+ 
++static void eqos_fix_soc_reset_imx(struct udevice *dev)
++{
++	struct eqos_priv *eqos = dev_get_priv(dev);
++
++	if (IS_ENABLED(CONFIG_IMX93)) {
++		/*
++		 * Workaround for ERR051683 in i.MX93
++		 * The i.MX93 requires speed configuration bits to be set to
++		 * complete the reset procedure in RMII mode.
++		 * See b536f32b5b03 ("net: stmmac: dwmac-imx: use platform
++		 * specific reset for imx93 SoCs") in linux
++		 */
++		if (eqos->config->interface(dev) == PHY_INTERFACE_MODE_RMII) {
++			udelay(200);
++			setbits_le32(&eqos->mac_regs->configuration,
++				     EQOS_MAC_CONFIGURATION_PS |
++				     EQOS_MAC_CONFIGURATION_FES);
++		}
++	}
++}
++
+ static struct eqos_ops eqos_imx_ops = {
+ 	.eqos_inval_desc = eqos_inval_desc_generic,
+ 	.eqos_flush_desc = eqos_flush_desc_generic,
+@@ -231,6 +252,7 @@ static struct eqos_ops eqos_imx_ops = {
+ 	.eqos_set_tx_clk_speed = eqos_set_tx_clk_speed_imx,
+ 	.eqos_get_enetaddr = eqos_get_enetaddr_imx,
+ 	.eqos_get_tick_clk_rate = eqos_get_tick_clk_rate_imx,
++	.eqos_fix_soc_reset = eqos_fix_soc_reset_imx,
+ };
+ 
+ struct eqos_config __maybe_unused eqos_imx_config = {
+-- 
+2.46.1
+

@@ -1,0 +1,46 @@
+From f1f7b1e9d41549018d3a86e29d9890eae5df54ab Mon Sep 17 00:00:00 2001
+From: Erik Schumacher <erik.schumacher@iris-sensing.com>
+Date: Mon, 28 Oct 2024 15:29:42 +0000
+Subject: [PATCH] net: dwc_eth_qos: Add support for platform specific reset
+
+This patch adds support for optional platform specific reset logic in
+the dwc_eth_qos driver. This new function 'eqos_fix_soc_reset' is called
+after the EQOS_DMA_MODE_SWR is set and before the driver waits for this
+bit to clear.
+
+Signed-off-by: Erik Schumacher <erik.schumacher@iris-sensing.com>
+Upstream-Status: Backport [669e628d]
+---
+ drivers/net/dwc_eth_qos.c | 3 +++
+ drivers/net/dwc_eth_qos.h | 1 +
+ 2 files changed, 4 insertions(+)
+
+diff --git a/drivers/net/dwc_eth_qos.c b/drivers/net/dwc_eth_qos.c
+index 7843dbdf158..5dbfcbd8981 100644
+--- a/drivers/net/dwc_eth_qos.c
++++ b/drivers/net/dwc_eth_qos.c
+@@ -770,6 +770,9 @@ static int eqos_start(struct udevice *dev)
+ 	 */
+ 	setbits_le32(&eqos->dma_regs->mode, EQOS_DMA_MODE_SWR);
+ 
++	if (eqos->config->ops->eqos_fix_soc_reset)
++		eqos->config->ops->eqos_fix_soc_reset(dev);
++
+ 	ret = wait_for_bit_le32(&eqos->dma_regs->mode,
+ 				EQOS_DMA_MODE_SWR, false,
+ 				eqos->config->swr_wait, false);
+diff --git a/drivers/net/dwc_eth_qos.h b/drivers/net/dwc_eth_qos.h
+index e3222e1e17e..ef2651606d2 100644
+--- a/drivers/net/dwc_eth_qos.h
++++ b/drivers/net/dwc_eth_qos.h
+@@ -244,6 +244,7 @@ struct eqos_ops {
+ 	int (*eqos_set_tx_clk_speed)(struct udevice *dev);
+ 	int (*eqos_get_enetaddr)(struct udevice *dev);
+ 	ulong (*eqos_get_tick_clk_rate)(struct udevice *dev);
++	void (*eqos_fix_soc_reset)(struct udevice *dev);
+ };
+ 
+ struct eqos_priv {
+-- 
+2.46.1
+

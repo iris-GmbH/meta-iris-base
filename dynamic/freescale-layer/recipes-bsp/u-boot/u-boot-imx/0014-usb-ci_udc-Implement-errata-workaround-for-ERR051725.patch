@@ -1,0 +1,102 @@
+From 1514acf24df697a0257a22aad71efca0c22e1826 Mon Sep 17 00:00:00 2001
+From: Erik Schumacher <erik.schumacher@iris-sensing.com>
+Date: Thu, 17 Oct 2024 07:35:48 +0000
+Subject: [PATCH] usb: ci_udc: Implement errata workaround for ERR051725
+
+On the i.MX93, a software-controlled detach from USB is not always
+possible by clearing the RS bit of USBCMD register. The workaround
+utilizes the USBNC CTRL2 register.
+
+Upstream-Status: Inappropriate [Changes based on nxp code basis]
+Signed-off-by: Erik Schumacher <erik.schumacher@iris-sensing.com>
+---
+ drivers/usb/gadget/ci_udc.c | 26 ++++++++++++++++++++++++++
+ drivers/usb/gadget/ci_udc.h | 11 +++++++++++
+ 2 files changed, 37 insertions(+)
+
+diff --git a/drivers/usb/gadget/ci_udc.c b/drivers/usb/gadget/ci_udc.c
+index bb838b30a4d..53bc009250f 100644
+--- a/drivers/usb/gadget/ci_udc.c
++++ b/drivers/usb/gadget/ci_udc.c
+@@ -938,9 +938,31 @@ int ci_udc_handle_interrupts(void)
+ 	return value;
+ }
+ 
++void ci_udc_detach_errata_err051725(void)
++{
++	/*
++	 * Workaround for errata ERR051725 on i.MX93
++	 * A simple USBCMD RST is not always enough to trigger a detach
++	 * event on the host, especially with sensitive USB data lines.
++	 * Use USBNC CTRL2 register to detach.
++	 */
++	clrsetbits_le32(&controller.usbnc_ctrl->ctrl2,
++			USBNC_CTRL2_OPMODE_OVERRIDE_MASK,
++			USBNC_CTRL2_OPMODE_NON_DRIVING);
++	setbits_le32(&controller.usbnc_ctrl->ctrl2,
++		     USBNC_CTRL2_OPMODE_OVERRIDE_EN);
++	udelay(200);
++	clrbits_le32(&controller.usbnc_ctrl->ctrl2,
++		     USBNC_CTRL2_OPMODE_OVERRIDE_EN);
++}
++
+ void udc_disconnect(void)
+ {
+ 	struct ci_udc *udc = (struct ci_udc *)controller.ctrl->hcor;
++
++	if (CONFIG_IS_ENABLED(IMX93))
++		ci_udc_detach_errata_err051725();
++
+ 	/* disable pullup */
+ 	stop_activity();
+ 	writel(USBCMD_FS2, &udc->usbcmd);
+@@ -953,6 +975,9 @@ static int ci_pullup(struct usb_gadget *gadget, int is_on)
+ {
+ 	struct ci_udc *udc = (struct ci_udc *)controller.ctrl->hcor;
+ 	if (is_on) {
++		if (CONFIG_IS_ENABLED(IMX93))
++			ci_udc_detach_errata_err051725();
++
+ 		/* RESET */
+ 		writel(USBCMD_ITC(MICRO_8FRAME) | USBCMD_RST, &udc->usbcmd);
+ 		udelay(200);
+@@ -1496,6 +1521,7 @@ static int ci_udc_otg_probe(struct udevice *dev)
+ 	priv->ctrl.hcor = (struct ehci_hcor *)((ulong)priv->ctrl.hccr +
+ 			HC_LENGTH(ehci_readl(&(priv->ctrl.hccr)->cr_capbase)));
+ 	controller.ctrl = &priv->ctrl;
++	controller.usbnc_ctrl = (struct ci_udc_usbnc *) priv->phy_data.misc_addr;
+ 
+ 	ret = ci_udc_probe();
+ 	if (ret) {
+diff --git a/drivers/usb/gadget/ci_udc.h b/drivers/usb/gadget/ci_udc.h
+index bea2f9f3fe3..ea05ee378a4 100644
+--- a/drivers/usb/gadget/ci_udc.h
++++ b/drivers/usb/gadget/ci_udc.h
+@@ -77,6 +77,16 @@ struct ci_udc {
+ #define CTRL_TXT_BULK	(2 << 18)
+ #define CTRL_RXT_BULK	(2 << 2)
+ 
++#define USBNC_CTRL2_OPMODE(x)			(x << 6)
++#define USBNC_CTRL2_OPMODE_NON_DRIVING		USBNC_CTRL2_OPMODE(1)
++#define USBNC_CTRL2_OPMODE_OVERRIDE_MASK	(3 << 6)
++#define USBNC_CTRL2_OPMODE_OVERRIDE_EN		(1 << 8)
++
++struct ci_udc_usbnc {
++	u32 ctrl1;		/* 0x00 */
++	u32 ctrl2;		/* 0x04 */
++};
++
+ struct ci_req {
+ 	struct usb_request	req;
+ 	struct list_head	queue;
+@@ -105,6 +115,7 @@ struct ci_drv {
+ 	struct ept_queue_head		*epts;
+ 	uint8_t				*items_mem;
+ 	struct ci_ep			ep[NUM_ENDPOINTS];
++	struct ci_udc_usbnc		*usbnc_ctrl;
+ };
+ 
+ struct ept_queue_head {
+-- 
+2.47.0
+
