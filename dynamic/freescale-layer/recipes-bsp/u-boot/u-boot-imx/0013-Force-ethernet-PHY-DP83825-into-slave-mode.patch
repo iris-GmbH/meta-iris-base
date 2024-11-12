@@ -1,0 +1,51 @@
+From abdd80ff904b69bb7649284d1784a46d33b783e3 Mon Sep 17 00:00:00 2001
+From: Erik Schumacher <erik.schumacher@iris-sensing.com>
+Date: Fri, 11 Oct 2024 09:23:55 +0000
+Subject: [PATCH] Force ethernet PHY DP83825 into slave mode
+
+It can not be done by using the strap pins of the PHY.
+
+Note:
+This fix is placed in the platform specific ethernet code of the i.MX93,
+it is setting device specific registers of the DP83825.
+
+Upstream-Status: Inappropriate [hardware specific fix]
+Signed-off-by: Erik Schumacher <erik.schumacher@iris-sensing.com>
+---
+ arch/arm/dts/imx93-matrixup.dts | 1 +
+ drivers/net/dwc_eth_qos.c       | 7 +++++++
+ 2 files changed, 8 insertions(+)
+
+diff --git a/arch/arm/dts/imx93-matrixup.dts b/arch/arm/dts/imx93-matrixup.dts
+index ea8fdd88adf..f20c7133b63 100644
+--- a/arch/arm/dts/imx93-matrixup.dts
++++ b/arch/arm/dts/imx93-matrixup.dts
+@@ -74,6 +74,7 @@
+ 	phy-handle = <&ethphy1>;
+ 	status = "okay";
+ 	assigned-clock-rates = <100000000>, <50000000>;
++	force-slave-mode;
+ 
+ 	mdio {
+ 		compatible = "snps,dwmac-mdio";
+diff --git a/drivers/net/dwc_eth_qos.c b/drivers/net/dwc_eth_qos.c
+index 8a65017f668..7843dbdf158 100644
+--- a/drivers/net/dwc_eth_qos.c
++++ b/drivers/net/dwc_eth_qos.c
+@@ -1553,6 +1553,13 @@ static int eqos_probe(struct udevice *dev)
+ 		}
+ 	}
+ 
++	/* set DP83825 PHY to slave mode as it is not possible to do so
++	   by using the strap pins.
++	   It would be more correct, to implement this switch in the
++	   DP83825 specific phy driver */
++	if (dev_read_bool(dev, "force-slave-mode"))
++		eqos_mdio_write(eqos->mii, 0, 0, MII_RESV1, 0x0081);
++
+ #ifdef CONFIG_DM_ETH_PHY
+ 	eth_phy_set_mdio_bus(dev, eqos->mii);
+ #endif
+-- 
+2.46.1
+

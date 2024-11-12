@@ -1,0 +1,57 @@
+From db627c5be36bcb72375ce07248de99cedac12886 Mon Sep 17 00:00:00 2001
+From: "philipp.schoewe" <Philipp.Schoewe@iris-sensing.com>
+Date: Tue, 16 Aug 2022 08:41:20 +0200
+Subject: [PATCH] imx8mp-irma6r2: Add check for when the device is locked to
+ not nfs boot
+
+Signed-off-by: philipp.schoewe <Philipp.Schoewe@iris-sensing.com>
+Upstream-Status: Inappropriate [hardware specific]
+---
+ board/freescale/imx8mp_irma6r2/imx8mp_irma6r2.c | 17 ++++++++++++++++-
+ 1 file changed, 16 insertions(+), 1 deletion(-)
+
+diff --git a/board/freescale/imx8mp_irma6r2/imx8mp_irma6r2.c b/board/freescale/imx8mp_irma6r2/imx8mp_irma6r2.c
+index 08f055b781d..799e9906457 100644
+--- a/board/freescale/imx8mp_irma6r2/imx8mp_irma6r2.c
++++ b/board/freescale/imx8mp_irma6r2/imx8mp_irma6r2.c
+@@ -28,6 +28,7 @@
+ #include <dwc3-uboot.h>
+ #include "interface_unit.h"
+ #include <mmc.h>
++#include <fuse.h>
+ 
+ DECLARE_GLOBAL_DATA_PTR;
+ 
+@@ -434,6 +435,16 @@ int board_init(void)
+ 	return 0;
+ }
+ 
++int security_fuse_burned(void)
++{
++	u32 fuse_word = 0;
++	// 0x470 (bank 1, word 3) bit 25 = SEC_CONFIG[1] - Closed (Security On)
++	if (fuse_sense(1, 3, &fuse_word) != 0) {
++		fuse_word = 1; // in case of corrupt fuse box do not allow nfs boot
++	}
++	return (fuse_word & 0x02000000); // 0x02000000 = Bit 25
++}
++
+ void board_autogenerate_bootcmd (void)
+ {
+     int firmware_env = env_get_ulong("firmware", 10, 0);
+@@ -497,7 +508,11 @@ void board_autogenerate_bootcmd (void)
+ 	if (IU_read_eeprom() == 0) {
+ 		IU_print_eeprom_content();
+ 		IU_set_mac("eth1addr");
+-		nfs_boot = IU_get_nfs_boot_flag();
++
++		/* check if device is unlocked and allowed to nfs boot */
++		if (security_fuse_burned() == 0) { 
++			nfs_boot = IU_get_nfs_boot_flag();
++		}
+ 	}
+ 	
+ 	if (nfs_boot) {
+-- 
+2.46.1
+

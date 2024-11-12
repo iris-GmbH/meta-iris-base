@@ -1,0 +1,375 @@
+From 66a1e84ca0984e4c6d806e53e02f18705b729355 Mon Sep 17 00:00:00 2001
+From: Erik Schumacher <erik.schumacher@iris-sensing.com>
+Date: Wed, 4 Sep 2024 15:53:25 +0200
+Subject: [PATCH] Update imx8mp-evk board files for our needs
+
+- Use partition labels in environment and auto detect mmc partitions
+- imx8mp-evk: Enable secure boot and FIT image support
+- Remove CONFIG_CMD_BOOTEFI for imx8mp_evk_defconfig
+- imx8mp-evk: Add cmd for booting signed fitImage
+- imx8mp-evk: Change bootcmd to fitboot
+- Add redundand env support
+- Disable CONFIG_EFI_LOADER and CONFIG_CMD_DFU to fix compilation
+- Update imx8mp_evk_defconfig
+
+make mrproper && make imx8mp_evk_defconfig &&
+make savedefconfig && mv defconfig configs/imx8mp_evk_defconfig
+
+Signed-off-by: Erik Schumacher <Erik.Schumacher@iris-sensing.com>
+Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+Upstream-Status: Inappropriate [hardware specific]
+---
+ board/freescale/imx8mp_evk/imx8mp_evk.c |  47 +++++++++++
+ configs/imx8mp_evk_defconfig            | 101 +++++++++++-------------
+ include/configs/imx8mp_evk.h            |  22 ++----
+ 3 files changed, 98 insertions(+), 72 deletions(-)
+
+diff --git a/board/freescale/imx8mp_evk/imx8mp_evk.c b/board/freescale/imx8mp_evk/imx8mp_evk.c
+index 9fa9b4c8071..7c367372ccc 100644
+--- a/board/freescale/imx8mp_evk/imx8mp_evk.c
++++ b/board/freescale/imx8mp_evk/imx8mp_evk.c
+@@ -430,6 +430,52 @@ int board_init(void)
+ 	return 0;
+ }
+ 
++void board_autolocate_boot_partitions(void)
++{
++	/* TODO (RDPHOEN-1080, ERSC):
++	   - read bootable flag in GPT, what if no partition is bootable?
++	   - what to do with the changed (and maybe saved) env values?
++	   - what to do, if boot/rootfs not found?
++	*/
++	u32 dev_no = env_get_ulong("emmc_dev", 10, 2);
++	char firmware = 'a'; // assume A for now
++	char mmcroot[32];
++	char partboot[32];
++	char partbootfull[32];
++	char partrootfull[32];
++	struct disk_partition part_info;
++
++	printf("Active firmware: %c - Locating partitions ...\n", firmware);
++
++	sprintf(partboot, "linuxboot_%c", firmware);
++	sprintf(partbootfull, "%d#%s", dev_no, partboot);
++	sprintf(partrootfull, "%d#rootfs_%c", dev_no, firmware);
++	int partnumboot = part_get_info_by_dev_and_name_or_num("mmc", partbootfull, 0, &part_info, 1);
++
++	if (partnumboot < 0) {
++		printf(" !! Could not locate linux boot partition!\n");
++	} else if (!part_info.bootable) {
++		printf(" !! Found linux boot partition, but partition is not marked bootable!\n");
++	} else {
++		printf(" Found linux boot at %d\n", partnumboot);
++	}
++
++	int partnumroot = part_get_info_by_dev_and_name_or_num("mmc", partrootfull, 0, &part_info, 1);
++	if (partnumroot < 0) {
++		printf(" !! Could not locate linux rootfs partition!\n");
++	} else {
++		printf(" Found linux rootfs at %d\n", partnumroot);
++	}
++
++	env_set("mmcpart", partboot);
++	env_set_ulong("mmcdev", dev_no);
++
++	/* Set mmcblk env */
++	sprintf(mmcroot, "/dev/mmcblk%dp%d rootwait rw",
++		mmc_map_to_kernel_blk(dev_no), partnumroot);
++	env_set("mmcroot", mmcroot);
++}
++
+ int board_late_init(void)
+ {
+ #ifdef CONFIG_ENV_IS_IN_MMC
+@@ -440,6 +486,7 @@ int board_late_init(void)
+ 	env_set("board_rev", "iMX8MP");
+ #endif
+ 
++	board_autolocate_boot_partitions();
+ 	return 0;
+ }
+ 
+diff --git a/configs/imx8mp_evk_defconfig b/configs/imx8mp_evk_defconfig
+index 7112fdf5859..92895d3b045 100644
+--- a/configs/imx8mp_evk_defconfig
++++ b/configs/imx8mp_evk_defconfig
+@@ -5,38 +5,48 @@ CONFIG_SYS_MALLOC_LEN=0x2000000
+ CONFIG_SPL_GPIO=y
+ CONFIG_SPL_LIBCOMMON_SUPPORT=y
+ CONFIG_SPL_LIBGENERIC_SUPPORT=y
+-CONFIG_IMX_BOOTAUX=y
+ CONFIG_NR_DRAM_BANKS=3
+-CONFIG_SYS_MEMTEST_START=0x60000000
+-CONFIG_SYS_MEMTEST_END=0xC0000000
+-CONFIG_ENV_SIZE=0x4000
++CONFIG_SF_DEFAULT_SPEED=40000000
++CONFIG_SF_DEFAULT_MODE=0
++CONFIG_ENV_SIZE=0x2000
+ CONFIG_ENV_OFFSET=0x700000
+-CONFIG_ENV_SECT_SIZE=0x10000
+ CONFIG_DM_GPIO=y
++CONFIG_DEFAULT_DEVICE_TREE="imx8mp-evk"
+ CONFIG_SPL_TEXT_BASE=0x920000
+ CONFIG_USB_TCPC=y
+ CONFIG_TARGET_IMX8MP_EVK=y
++CONFIG_OF_LIBFDT_OVERLAY=y
++CONFIG_SYS_MONITOR_LEN=524288
+ CONFIG_SPL_SERIAL=y
+-CONFIG_SPL_DRIVERS_MISC=y
+ CONFIG_SPL_STACK=0x96dff0
+ CONFIG_SPL=y
++CONFIG_ENV_OFFSET_REDUND=0x702000
++CONFIG_IMX_BOOTAUX=y
++CONFIG_IMX_HAB=y
++CONFIG_IMX_SPL_FIT_FDT_SIGNATURE=y
++# CONFIG_CMD_DEKBLOB is not set
+ CONFIG_SPL_IMX_ROMAPI_LOADADDR=0x48000000
+ CONFIG_SYS_LOAD_ADDR=0x40400000
+-CONFIG_DISTRO_DEFAULTS=y
+-CONFIG_SYS_MONITOR_LEN=524288
+-CONFIG_DEFAULT_DEVICE_TREE="imx8mp-evk"
+-CONFIG_BOOTCOMMAND="run sr_ir_v2_cmd;run distro_bootcmd;run bsp_bootcmd"
++CONFIG_OF_BOARD_FIXUP=y
++CONFIG_SYS_MEMTEST_START=0x60000000
++CONFIG_SYS_MEMTEST_END=0xC0000000
++CONFIG_REMAKE_ELF=y
+ CONFIG_FIT=y
+ CONFIG_FIT_EXTERNAL_OFFSET=0x3000
++CONFIG_FIT_SIGNATURE=y
+ CONFIG_SPL_LOAD_FIT=y
+-CONFIG_REMAKE_ELF=y
+-CONFIG_OF_BOARD_FIXUP=y
++CONFIG_LEGACY_IMAGE_FORMAT=y
++CONFIG_SYS_BOOTM_LEN=0x2000000
++CONFIG_DISTRO_DEFAULTS=y
+ CONFIG_OF_BOARD_SETUP=y
+ CONFIG_OF_SYSTEM_SETUP=y
++CONFIG_BOOTCOMMAND="run sr_ir_v2_cmd;run distro_bootcmd;run bsp_bootcmd"
+ CONFIG_DEFAULT_FDT_FILE="imx8mp-evk.dtb"
+-CONFIG_ARCH_MISC_INIT=y
++CONFIG_SYS_CBSIZE=2048
++CONFIG_SYS_PBSIZE=2074
+ CONFIG_BOARD_EARLY_INIT_F=y
+ CONFIG_BOARD_LATE_INIT=y
++CONFIG_LAST_STAGE_INIT=y
+ CONFIG_SPL_MAX_SIZE=0x26000
+ CONFIG_SPL_HAS_BSS_LINKER_SECTION=y
+ CONFIG_SPL_BSS_START_ADDR=0x96e000
+@@ -54,23 +64,18 @@ CONFIG_SPL_I2C=y
+ CONFIG_SPL_POWER=y
+ CONFIG_SPL_WATCHDOG=y
+ CONFIG_SYS_PROMPT="u-boot=> "
+-CONFIG_SYS_CBSIZE=2048
+-CONFIG_SYS_PBSIZE=2074
+-CONFIG_SYS_BOOTM_LEN=0x2000000
+ # CONFIG_BOOTM_NETBSD is not set
+ # CONFIG_CMD_EXPORTENV is not set
+ # CONFIG_CMD_IMPORTENV is not set
+ CONFIG_CMD_ERASEENV=y
+-CONFIG_CMD_NVEDIT_EFI=y
+-CONFIG_CMD_CRC32=y
+ CONFIG_CRC32_VERIFY=y
+ CONFIG_CMD_MEMTEST=y
+ CONFIG_CMD_CLK=y
+-CONFIG_CMD_DFU=y
+ CONFIG_CMD_FUSE=y
+ CONFIG_CMD_GPIO=y
+ CONFIG_CMD_I2C=y
+ CONFIG_CMD_MMC=y
++CONFIG_CMD_OPTEE_RPMB=y
+ CONFIG_CMD_POWEROFF=y
+ CONFIG_CMD_USB=y
+ CONFIG_CMD_USB_SDP=y
+@@ -78,23 +83,20 @@ CONFIG_CMD_USB_MASS_STORAGE=y
+ CONFIG_CMD_SNTP=y
+ CONFIG_CMD_BMP=y
+ CONFIG_CMD_CACHE=y
+-CONFIG_CMD_EFIDEBUG=y
+ CONFIG_CMD_RTC=y
+ CONFIG_CMD_TIME=y
+ CONFIG_CMD_GETTIME=y
+ CONFIG_CMD_TIMER=y
+ CONFIG_CMD_REGULATOR=y
+ CONFIG_CMD_EXT4_WRITE=y
+-CONFIG_CMD_LED=y
+ CONFIG_OF_CONTROL=y
+ CONFIG_SPL_OF_CONTROL=y
+ CONFIG_ENV_OVERWRITE=y
+ CONFIG_ENV_IS_NOWHERE=y
+ CONFIG_ENV_IS_IN_MMC=y
+-CONFIG_ENV_IS_IN_SPI_FLASH=y
++CONFIG_SYS_REDUNDAND_ENVIRONMENT=y
+ CONFIG_SYS_RELOC_GD_ENV_ADDR=y
+ CONFIG_SYS_MMC_ENV_DEV=1
+-CONFIG_ENV_VARS_UBOOT_RUNTIME_CONFIG=y
+ CONFIG_USE_ETHPRIME=y
+ CONFIG_ETHPRIME="eth1"
+ CONFIG_NET_RANDOM_ETHADDR=y
+@@ -105,9 +107,6 @@ CONFIG_SPL_CLK_COMPOSITE_CCF=y
+ CONFIG_CLK_COMPOSITE_CCF=y
+ CONFIG_SPL_CLK_IMX8MP=y
+ CONFIG_CLK_IMX8MP=y
+-CONFIG_DFU_TFTP=y
+-CONFIG_DFU_MMC=y
+-CONFIG_DFU_RAM=y
+ CONFIG_USB_FUNCTION_FASTBOOT=y
+ CONFIG_UDP_FUNCTION_FASTBOOT=y
+ CONFIG_FASTBOOT_BUF_ADDR=0x42800000
+@@ -118,7 +117,6 @@ CONFIG_DM_PCA953X=y
+ CONFIG_DM_I2C=y
+ CONFIG_LED=y
+ CONFIG_LED_GPIO=y
+-CONFIG_DM_MMC=y
+ CONFIG_SUPPORT_EMMC_RPMB=y
+ CONFIG_SUPPORT_EMMC_BOOT=y
+ CONFIG_MMC_IO_VOLTAGE=y
+@@ -128,24 +126,23 @@ CONFIG_MMC_HS400_SUPPORT=y
+ CONFIG_FSL_USDHC=y
+ CONFIG_MTD=y
+ CONFIG_DM_SPI_FLASH=y
+-CONFIG_SF_DEFAULT_MODE=0
+-CONFIG_SF_DEFAULT_SPEED=40000000
+ CONFIG_SPI_FLASH_BAR=y
+ CONFIG_SPI_FLASH_STMICRO=y
+ CONFIG_PHY_REALTEK=y
+ CONFIG_DM_ETH_PHY=y
+ CONFIG_PHY_GIGE=y
+-CONFIG_PHY=y
+-CONFIG_PHY_IMX8MQ_USB=y
+ CONFIG_DWC_ETH_QOS=y
+ CONFIG_DWC_ETH_QOS_IMX=y
+ CONFIG_FEC_MXC=y
+ CONFIG_MII=y
++CONFIG_PHY=y
++CONFIG_PHY_IMX8MQ_USB=y
+ CONFIG_PINCTRL=y
+ CONFIG_SPL_PINCTRL=y
+ CONFIG_PINCTRL_IMX8M=y
+ CONFIG_POWER_DOMAIN=y
+ CONFIG_IMX8M_POWER_DOMAIN=y
++CONFIG_IMX8M_BLK_CTRL=y
+ CONFIG_IMX8MP_HSIOMIX_BLKCTRL=y
+ CONFIG_DM_PMIC=y
+ CONFIG_DM_PMIC_PCA9450=y
+@@ -154,19 +151,20 @@ CONFIG_DM_REGULATOR=y
+ CONFIG_DM_REGULATOR_PCA9450=y
+ CONFIG_DM_REGULATOR_FIXED=y
+ CONFIG_DM_REGULATOR_GPIO=y
+-CONFIG_DM_SERIAL=y
+ CONFIG_DM_RTC=y
+ CONFIG_RTC_EMULATION=y
++CONFIG_DM_SERIAL=y
+ CONFIG_MXC_UART=y
+ CONFIG_SPI=y
+ CONFIG_DM_SPI=y
+ CONFIG_NXP_FSPI=y
+ CONFIG_SYSRESET=y
+ CONFIG_SYSRESET_PSCI=y
++CONFIG_TEE=y
++CONFIG_OPTEE=y
+ CONFIG_DM_THERMAL=y
+ CONFIG_IMX_TMU=y
+ CONFIG_USB=y
+-CONFIG_DM_USB=y
+ CONFIG_USB_XHCI_HCD=y
+ CONFIG_USB_XHCI_DWC3=y
+ CONFIG_USB_DWC3=y
+@@ -175,37 +173,26 @@ CONFIG_USB_GADGET_MANUFACTURER="FSL"
+ CONFIG_USB_GADGET_VENDOR_NUM=0x1fc9
+ CONFIG_USB_GADGET_PRODUCT_NUM=0x0152
+ CONFIG_VIDEO=y
+-CONFIG_BMP_16BPP=y
+-CONFIG_BMP_24BPP=y
+-CONFIG_BMP_32BPP=y
+-CONFIG_IMX8M_BLK_CTRL=y
+ CONFIG_VIDEO_LOGO=y
++CONFIG_VIDEO_ANSI=y
+ CONFIG_SYS_WHITE_ON_BLACK=y
+ CONFIG_VIDEO_LCD_RAYDIUM_RM67191=y
+ CONFIG_VIDEO_IMX_SEC_DSI=y
+ CONFIG_VIDEO_IMX_LCDIFV3=y
+ CONFIG_SPLASH_SCREEN=y
+ CONFIG_SPLASH_SCREEN_ALIGN=y
++CONFIG_BMP_16BPP=y
++CONFIG_BMP_24BPP=y
++CONFIG_BMP_32BPP=y
+ CONFIG_VIDEO_ADV7535=y
+-CONFIG_LEGACY_IMAGE_FORMAT=y
+-CONFIG_LZO=y
+-CONFIG_BZIP2=y
+-CONFIG_OF_LIBFDT_OVERLAY=y
+-CONFIG_EFI_SET_TIME=y
+-CONFIG_EFI_RUNTIME_UPDATE_CAPSULE=y
+-CONFIG_EFI_CAPSULE_ON_DISK=y
+-CONFIG_EFI_CAPSULE_FIRMWARE_RAW=y
+-CONFIG_EFI_SECURE_BOOT=y
+ CONFIG_SPL_RSA=y
++CONFIG_RSA_VERIFY_WITH_PKEY=y
++CONFIG_X509_CERTIFICATE_PARSER=y
++CONFIG_PKCS7_MESSAGE_PARSER=y
++CONFIG_MSCODE_PARSER=y
+ CONFIG_SHA384=y
+-CONFIG_EFI_VAR_BUF_SIZE=139264
+-CONFIG_EFI_IGNORE_OSINDICATIONS=y
+-CONFIG_EFI_CAPSULE_AUTHENTICATE=y
+-CONFIG_EFI_CAPSULE_ESL_FILE="CRT.esl"
+-CONFIG_OPTEE=y
+-CONFIG_CMD_OPTEE_RPMB=y
+-CONFIG_EFI_MM_COMM_TEE=y
+-CONFIG_TEE=y
+-CONFIG_EFI_ESRT=y
+-CONFIG_EFI_HAVE_CAPSULE_UPDATE=y
+-CONFIG_FIT_SIGNATURE=y
++CONFIG_LZO=y
++CONFIG_BZIP2=y
++CONFIG_HEXDUMP=y
++# CONFIG_EFI_LOADER is not set
++CONFIG_TOOLS_MKEFICAPSULE=y
+diff --git a/include/configs/imx8mp_evk.h b/include/configs/imx8mp_evk.h
+index 9d34c54d66d..8dc7aee9866 100644
+--- a/include/configs/imx8mp_evk.h
++++ b/include/configs/imx8mp_evk.h
+@@ -102,15 +102,17 @@
+ 	"fdtfile=" CONFIG_DEFAULT_FDT_FILE "\0" \
+ 	"bootm_size=0x10000000\0" \
+ 	"mmcdev="__stringify(CONFIG_SYS_MMC_ENV_DEV)"\0" \
+-	"mmcpart=1\0" \
+ 	"mmcroot=/dev/mmcblk1p2 rootwait rw\0" \
+ 	"mmcautodetect=yes\0" \
+ 	"mmcargs=setenv bootargs ${jh_clk} ${mcore_clk} console=${console} root=${mmcroot}\0 " \
+-	"loadbootscript=fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${bsp_script};\0" \
++	"loadbootscript=fatload mmc ${mmcdev}#${mmcpart} ${loadaddr} ${script};\0" \
+ 	"bootscript=echo Running bootscript from mmc ...; " \
+ 		"source\0" \
+-	"loadimage=fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${image}\0" \
+-	"loadfdt=fatload mmc ${mmcdev}:${mmcpart} ${fdt_addr_r} ${fdtfile}\0" \
++	"loadimage=fatload mmc ${mmcdev}#${mmcpart} ${loadaddr} ${image}\0" \
++	"loadfdt=fatload mmc ${mmcdev}#${mmcpart} ${fdt_addr} ${fdt_file}\0" \
++	"fit_img=fitImage.signed\0" \
++	"fit_addr=0x48000000\0" \
++	"fitboot=fatload mmc ${mmcdev}#${mmcpart} ${fit_addr} ${fit_img}; run mmcargs; bootm ${fit_addr}\0" \
+ 	"mmcboot=echo Booting from mmc ...; " \
+ 		"run mmcargs; " \
+ 		"if test ${boot_fit} = yes || test ${boot_fit} = try; then " \
+@@ -142,17 +144,7 @@
+ 				"echo WARN: Cannot load the DT; " \
+ 			"fi; " \
+ 		"fi;\0" \
+-	"bsp_bootcmd=echo Running BSP bootcmd ...; " \
+-		"mmc dev ${mmcdev}; if mmc rescan; then " \
+-		   "if run loadbootscript; then " \
+-			   "run bootscript; " \
+-		   "else " \
+-			   "if run loadimage; then " \
+-				   "run mmcboot; " \
+-			   "else run netboot; " \
+-			   "fi; " \
+-		   "fi; " \
+-	   "fi;"
++	"bsp_bootcmd=run fitboot;"
+ #endif
+ 
+ /* Link Definitions */
+-- 
+2.46.1
+

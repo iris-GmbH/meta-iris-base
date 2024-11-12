@@ -1,0 +1,352 @@
+From 0529400cd0798d4f6a339f515215b268a0cb52bc Mon Sep 17 00:00:00 2001
+From: "philipp.schoewe" <Philipp.Schoewe@iris-sensing.com>
+Date: Fri, 8 Jul 2022 14:20:18 +0200
+Subject: [PATCH] imx8mp-irma6r2: Add IU EEPROM readout for configuring mac
+ address and nfs boot
+
+Signed-off-by: philipp.schoewe <Philipp.Schoewe@iris-sensing.com>
+Signed-off-by: Jasper Orschulko <jasper@fancydomain.eu>
+Upstream-Status: Inappropriate [hardware specific]
+---
+ board/freescale/imx8mp_irma6r2/Makefile       |   2 +
+ board/freescale/imx8mp_irma6r2/i2c_memory.c   |  64 +++++++++
+ board/freescale/imx8mp_irma6r2/i2c_memory.h   |  11 ++
+ .../freescale/imx8mp_irma6r2/imx8mp_irma6r2.c |  30 +++-
+ .../freescale/imx8mp_irma6r2/interface_unit.c | 133 ++++++++++++++++++
+ .../freescale/imx8mp_irma6r2/interface_unit.h |  24 ++++
+ 6 files changed, 257 insertions(+), 7 deletions(-)
+ create mode 100644 board/freescale/imx8mp_irma6r2/i2c_memory.c
+ create mode 100644 board/freescale/imx8mp_irma6r2/i2c_memory.h
+ create mode 100644 board/freescale/imx8mp_irma6r2/interface_unit.c
+ create mode 100644 board/freescale/imx8mp_irma6r2/interface_unit.h
+
+diff --git a/board/freescale/imx8mp_irma6r2/Makefile b/board/freescale/imx8mp_irma6r2/Makefile
+index d72fe0c253a..304a81bd522 100644
+--- a/board/freescale/imx8mp_irma6r2/Makefile
++++ b/board/freescale/imx8mp_irma6r2/Makefile
+@@ -6,6 +6,8 @@
+ #
+ 
+ obj-y += imx8mp_irma6r2.o
++obj-y += i2c_memory.o
++obj-y += interface_unit.o
+ 
+ ifdef CONFIG_SPL_BUILD
+ obj-y += spl.o
+diff --git a/board/freescale/imx8mp_irma6r2/i2c_memory.c b/board/freescale/imx8mp_irma6r2/i2c_memory.c
+new file mode 100644
+index 00000000000..f383992ca7a
+--- /dev/null
++++ b/board/freescale/imx8mp_irma6r2/i2c_memory.c
+@@ -0,0 +1,64 @@
++#include "i2c_memory.h"
++#include <i2c.h>
++#include <dm/uclass.h>
++
++/**
++ * write_memory - write the content into EEPROM/FRAM
++ */
++int write_memory(unsigned int bus, uint8_t chip, unsigned int addr,
++		uint8_t *buffer, int len) {
++	struct udevice* _bus;
++	struct udevice* i2c_dev = NULL;
++	int ret;
++
++	ret = uclass_get_device_by_seq(UCLASS_I2C, bus, &_bus);
++	if (ret) {
++		printf("%s: Can't find bus\n", __func__);
++		return -EINVAL;
++	}
++
++	ret = dm_i2c_probe(_bus, chip, 0, &i2c_dev);
++	if (ret) {
++		printf("%s: Can't find device id=0x%x\n",
++			__func__, chip);
++		return -ENODEV;
++	}
++
++	ret = dm_i2c_write(i2c_dev, addr, (const uint8_t *)buffer, len);
++	if (ret) {
++		printf("%s dm_i2c_write failed, err %d\n", __func__, ret);
++		return -EIO;
++	}
++	return 0;
++}
++
++/**
++ * read_memory - read the EEPROM/FRAM content into memory
++ */
++int read_memory(unsigned int busnum, uint8_t chip, unsigned int addr,
++		uint8_t *buffer, int len) {
++	struct udevice* bus;
++	struct udevice* i2c_dev = NULL;
++	int ret;
++
++	ret = uclass_get_device_by_seq(UCLASS_I2C, busnum, &bus);
++	if (ret) {
++		printf("%s: Can't find bus: %d\n", __func__, busnum);
++		return -EINVAL;
++	}
++
++	ret = dm_i2c_probe(bus, chip, 0, &i2c_dev);
++	if (ret) {
++		printf("%s: Can't find device id=0x%x\n",
++			__func__, addr);
++		return -ENODEV;
++	}
++
++	ret = dm_i2c_read(i2c_dev, addr, buffer, len);
++	if (ret) {
++		printf("%s dm_i2c_read failed, err %d\n", __func__, ret);
++		return -EIO;
++	}
++	return 0;
++}
++
+diff --git a/board/freescale/imx8mp_irma6r2/i2c_memory.h b/board/freescale/imx8mp_irma6r2/i2c_memory.h
+new file mode 100644
+index 00000000000..c88f93496ac
+--- /dev/null
++++ b/board/freescale/imx8mp_irma6r2/i2c_memory.h
+@@ -0,0 +1,11 @@
++#ifndef BOARD_IMX8MP_I2C_MEMORY_H_
++#define BOARD_IMX8MP_I2C_MEMORY_H_
++
++#include <common.h>
++
++int write_memory(unsigned int bus, uint8_t chip, unsigned int addr,
++		uint8_t *buffer, int len);
++int read_memory(unsigned int bus, uint8_t chip, unsigned int addr,
++		uint8_t *buffer, int len);
++
++#endif /* BOARD_IMX8MP_I2C_MEMORY_H_ */
+diff --git a/board/freescale/imx8mp_irma6r2/imx8mp_irma6r2.c b/board/freescale/imx8mp_irma6r2/imx8mp_irma6r2.c
+index 49d0c6a999f..08f055b781d 100644
+--- a/board/freescale/imx8mp_irma6r2/imx8mp_irma6r2.c
++++ b/board/freescale/imx8mp_irma6r2/imx8mp_irma6r2.c
+@@ -1,5 +1,6 @@
+ // SPDX-License-Identifier: GPL-2.0+
+ /*
++ * Copyright 2022 iris GmbH
+  * Copyright 2019 NXP
+  */
+ 
+@@ -25,10 +26,13 @@
+ #include "../common/tcpc.h"
+ #include <usb.h>
+ #include <dwc3-uboot.h>
++#include "interface_unit.h"
+ #include <mmc.h>
+ 
+ DECLARE_GLOBAL_DATA_PTR;
+ 
++#define DEBUG 0
++
+ #define UART_PAD_CTRL	(PAD_CTL_DSE6 | PAD_CTL_FSEL1)
+ #define WDOG_PAD_CTRL	(PAD_CTL_DSE6 | PAD_CTL_ODE | PAD_CTL_PUE | PAD_CTL_PE)
+ 
+@@ -488,13 +492,25 @@ void board_autogenerate_bootcmd (void)
+ #endif
+     }
+ 
+-    /* Combine the (alt)bootcmd according to the change of variable "firmware" */
+-    snprintf(partboot, sizeof(partboot), "linuxboot_%s", firmware);
+-    snprintf(altpartboot, sizeof(altpartboot), "linuxboot_%s", altfirmware);
+-    /* "reset;" as a security desgin pattern "so that any failure of the bootcmd does not leave you
+-    in an insecure U-Boot console environment." -- http://trac.gateworks.com/wiki/secure_boot  */
+-    snprintf(bootcmd, sizeof(bootcmd), "setenv mmcpart %s; run fitboot; reset;", partboot);
+-    snprintf(altbootcmd, sizeof(altbootcmd), "setenv mmcpart %s; run fitboot; reset;", altpartboot);
++	/* read interface unit eeprom for nfs boot flag and mac address */
++	bool nfs_boot = false;
++	if (IU_read_eeprom() == 0) {
++		IU_print_eeprom_content();
++		IU_set_mac("eth1addr");
++		nfs_boot = IU_get_nfs_boot_flag();
++	}
++	
++	if (nfs_boot) {
++		snprintf(bootcmd, sizeof(bootcmd), "run netfitboot; reset;");
++	} else {
++		/* Combine the (alt)bootcmd according to the change of variable "firmware" */
++		snprintf(partboot, sizeof(partboot), "linuxboot_%s", firmware);
++		snprintf(altpartboot, sizeof(altpartboot), "linuxboot_%s", altfirmware);
++		/* "reset;" as a security desgin pattern "so that any failure of the bootcmd does not leave you 
++		in an insecure U-Boot console environment." -- http://trac.gateworks.com/wiki/secure_boot  */
++		snprintf(bootcmd, sizeof(bootcmd), "setenv mmcpart %s; run fitboot; reset;", partboot);
++		snprintf(altbootcmd, sizeof(altbootcmd), "setenv mmcpart %s; run fitboot; reset;", altpartboot);
++	}
+ #if DEBUG
+     printf("partboot: %s  ... altpartboot: %s \n", partboot, altpartboot);
+     printf("bootcmd: %s . altbootcmd: %s \n", bootcmd, altbootcmd);
+diff --git a/board/freescale/imx8mp_irma6r2/interface_unit.c b/board/freescale/imx8mp_irma6r2/interface_unit.c
+new file mode 100644
+index 00000000000..88c5b1fe803
+--- /dev/null
++++ b/board/freescale/imx8mp_irma6r2/interface_unit.c
+@@ -0,0 +1,133 @@
++#include "interface_unit.h"
++#include <common.h>
++#include <net.h>
++#include <command.h>
++#include <linux/ctype.h>
++#include "i2c_memory.h"
++
++#define IU_EEPROM_ADDR 	0x51
++#define IU_EEPROM_BUS_NUM 	3
++
++#define IU_BASE_ADDR        0x00 /* EEPROM Base Address */
++#define IU_CIB_ADDR         0x00 /* Component Identification Block */
++#define IU_CIB_VERSION_ADDR 0x04
++#define IU_BCB_ADDR         0x10 /* Interface Configuration Block */
++#define IU_MAC_ADDR         0x11 /* EEPROM MAC Address */
++#define IU_BCB_FLAGS_ADDR   0x1F
++#define IU_BCB_VERSION_ADDR 0x10
++
++#define IU_EEPROM_BLOCK_MAGIC { 0x49, 0x52, 0x49, 0x53 }
++#define IU_CIB_VERSION 0x01
++#define IU_BCB_VERSION 0x02
++
++struct __attribute__ ((__packed__)) component_identification_block {
++	uint8_t magic[4];
++	uint8_t version;
++	uint8_t flags;
++	uint8_t comp_ident;
++	uint8_t revision;
++	uint8_t sn[6];
++	uint8_t reserved[2];
++};
++
++struct __attribute__ ((__packed__)) interface_configuration_block {
++	uint8_t version;
++	uint8_t mac[6];
++	uint8_t dn[8];
++	struct bcb_flags_t {
++		uint8_t nfs :1, dhcp :1, reserved :6;
++	} flags;
++};
++
++static struct __attribute__ ((__packed__)) interface_eeprom {
++	struct component_identification_block cib;
++	struct interface_configuration_block bcb;
++} eeprom;
++
++enum eeprom_validity_state {
++	VALID = 0, INVALID = 1
++};
++
++static enum eeprom_validity_state eeprom_cib_state = INVALID;
++static enum eeprom_validity_state eeprom_bcb_state = INVALID;
++
++static enum eeprom_validity_state compare_versions(uint8_t version_in_hardware, uint8_t current_version) {
++	if (version_in_hardware == current_version) {
++		return VALID;
++	}
++	return INVALID;
++}
++
++static enum eeprom_validity_state validate_cib_content(struct component_identification_block * cib) {
++	/* check magic number */
++	uint8_t MAGIC[4] = IU_EEPROM_BLOCK_MAGIC;
++	if (memcmp(cib->magic, MAGIC, 4)) {
++		return INVALID;
++	}
++	return compare_versions(cib->version, IU_CIB_VERSION);
++}
++
++static enum eeprom_validity_state validate_bcb_content(struct interface_configuration_block * bcb) {
++	return compare_versions(bcb->version, IU_BCB_VERSION);
++}
++
++int IU_read_eeprom(void) {
++	int ret = 0;
++	if (eeprom_cib_state != VALID || eeprom_bcb_state != VALID) {
++		ret = read_memory(IU_EEPROM_BUS_NUM, IU_EEPROM_ADDR,
++				IU_BASE_ADDR, (void *) &eeprom, sizeof(eeprom));
++		if (ret) {
++			/* read failed */
++			printf("Interface unit EEPROM content not readable!\n");
++			return 1;
++		} else {
++			/* read successfull */
++			eeprom_cib_state = validate_cib_content(&eeprom.cib);
++			eeprom_bcb_state = validate_bcb_content(&eeprom.bcb);
++			if (eeprom_cib_state == INVALID || eeprom_bcb_state == INVALID) {
++				printf("Interface unit EEPROM content invalid!\n");
++			} else {
++				eeprom_cib_state = VALID;
++				eeprom_bcb_state = VALID;
++			}
++		}
++	}
++	return (eeprom_cib_state != VALID || eeprom_bcb_state != VALID);
++}
++
++int IU_set_mac(const char* ethaddr) {
++	if (!is_valid_ethaddr(eeprom.bcb.mac)) {
++		printf("Interface unit EEPROM does not provide a valid MAC address!\n");
++		return 1;
++	}
++	eth_env_set_enetaddr(ethaddr, eeprom.bcb.mac);
++	return 0;
++}
++
++int IU_get_nfs_boot_flag(void) {
++	return eeprom.bcb.flags.nfs;
++}
++
++void IU_print_eeprom_content(void) {
++	printf("Interface Unit EEPROM Content:\n");
++	printf("  Component Identification Block:\n");
++	printf("\tmagic: %.*s (0x%02x 0x%02x 0x%02x 0x%02x)\n", 4, eeprom.cib.magic,
++			eeprom.cib.magic[0], eeprom.cib.magic[1], eeprom.cib.magic[2], eeprom.cib.magic[3]);
++	printf("\tversion: 0x%02x\n", eeprom.cib.version);
++	printf("\tflags: 0x%02x\n", eeprom.cib.flags);
++	printf("\tcomp_ident: 0x%02x\n", eeprom.cib.comp_ident);
++	printf("\trevision: 0x%02x\n", eeprom.cib.revision);
++	printf("\tserialnr: %02x%02x%02x%02x%02x%02x\n", eeprom.cib.sn[0], eeprom.cib.sn[1],
++			eeprom.cib.sn[2], eeprom.cib.sn[3], eeprom.cib.sn[4], eeprom.cib.sn[5]);
++	printf("  Interface Configuration Block:\n");
++	printf("\tversion: 0x%02x\n", eeprom.bcb.version);
++	printf("\tmacaddr: %02x:%02x:%02x:%02x:%02x:%02x\n", eeprom.bcb.mac[0],
++			eeprom.bcb.mac[1], eeprom.bcb.mac[2], eeprom.bcb.mac[3], eeprom.bcb.mac[4],
++			eeprom.bcb.mac[5]);
++	printf("\tdevicenr: %02x%02x%02x%02x%02x%02x%02x%02x\n", eeprom.bcb.dn[0],
++			eeprom.bcb.dn[1], eeprom.bcb.dn[2], eeprom.bcb.dn[3], eeprom.bcb.dn[4], eeprom.bcb.dn[5],
++			eeprom.bcb.dn[6], eeprom.bcb.dn[7]);
++	printf("\tflags: 0x%02x\n", (uint8_t) * ((uint8_t*) &eeprom.bcb.flags));
++	printf("\t\tnfs: %d\n", eeprom.bcb.flags.nfs);
++	printf("\t\tdhcp: %d\n", eeprom.bcb.flags.dhcp);
++}
+diff --git a/board/freescale/imx8mp_irma6r2/interface_unit.h b/board/freescale/imx8mp_irma6r2/interface_unit.h
+new file mode 100644
+index 00000000000..60ff24b9c50
+--- /dev/null
++++ b/board/freescale/imx8mp_irma6r2/interface_unit.h
+@@ -0,0 +1,24 @@
++#ifndef BOARD_IMX8MP_INTERFACE_UNIT_EEPROM_H_
++#define BOARD_IMX8MP_INTERFACE_UNIT_EEPROM_H_
++
++/*
++ * Read the interface unit EEPROM content to memory and return whether EEPROM was accessible
++ */
++int IU_read_eeprom(void);
++
++/*
++ * Sets the mac address for the given ethernet interface from to the interface unit EEPROM.
++ */
++int IU_set_mac(const char* mac);
++
++/*
++ * Gets the nfs boot flag from the interface unit EEPROM, 1 if booting via nfs, 0 normal boot.
++ */
++int IU_get_nfs_boot_flag(void);
++
++/*
++ * Prints out the interface unit eeprom content
++ */
++void IU_print_eeprom_content(void);
++
++#endif /* BOARD_IMX8MP_INTERFACE_UNIT_EEPROM_H_ */
+-- 
+2.46.1
+
