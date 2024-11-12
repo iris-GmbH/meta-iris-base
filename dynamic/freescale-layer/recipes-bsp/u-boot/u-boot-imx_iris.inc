@@ -26,6 +26,7 @@ SRC_URI:append = "\
 	file://0015-net-dwc_eth_qos-Add-support-for-platform-specific-re.patch \
 	file://0016-net-dwc_eth_qos_imx-Add-platform-specific-reset-for-.patch \
 	file://0017-WIP-use-lower-speed-RAM-configuration.patch \
+	file://0019-imx93-matrixup-Make-u-boot-env-eth1addr-writable.patch \
 "
 
 SRC_URI:append:poky-iris-deploy = "\
