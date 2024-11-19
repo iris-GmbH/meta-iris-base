@@ -56,7 +56,11 @@ scripts/config -e CLK_IMX93
 # enable features for matrixup
 scripts/config -e FW_LOADER_COMPRESS -e FPGA_MGR_XILINX_SPI -d FPGA_BRIDGE -d FW_LOADER_USER_HELPER -e IMX8_MEDIA_DEVICE
 scripts/config -e BLK_DEV_DM -e DM_CRYPT -e BLK_DEV_MD -e DM_VERITY -e DM_VERITY_VERIFY_ROOTHASH_SIG
-scripts/config -e SENSORS_AD7314 -e EXT4_FS_SECURITY -e TRUSTED_KEYS -e NVMEM_IMX_OCOTP_ELE -e TRUSTED_KEYS_TEE
+scripts/config -e SENSORS_AD7314 -e EXT4_FS_SECURITY -e TRUSTED_KEYS -e TRUSTED_KEYS_TEE
+
+# NOTES:
+# - Use nxp specific fuse driver NVMEM_IMX_OCOTP_FSB_S400 (default enabled)
+#   with fuse write support instead of NVMEM_IMX_OCOTP_ELE
 
 # fix NEW config options that are visible now
 make listnewconfig >> .config

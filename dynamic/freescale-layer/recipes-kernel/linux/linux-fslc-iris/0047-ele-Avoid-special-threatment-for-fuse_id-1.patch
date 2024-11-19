@@ -1,0 +1,30 @@
+From 36faeccf77a78c9666a2a233510a621d31c50e61 Mon Sep 17 00:00:00 2001
+From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+Date: Thu, 19 Dec 2024 11:12:19 +0000
+Subject: [PATCH] ele: Avoid special threatment for fuse_id==1
+
+The 4 word read for fuse_id==1 (read_otp_uniq_id) is not supported
+for the imx93.
+
+Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+---
+ drivers/firmware/imx/ele_base_msg.c | 3 ---
+ 1 file changed, 3 deletions(-)
+
+diff --git a/drivers/firmware/imx/ele_base_msg.c b/drivers/firmware/imx/ele_base_msg.c
+index 375ed36a6c7b3..8fcd104a820cc 100644
+--- a/drivers/firmware/imx/ele_base_msg.c
++++ b/drivers/firmware/imx/ele_base_msg.c
+@@ -532,9 +532,6 @@ int read_common_fuse(struct device *dev,
+ 		goto exit;
+ 
+ 	switch (fuse_id) {
+-	case OTP_UNIQ_ID:
+-		ret = read_otp_uniq_id(priv, value);
+-		break;
+ 	default:
+ 		ret = read_fuse_word(priv, value);
+ 		break;
+-- 
+2.44.1
+

@@ -1,0 +1,35 @@
+From e5810dab584c47c0d0187ef38495cc89d58e7e2b Mon Sep 17 00:00:00 2001
+From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+Date: Thu, 21 Nov 2024 11:30:19 +0100
+Subject: [PATCH] firmware: imx: ele: Fix fuse write for payload 0x0
+
+Only fail if indicator is set too.
+
+Writing payload 0x0 failes with:
+fsl-se-fw se-fw2: Command Id[214], Status=0x29, Indicator=0x0
+
+e.g. tx_msg: 0x17d60306 0x00202760 0x00000000
+
+Upstream-Status: Pending
+
+Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+---
+ drivers/firmware/imx/ele_base_msg.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/drivers/firmware/imx/ele_base_msg.c b/drivers/firmware/imx/ele_base_msg.c
+index c553cd16f99e4..375ed36a6c7b3 100644
+--- a/drivers/firmware/imx/ele_base_msg.c
++++ b/drivers/firmware/imx/ele_base_msg.c
+@@ -147,7 +147,7 @@ int ele_write_fuse(struct device *dev, uint16_t fuse_id, u32 value, bool lock)
+ 
+ 	status = RES_STATUS(priv->rx_msg->data[0]);
+ 	ind = RES_IND(priv->rx_msg->data[0]);
+-	if (status != priv->success_tag) {
++	if (status != priv->success_tag && ind != 0x0) {
+ 		dev_err(dev, "Command Id[%d], Status=0x%x, Indicator=0x%x",
+ 			ELE_WRITE_FUSE, status, ind);
+ 		ret = -1;
+-- 
+2.46.1
+
