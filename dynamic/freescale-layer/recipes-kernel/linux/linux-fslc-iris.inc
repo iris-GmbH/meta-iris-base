@@ -54,6 +54,7 @@ SRC_URI:append = " \
     file://0040-trion-mipi-Add-fpga-bridge-driver.patch \
     file://0041-imx8mp-irma6r2.dts-tc358746-csi-dphy-450Mhz.patch \
     file://0042-imx8mp-irma6r2-Add-dts-overlay-for-board-revision-3.patch \
+    file://0043-imx8-isi-cap.c-improve-output-in-case-of-discarded-b.patch \
 "
 
 # It has no effect to set KERNEL_DEVICETREE in the conf/multiconfig/imx93-evk.conf,
