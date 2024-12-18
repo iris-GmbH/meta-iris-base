@@ -1,0 +1,70 @@
+From 8ba8c9ceebbda118394ac41a0ff0c68f6d357d3c Mon Sep 17 00:00:00 2001
+From: Ian Dannapel <ian.dannapel@iris-sensing.com>
+Date: Tue, 17 Dec 2024 11:51:54 +0000
+Subject: [PATCH] trion-mipi.c: Add custom ioctl to load fpga firmware
+
+Signed-off-by: Erik Schumacher <erik.schumacher@iris-sensing.com>
+---
+ drivers/media/i2c/trion-mipi.c | 20 +++++++++++++++-----
+ 1 file changed, 15 insertions(+), 5 deletions(-)
+
+diff --git a/drivers/media/i2c/trion-mipi.c b/drivers/media/i2c/trion-mipi.c
+index 8818eee584e0..4e149b201aa4 100644
+--- a/drivers/media/i2c/trion-mipi.c
++++ b/drivers/media/i2c/trion-mipi.c
+@@ -30,6 +30,8 @@
+ /* Defines */
+ #define TRION_MIPI_REG_MAGIC_VALUE 0x49
+ 
++#define TRION_MIPI_IOC_S_LOAD_FW _IO('v', BASE_VIDIOC_PRIVATE + 1)
++
+ static const struct v4l2_mbus_framefmt trion_mipi_def_fmt = {
+     .width      = 320,
+     .height     = 120,
+@@ -180,9 +182,19 @@ static int trion_mipi_load_fw(struct v4l2_subdev *sd)
+     return ret;
+ }
+ 
++static long trion_mipi_ioctl(struct v4l2_subdev *sd, unsigned int cmd, void *arg)
++{
++    switch (cmd) {
++    case TRION_MIPI_IOC_S_LOAD_FW:
++        return trion_mipi_load_fw(sd);
++    }
++    return -ENOTTY;
++}
++
+ static const struct v4l2_subdev_core_ops trion_mipi_core_ops = {
+     .s_power = trion_mipi_s_power,
+     .load_fw = trion_mipi_load_fw,
++    .ioctl = trion_mipi_ioctl,
+ };
+ 
+ static int trion_mipi_g_frame_interval(struct v4l2_subdev *sd,
+@@ -593,8 +605,6 @@ static void trion_mipi_remove(struct i2c_client *client)
+     firmware_upload_unregister(trion_mipi->fwl);
+ }
+ 
+-MODULE_DEVICE_TABLE(i2c, trion_mipi_id);
+-
+ static const struct of_device_id trion_mipi_dt_ids[] = {
+     { .compatible = "efinix,trion-mipi" },
+     { /* sentinel */ }
+@@ -603,11 +613,11 @@ MODULE_DEVICE_TABLE(of, trion_mipi_dt_ids);
+ 
+ static struct i2c_driver trion_mipi_i2c_driver = {
+     .driver = {
+-        .name   = "trion-mipi",
+-        .of_match_table =  trion_mipi_dt_ids,
++        .name = "trion-mipi",
++        .of_match_table = trion_mipi_dt_ids,
+     },
+     .probe = trion_mipi_probe,
+-    .remove    = trion_mipi_remove,
++    .remove = trion_mipi_remove,
+ };
+ 
+ module_i2c_driver(trion_mipi_i2c_driver);
+-- 
+2.43.0
+
