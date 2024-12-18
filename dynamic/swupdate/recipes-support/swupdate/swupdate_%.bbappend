@@ -20,6 +20,7 @@ SRC_URI:append := " \
 	file://bootloader_update.lua \
 	file://0001-Apply-iris-Coporate-Design-to-webinterface.patch \
 	file://0002-mongoose_multipart-Allow-raw-binary-uploads.patch \
+	file://0003-BUG-util-Append-missing-slash-to-temporary-mount-dir.patch \
 	file://Findswupdate.cmake \
 "
 
