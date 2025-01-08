@@ -21,6 +21,7 @@ SRC_URI:append := " \
 	file://0001-Apply-iris-Coporate-Design-to-webinterface.patch \
 	file://0002-mongoose_multipart-Allow-raw-binary-uploads.patch \
 	file://0003-BUG-util-Append-missing-slash-to-temporary-mount-dir.patch \
+	file://0004-mongoose_interface-Fix-free-invalid-pointer.patch \
 	file://Findswupdate.cmake \
 "
 
