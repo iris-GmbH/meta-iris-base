@@ -1,0 +1,73 @@
+From 1be0e1dc3d1aeb1fac9155d692b9b96e4f17f0c7 Mon Sep 17 00:00:00 2001
+From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+Date: Thu, 19 Dec 2024 12:44:15 +0100
+Subject: [V2][PATCH] BUG: util: Append missing slash to temporary mount dir
+
+The raw_handler requires a slash between the mountpoint and the file path.
+Otherwise, no correct mount is performed, and the file is saved to the wrong
+location.
+
+[TRACE] : SWUPDATE running : [install_raw_file] : Installing file fitimage.itb.signed on /tmp/datadst/UEE6x2fitImage.signed
+
+Upstream-Status: Submitted [https://patchwork.ozlabs.org/project/swupdate/patch/20241219121842.412062-2-Michael.Glembotzki@iris-sensing.com/]
+
+Fixes: 5d57a9c05ec2 (util: introduce generic mount helpers)
+Fixes: aff67cdb2c62 (Make use of introduced swupdate_temporary_(u)mount)
+Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+---
+
+The bug is pretty bad because, for example, it caused parts of the update
+(e.g. for us the kernel fitimage) to not be installed. I could imagine that
+some systems would not boot as expected.
+
+Only the raw_handler has been tested. Other handlers, such as rdiff, btrfs,
+archive and delta should be explicitly tested.
+
+Changes since V1:
+- Simplify Patch according to Einar Jon Gunnarsson suggestion
+
+
+
+ core/util.c | 8 +++++++-
+ 1 file changed, 7 insertions(+), 1 deletion(-)
+
+diff --git a/core/util.c b/core/util.c
+index 32104279..a4973b29 100644
+--- a/core/util.c
++++ b/core/util.c
+@@ -873,6 +873,7 @@ char *swupdate_temporary_mount(tmp_mountpoint_t type, const char *device, const
+ 	char *mountpoint;
+ 	const char *dir;
+ 	int ret = 0;
++	unsigned int len;
+ 
+ 	if (type != MNT_SCRIPTS && type != MNT_DATA && type != MNT_BOOT_SCRIPTS)
+ 		return NULL;
+@@ -883,11 +884,14 @@ char *swupdate_temporary_mount(tmp_mountpoint_t type, const char *device, const
+ 	}
+ 
+ 	dir = mount_points[type];
+-	if (asprintf(&mountpoint, "%s%sXXXXXX", get_tmpdir(), dir) == -1) {
++	len = asprintf(&mountpoint, "%s%sXXXXXX/", get_tmpdir(), dir);
++	if (len == -1) {
+ 		ERROR("Unable to allocate memory");
+ 		return NULL;
+ 	}
+ 
++	mountpoint[len-1] = '\0'; /* last six characters of template must be XXXXXX */
++
+ 	if (!mkdtemp(mountpoint)) {
+ 		TRACE("Unable to create a unique temporary directory %s: %s",
+ 			mountpoint, strerror(errno));
+@@ -904,6 +908,8 @@ char *swupdate_temporary_mount(tmp_mountpoint_t type, const char *device, const
+ 		return NULL;
+ 	}
+ 
++	mountpoint[len-1] = '/';  /* restore the trailing slash */
++
+ 	return mountpoint;
+ }
+ 
+-- 
+2.44.1
+
