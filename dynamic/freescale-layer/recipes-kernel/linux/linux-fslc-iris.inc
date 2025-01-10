@@ -49,7 +49,6 @@ SRC_URI:append = " \
     file://0035-usb-usbmisc_imx-Workaround-for-i.MX93-ERR051725.patch \
     file://0036-Backport-dp83822.c.patch \
     file://0037-net-phy-dp83822-Configure-RMII-mode-on-DP83825-devic.patch \
-    file://0038-pwm-imx-tpm-Use-correct-MODULO-value-for-EPWM-mode.patch \
     file://0039-fpga-Add-Efinix-Trion-Titanium-serial-SPI-programmin.patch \
     file://0040-trion-mipi-Add-fpga-bridge-driver.patch \
     file://0041-imx8mp-irma6r2.dts-tc358746-csi-dphy-450Mhz.patch \
