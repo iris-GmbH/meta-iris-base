@@ -1,4 +1,4 @@
-From 71a4519d43df0acadb20bbb27fde7105187a657e Mon Sep 17 00:00:00 2001
+From 70f4a6d97e48bd8a1c42210f92882f545d2d0306 Mon Sep 17 00:00:00 2001
 From: Catalin Popescu <catalin.popescu@leica-geosystems.com>
 Date: Tue, 13 Feb 2024 09:07:05 +0100
 Subject: [PATCH] Backport dp83822.c
@@ -10,13 +10,15 @@ d2ed0774b633 net: phy: dp83826: Add support for phy-mode configuration
 e83ddcea6549 net: phy: dp83826: disable WOL at init
 9ef9ecfa9e9f net: phy: dp8382x: keep WOL settings across suspends
 3f62ea572b3e net: phy: dp83822: Fix NULL pointer dereference on DP83825 devices
-de96f6a30035 net: phy: dp83822: Fix reset pin definitions
+
+Signed-off-by: Erik Schumacher <erik.schumacher@iris-sensing.com>
+Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
 ---
- drivers/net/phy/dp83822.c | 230 ++++++++++++++++++++++++++++++++++----
- 1 file changed, 208 insertions(+), 22 deletions(-)
+ drivers/net/phy/dp83822.c | 226 ++++++++++++++++++++++++++++++++++----
+ 1 file changed, 206 insertions(+), 20 deletions(-)
 
 diff --git a/drivers/net/phy/dp83822.c b/drivers/net/phy/dp83822.c
-index 29e1cbea6dc0..3ab64e04a01c 100644
+index 507726a08f82d..3ab64e04a01c9 100644
 --- a/drivers/net/phy/dp83822.c
 +++ b/drivers/net/phy/dp83822.c
 @@ -12,6 +12,7 @@
@@ -27,7 +29,7 @@ index 29e1cbea6dc0..3ab64e04a01c 100644
  
  #define DP83822_PHY_ID	        0x2000a240
  #define DP83825S_PHY_ID		0x2000a140
-@@ -34,14 +35,18 @@
+@@ -34,6 +35,10 @@
  #define MII_DP83822_GENCFG	0x465
  #define MII_DP83822_SOR1	0x467
  
@@ -38,16 +40,6 @@ index 29e1cbea6dc0..3ab64e04a01c 100644
  /* GENCFG */
  #define DP83822_SIG_DET_LOW	BIT(0)
  
- /* Control Register 2 bits */
- #define DP83822_FX_ENABLE	BIT(14)
- 
--#define DP83822_HW_RESET	BIT(15)
--#define DP83822_SW_RESET	BIT(14)
-+#define DP83822_SW_RESET	BIT(15)
-+#define DP83822_DIG_RESTART	BIT(14)
- 
- /* PHY STS bits */
- #define DP83822_PHYSTS_DUPLEX			BIT(2)
 @@ -95,6 +100,8 @@
  #define DP83822_WOL_CLR_INDICATION BIT(11)
  
@@ -389,5 +381,5 @@ index 29e1cbea6dc0..3ab64e04a01c 100644
  	DP8382X_PHY_DRIVER(DP83825CM_PHY_ID, "TI DP83825M"),
  	DP8382X_PHY_DRIVER(DP83825CS_PHY_ID, "TI DP83825CS"),
 -- 
-2.47.0
+2.47.1
 
