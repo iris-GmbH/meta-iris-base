@@ -52,6 +52,10 @@ RDEPENDS:${PN}:append:mx8mp-nxp-bsp = " \
 	keyctl-caam \
 "
 
+RDEPENDS:${PN}:append:poky-iris-0501 = " \
+	irma-helper-scripts \
+"
+
 FILES:${PN} += " \
 	${SWUPDATE_HW_COMPATIBILITY_FILE} \
 	${sysconfdir}/init.d/${RESET_SCRIPT} \
