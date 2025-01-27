@@ -17,7 +17,7 @@ exists() {
 
 power_on_selftest() {
 	# Check that all necessary tools are available and running
-	tools="nginx WebInterfaceServer swupdate" # FIXME: MARE-183: Add "count_von_count" and "i6ls", if stable enough
+	tools="nginx WebInterfaceServer swupdate count_von_count" # FIXME: MARE-183: Add "i6ls", if stable enough
 	log "[STARTED] power on self test started!"
 	for tool in $tools; do
 		exists "$tool" || return 1
