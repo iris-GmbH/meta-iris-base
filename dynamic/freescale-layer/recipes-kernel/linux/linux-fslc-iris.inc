@@ -55,6 +55,9 @@ SRC_URI:append = " \
     file://0042-imx8mp-irma6r2-Add-dts-overlay-for-board-revision-3.patch \
     file://0043-imx8-isi-cap.c-improve-output-in-case-of-discarded-b.patch \
     file://0044-powerfail-manager-Add-driver.patch \
+    file://0045-nvmem-imx-ocotp-fsb-s400-Add-property-fsb_disable_sh.patch \
+    file://0046-firmware-imx-ele-Fix-fuse-write-for-payload-0x0.patch \
+    file://0047-ele-Avoid-special-threatment-for-fuse_id-1.patch \
 "
 
 # It has no effect to set KERNEL_DEVICETREE in the conf/multiconfig/imx93-evk.conf,

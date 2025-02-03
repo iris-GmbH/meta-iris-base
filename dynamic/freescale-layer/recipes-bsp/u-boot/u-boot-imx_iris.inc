@@ -29,6 +29,7 @@ SRC_URI:append = "\
 	file://0018-soc-Add-RAM-Test-get_ram_size.patch \
 	file://0019-imx93-matrixup-Make-u-boot-env-eth1addr-writable.patch \
 	file://0020-imx8mp_irma6r2-add-support-for-fitImage-configuratio.patch \
+	file://0021-imx93_matrixup-Implement-device-locking-via-uboot-en.patch \
 "
 
 SRC_URI:append:poky-iris-deploy = "\
