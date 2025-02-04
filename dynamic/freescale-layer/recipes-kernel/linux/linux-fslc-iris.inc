@@ -58,6 +58,9 @@ SRC_URI:append = " \
     file://0045-nvmem-imx-ocotp-fsb-s400-Add-property-fsb_disable_sh.patch \
     file://0046-firmware-imx-ele-Fix-fuse-write-for-payload-0x0.patch \
     file://0047-ele-Avoid-special-threatment-for-fuse_id-1.patch \
+    file://0048-trion-mipi.c-Add-custom-ioctl-to-load-fpga-firmware.patch \
+    file://0049-marec-fpga.c-Add-custom-ioctl-to-load-fpga-firmware.patch \
+    file://0050-fpga-xilinx-spi-Lock-spi-device-for-exclusive-access.patch \
 "
 
 # It has no effect to set KERNEL_DEVICETREE in the conf/multiconfig/imx93-evk.conf,

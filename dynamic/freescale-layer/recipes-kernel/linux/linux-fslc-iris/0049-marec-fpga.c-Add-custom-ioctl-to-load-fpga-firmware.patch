@@ -1,0 +1,148 @@
+From 7a2ab9c55ca7141071c51048be8f2b016f71f43f Mon Sep 17 00:00:00 2001
+From: Erik Schumacher <erik.schumacher@iris-sensing.com>
+Date: Wed, 8 Jan 2025 14:09:24 +0000
+Subject: [PATCH] marec-fpga.c: Add custom ioctl to load fpga firmware
+
+Signed-off-by: Erik Schumacher <erik.schumacher@iris-sensing.com>
+---
+ drivers/media/i2c/marec-fpga.c | 70 ++++++++++++++++++++++------------
+ 1 file changed, 45 insertions(+), 25 deletions(-)
+
+diff --git a/drivers/media/i2c/marec-fpga.c b/drivers/media/i2c/marec-fpga.c
+index 4ffc39fe22ea..d4f192e000e3 100644
+--- a/drivers/media/i2c/marec-fpga.c
++++ b/drivers/media/i2c/marec-fpga.c
+@@ -18,6 +18,8 @@
+ #include <media/v4l2-mediabus.h>
+ #include <media/v4l2-fwnode.h>
+ 
++#define MAREC_IOC_S_LOAD_FW _IO('v', BASE_VIDIOC_PRIVATE + 1)
++
+ struct marec_fpga_format {
+ 	u32 mbus_code;
+ 	enum v4l2_colorspace colorspace;
+@@ -31,6 +33,9 @@ struct marec_fpga {
+ 	struct i2c_client *i2c_client;
+ 	struct gpio_desc *powersave_en1;
+ 	struct gpio_desc *powersave_en2;
++
++	struct fpga_manager *fpga_mgr;
++	struct fpga_image_info fpga_image;
+ };
+ 
+ static int marec_fpga_read_reg(struct marec_fpga *sensor, u8 reg, u8 *val)
+@@ -68,6 +73,40 @@ static inline struct marec_fpga *to_marec_fpga(struct v4l2_subdev *sd)
+ 	return container_of(sd, struct marec_fpga, sd);
+ }
+ 
++static int marec_loadfw(struct marec_fpga *sensor)
++{
++	u8 read_buffer;
++	int ret;
++
++	/* flash image */
++	ret = fpga_mgr_load(sensor->fpga_mgr, &(sensor->fpga_image));
++
++	if (ret) {
++		dev_err(&sensor->i2c_client->dev,
++			"Failed to load fpga firmware to device (%d)\n", ret);
++		return ret;
++	}
++
++	/* do dummy read from i2c */
++	ret = marec_fpga_read_reg(sensor, 0x00, &read_buffer);
++	if (ret) {
++		dev_err(&sensor->i2c_client->dev, "i2c read error (%d)\n", ret);
++	}
++
++	return ret;
++}
++
++static long marec_ioctl(struct v4l2_subdev *sd, unsigned int cmd, void *arg)
++{
++	struct marec_fpga *sensor = to_marec_fpga(sd);
++
++	switch (cmd) {
++	case MAREC_IOC_S_LOAD_FW:
++		return marec_loadfw(sensor);
++	}
++	return -ENOTTY;
++}
++
+ static int marec_fpga_s_stream(struct v4l2_subdev *sd, int enable)
+ {
+ 	return 0;
+@@ -80,6 +119,7 @@ static int marec_fpga_s_power(struct v4l2_subdev *sd, int on)
+ 
+ static const struct v4l2_subdev_core_ops marec_fpga_core_ops = {
+ 	.s_power = marec_fpga_s_power,
++	.ioctl = marec_ioctl,
+ };
+ 
+ static int marec_fpga_g_frame_interval(struct v4l2_subdev *sd,
+@@ -226,11 +266,8 @@ static int marec_fpga_probe(struct i2c_client *client)
+ 	struct v4l2_subdev *sd;
+ 	struct v4l2_mbus_framefmt *fmt;
+ 	struct device_node *fpga_mgr_node;
+-	struct fpga_manager *fpga_mgr;
+-	struct fpga_image_info fpga_image;
+ 	struct clk *mclk;
+ 	const char *fpga_bitfile;
+-	u8 read_buffer;
+ 	int ret;
+ 
+ 	sensor = devm_kzalloc(&client->dev, sizeof(*sensor), GFP_KERNEL);
+@@ -268,8 +305,8 @@ static int marec_fpga_probe(struct i2c_client *client)
+ 
+ 	/* This is not a i2c device yet, it needs to be loaded by fpga manager */
+ 	fpga_mgr_node = of_parse_phandle(dev->of_node, "fpga-mgr", 0);
+-	fpga_mgr = of_fpga_mgr_get(fpga_mgr_node);
+-	if (IS_ERR(fpga_mgr)) {
++	sensor->fpga_mgr = of_fpga_mgr_get(fpga_mgr_node);
++	if (IS_ERR(sensor->fpga_mgr)) {
+ 		dev_err(dev, "fpga-mgr node or driver not found\n");
+ 		return -EINVAL;
+ 	}
+@@ -281,29 +318,11 @@ static int marec_fpga_probe(struct i2c_client *client)
+ 	}
+ 
+ 	/* fpga manager is set up, fill fpga_image_info */
+-	fpga_image.flags = 0;
+-	fpga_image.firmware_name = kstrdup(fpga_bitfile, GFP_KERNEL);
+-
+-	/* flash image */
+-	ret = fpga_mgr_load(fpga_mgr, &fpga_image);
+-
+-	/* free kstrdup memory before proceeding */
+-	kfree(fpga_image.firmware_name);
+-
+-	if (ret) {
+-		dev_err(dev, "Failed to load fpga firmware to device (%d)\n", ret);
+-		return ret;
+-	}
++	sensor->fpga_image.flags = 0;
++	sensor->fpga_image.firmware_name = kstrdup(fpga_bitfile, GFP_KERNEL);
+ 
+ 	sensor->i2c_client = client;
+ 
+-	/* do dummy read from i2c */
+-	ret = marec_fpga_read_reg(sensor, 0x00, &read_buffer);
+-	if (ret) {
+-		dev_err(dev, "i2c read error (%d)\n", ret);
+-		return ret;
+-	}
+-
+ 	endpoint = fwnode_graph_get_next_endpoint(dev_fwnode(&client->dev), NULL);
+ 	if (!endpoint) {
+ 		dev_err(dev, "endpoint node not found\n");
+@@ -362,6 +381,7 @@ static void marec_fpga_remove(struct i2c_client *client)
+ 	struct marec_fpga *sensor = to_marec_fpga(sd);
+ 
+ 	v4l2_device_unregister_subdev(sd);
++	kfree(sensor->fpga_image.firmware_name);
+ 	kfree(sensor);
+ }
+ 
+-- 
+2.44.1
+
