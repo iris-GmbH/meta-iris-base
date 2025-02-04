@@ -83,8 +83,8 @@ sync_userdata_from_to() {
 	DST_MNT_USER=/tmp/userdata_$2
 	mkdir -p "${SRC_MNT_USER}"  "${DST_MNT_USER}"
 	if ! findmnt "${SRC_MNT_USER}" > /dev/null || ! findmnt "${DST_MNT_USER}" > /dev/null; then
-		${MOUNT} "/dev/mapper/${SRC_DEC_USER_NAME}" "${SRC_MNT_USER}" || err=1
-		${MOUNT} "/dev/mapper/${DST_DEC_USER_NAME}" "${DST_MNT_USER}" || err=1
+		${MOUNT} -t ext4 -o ro "/dev/mapper/${SRC_DEC_USER_NAME}" "${SRC_MNT_USER}" || err=1
+		${MOUNT} -t ext4 -o rw "/dev/mapper/${DST_DEC_USER_NAME}" "${DST_MNT_USER}" || err=1
 	fi
 
 	if [ "$err" -eq 0 ]; then
@@ -134,7 +134,7 @@ if [ -n "${NFSPATH}" ]; then
 	${MOUNT} -t nfs "${NFSPATH}" ${ROOT_MNT}
 	echo "Switching root to Network File System"
 else
-	${MOUNT} /dev/mapper/matrixlvm-keystore /mnt/keystore
+	${MOUNT} -t ext4 -o ro /dev/mapper/matrixlvm-keystore /mnt/keystore
 	if ! /usr/bin/openssl dgst -sha256 -verify /etc/iris/signing/roothash-public-key.pem -signature "${ROOT_HASH_SIGNATURE}" "${ROOT_HASH}" ; then
 		echo "ERROR: Root hash signature invalid"
 		exit 1
@@ -155,7 +155,7 @@ else
 
 	echo "Opening verity device: ${DECRYPT_ROOT_DEV}"
 	veritysetup open ${DECRYPT_ROOT_DEV} ${VERITY_NAME} ${ROOT_HASH_DEV} "${RH}"
-	if ! ${MOUNT} "${VERITY_DEV}" "${ROOT_MNT}" -o ro ; then
+	if ! ${MOUNT} "${VERITY_DEV}" "${ROOT_MNT}" -o ro -t ext4 ; then
 		echo "ERROR: Mount root device failed"
 		exit 1
 	fi
