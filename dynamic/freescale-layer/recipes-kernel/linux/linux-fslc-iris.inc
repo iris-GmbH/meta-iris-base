@@ -61,6 +61,7 @@ SRC_URI:append = " \
     file://0048-trion-mipi.c-Add-custom-ioctl-to-load-fpga-firmware.patch \
     file://0049-marec-fpga.c-Add-custom-ioctl-to-load-fpga-firmware.patch \
     file://0050-fpga-xilinx-spi-Lock-spi-device-for-exclusive-access.patch \
+    file://0051-hwmon-ad7314-Force-spi-controller-to-operate-with-16.patch \
 "
 
 # It has no effect to set KERNEL_DEVICETREE in the conf/multiconfig/imx93-evk.conf,
