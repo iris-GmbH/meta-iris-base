@@ -87,7 +87,8 @@ pvsn_flash() {
     ${MOUNT} ${KEYSTORE_DEV} ${KEYSTORE}
 
     # Generate black key blobs
-    caam-keygen create volumeKey ccm -s 32
+    mkdir -p ${KEYSTORE}/caam/
+    caam-keygen create ${KEYSTORE}/caam/volumeKey ccm -s 32
 
     # create userdata A/B mirrors
     if lvdisplay /dev/irma6lvm/userdata > /dev/null 2>&1; then
@@ -109,7 +110,7 @@ pvsn_flash() {
     vgmknodes
 
     # Setup encrypted partitions
-    keyctl padd logon logkey: @us < /mnt/keystore/caam/volumeKey
+    keyctl padd logon logkey: @us < ${KEYSTORE}/caam/volumeKey
     dmsetup create decrypted-irma6lvm-rootfs_a --table "0 $(blockdev --getsz /dev/mapper/irma6lvm-rootfs_a) crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 /dev/mapper/irma6lvm-rootfs_a 0 1 sector_size:4096"
     dmsetup create decrypted-irma6lvm-rootfs_b --table "0 $(blockdev --getsz /dev/mapper/irma6lvm-rootfs_b) crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 /dev/mapper/irma6lvm-rootfs_b 0 1 sector_size:4096"
     dmsetup create decrypted-irma6lvm-userdata_a --table "0 $(blockdev --getsz /dev/mapper/irma6lvm-userdata_a) crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 /dev/mapper/irma6lvm-userdata_a 0 1 sector_size:4096"
@@ -159,8 +160,9 @@ pvsn_flash() {
     vgmknodes
 
     # Close decrypted devices
-    umount $MOUNTP_USERDATA_A
-    umount $MOUNTP_USERDATA_B
+    ${UMOUNT} $MOUNTP_USERDATA_A
+    ${UMOUNT} $MOUNTP_USERDATA_B
+    ${UMOUNT} ${KEYSTORE}
     dmsetup remove /dev/mapper/decrypted-irma6lvm-rootfs_a
     dmsetup remove /dev/mapper/decrypted-irma6lvm-rootfs_b
     dmsetup remove /dev/mapper/decrypted-irma6lvm-userdata_a
@@ -189,7 +191,7 @@ emergency_switch() {
         /usr/bin/fw_setenv firmware "$new_firmware"
         debug "Error: Emergency firmware switch from $firmware to $new_firmware"
 
-        ${MOUNT} "/dev/mapper/${DECRYPT_DATASTORE_NAME}" "/mnt/datastore"
+        ${MOUNT} -t ext4 "/dev/mapper/${DECRYPT_DATASTORE_NAME}" "/mnt/datastore"
         mkdir -p "/mnt/datastore/log"
         cat /var/volatile/log/initramfs.log >> /mnt/datastore/log/initramfs.log
         ${UMOUNT} "/mnt/datastore"
@@ -279,7 +281,7 @@ sync_userdata_from_to() {
     mkdir -p "${SRC_TMP_USER}"
     mkdir -p "${DST_TMP_USER}"
     if ! findmnt "${SRC_TMP_USER}" > /dev/null; then
-        mount -t ext4 "/dev/mapper/${SRC_DEC_USER_NAME}" "${SRC_TMP_USER}" || err=1
+        mount -t ext4 -o ro "/dev/mapper/${SRC_DEC_USER_NAME}" "${SRC_TMP_USER}" || err=1
     fi
     if ! findmnt "${DST_TMP_USER}" > /dev/null; then
         mount -t ext4 "/dev/mapper/${DST_DEC_USER_NAME}" "${DST_TMP_USER}" || err=1
@@ -395,11 +397,11 @@ debug "Root device: ${ROOT_DEV}"
 debug "Crypt device: ${DECRYPT_ROOT_DEV}"
 debug "Verity device: ${VERITY_DEV}"
 
-${MOUNT} ${KEYSTORE_DEV} ${KEYSTORE}
+${MOUNT} -t vfat -o ro ${KEYSTORE_DEV} ${KEYSTORE}
 
 # Add Black key to keyring
-caam-keygen import $KEYSTORE/caam/volumeKey.bb volumeKey
-keyctl padd logon logkey: @us < $KEYSTORE/caam/volumeKey
+caam-keygen import $KEYSTORE/caam/volumeKey.bb /tmp/volumeKey
+keyctl padd logon logkey: @us < /tmp/volumeKey
 
 PENDING_UPDATE=$(fw_printenv upgrade_available | awk -F'=' '{print $2}')
 BOOTCOUNT=$(fw_printenv bootcount | awk -F'=' '{print $2}')
@@ -456,7 +458,7 @@ ${UMOUNT} ${KEYSTORE}
 debug "Opening verity device: ${DECRYPT_ROOT_DEV}"
 veritysetup open ${DECRYPT_ROOT_DEV} ${VERITY_NAME} ${ROOT_HASH_DEV} "${RH}"
 
-if ! ${MOUNT} ${VERITY_DEV} ${ROOT_MNT} -o ro 
+if ! ${MOUNT} ${VERITY_DEV} ${ROOT_MNT} -t ext4 -o ro 
 then
     debug "Mount root device failed"
     emergency_switch

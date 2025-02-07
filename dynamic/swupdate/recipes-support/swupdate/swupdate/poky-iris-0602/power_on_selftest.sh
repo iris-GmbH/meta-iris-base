@@ -58,8 +58,8 @@ update_alternative_firmware() {
 
 	# Update alternative fitImage partition
 	mkdir /tmp/cur_fitimage_dev /tmp/alt_fitimage_dev
-	mount -t vfat "$CUR_FITIMAGE_DEV" /tmp/cur_fitimage_dev
-	mount -t vfat "$ALT_FITIMAGE_DEV" /tmp/alt_fitimage_dev
+	mount -t vfat -o ro "$CUR_FITIMAGE_DEV" /tmp/cur_fitimage_dev
+	mount -t vfat -o noatime "$ALT_FITIMAGE_DEV" /tmp/alt_fitimage_dev
 	cp /tmp/cur_fitimage_dev/fitImage.signed /tmp/alt_fitimage_dev/fitImage.signed || \
 		{ log "Error: Failed to copy alternative fitImage"; err=1; }
 	umount /tmp/cur_fitimage_dev /tmp/alt_fitimage_dev
@@ -87,7 +87,7 @@ update_alternative_firmware() {
 		{ log "Error: Failed to copy alternative rootfs hash device"; err=1; return "$err"; }
 
 	# Update alternative roothash.signature
-	mount /dev/mapper/irma6lvm-keystore /mnt/keystore
+	mount -t vfat -o noatime /dev/mapper/irma6lvm-keystore /mnt/keystore
 	cp "/mnt/keystore/rootfs_${CUR_FW_SUFFIX}_roothash.signature" "/mnt/keystore/rootfs_${ALT_FW_SUFFIX}_roothash.signature" || \
 		{ log "Error: Failed to copy alternative roothash.signature"; err=1; }
 
@@ -189,7 +189,7 @@ is_alt_fw_update_required() {
 	ret=1
 
 	# Alternative firmware needs an update if roothash differs
-	mount /dev/mapper/irma6lvm-keystore /mnt/keystore
+	mount -t vfat -o ro /dev/mapper/irma6lvm-keystore /mnt/keystore
 	if ! cmp -s /mnt/keystore/rootfs_a_roothash /mnt/keystore/rootfs_b_roothash; then
 		ret=0
 	fi

@@ -38,7 +38,7 @@ set_device_names() {
 
 mount_keystore() {
 	if ! findmnt ${KEYSTORE}; then
-		mount ${KEYSTORE_DEV} ${KEYSTORE} || exit 1
+		mount -t ext4 -o noatime ${KEYSTORE_DEV} ${KEYSTORE} || exit 1
 	fi
 }
 
@@ -167,7 +167,7 @@ remove_userdata_sync_files() {
 		crypt aes-cbc-essiv:sha256 :32:trusted:kmk 0 ${USERDATA_ALT_DEV} 0 1 sector_size:4096"
 
 		mkdir -p "$USERDATA_ALT_MOUNTP"
-		mount "/dev/mapper/${USERDATA_ALT_NAME}" "$USERDATA_ALT_MOUNTP"
+		mount -t ext4 -o rw,noatime "/dev/mapper/${USERDATA_ALT_NAME}" "$USERDATA_ALT_MOUNTP"
 		rm -f "$USERDATA_ALT_MOUNTP/$SYNC_FILE_NAME"
 		umount "$USERDATA_ALT_MOUNTP"
 		rm -rf "$USERDATA_ALT_MOUNTP"
