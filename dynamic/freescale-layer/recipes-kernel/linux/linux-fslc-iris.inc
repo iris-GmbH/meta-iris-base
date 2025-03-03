@@ -63,6 +63,7 @@ SRC_URI:append = " \
     file://0050-fpga-xilinx-spi-Lock-spi-device-for-exclusive-access.patch \
     file://0051-hwmon-ad7314-Force-spi-controller-to-operate-with-16.patch \
     file://0052-hwmon-ad7314-Validate-leading-zero-bits-and-return-e.patch \
+    file://0053-trion-mipi.c-Enable-resolution-change.patch \
 "
 
 # It has no effect to set KERNEL_DEVICETREE in the conf/multiconfig/imx93-evk.conf,

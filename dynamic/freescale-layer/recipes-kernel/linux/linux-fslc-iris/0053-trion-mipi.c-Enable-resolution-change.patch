@@ -1,0 +1,141 @@
+From a89744970d87b69cf7bf817d70d8c32667e79b81 Mon Sep 17 00:00:00 2001
+From: Ian Dannapel <ian.dannapel@iris-sensing.com>
+Date: Fri, 14 Feb 2025 11:15:20 +0000
+Subject: [PATCH] trion-mipi.c: Enable resolution change
+
+Signed-off-by: Ian Dannapel <ian.dannapel@iris-sensing.com>
+---
+ drivers/media/i2c/trion-mipi.c | 70 ++++++++++++++++++++++++++--------
+ 1 file changed, 55 insertions(+), 15 deletions(-)
+
+diff --git a/drivers/media/i2c/trion-mipi.c b/drivers/media/i2c/trion-mipi.c
+index 4e149b201aa4..b9d9d552b83b 100644
+--- a/drivers/media/i2c/trion-mipi.c
++++ b/drivers/media/i2c/trion-mipi.c
+@@ -23,9 +23,11 @@
+ #include <linux/fpga/fpga-mgr.h>
+ #include <linux/firmware.h>
+ 
+-/* Regs Addrs */
+-#define TRION_MIPI_REG_MAGIC 0x10
+-#define TRION_MIPI_REG_VERSION 0x11
++/* Regiter addresses */
++#define TRION_MIPI_REG_MAGIC    0x10
++#define TRION_MIPI_REG_VERSION  0x11
++#define TRION_MIPI_REG_WIDTH    0x20 // 16 bit reg
++#define TRION_MIPI_REG_HEIGHT   0x22 // 16 bit reg
+ 
+ /* Defines */
+ #define TRION_MIPI_REG_MAGIC_VALUE 0x49
+@@ -102,10 +104,7 @@ struct trion_mipi {
+      */
+ };
+ 
+-/*
+-TODO: Unused for now.
+-static int trion_mipi_write_register(struct i2c_client *client, u8 reg, u8 value)
+-{
++static int trion_mipi_write_byte(struct i2c_client *client, u8 reg, u8 value) {
+     int ret;
+ 
+     ret = i2c_smbus_write_byte_data(client, reg, value);
+@@ -115,7 +114,24 @@ static int trion_mipi_write_register(struct i2c_client *client, u8 reg, u8 value
+ 
+     return ret;
+ }
+-*/
++
++static int trion_mipi_write_word(struct i2c_client *client, u8 reg, u16 value) {
++    int ret;
++
++    // Word write not supported by FPGA. Write LSB and MSB
++    ret = trion_mipi_write_byte(client, reg, (u8)value);
++    if (ret < 0) {
++        dev_err(&client->dev, "Failed to write LSB 0x%x to register 0x%x\n", value & 0xFF, reg);
++        return ret;
++    }
++
++    ret = trion_mipi_write_byte(client, reg + 1, (u8)(value >> 8));
++    if (ret < 0) {
++        dev_err(&client->dev, "Failed to write MSB 0x%x to register 0x%x\n", (value >> 8) & 0xFF, reg + 1);
++    }
++
++    return ret;
++}
+ 
+ static int trion_mipi_read_register(struct i2c_client *client, u8 reg)
+ {
+@@ -130,6 +146,17 @@ static int trion_mipi_read_register(struct i2c_client *client, u8 reg)
+     return data;
+ }
+ 
++static int trion_mipi_apply_config(struct trion_mipi *sensor) {
++    int ret;
++    ret = trion_mipi_write_word(sensor->i2c_client, TRION_MIPI_REG_HEIGHT, (u16)sensor->fmt.height);
++    if (ret < 0) {
++        return ret;
++    }
++    // fpga design limitation: this will trigger the mipi phy reconfiguration, so height must be set before
++    ret = trion_mipi_write_word(sensor->i2c_client, TRION_MIPI_REG_WIDTH, (u16)sensor->fmt.width);
++    return ret;
++}
++
+ static int trion_mipi_format_supported(u32 code) {
+     unsigned int i;
+ 
+@@ -149,6 +176,9 @@ static int trion_mipi_s_stream(struct v4l2_subdev *sd, int enable)
+ {
+     struct trion_mipi *sensor = to_trion_mipi(sd);
+     sensor->is_streaming = enable;
++    if (enable) {
++        return trion_mipi_apply_config(sensor);
++    }
+     return 0;
+ }
+ 
+@@ -236,13 +266,28 @@ static int trion_mipi_set_fmt(struct v4l2_subdev *sd,
+         *v4l2_subdev_get_try_format(sd, sd_state, 0) = *mbus_fmt;
+         return 0;
+     }
+-    /* Only RAW14 320x120 is currently supported, so just return it */
+-    if (trion_mipi_format_supported(format->format.code) >= 0){
++    /* Only RAW14 is currently supported */
++    if (trion_mipi_format_supported(format->format.code) >= 0) {
+         sensor->fmt.code = format->format.code;
+     } else {
+         // code not supported, set our default
+         sensor->fmt.code = trion_mipi_formats[0].code;
+     }
++
++    if (format->format.width != 320 && format->format.width != 640) {
++        v4l2_warn(sd, "untested width: %d\n", format->format.width);
++    }
++
++    if (format->format.width % 4 != 0) {
++        // fpga design limitation
++        sensor->fmt.width = format->format.width - (format->format.width % 4);
++        v4l2_warn(sd, "Width must be multiple of 4 and will be rounded to: %d\n", sensor->fmt.width);
++    } else {
++        sensor->fmt.width = format->format.width;
++    }
++
++    sensor->fmt.height = format->format.height;
++
+     return trion_mipi_get_fmt(sd, sd_state, format);
+ }
+ 
+@@ -535,11 +580,6 @@ static int trion_mipi_probe(struct i2c_client *client)
+     }
+ 
+     reg_value = ret;
+-    if (reg_value != 0x01) {
+-        dev_err(&client->dev, "Version not supported: 0x%x\n", reg_value);
+-        return -EINVAL;
+-    }
+-
+     dev_info(&client->dev, "Firmware Version: 0x%x\n", reg_value);
+ 
+     // parse endpoints
+-- 
+2.43.0
+
