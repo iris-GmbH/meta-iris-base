@@ -1,21 +1,24 @@
-From f8f58ed42036115349111d53539c33f1b5b22d00 Mon Sep 17 00:00:00 2001
+From c477c902c15729aa668a27f22812d8fc1d24b9e0 Mon Sep 17 00:00:00 2001
 From: Erik Schumacher <erik.schumacher@iris-sensing.com>
 Date: Fri, 27 Sep 2024 07:16:10 +0000
 Subject: [PATCH] Adapt imx93-matrixup board files
+
+Configure to 512 MB of RAM
+Set DDR VDDQ voltage (buck2) to 1.1V
 
 Upstream-Status: Inappropriate [hardware specific changes]
 Signed-off-by: Erik Schumacher <erik.schumacher@iris-sensing.com>
 Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
 ---
  arch/arm/dts/imx93-matrixup-u-boot.dtsi       |  26 +-
- arch/arm/dts/imx93-matrixup.dts               | 316 +++---------------
+ arch/arm/dts/imx93-matrixup.dts               | 320 +++---------------
  board/freescale/imx93_matrixup/Kconfig        |   2 +-
  board/freescale/imx93_matrixup/Makefile       |   4 +-
  .../freescale/imx93_matrixup/imx93_matrixup.c |  40 ---
- board/freescale/imx93_matrixup/spl.c          |   4 +-
+ board/freescale/imx93_matrixup/spl.c          |  10 +-
  configs/imx93_matrixup_defconfig              |  21 +-
- include/configs/imx93_matrixup.h              |  20 +-
- 8 files changed, 53 insertions(+), 380 deletions(-)
+ include/configs/imx93_matrixup.h              |  22 +-
+ 8 files changed, 59 insertions(+), 386 deletions(-)
 
 diff --git a/arch/arm/dts/imx93-matrixup-u-boot.dtsi b/arch/arm/dts/imx93-matrixup-u-boot.dtsi
 index 67caed023f2..7b0595ed54f 100644
@@ -65,7 +68,7 @@ index 67caed023f2..7b0595ed54f 100644
  	bootph-pre-ram;
  	bootph-some-ram;
 diff --git a/arch/arm/dts/imx93-matrixup.dts b/arch/arm/dts/imx93-matrixup.dts
-index b94165230ba..ea8fdd88adf 100644
+index b94165230ba..66d5a412760 100644
 --- a/arch/arm/dts/imx93-matrixup.dts
 +++ b/arch/arm/dts/imx93-matrixup.dts
 @@ -5,16 +5,11 @@
@@ -87,7 +90,15 @@ index b94165230ba..ea8fdd88adf 100644
  
  	chosen {
  		bootargs = "console=ttyLP0,115200";
-@@ -35,15 +30,6 @@
+@@ -29,21 +24,12 @@
+ 		linux,cma {
+ 			compatible = "shared-dma-pool";
+ 			reusable;
+-			alloc-ranges = <0 0x80000000 0 0x40000000>;
+-			size = <0 0x10000000>;
++			alloc-ranges = <0 0x80000000 0 0x16000000>;
++			size = <0 0x6000000>;
+ 			linux,cma-default;
  		};
  	};
  
@@ -588,7 +599,7 @@ index d20977c0f85..47fea8694fa 100644
  
  	return 0;
 diff --git a/board/freescale/imx93_matrixup/spl.c b/board/freescale/imx93_matrixup/spl.c
-index e52a95522ab..8d5017069a8 100644
+index e52a95522ab..8c42f7e3f78 100644
 --- a/board/freescale/imx93_matrixup/spl.c
 +++ b/board/freescale/imx93_matrixup/spl.c
 @@ -71,7 +71,7 @@ extern struct dram_timing_info dram_timing_1866mts;
@@ -600,15 +611,21 @@ index e52a95522ab..8d5017069a8 100644
  	if (is_voltage_mode(VOLT_LOW_DRIVE))
  		ptiming = &dram_timing_1866mts;
  #endif
-@@ -192,7 +192,7 @@ int power_init_board(void)
+@@ -192,10 +192,10 @@ int power_init_board(void)
  		pmic_reg_write(dev, PCA9450_BUCK3OUT_DVS0, buck_val + 0x4);
  	}
  
 -	if (IS_ENABLED(CONFIG_IMX93_EVK_LPDDR4)) {
-+	if (IS_ENABLED(CONFIG_IMX93_MATRIXUP_LPDDR4)) {
- 		/* Set VDDQ to 1.1V from buck2 */
- 		pmic_reg_write(dev, PCA9450_BUCK2OUT_DVS0, 0x28);
- 	}
+-		/* Set VDDQ to 1.1V from buck2 */
+-		pmic_reg_write(dev, PCA9450_BUCK2OUT_DVS0, 0x28);
+-	}
++	/* LPDDR4x on MatrixUP can operate with 0.6V or 1.1V
++	 * Operation is more stable at 1.1V, so
++	 * set VDDQ to 1.1V from buck2 */
++	pmic_reg_write(dev, PCA9450_BUCK2OUT_DVS0, 0x28);
+ 
+ 	/* set standby voltage to 0.65v */
+ 	if (val & PCA9450_REG_PWRCTRL_TOFF_DEB)
 diff --git a/configs/imx93_matrixup_defconfig b/configs/imx93_matrixup_defconfig
 index 540872d3048..203197a1332 100644
 --- a/configs/imx93_matrixup_defconfig
@@ -666,7 +683,7 @@ index 540872d3048..203197a1332 100644
  CONFIG_SPL_RSA=y
  CONFIG_SHA384=y
 diff --git a/include/configs/imx93_matrixup.h b/include/configs/imx93_matrixup.h
-index 3bef544175a..cee3d604e4e 100644
+index 3bef544175a..0d5c4e3729e 100644
 --- a/include/configs/imx93_matrixup.h
 +++ b/include/configs/imx93_matrixup.h
 @@ -3,8 +3,8 @@
@@ -706,6 +723,15 @@ index 3bef544175a..cee3d604e4e 100644
  	CFG_MFG_ENV_SETTINGS \
  	BOOTENV \
  	AHAB_ENV \
+@@ -167,7 +155,7 @@
+ 
+ #define CFG_SYS_SDRAM_BASE           0x80000000
+ #define PHYS_SDRAM                      0x80000000
+-#define PHYS_SDRAM_SIZE			0x80000000 /* 2GB DDR */
++#define PHYS_SDRAM_SIZE			0x20000000 /* 512MB DDR */
+ 
+ /* Using ULP WDOG for reset */
+ #define WDOG_BASE_ADDR          WDG3_BASE_ADDR
 @@ -180,8 +168,4 @@
  #define NS_ARCH_ARM64 1
  #endif
@@ -716,5 +742,5 @@ index 3bef544175a..cee3d604e4e 100644
 -
  #endif
 -- 
-2.46.1
+2.48.1
 
