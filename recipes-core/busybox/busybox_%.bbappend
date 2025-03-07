@@ -10,9 +10,11 @@ SRC_URI += " \
 
 # R2 only fragments
 SRC_URI:append:poky-iris-0602 = " file://fragments-R2.cfg"
+SRC_URI:append:poky-iris-0501 = " file://fragments-R2.cfg"
 
 # R2 only maintenance fragments
 SRC_URI:append:poky-iris-0602:poky-iris-maintenance = " file://fragments-maintenance-R2.cfg"
+SRC_URI:append:poky-iris-0501:poky-iris-maintenance = " file://fragments-maintenance-R2.cfg"
 
 FILESEXTRAPATHS:prepend := "${THISDIR}/${PN}:"
 
@@ -44,13 +46,22 @@ do_install:append:poky-iris-0601() {
     install -d ${ntpstatus}
     install -m 0755 ${WORKDIR}/ntp_query_status.sh ${ntpstatus}/
 }
-do_install:append:poky-iris-0602() {
+
+do_install_shared() {
     install -d ${initd}
     install -d ${rc5d}
 
     #busybox's watchdog support
     install -m 0755 ${WORKDIR}/busybox_watchdog.sh ${initd}/
     ln -s -r ${initd}/busybox_watchdog.sh ${rc5d}/S01watchdog
+}
+
+do_install:append:poky-iris-0501() {
+    do_install_shared
+}
+
+do_install:append:poky-iris-0602() {
+    do_install_shared
 }
 
 # Override busybox.inc - start mdev init script at rcS and rc5
