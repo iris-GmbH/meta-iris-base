@@ -44,13 +44,17 @@ IRMA_BASE_PACKAGES = " \
 
 IRMA_EXTRA_PACKAGES = ""
 
-# IRMA6 Release 2 only packages
-IRMA_EXTRA_PACKAGES:poky-iris-0602 = " \
+SHARED_IRMA_PACKAGES = " \
 	iris-signing \
 	rsyslog \
 	chrony \
 	nftables \
 	wpa-supplicant \
+"
+
+# IRMA6 Release 2 only packages
+IRMA_EXTRA_PACKAGES:poky-iris-0602 = " \
+    ${SHARED_IRMA_PACKAGES} \
 "
 
 # IRMA6 Release 1 only packages
@@ -59,6 +63,7 @@ IRMA_EXTRA_PACKAGES:poky-iris-0601 = " \
 
 # IRMA Matrix only packages
 IRMA_EXTRA_PACKAGES:poky-iris-0501 = " \
+    ${SHARED_IRMA_PACKAGES} \
 "
 
 IMAGE_INSTALL:append = " \
