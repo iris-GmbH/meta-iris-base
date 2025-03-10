@@ -133,7 +133,6 @@ reset_userdata() {
     rm -rf "$USERDATA_DIR"/log
     rm -f  "$USERDATA_DIR"/*.conf "$USERDATA_DIR"/*.conf.bak # syslog-remotes.conf
     rm -f  "$USERDATA_DIR"/rsyslog/*.conf "$USERDATA_DIR"/rsyslog/*.conf.bak
-    rm -f  "$USERDATA_DIR"/switch_log_location
     rm -rf "$USERDATA_DIR"/device_flags
     rm -f "$USERDATA_DIR"/userdata_synced
     # Set default symlinks

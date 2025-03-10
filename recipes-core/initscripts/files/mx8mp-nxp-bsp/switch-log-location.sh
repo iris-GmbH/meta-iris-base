@@ -1,6 +1,6 @@
 #!/bin/sh
 
-SWITCH_LOG_LOCATION=/mnt/iris/use_persistent_log_location
+SWITCH_LOG_LOCATION=/mnt/iris/irma6webserver/use_persistent_log_location
 USER_DATA_LOG_DIR=/mnt/datastore/log
 USER_DATA_LOG_DIR_LEGACY=/mnt/iris/log
 
