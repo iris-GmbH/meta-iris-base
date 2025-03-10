@@ -14,6 +14,10 @@ SRC_URI:append:mx8mp-nxp-bsp = " \
     file://switch-log-location.sh \
 "
 
+SRC_URI:append:mx93-nxp-bsp = " \
+    file://switch-log-location.sh \
+"
+
 RDEPENDS:${PN}:append = " phytool"
 
 FILES:${PN} += " \
@@ -39,7 +43,7 @@ do_install:append () {
 	update-rc.d -r ${D} set-hostname start 40 S .
 }
 
-do_install:append:mx8mp-nxp-bsp() {
+do_install_shared() {
     # Set timestamp file. /etc/default/timestamp will be sourced by the init-scripts
     install -D -m 0644 ${WORKDIR}/timestamp ${D}${sysconfdir}/default/timestamp
 
@@ -49,4 +53,12 @@ do_install:append:mx8mp-nxp-bsp() {
     # switch-log-location.sh should be called after all other devices are mounted (S03mountall.sh)
     install -m 0755 ${WORKDIR}/switch-log-location.sh ${D}${sysconfdir}/init.d
     update-rc.d -r ${D} switch-log-location.sh start 4 S .
+}
+
+do_install:append:mx8mp-nxp-bsp() {
+    do_install_shared
+}
+
+do_install:append:mx93-nxp-bsp() {
+    do_install_shared
 }
