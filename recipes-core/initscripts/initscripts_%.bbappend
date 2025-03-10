@@ -7,10 +7,10 @@ SRC_URI += " \
     file://factory-reset.init \
     file://timestamp \
     file://set-hostname.sh \
+    file://set-mount-permissions.sh \
 "
 
 SRC_URI:append:mx8mp-nxp-bsp = " \
-    file://set-mount-permissions.sh \
     file://switch-log-location.sh \
 "
 
