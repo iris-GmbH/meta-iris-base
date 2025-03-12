@@ -60,7 +60,7 @@ index cee3d604e4e..b4f7fb71572 100644
 +++ b/include/configs/imx93_matrixup.h
 @@ -157,6 +157,8 @@
  #define PHYS_SDRAM                      0x80000000
- #define PHYS_SDRAM_SIZE			0x80000000 /* 2GB DDR */
+ #define PHYS_SDRAM_SIZE			0x20000000 /* 512MB DDR */
  
 +#define CFG_SYS_DRAM_TEST
 +

@@ -28,7 +28,7 @@ diff --git a/board/freescale/imx8mp_evk/imx8mp_evk.c b/board/freescale/imx8mp_ev
 index 9fa9b4c8071..7c367372ccc 100644
 --- a/board/freescale/imx8mp_evk/imx8mp_evk.c
 +++ b/board/freescale/imx8mp_evk/imx8mp_evk.c
-@@ -430,6 +430,52 @@ int board_init(void)
+@@ -477,6 +477,52 @@ int board_init(void)
  	return 0;
  }
  
@@ -81,7 +81,7 @@ index 9fa9b4c8071..7c367372ccc 100644
  int board_late_init(void)
  {
  #ifdef CONFIG_ENV_IS_IN_MMC
-@@ -440,6 +486,7 @@ int board_late_init(void)
+@@ -487,6 +533,7 @@ int board_late_init(void)
  	env_set("board_rev", "iMX8MP");
  #endif
  
@@ -329,7 +329,7 @@ diff --git a/include/configs/imx8mp_evk.h b/include/configs/imx8mp_evk.h
 index 9d34c54d66d..8dc7aee9866 100644
 --- a/include/configs/imx8mp_evk.h
 +++ b/include/configs/imx8mp_evk.h
-@@ -102,15 +102,17 @@
+@@ -105,15 +105,17 @@
  	"fdtfile=" CONFIG_DEFAULT_FDT_FILE "\0" \
  	"bootm_size=0x10000000\0" \
  	"mmcdev="__stringify(CONFIG_SYS_MMC_ENV_DEV)"\0" \
@@ -351,7 +351,7 @@ index 9d34c54d66d..8dc7aee9866 100644
  	"mmcboot=echo Booting from mmc ...; " \
  		"run mmcargs; " \
  		"if test ${boot_fit} = yes || test ${boot_fit} = try; then " \
-@@ -142,17 +144,7 @@
+@@ -145,17 +147,7 @@
  				"echo WARN: Cannot load the DT; " \
  			"fi; " \
  		"fi;\0" \

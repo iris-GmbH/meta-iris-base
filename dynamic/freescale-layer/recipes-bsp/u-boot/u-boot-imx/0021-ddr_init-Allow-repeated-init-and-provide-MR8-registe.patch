@@ -1,0 +1,71 @@
+From abd99490f75a59d694a35f111a4937f279dc14dd Mon Sep 17 00:00:00 2001
+From: Erik Schumacher <erik.schumacher@iris-sensing.com>
+Date: Thu, 6 Mar 2025 11:47:53 +0100
+Subject: [PATCH] ddr_init: Allow repeated init and provide MR8 register
+
+Clear rank registers to allow a second initialization to pass
+---
+ arch/arm/include/asm/arch-imx9/ddr.h |  2 ++
+ drivers/ddr/imx/imx9/ddr_init.c      | 12 ++++++++++++
+ 2 files changed, 14 insertions(+)
+
+diff --git a/arch/arm/include/asm/arch-imx9/ddr.h b/arch/arm/include/asm/arch-imx9/ddr.h
+index bbf66775b83..13b37f1feb5 100644
+--- a/arch/arm/include/asm/arch-imx9/ddr.h
++++ b/arch/arm/include/asm/arch-imx9/ddr.h
+@@ -16,6 +16,7 @@
+ #define REG_DDR_SDRAM_MD_CNTL	(DDR_CTL_BASE + 0x120)
+ #define REG_DDR_CS0_BNDS        (DDR_CTL_BASE + 0x0)
+ #define REG_DDR_CS1_BNDS        (DDR_CTL_BASE + 0x8)
++#define REG_DDR_RANK_CFG(X)     (DDR_CTL_BASE + 0x80 + ((X) * 0x04))
+ #define REG_DDRDSR_2			(DDR_CTL_BASE + 0xB24)
+ #define REG_DDR_TIMING_CFG_0	(DDR_CTL_BASE + 0x104)
+ #define REG_DDR_SDRAM_CFG		(DDR_CTL_BASE + 0x110)
+@@ -173,6 +174,7 @@ struct ddrphy_qb_state {
+ #endif /* #if   defined(CONFIG_IMX_SNPS_DDR_PHY_QB_GEN)  */
+ #endif /* #elif defined(CONFIG_IMX95) */
+ 
++u32 lpddr4_get_mr8(void);
+ void ddr_load_train_firmware(enum fw_type type);
+ int ddr_init(struct dram_timing_info *timing_info);
+ int ddr_cfg_phy(struct dram_timing_info *timing_info);
+diff --git a/drivers/ddr/imx/imx9/ddr_init.c b/drivers/ddr/imx/imx9/ddr_init.c
+index 9ca9a0cfe83..863bd1b55b4 100644
+--- a/drivers/ddr/imx/imx9/ddr_init.c
++++ b/drivers/ddr/imx/imx9/ddr_init.c
+@@ -47,6 +47,12 @@ void ddrphy_coldreset(void)
+ 	clrbits_le32(REG_SRC_DPHY_SINGLE_RESET_SW_CTRL, BIT(2));
+ }
+ 
++void ddrc_reset(void)
++{
++	writel(0x00, REG_DDR_RANK_CFG(0));
++	writel(0x00, REG_DDR_RANK_CFG(1));
++}
++
+ void check_ddrc_idle(void)
+ {
+ 	u32 regval;
+@@ -327,6 +333,11 @@ u32 lpddr4_mr_read(u32 mr_rank, u32 mr_addr)
+ 	return regval;
+ }
+ 
++u32 lpddr4_get_mr8(void)
++{
++	return lpddr4_mr_read(1, 0x08);
++}
++
+ void update_mr_fsp_op0(struct dram_cfg_param *cfg, unsigned int num)
+ {
+ 	int i;
+@@ -407,6 +418,7 @@ int ddr_init(struct dram_timing_info *dram_timing)
+ 
+ 	/* program the ddrc registers */
+ 	debug("DDRINFO: ddrc config start\n");
++	ddrc_reset();
+ 	ddrc_config(dram_timing);
+ 	debug("DDRINFO: ddrc config done\n");
+ 
+-- 
+2.48.1
+

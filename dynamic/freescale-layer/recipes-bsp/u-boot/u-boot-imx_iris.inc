@@ -25,11 +25,12 @@ SRC_URI:append = "\
 	file://0014-usb-ci_udc-Implement-errata-workaround-for-ERR051725.patch \
 	file://0015-net-dwc_eth_qos-Add-support-for-platform-specific-re.patch \
 	file://0016-net-dwc_eth_qos_imx-Add-platform-specific-reset-for-.patch \
-	file://0017-WIP-use-lower-speed-RAM-configuration.patch \
-	file://0018-soc-Add-RAM-Test-get_ram_size.patch \
-	file://0019-imx8mp_irma6r2-add-support-for-fitImage-configuratio.patch \
-	file://0020-imx93_matrixup-Implement-device-locking-via-uboot-en.patch \
-	file://0021-imx93_matrixup-Populate-lifecycle-state-via-uboot-en.patch \
+	file://0017-soc-Add-RAM-Test-get_ram_size.patch \
+	file://0018-imx8mp_irma6r2-add-support-for-fitImage-configuratio.patch \
+	file://0019-imx93_matrixup-Implement-device-locking-via-uboot-en.patch \
+	file://0020-imx93_matrixup-Populate-lifecycle-state-via-uboot-en.patch \
+	file://0021-ddr_init-Allow-repeated-init-and-provide-MR8-registe.patch \
+	file://0022-imx93_matrixup-Select-DDR-timing-file-based-on-MR8-r.patch \
 "
 
 SRC_URI:append:poky-iris-deploy = "\
