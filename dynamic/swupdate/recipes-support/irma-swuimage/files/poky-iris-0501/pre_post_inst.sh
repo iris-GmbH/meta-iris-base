@@ -55,6 +55,11 @@ check_identity() {
 	fi
 }
 
+verify_roothash_signature() {
+	PUBKEY="/etc/iris/signing/roothash-public-key.pem"
+	/usr/bin/openssl dgst -sha256 -verify "${PUBKEY}" -signature "${ROOT_HASH_SIGNATURE}" "${ROOT_HASH}" || exit 1
+}
+
 create_symlinks() {
 	KERNEL_DEV=$(sfdisk -J /dev/mmcblk0 | jq 'first(.partitiontable.partitions[] | select ((.name!=null) and (.name=="linuxboot_'${FIRMWARE_SUFFIX}'")) | .node)' -r)
 	if ! [ -b "$KERNEL_DEV" ]; then
@@ -192,6 +197,7 @@ if [ "$1" = "postinst" ]; then
 	parse_cmdline
 	set_device_names
 	lock_device
+	verify_roothash_signature
 	umount_keystore
 	remove_userdata_sync_files
 	set_upgrade_available
