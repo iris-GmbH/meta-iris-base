@@ -58,6 +58,9 @@ scripts/config -e FW_LOADER_COMPRESS -e FPGA_MGR_XILINX_SPI -d FPGA_BRIDGE -d FW
 scripts/config -e BLK_DEV_DM -e DM_CRYPT -e BLK_DEV_MD -e DM_VERITY -e DM_VERITY_VERIFY_ROOTHASH_SIG
 scripts/config -e SENSORS_AD7314 -e EXT4_FS_SECURITY -e TRUSTED_KEYS -e TRUSTED_KEYS_TEE
 
+# tcp syn flood protection and avoid error: sysctl: cannot stat /proc/sys/net/ipv4/tcp_syncookies: No such file or directory
+scripts/config -e SYN_COOKIES
+
 # NOTES:
 # - Use nxp specific fuse driver NVMEM_IMX_OCOTP_FSB_S400 (default enabled)
 #   with fuse write support instead of NVMEM_IMX_OCOTP_ELE
