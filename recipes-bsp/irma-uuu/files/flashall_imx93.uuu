@@ -132,6 +132,7 @@ FBK: ucmd chmod 0440 -R /mnt/iris/identity/
 FBK: ucmd ln -sr /mnt/iris/identity /mnt/iris/webtls
 FBK: ucmd ln -sr /mnt/iris/identity /mnt/iris/nts
 FBK: ucmd ln -sr /mnt/iris/identity /mnt/iris/eaptls
+FBK: ucmd ln -sr /mnt/iris/identity /mnt/iris/syslogtls
 FBK: ucmd mkdir -p /mnt/iris/nginx/sites-enabled
 
 # Default to HTTPS
