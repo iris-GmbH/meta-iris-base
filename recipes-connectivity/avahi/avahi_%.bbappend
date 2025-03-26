@@ -2,6 +2,9 @@
 
 FILESEXTRAPATHS:prepend := "${THISDIR}/${PN}:"
 
+SRC_URI_EXTRA = "file://0001-APC-7307-Add-custom-mount-point-due-to-RO-FS.patch"
+SRC_URI_EXTRA:poky-iris-0601 = ""
+
 # fixes RDV-2762
 # patch taken from https://github.com/lathiat/avahi/pull/115
 # TODO: clean up patch, so that it is accepted into upstream. See comments in linked PR.
@@ -10,10 +13,8 @@ SRC_URI += "\
 	file://avahi-daemon.conf \
 	file://irma-provider.service \
 	file://FindAvahi.cmake \
+	${SRC_URI_EXTRA} \
 "
-
-SRC_URI:append:poky-iris-0602 = " file://0001-APC-7307-Add-custom-mount-point-due-to-RO-FS.patch"
-SRC_URI:append:poky-iris-0501 = " file://0001-APC-7307-Add-custom-mount-point-due-to-RO-FS.patch"
 
 target_path = "/etc/avahi"
 

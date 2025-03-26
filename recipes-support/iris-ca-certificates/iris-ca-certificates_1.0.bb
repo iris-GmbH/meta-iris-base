@@ -22,16 +22,11 @@ install_swupdate_crt() {
     install -m 0644 ${SWUPDATE_CA_CERT} ${D}${sysconfdir}/iris/ca-certificates/swupdate-ca.crt
 }
 
+do_install() {
+    install_swupdate_crt
+    install_download_crt
+}
+
 do_install:poky-iris-0601() {
-    install_download_crt
-}
-
-do_install:poky-iris-0602() {
-    install_swupdate_crt
-    install_download_crt
-}
-
-do_install:poky-iris-0501() {
-    install_swupdate_crt
     install_download_crt
 }
