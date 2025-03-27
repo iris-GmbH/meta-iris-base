@@ -45,7 +45,7 @@ UUUSCRIPT ?= ""
 VERIFICATIONSCRIPT ?= ""
 
 # Set file paths of source files
-ROOTFS_EXT ?= "ext4.gz"
+ROOTFS_EXT ?= "ext4.verity.gz"
 ROOTFS = "${IMAGENAME}-${MACHINE}${IMAGE_NAME_SUFFIX}.${ROOTFS_EXT}"
 ROOTFSVERITY = "${IMAGENAME}-${MACHINE}${IMAGE_NAME_SUFFIX}.ext4.hashdevice"
 ROOTFSROOTHASH = "${IMAGENAME}-${MACHINE}${IMAGE_NAME_SUFFIX}.ext4.roothash"
@@ -60,7 +60,11 @@ UUU_DEPLOY_TAR = "${DEPLOYDIR}/${PN}-container.tar.gz"
 # File names in deploy directory
 FLASHBINDEPLOY = "flash.bin.signed"
 HASHSUMS = "hashsums"
-ROOTFSDEPLOY = "rootfs.${ROOTFS_EXT}"
+# Note: Here we rename the source file "rootfs.ext4.verity.gz" to "rootfs.ext4.gz". The ext4.gz in the uuu archive will
+# therefore differ from the ext4.gz image created by Yocto. The ext4.verity.gz we use here is zero-padded, the one from
+# Yocto is not. We accept this confusion instead of changing the filename in all uuu/pvsn related scripts and recipes.
+ROOTFS_EXTDEPLOY ?= "ext4.gz"
+ROOTFSDEPLOY = "rootfs.${ROOTFS_EXTDEPLOY}"
 ROOTFSVERITYDEPLOY = "rootfs.ext4.hashdevice"
 ROOTFSROOTHASHDEPLOY = "rootfs.ext4.roothash"
 ROOTFSROOTHASHDEPLOY_SIGNATURE = "rootfs.ext4.roothash.signature"
@@ -134,7 +138,7 @@ do_deploy () {
 
     hash_rootfs=$(zcat ${UUU_DEPLOY_DIR}/${ROOTFSDEPLOY} | sha256sum - | cut -d' ' -f1)
     echo "HASH_ROOTFS=\"$hash_rootfs\"" >> ${UUU_DEPLOY_DIR}/${HASHSUMS}
-    # Calculate the size for partition check: Decompress rootfs.ext4.gz virtually and evaluate the size with wc
+    # Calculate the size for partition check: Decompress rootfs virtually and evaluate the size with wc
     size_rootfs="$(zcat ${UUU_DEPLOY_DIR}/${ROOTFSDEPLOY} | wc -c)"
     echo "SIZE_ROOTFS=\"$size_rootfs\"" >> ${UUU_DEPLOY_DIR}/${HASHSUMS}
 
