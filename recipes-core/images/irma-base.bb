@@ -7,6 +7,7 @@ LICENSE = "MIT"
 inherit irma-core-image
 IMAGE_ROOTFS_SIZE ?= "8192"
 IMAGE_ROOTFS_EXTRA_SPACE:append = "${@bb.utils.contains("DISTRO_FEATURES", "systemd", " + 4096", "" ,d)}"
+
 TOOLCHAIN_HOST_TASK += " \
     nativesdk-make \
     nativesdk-cmake \
@@ -90,6 +91,9 @@ python () {
 
         # Set HASHDEV_SUFFIX so the dmverity image class creates a seperate hashdevice image
         d.setVar('VERITY_IMAGE_HASHDEV_SUFFIX', '.hashdevice')
+
+        # Reduce the overhead factor to 1, because the verity rootfs will be read-only and free space is useless
+        d.setVar('IMAGE_OVERHEAD_FACTOR', '1.0')
 
         # Add do_finalize_dmverity() task
         bb.build.addtask('do_finalize_dmverity', 'do_image_complete', 'do_image_verity', d)
