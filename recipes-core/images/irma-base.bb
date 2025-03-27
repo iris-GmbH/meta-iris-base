@@ -78,6 +78,11 @@ replace_etc_version () {
 python () {
     d.appendVar('ROOTFS_POSTPROCESS_COMMAND', 'replace_etc_version;')
 
+    # Create .version file as image artifact
+    bb.build.addtask('do_image_version_artifact', 'do_image_complete', 'do_image', d)
+    d.prependVarFlag('do_image_version_artifact', 'postfuncs', 'create_symlinks ')
+    d.appendVarFlag('do_image_version_artifact', 'subimages', ' version')
+
     # Add task R2 only for ext4 builds
     image_fstypes = d.getVar('IMAGE_FSTYPES')
     compat_machines = (d.getVar('MACHINEOVERRIDES') or "").split(":")
@@ -127,6 +132,10 @@ do_generate_dmverity_hashes () {
 
     # delete tempfiles
     rm "${blockdev}" "${paddeddev}" "${hashdev}"
+}
+
+do_image_version_artifact () {
+    echo "${FIRMWARE_VERSION}" > "${IMGDEPLOYDIR}/${IMAGE_NAME}.version"
 }
 
 inherit irma6-firmware-zip
