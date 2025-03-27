@@ -33,7 +33,7 @@ SWU_ROOTHASH_SIGNATURE="${IMAGENAME}-${MACHINE}${IMAGE_NAME_SUFFIX}.ext4.roothas
 SWU_HASHDEVICE="${IMAGENAME}-${MACHINE}${IMAGE_NAME_SUFFIX}.ext4.hashdevice"
 SWU_PRE_POST_SCRIPT = "pre_post_inst.sh"
 
-SWU_META = "${IMAGENAME}-${MACHINE}${IMAGE_NAME_SUFFIX}.testdata.json"
+SWU_ROOTFS_VERSION_FILE = "${IMAGENAME}-${MACHINE}${IMAGE_NAME_SUFFIX}.version"
 
 SWU_TARGET_FITIMAGE = "fitImage.signed"
 
@@ -48,12 +48,9 @@ python() {
 }
 
 python do_swuimage:prepend () {
-    import json
-    print(d.getVar('IMAGE_LINK_NAME'))
-    # read rootfs / irma version from meta file
+    # read rootfs version from artifact
     image_dir = d.getVar('DEPLOY_DIR_IMAGE', True)
-    irmameta = json.load(open(os.path.join(image_dir, d.getVar("SWU_META"))))
-    fw_version = irmameta['FIRMWARE_VERSION']
+    fw_version = open(os.path.join(image_dir, d.getVar("SWU_ROOTFS_VERSION_FILE")), 'r').read().strip()
     d.setVar("SWU_VERSION_ROOTFS", fw_version)
 
     # set the swu fw version
