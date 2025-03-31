@@ -63,7 +63,3 @@ do_install:append:poky-iris-0501() {
 do_install:append:poky-iris-0602() {
     do_install_shared
 }
-
-# Override busybox.inc - start mdev init script at rcS and rc5
-INITSCRIPT_PARAMS:${PN}-mdev = "start 04 S 5 ."
-
