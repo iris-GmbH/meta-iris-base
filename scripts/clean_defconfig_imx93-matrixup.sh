@@ -39,7 +39,7 @@ scripts/config -e DP83822_PHY
 
 # disable all camera drivers except marec fpga
 sed -ne '/^config/s/^config\s\+//gp' drivers/media/i2c/Kconfig | while read -r c; do scripts/config -d "$c"; done
-scripts/config -e VIDEO_MAREC_FPGA
+scripts/config -m VIDEO_MAREC_FPGA
 
 # disable all regulators except PMIC PCA9450
 sed -i -e '/_REGULATOR_/s/=[ym]/=n/g' .config
