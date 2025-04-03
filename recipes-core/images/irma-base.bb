@@ -17,11 +17,10 @@ TOOLCHAIN_HOST_TASK += " \
     nativesdk-git \
 "
 
-TOOLCHAIN_TARGET_TASK += " \
+IRIS_TOOLCHAIN_TARGET_TASK = " \
     libstdc++-staticdev \
     googletest \
     protobuf \
-    protobuf-staticdev \
     dlib \
     nlohmann-json \
     json-schema-validator \
@@ -29,11 +28,11 @@ TOOLCHAIN_TARGET_TASK += " \
     libpng \
 "
 
-TOOLCHAIN_TARGET_TASK:append:poky-iris-0501 = " swupdate"
-TOOLCHAIN_TARGET_TASK:append:poky-iris-0602 = " swupdate"
+# protobuf-staticdev only exists on scarthgap, swupdate is not used on R1
+ADDITIONAL_IRIS_TOOLCHAIN_TARGET_TASK = "protobuf-staticdev swupdate"
+ADDITIONAL_IRIS_TOOLCHAIN_TARGET_TASK:poky-iris-0601 = ""
 
-# Remove protobuf-staticdev from R1 kirkstone build because it only exists on scarthgap
-TOOLCHAIN_TARGET_TASK:remove:poky-iris-0601 = " protobuf-staticdev"
+TOOLCHAIN_TARGET_TASK:append = " ${IRIS_TOOLCHAIN_TARGET_TASK} ${ADDITIONAL_IRIS_TOOLCHAIN_TARGET_TASK}"
 
 PV = "${DISTRO_VERSION}"
 inherit irma-firmware-versioning
@@ -42,9 +41,7 @@ IRMA_BASE_PACKAGES = " \
 	iris-ca-certificates \
 "
 
-IRMA_EXTRA_PACKAGES = ""
-
-SHARED_IRMA_PACKAGES = " \
+IRMA_EXTRA_PACKAGES = " \
 	iris-signing \
 	rsyslog \
 	chrony \
@@ -52,24 +49,11 @@ SHARED_IRMA_PACKAGES = " \
 	wpa-supplicant \
 "
 
-# IRMA6 Release 2 only packages
-IRMA_EXTRA_PACKAGES:poky-iris-0602 = " \
-    ${SHARED_IRMA_PACKAGES} \
-"
-
-# IRMA6 Release 1 only packages
+# install no extra packages on R1
 IRMA_EXTRA_PACKAGES:poky-iris-0601 = " \
 "
 
-# IRMA Matrix only packages
-IRMA_EXTRA_PACKAGES:poky-iris-0501 = " \
-    ${SHARED_IRMA_PACKAGES} \
-"
-
-IMAGE_INSTALL:append = " \
-	${IRMA_BASE_PACKAGES} \
-	${IRMA_EXTRA_PACKAGES} \
-"
+IMAGE_INSTALL:append = " ${IRMA_BASE_PACKAGES} ${IRMA_EXTRA_PACKAGES}"
 
 # Include swupdate in image if swupdate is part of the update procedure
 IMAGE_INSTALL:append = " ${@bb.utils.contains('UPDATE_PROCEDURE', 'swupdate', 'swupdate swupdate-www', '', d)}"

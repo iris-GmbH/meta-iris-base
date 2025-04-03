@@ -1,4 +1,11 @@
-SRC_URI += " \
+# SPDX-License-Identifier: MIT
+# Copyright (C) 2025 iris-GmbH infrared & intelligent sensors
+
+# Use helper variable SRC_URI_EXTRA to add non-R1 fragments
+SRC_URI_EXTRA = "file://fragments-R2.cfg"
+SRC_URI_EXTRA:poky-iris-0601 = ""
+
+SRC_URI:append = " \
     file://50default \
     file://read_usedhcpoption42_script.sh \
     file://timeservice_dhcp_option_42.sh \
@@ -6,15 +13,14 @@ SRC_URI += " \
     file://mdev.conf \
     file://fragments.cfg \
     file://busybox_watchdog.sh \
+    ${SRC_URI_EXTRA} \
 "
 
-# R2 only fragments
-SRC_URI:append:poky-iris-0602 = " file://fragments-R2.cfg"
-SRC_URI:append:poky-iris-0501 = " file://fragments-R2.cfg"
+# Use helper variable SRC_URI_MAINTENANCE to add non-R1 maintenance fragments
+SRC_URI_MAINTENANCE = "file://fragments-maintenance-R2.cfg"
+SRC_URI_MAINTENANCE:poky-iris-0601 = ""
 
-# R2 only maintenance fragments
-SRC_URI:append:poky-iris-0602:poky-iris-maintenance = " file://fragments-maintenance-R2.cfg"
-SRC_URI:append:poky-iris-0501:poky-iris-maintenance = " file://fragments-maintenance-R2.cfg"
+SRC_URI:append:poky-iris-maintenance = " ${SRC_URI_MAINTENANCE}"
 
 FILESEXTRAPATHS:prepend := "${THISDIR}/${PN}:"
 
@@ -27,14 +33,13 @@ FILES:${PN} += " \
     ${bindir}/ntp_query_status.sh \
 "
 
-
 initd="${D}${sysconfdir}/init.d"
 rc5d="${D}${sysconfdir}/rc5.d"
 udhcp="${D}${sysconfdir}/udhcpc.d"
 udhcpoption42="${udhcp}/dhcp_option_42"
 ntpstatus="${D}${bindir}"
 
-do_install:append() {
+do_iris_install_shared() {
     install -d ${udhcp}
     install -d ${udhcpoption42}
     install -m 0755 ${WORKDIR}/50default ${udhcp}/
@@ -42,12 +47,9 @@ do_install:append() {
     install -m 0755 ${WORKDIR}/timeservice_dhcp_option_42.sh ${udhcpoption42}/
 }
 
-do_install:append:poky-iris-0601() {
-    install -d ${ntpstatus}
-    install -m 0755 ${WORKDIR}/ntp_query_status.sh ${ntpstatus}/
-}
+do_iris_install() {
+    do_iris_install_shared
 
-do_install_shared() {
     install -d ${initd}
     install -d ${rc5d}
 
@@ -56,10 +58,13 @@ do_install_shared() {
     ln -s -r ${initd}/busybox_watchdog.sh ${rc5d}/S01watchdog
 }
 
-do_install:append:poky-iris-0501() {
-    do_install_shared
+do_iris_install:poky-iris-0601() {
+    do_iris_install_shared
+
+    install -d ${ntpstatus}
+    install -m 0755 ${WORKDIR}/ntp_query_status.sh ${ntpstatus}/
 }
 
-do_install:append:poky-iris-0602() {
-    do_install_shared
+do_install:append() {
+    do_iris_install
 }
