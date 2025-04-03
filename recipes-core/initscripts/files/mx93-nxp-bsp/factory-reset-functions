@@ -1,0 +1,103 @@
+#!/bin/sh
+
+LAZY_RESET_FLAG="lazy_factory_reset"
+vg=matrixlvm
+
+# Determine the alternative userdata volume. Can either be _a or _b
+ALT_SUFFIX=$(lvs -S "LV_ATTR !~ 'o' && LV_NAME =~ 'userdata'" -o LV_NAME --noheadings | cut -c11-)
+ALT_MNT="/tmp/userdata"
+
+VERBOSE=yes
+
+debug() {
+    if [ "$VERBOSE" != "no" ]; then
+        echo "${@}"
+    fi
+}
+
+short_detected() {
+    echo "Error: $0 not implemented"
+    return 1
+}
+
+mount_alternative_userdata() {
+    mkdir -p ${ALT_MNT}
+    dmsetup create "decrypted-${vg}-userdata${ALT_SUFFIX}" --table "0 $(blockdev --getsz "/dev/mapper/${vg}-userdata${ALT_SUFFIX}") crypt aes-cbc-essiv:sha256 :32:trusted:kmk 0 /dev/mapper/${vg}-userdata${ALT_SUFFIX} 0 1 sector_size:4096"
+	mount -t ext4 "/dev/mapper/decrypted-${vg}-userdata${ALT_SUFFIX}" "${ALT_MNT}"
+}
+
+umount_alternative_userdata() {
+    umount "${ALT_MNT}"
+    dmsetup remove "decrypted-${vg}-userdata${ALT_SUFFIX}"
+	rm -rf ${ALT_MNT}
+}
+
+set_flag() {
+	touch "/mnt/iris/$LAZY_RESET_FLAG"
+}
+
+is_flag_set() {
+    ret=1
+
+    # Check if the lazy_factory_reset flag is set on any of the userdata volumes
+    mount_alternative_userdata
+    if [ -f "/mnt/iris/$LAZY_RESET_FLAG" ] || [ -f "$ALT_MNT/$LAZY_RESET_FLAG" ]; then
+        ret=0
+    fi
+    umount_alternative_userdata
+
+    return "$ret"
+}
+
+reset_systemtime() {
+    date_string=$(cat /etc/timestamp)
+    year=$(echo "$date_string" | cut -c 1-4)
+    month=$(echo "$date_string" | cut -c 5-6)
+    day=$(echo "$date_string" | cut -c 7-8)
+    hour=$(echo "$date_string" | cut -c 9-10)
+    minute=$(echo "$date_string" | cut -c 11-12)
+    second=$(echo "$date_string" | cut -c 13-14)
+    date -s "$year-$month-$day $hour:$minute:$second"
+    hwclock --systohc
+}
+
+reset_userdata() {
+    mount_alternative_userdata
+    for dir in /mnt/iris "$ALT_MNT"; do
+        rm -f  "$dir"/counter/config_customer*
+        rm -rf "$dir"/irma6webserver/*
+        rm -f  "$dir"/logging/*.sqlite
+        rm -f  "$dir"/chrony/chrony.conf
+        rm -rf "$dir"/customer
+        rm -rf "$dir"/log
+        rm -f  "$dir"/*.conf "$dir"/*.conf.bak
+        rm -f  "$dir"/rsyslog/*.conf "$dir"/rsyslog/*.conf.bak
+        rm -rf "$dir"/device_flags
+        rm -f  "$dir"/userdata_synced
+        rm -f  "$dir"/timestamp
+        rm -rf "$dir"/dropbear
+
+        # Set default symlinks
+        ln -sf /etc/nginx/sites-available/reverse_proxy_https.conf "$dir"/nginx/sites-enabled/default_server
+        ln -sf /mnt/iris/identity "$dir"/webtls
+        ln -sf /mnt/iris/identity "$dir"/nts
+        ln -sf /mnt/iris/identity "$dir"/syslogtls
+        ln -sf /mnt/iris/identity "$dir"/eaptls
+
+        # Delete lazy flag
+        rm -f "$dir/$LAZY_RESET_FLAG"
+    done
+    umount_alternative_userdata
+    sync
+}
+
+reset_datastore() {
+    rm -rf /mnt/datastore/*
+}
+
+factory_reset() {
+    echo "Factory reset!"
+    reset_systemtime
+    reset_userdata
+    reset_datastore
+}
