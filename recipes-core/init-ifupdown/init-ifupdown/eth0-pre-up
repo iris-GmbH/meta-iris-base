@@ -141,6 +141,11 @@ getParameter(){
     echo "$val" | sed 's/^"//' | sed 's/"$//' # remove leading/trailing double quotes
 }
 
+setupNetworkInterfaces() {
+    createCustomerAdapter
+    createServiceAdapter
+}
+
 # Main function
 
 if [ "$IFACE" = "eth0" ]; then
@@ -150,8 +155,7 @@ if [ "$IFACE" = "eth0" ]; then
     CUSTOMERNETWORKFILE="/etc/counter/config_customer.json"
     if [ ! -f "$CUSTOMERNETWORKFILE" ]; then
         echo "$0: Can not read $CUSTOMERNETWORKFILE"
-        createCustomerAdapter
-        createServiceAdapter
+        setupNetworkInterfaces &
         exit 0
     fi
 
@@ -203,6 +207,5 @@ if [ "$IFACE" = "eth0" ]; then
         CUSTOMDHCP61CLIENTIDENTIFIER=$(getParameter "pa\.communication\.dhcp_customoption61clientidentifier")
         echo "  pa.communication.dhcp_customoption61clientidentifier:" "$CUSTOMDHCP61CLIENTIDENTIFIER"
     fi
-    createCustomerAdapter
-    createServiceAdapter
+    setupNetworkInterfaces &
 fi
