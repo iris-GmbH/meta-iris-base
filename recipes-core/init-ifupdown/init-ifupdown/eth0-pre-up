@@ -50,6 +50,12 @@ createServiceAdapter(){
         ifconfig eth0:1 $IP netmask 255.254.0.0
         echo "Interface 1: using IP: $IP"
     fi
+
+    # Add maintenance virtual network adapter eth0:2 (only available in Maintenance FW)
+    if grep -iq maintenance /etc/os-release; then
+       ifconfig eth0:2 192.168.240.254 netmask 255.255.254.0
+       echo "Interface 2: using IP: 192.168.240.254"
+    fi
 }
 
 CUSTOMDHCP61ARGUMENT=""
