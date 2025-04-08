@@ -1,25 +1,28 @@
-From 82dc7674b4535123f56ac32b848e491088a591f6 Mon Sep 17 00:00:00 2001
+From 94beb45748b8b4439e3e1f30f8d40039ed1b31d6 Mon Sep 17 00:00:00 2001
 From: Erik Schumacher <erik.schumacher@iris-sensing.com>
 Date: Thu, 6 Mar 2025 11:45:52 +0100
 Subject: [PATCH] imx93_matrixup: Select DDR timing file based on MR8 register
 
-Add DDR timings for MT53E1G16D1 and MT53E256M32D2.
+Add DDR timings for MT53E1G16D1 and MT53E256M16D1.
+The timings for MT53E256M16D1 also work for MT53E256M32D2
 Read their MR8 register and select correct timing file
+
+Signed-off-by: Erik Schumacher <erik.schumacher@iris-sensing.com>
 ---
  board/freescale/imx93_matrixup/Makefile       |    6 +-
  ...1866mts.c => lpddr4x_MT53E1G16D1_timing.c} |   62 +-
- ...s_ecc.c => lpddr4x_MT53E256M32D2_timing.c} |  585 +----
+ ...s_ecc.c => lpddr4x_MT53E256M16D1_timing.c} |  585 +----
  .../freescale/imx93_matrixup/lpddr4x_timing.c | 1994 ----------------
  .../imx93_matrixup/lpddr4x_timing_ecc.c       | 2004 -----------------
- board/freescale/imx93_matrixup/spl.c          |   28 +-
- 6 files changed, 116 insertions(+), 4563 deletions(-)
+ board/freescale/imx93_matrixup/spl.c          |   29 +-
+ 6 files changed, 117 insertions(+), 4563 deletions(-)
  rename board/freescale/imx93_matrixup/{lpddr4x_timing_1866mts.c => lpddr4x_MT53E1G16D1_timing.c} (95%)
- rename board/freescale/imx93_matrixup/{lpddr4x_timing_1866mts_ecc.c => lpddr4x_MT53E256M32D2_timing.c} (71%)
+ rename board/freescale/imx93_matrixup/{lpddr4x_timing_1866mts_ecc.c => lpddr4x_MT53E256M16D1_timing.c} (71%)
  delete mode 100644 board/freescale/imx93_matrixup/lpddr4x_timing.c
  delete mode 100644 board/freescale/imx93_matrixup/lpddr4x_timing_ecc.c
 
 diff --git a/board/freescale/imx93_matrixup/Makefile b/board/freescale/imx93_matrixup/Makefile
-index 54a083ad266..bb5c2cc15f5 100644
+index 54a083ad266..b902abb779d 100644
 --- a/board/freescale/imx93_matrixup/Makefile
 +++ b/board/freescale/imx93_matrixup/Makefile
 @@ -8,9 +8,5 @@ obj-y += imx93_matrixup.o
@@ -31,7 +34,7 @@ index 54a083ad266..bb5c2cc15f5 100644
 -else
 -obj-$(CONFIG_IMX93_MATRIXUP_LPDDR4X) += lpddr4x_timing.o lpddr4x_timing_1866mts.o
 -endif
-+obj-y += lpddr4x_MT53E1G16D1_timing.o lpddr4x_MT53E256M32D2_timing.o
++obj-y += lpddr4x_MT53E1G16D1_timing.o lpddr4x_MT53E256M16D1_timing.o
  endif
 diff --git a/board/freescale/imx93_matrixup/lpddr4x_timing_1866mts.c b/board/freescale/imx93_matrixup/lpddr4x_MT53E1G16D1_timing.c
 similarity index 95%
@@ -199,13 +202,13 @@ index 7d7f9fc5f5f..b3638aa7294 100644
 +    .fsp_cfg = ddr_MT53E1G16D1_dram_fsp_cfg,
 +    .fsp_cfg_num = ARRAY_SIZE(ddr_MT53E1G16D1_dram_fsp_cfg),
  };
-diff --git a/board/freescale/imx93_matrixup/lpddr4x_timing_1866mts_ecc.c b/board/freescale/imx93_matrixup/lpddr4x_MT53E256M32D2_timing.c
+diff --git a/board/freescale/imx93_matrixup/lpddr4x_timing_1866mts_ecc.c b/board/freescale/imx93_matrixup/lpddr4x_MT53E256M16D1_timing.c
 similarity index 71%
 rename from board/freescale/imx93_matrixup/lpddr4x_timing_1866mts_ecc.c
-rename to board/freescale/imx93_matrixup/lpddr4x_MT53E256M32D2_timing.c
-index 821e24c8684..0a5c0ccd7ee 100644
+rename to board/freescale/imx93_matrixup/lpddr4x_MT53E256M16D1_timing.c
+index 821e24c8684..a6122a3729e 100644
 --- a/board/freescale/imx93_matrixup/lpddr4x_timing_1866mts_ecc.c
-+++ b/board/freescale/imx93_matrixup/lpddr4x_MT53E256M32D2_timing.c
++++ b/board/freescale/imx93_matrixup/lpddr4x_MT53E256M16D1_timing.c
 @@ -1,27 +1,28 @@
  /*
 - * Copyright 2023 NXP
@@ -225,7 +228,7 @@ index 821e24c8684..0a5c0ccd7ee 100644
 -static struct dram_cfg_param ddr_ddrc_cfg[] = {
 -    /** Initialize DDRC registers **/
 +/* Initialize DDRC registers */
-+static struct dram_cfg_param ddr_MT53E256M32D2_ddrc_cfg[] = {
++static struct dram_cfg_param ddr_MT53E256M16D1_ddrc_cfg[] = {
      {0x4e300110, 0x44100001},
 -    {0x4e300000, 0x8000ef},
 +    {0x4e300000, 0x80009f},
@@ -254,7 +257,7 @@ index 821e24c8684..0a5c0ccd7ee 100644
  
  /* dram fsp cfg */
 -static struct dram_fsp_cfg ddr_dram_fsp_cfg[] = {
-+static struct dram_fsp_cfg ddr_MT53E256M32D2_dram_fsp_cfg[] = {
++static struct dram_fsp_cfg ddr_MT53E256M16D1_dram_fsp_cfg[] = {
      {
          {
 -            {0x4e300100, 0x12552100},
@@ -350,7 +353,7 @@ index 821e24c8684..0a5c0ccd7ee 100644
  
  /* PHY Initialize Configuration */
 -static struct dram_cfg_param ddr_ddrphy_cfg[] = {
-+static struct dram_cfg_param ddr_MT53E256M32D2_ddrphy_cfg[] = {
++static struct dram_cfg_param ddr_MT53E256M16D1_ddrphy_cfg[] = {
      {0x100a0, 0x4},
      {0x100a1, 0x5},
      {0x100a2, 0x6},
@@ -481,7 +484,7 @@ index 821e24c8684..0a5c0ccd7ee 100644
 -/* ddr phy trained csr */
 -static struct dram_cfg_param ddr_ddrphy_trained_csr[] = {
 +/* PHY trained csr */
-+static struct dram_cfg_param ddr_MT53E256M32D2_ddrphy_trained_csr[] = {
++static struct dram_cfg_param ddr_MT53E256M16D1_ddrphy_trained_csr[] = {
      {0x1005f, 0x0},
      {0x1015f, 0x0},
      {0x1105f, 0x0},
@@ -798,7 +801,7 @@ index 821e24c8684..0a5c0ccd7ee 100644
  
  /* P0 message block parameter for training firmware */
 -static struct dram_cfg_param ddr_fsp0_cfg[] = {
-+static struct dram_cfg_param ddr_MT53E256M32D2_fsp0_cfg[] = {
++static struct dram_cfg_param ddr_MT53E256M16D1_fsp0_cfg[] = {
      {0xd0000, 0x0},
      {0x54003, 0x74a},
      {0x54004, 0x4},
@@ -911,7 +914,7 @@ index 821e24c8684..0a5c0ccd7ee 100644
  
  /* P0 2D message block parameter for training firmware */
 -static struct dram_cfg_param ddr_fsp0_2d_cfg[] = {
-+static struct dram_cfg_param ddr_MT53E256M32D2_fsp0_2d_cfg[] = {
++static struct dram_cfg_param ddr_MT53E256M16D1_fsp0_2d_cfg[] = {
      {0xd0000, 0x0},
      {0x54003, 0x74a},
      {0x54004, 0x4},
@@ -948,7 +951,7 @@ index 821e24c8684..0a5c0ccd7ee 100644
  
  /* DRAM PHY init engine image */
 -static struct dram_cfg_param ddr_phy_pie[] = {
-+static struct dram_cfg_param ddr_MT53E256M32D2_phy_pie[] = {
++static struct dram_cfg_param ddr_MT53E256M16D1_phy_pie[] = {
      {0xd0000, 0x0},
      {0x90000, 0x10},
      {0x90001, 0x400},
@@ -1007,7 +1010,7 @@ index 821e24c8684..0a5c0ccd7ee 100644
  };
  
 -static struct dram_fsp_msg ddr_dram_fsp_msg[] = {
-+static struct dram_fsp_msg ddr_MT53E256M32D2_dram_fsp_msg[] = {
++static struct dram_fsp_msg ddr_MT53E256M16D1_dram_fsp_msg[] = {
      {
          /* P0 1866mts 1D */
          .drate = 1866,
@@ -1015,8 +1018,8 @@ index 821e24c8684..0a5c0ccd7ee 100644
 -        .fsp_cfg = ddr_fsp0_cfg,
 -        .fsp_cfg_num = ARRAY_SIZE(ddr_fsp0_cfg),
 -
-+        .fsp_cfg = ddr_MT53E256M32D2_fsp0_cfg,
-+        .fsp_cfg_num = ARRAY_SIZE(ddr_MT53E256M32D2_fsp0_cfg),
++        .fsp_cfg = ddr_MT53E256M16D1_fsp0_cfg,
++        .fsp_cfg_num = ARRAY_SIZE(ddr_MT53E256M16D1_fsp0_cfg),
      },
 -    {
 -        /* P1 933mts 1D */
@@ -1041,8 +1044,8 @@ index 821e24c8684..0a5c0ccd7ee 100644
          .fw_type = FW_2D_IMAGE,
 -        .fsp_cfg = ddr_fsp0_2d_cfg,
 -        .fsp_cfg_num = ARRAY_SIZE(ddr_fsp0_2d_cfg),
-+        .fsp_cfg = ddr_MT53E256M32D2_fsp0_2d_cfg,
-+        .fsp_cfg_num = ARRAY_SIZE(ddr_MT53E256M32D2_fsp0_2d_cfg),
++        .fsp_cfg = ddr_MT53E256M16D1_fsp0_2d_cfg,
++        .fsp_cfg_num = ARRAY_SIZE(ddr_MT53E256M16D1_fsp0_2d_cfg),
      },
 -
  };
@@ -1062,20 +1065,20 @@ index 821e24c8684..0a5c0ccd7ee 100644
 -    .fsp_table = { 1866, 933, 625, },
 -    .fsp_cfg = ddr_dram_fsp_cfg,
 -    .fsp_cfg_num = ARRAY_SIZE(ddr_dram_fsp_cfg),
-+struct dram_timing_info dram_MT53E256M32D2_timing = {
-+    .ddrc_cfg = ddr_MT53E256M32D2_ddrc_cfg,
-+    .ddrc_cfg_num = ARRAY_SIZE(ddr_MT53E256M32D2_ddrc_cfg),
-+    .ddrphy_cfg = ddr_MT53E256M32D2_ddrphy_cfg,
-+    .ddrphy_cfg_num = ARRAY_SIZE(ddr_MT53E256M32D2_ddrphy_cfg),
-+    .fsp_msg = ddr_MT53E256M32D2_dram_fsp_msg,
-+    .fsp_msg_num = ARRAY_SIZE(ddr_MT53E256M32D2_dram_fsp_msg),
-+    .ddrphy_trained_csr = ddr_MT53E256M32D2_ddrphy_trained_csr,
-+    .ddrphy_trained_csr_num = ARRAY_SIZE(ddr_MT53E256M32D2_ddrphy_trained_csr),
-+    .ddrphy_pie = ddr_MT53E256M32D2_phy_pie,
-+    .ddrphy_pie_num = ARRAY_SIZE(ddr_MT53E256M32D2_phy_pie),
++struct dram_timing_info dram_MT53E256M16D1_timing = {
++    .ddrc_cfg = ddr_MT53E256M16D1_ddrc_cfg,
++    .ddrc_cfg_num = ARRAY_SIZE(ddr_MT53E256M16D1_ddrc_cfg),
++    .ddrphy_cfg = ddr_MT53E256M16D1_ddrphy_cfg,
++    .ddrphy_cfg_num = ARRAY_SIZE(ddr_MT53E256M16D1_ddrphy_cfg),
++    .fsp_msg = ddr_MT53E256M16D1_dram_fsp_msg,
++    .fsp_msg_num = ARRAY_SIZE(ddr_MT53E256M16D1_dram_fsp_msg),
++    .ddrphy_trained_csr = ddr_MT53E256M16D1_ddrphy_trained_csr,
++    .ddrphy_trained_csr_num = ARRAY_SIZE(ddr_MT53E256M16D1_ddrphy_trained_csr),
++    .ddrphy_pie = ddr_MT53E256M16D1_phy_pie,
++    .ddrphy_pie_num = ARRAY_SIZE(ddr_MT53E256M16D1_phy_pie),
 +    .fsp_table = { 1866, },
-+    .fsp_cfg = ddr_MT53E256M32D2_dram_fsp_cfg,
-+    .fsp_cfg_num = ARRAY_SIZE(ddr_MT53E256M32D2_dram_fsp_cfg),
++    .fsp_cfg = ddr_MT53E256M16D1_dram_fsp_cfg,
++    .fsp_cfg_num = ARRAY_SIZE(ddr_MT53E256M16D1_dram_fsp_cfg),
  };
 +
 diff --git a/board/freescale/imx93_matrixup/lpddr4x_timing.c b/board/freescale/imx93_matrixup/lpddr4x_timing.c
@@ -5089,19 +5092,20 @@ index 6e3dc50b8bc..00000000000
 -    .fsp_cfg_num = ARRAY_SIZE(ddr_dram_fsp_cfg),
 -};
 diff --git a/board/freescale/imx93_matrixup/spl.c b/board/freescale/imx93_matrixup/spl.c
-index 8c42f7e3f78..26f77aca716 100644
+index 8c42f7e3f78..7a8fd3f2457 100644
 --- a/board/freescale/imx93_matrixup/spl.c
 +++ b/board/freescale/imx93_matrixup/spl.c
-@@ -67,17 +67,31 @@ void spl_board_init(void)
+@@ -67,17 +67,32 @@ void spl_board_init(void)
  	puts("Normal Boot\n");
  }
  
 -extern struct dram_timing_info dram_timing_1866mts;
 +/* MR8 density register of Micron DRAM */
-+#define MR8_MT53E256M32D2  0x08
++#define MR8_MT53E256M16D1  0x08
 +#define MR8_MT53E1G16D1    0x18
 +
-+extern struct dram_timing_info dram_MT53E256M32D2_timing;
++/* Config for MT53E256M16D1 does also work for MT53E256M32D2 */
++extern struct dram_timing_info dram_MT53E256M16D1_timing;
 +extern struct dram_timing_info dram_MT53E1G16D1_timing;
  void spl_dram_init(void)
  {
@@ -5110,11 +5114,11 @@ index 8c42f7e3f78..26f77aca716 100644
 -	if (is_voltage_mode(VOLT_LOW_DRIVE))
 -		ptiming = &dram_timing_1866mts;
 -#endif
-+	struct dram_timing_info *ptiming = &dram_MT53E256M32D2_timing;
++	struct dram_timing_info *ptiming = &dram_MT53E256M16D1_timing;
 +	unsigned int ddr_mr8;
  
 -	printf("DDR: %uMTS\n", ptiming->fsp_msg[0].drate);
-+	printf("DDR: %uMTS for MT53E256M32D2\n", ptiming->fsp_msg[0].drate);
++	printf("DDR: %uMTS for MT53E256M16D1\n", ptiming->fsp_msg[0].drate);
  	ddr_init(ptiming);
 +
 +	ddr_mr8 = lpddr4_get_mr8();
@@ -5123,8 +5127,8 @@ index 8c42f7e3f78..26f77aca716 100644
 +		ptiming = &dram_MT53E1G16D1_timing;
 +		printf("DDR: %uMTS for MT53E1G16D1\n", ptiming->fsp_msg[0].drate);
 +		ddr_init(ptiming);
-+	} else if (ddr_mr8 == MR8_MT53E256M32D2) {
-+		printf("Detected DDR MT53E256M32D2 - continue booting!\n");
++	} else if (ddr_mr8 == MR8_MT53E256M16D1) {
++		printf("Detected DDR MT53E256M16D1 - continue booting!\n");
 +	} else {
 +		printf("Unknown DDR type (MR8 = 0x%02x)!\n", ddr_mr8);
 +	}
@@ -5132,5 +5136,5 @@ index 8c42f7e3f78..26f77aca716 100644
  
  #if CONFIG_IS_ENABLED(DM_PMIC_PF0900)
 -- 
-2.48.1
+2.49.0
 
