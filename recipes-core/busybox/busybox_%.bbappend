@@ -7,6 +7,7 @@ SRC_URI_EXTRA:poky-iris-0601 = ""
 
 SRC_URI:append = " \
     file://50default \
+    file://60-add-eth0-alias \
     file://read_usedhcpoption42_script.sh \
     file://timeservice_dhcp_option_42.sh \
     file://ntp_query_status.sh \
@@ -15,6 +16,8 @@ SRC_URI:append = " \
     file://busybox_watchdog.sh \
     ${SRC_URI_EXTRA} \
 "
+
+RDEPENDS:${PN}-udhcpc += "init-ifupdown"
 
 # Use helper variable SRC_URI_MAINTENANCE to add non-R1 maintenance fragments
 SRC_URI_MAINTENANCE = "file://fragments-maintenance-R2.cfg"
@@ -27,7 +30,8 @@ FILESEXTRAPATHS:prepend := "${THISDIR}/${PN}:"
 FILES:${PN} += " \
     ${sysconfdir}/init.d/busybox_watchdog.sh \
     ${sysconfdir}/rc5.d/S01watchdog \
-    ${sysconfdir}/udhcpc.d/50default\
+    ${sysconfdir}/udhcpc.d/50default \
+    ${sysconfdir}/udhcpc.d/60-add-eth0-alias \
     ${sysconfdir}/udhcpc.d/dhcp_option_42/read_usedhcpoption42_script.sh \
     ${sysconfdir}/udhcpc.d/dhcp_option_42/timeservice_dhcp_option_42.sh \
     ${bindir}/ntp_query_status.sh \
@@ -43,6 +47,7 @@ do_iris_install_shared() {
     install -d ${udhcp}
     install -d ${udhcpoption42}
     install -m 0755 ${WORKDIR}/50default ${udhcp}/
+    install -m 0755 ${WORKDIR}/60-add-eth0-alias ${udhcp}/
     install -m 0755 ${WORKDIR}/read_usedhcpoption42_script.sh ${udhcpoption42}/
     install -m 0755 ${WORKDIR}/timeservice_dhcp_option_42.sh ${udhcpoption42}/
 }

@@ -130,15 +130,13 @@ createServiceAdapter() {
         if validateIp "$service_ip" && { [ "$(getOctet "$service_ip" 3)" -ne 0 ] || [ "$(getOctet "$service_ip" 4)" -ne 0 ]; }; then
             # netmask 255.254.0.0 (range 172.16.0.0 to 172.17.255.255) allows service Hosts on the same subnet
             # Sensor (172.16.x.y) <-> Host (172.17.x.y) -> same subnet and no ip collision possibility
-            iface_is_down eth0:1 && ifconfig eth0:1 "$service_ip" netmask 255.254.0.0
-            echo "Interface 1: using IP: $service_ip"
+            iface_is_down eth0:1 && ifconfig eth0:1 "$service_ip" netmask 255.254.0.0 && echo "Interface 1: using IP: $service_ip"
         fi
     fi
 
     # Add maintenance virtual network adapter eth0:2 (only available in Maintenance FW)
     if grep -iq maintenance /etc/os-release; then
-       iface_is_down eth0:2 && ifconfig eth0:2 192.168.240.254 netmask 255.255.254.0
-       echo "Interface 2: using IP: 192.168.240.254"
+       iface_is_down eth0:2 && ifconfig eth0:2 192.168.240.254 netmask 255.255.254.0 && echo "Interface 2: using IP: 192.168.240.254"
     fi
 }
 
