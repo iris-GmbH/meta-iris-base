@@ -1,0 +1,11 @@
+#!/bin/sh
+
+. /usr/share/iris/network-helper-script.sh || exit 1
+
+echo "Calling udhcpc $0: $1"
+
+case "$1" in
+    deconfig)
+        createServiceAdapter
+        ;;
+esac

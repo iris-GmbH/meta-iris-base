@@ -4,8 +4,8 @@
 # Link to repository https://github.com/mschlenker/TinyCrossLinux/blob/master/patches/usr-share-udhcpc-default.script
 # this script is found per default in the directory /etc/udhcp - Just the session "iris modification for reading DHCP option 42" modified by iris GmbH when customer use option 42 per DHCP Server
 
-echo "Starting /etc/udhcp.d/50default"
 [ -z "$1" ] && echo "Error: should be called from udhcpc" && exit 1
+echo "Calling udhcpc $0: $1"
 
 RESOLV_CONF="/etc/resolv.conf"
 [ -n "$subnet" ] && NETMASK="netmask $subnet"
