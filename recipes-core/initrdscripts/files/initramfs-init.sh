@@ -86,9 +86,14 @@ pvsn_flash() {
     KEYSTORE="/mnt/keystore"
     ${MOUNT} ${KEYSTORE_DEV} ${KEYSTORE}
 
-    # Generate black key blobs
+    # Generate black key blobs and them to the keyring
     mkdir -p ${KEYSTORE}/caam/
+    # create the persistent blob key (volumeKey.bb) and session key valid for this boot (volumeKey)
     caam-keygen create ${KEYSTORE}/caam/volumeKey ccm -s 32
+    # add the session key to the keyring (required for dmsetup)
+    keyctl padd logon logkey: @us < ${KEYSTORE}/caam/volumeKey
+    # do not leave the session key persistent on the device
+    rm $KEYSTORE/caam/volumeKey
 
     # create userdata A/B mirrors
     if lvdisplay /dev/irma6lvm/userdata > /dev/null 2>&1; then
@@ -110,7 +115,6 @@ pvsn_flash() {
     vgmknodes
 
     # Setup encrypted partitions
-    keyctl padd logon logkey: @us < ${KEYSTORE}/caam/volumeKey
     dmsetup create decrypted-irma6lvm-rootfs_a --table "0 $(blockdev --getsz /dev/mapper/irma6lvm-rootfs_a) crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 /dev/mapper/irma6lvm-rootfs_a 0 1 sector_size:4096"
     dmsetup create decrypted-irma6lvm-rootfs_b --table "0 $(blockdev --getsz /dev/mapper/irma6lvm-rootfs_b) crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 /dev/mapper/irma6lvm-rootfs_b 0 1 sector_size:4096"
     dmsetup create decrypted-irma6lvm-userdata_a --table "0 $(blockdev --getsz /dev/mapper/irma6lvm-userdata_a) crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 /dev/mapper/irma6lvm-userdata_a 0 1 sector_size:4096"
@@ -402,6 +406,7 @@ ${MOUNT} -t vfat -o ro ${KEYSTORE_DEV} ${KEYSTORE}
 # Add Black key to keyring
 caam-keygen import $KEYSTORE/caam/volumeKey.bb /tmp/volumeKey
 keyctl padd logon logkey: @us < /tmp/volumeKey
+rm -f /tmp/volumeKey
 
 PENDING_UPDATE=$(fw_printenv upgrade_available | awk -F'=' '{print $2}')
 BOOTCOUNT=$(fw_printenv bootcount | awk -F'=' '{print $2}')
