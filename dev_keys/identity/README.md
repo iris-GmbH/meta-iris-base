@@ -13,7 +13,7 @@ $ easyrsa build-ca
 # Common Name: [Enter]
 $ easyrsa --subject-alt-name="DNS:irma6-DEV,IP.1:192.168.240.254,IP.2:172.16.0.10,IP.3:10.42.0.70" gen-req sensor nopass
 # Common Name: [Enter]
-$ easyrsa sign-req server sensor
+$ easyrsa --days=7300 --subject-alt-name="DNS:irma6-DEV,IP.1:192.168.240.254,IP.2:172.16.0.10,IP.3:10.42.0.70" sign-req server sensor
 $ ln -s certs/pki/ca.crt ca_identity_snakeoil.crt
 $ ln -s certs/pki/issued/sensor.crt sensor_identity_snakeoil.crt
 $ ln -s certs/pki/private/sensor.key sensor_identity_snakeoil.key
