@@ -50,6 +50,10 @@ set_device_names() {
 }
 
 add_hwkey_to_keyring() {
+	# remove possible persistent session caamkey left behind by uuu or pvsn flash
+	rm -f $KEYSTORE/caam/volumeKey
+
+	# create a session key from persistent key blob
 	caam-keygen import $KEYSTORE/caam/volumeKey.bb /tmp/volumeKey # has no usable exit codes
 
 	if ! [ -f /tmp/volumeKey ]; then
@@ -59,10 +63,13 @@ add_hwkey_to_keyring() {
 		mv $KEYSTORE/caam/volumeKey /tmp/volumeKey
 	fi
 
+	# add session key to keyring
 	if ! keyctl padd logon logkey: @us < /tmp/volumeKey; then
+		rm -f /tmp/volumeKey
 		echo "Error: Failed to add logon key"
 		exit 1
 	fi
+	rm -f /tmp/volumeKey
 }
 
 unlock_alt_rootfs() {
