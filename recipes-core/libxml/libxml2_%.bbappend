@@ -11,7 +11,7 @@ inherit python3targetconfig
 DEPENDS:remove:class-target = "python3 python3-native"
 
 # overwrite default config for minimal build size with necessary features
-EXTRA_OECONF:class-target = "--with-minimum --with-tree --with-schemas --with-sax1 --with-output"
+EXTRA_OECONF:class-target = "--with-minimum --with-tree --with-schemas --with-sax1 --with-output --with-xpath --with-threads"
 
 # R2 irma-dev image installs gstreamer-plugins-bad which requires the imx-gpu package which requires wayland
 # and wayland does not compile with libxml2 when validation functions are missing, so add them back
