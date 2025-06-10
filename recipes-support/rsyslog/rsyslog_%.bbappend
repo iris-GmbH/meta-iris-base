@@ -16,6 +16,9 @@ FILES:${PN}:append = " \
 		${sysconfdir}/udhcpc.d/dhcp_custom_option/udhcp_custom_syslog_option.sh \
 		"
 
+# use gnutls since openssl does not support self signed
+PACKAGECONFIG:remove = " openssl"
+PACKAGECONFIG:append = " gnutls"
 
 udhcp="${D}${sysconfdir}/udhcpc.d"
 udhcp_option="${udhcp}/dhcp_custom_option"
