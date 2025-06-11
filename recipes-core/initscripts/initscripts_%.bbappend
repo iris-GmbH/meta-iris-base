@@ -21,26 +21,26 @@ SRC_URI:append:mx93-nxp-bsp = " \
 RDEPENDS:${PN}:append = " phytool"
 
 FILES:${PN} += " \
-	${datadir}/factory-reset/factory-reset-functions \
-	${bindir}/factory-reset.sh \
+    ${datadir}/factory-reset/factory-reset-functions \
+    ${bindir}/factory-reset.sh \
 "
 
 do_install:append () {
-	# Remove S06checkroot.sh symlink to avoid "ro" /
-	# remounting when using nfs boot and expecting rw access
-	# from prior mounting in the initramfs init script.
-	update-rc.d -f -r ${D} checkroot.sh remove
+    # Remove S06checkroot.sh symlink to avoid "ro" /
+    # remounting when using nfs boot and expecting rw access
+    # from prior mounting in the initramfs init script.
+    update-rc.d -f -r ${D} checkroot.sh remove
 
-	install -m 0755 ${WORKDIR}/save-rtc-loop.sh ${D}${sysconfdir}/init.d
-	update-rc.d -r ${D} save-rtc-loop.sh start 45 S .
+    install -m 0755 ${WORKDIR}/save-rtc-loop.sh ${D}${sysconfdir}/init.d
+    update-rc.d -r ${D} save-rtc-loop.sh start 45 S .
 
-	install -D -m 0755 ${WORKDIR}/factory-reset-functions ${D}${datadir}/factory-reset/factory-reset-functions
-	install -D -m 0755 ${WORKDIR}/factory-reset.sh ${D}${bindir}/factory-reset.sh
-	install -D -m 0755 ${WORKDIR}/factory-reset.init ${D}${sysconfdir}/init.d/factory-reset
-	update-rc.d -r ${D} factory-reset start 90 S .
+    install -D -m 0755 ${WORKDIR}/factory-reset-functions ${D}${datadir}/factory-reset/factory-reset-functions
+    install -D -m 0755 ${WORKDIR}/factory-reset.sh ${D}${bindir}/factory-reset.sh
+    install -D -m 0755 ${WORKDIR}/factory-reset.init ${D}${sysconfdir}/init.d/factory-reset
+    update-rc.d -r ${D} factory-reset start 90 S .
 
-	install -D -m 0755 ${WORKDIR}/set-hostname.sh ${D}${sysconfdir}/init.d/set-hostname
-	update-rc.d -r ${D} set-hostname start 40 S .
+    install -D -m 0755 ${WORKDIR}/set-hostname.sh ${D}${sysconfdir}/init.d/set-hostname
+    update-rc.d -r ${D} set-hostname start 40 S .
 }
 
 do_install_shared() {
