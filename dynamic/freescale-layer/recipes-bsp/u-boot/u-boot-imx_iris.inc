@@ -31,6 +31,8 @@ SRC_URI:append = "\
 	file://0020-imx93_matrixup-Populate-lifecycle-state-via-uboot-en.patch \
 	file://0021-ddr_init-Allow-repeated-init-and-provide-MR8-registe.patch \
 	file://0022-imx93_matrixup-Select-DDR-timing-file-based-on-MR8-r.patch \
+	file://0023-imx8mp_irma6r2.c-Fix-possible-nfsboot-persistent-fai.patch \
+	file://0024-imx93_matrixup.c-Fix-possible-nfsboot-persistent-fai.patch \
 "
 
 SRC_URI:append:poky-iris-deploy = "\
