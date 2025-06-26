@@ -1,0 +1,27 @@
+From 7cff9c9bed995b659ca1e778a1dd0822d29cb231 Mon Sep 17 00:00:00 2001
+From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+Date: Mon, 16 Jun 2025 15:11:09 +0200
+Subject: [PATCH] ntpd: Set MAXDIST to 3sec (same as chrony)
+
+Upstream-Status: Inappropriate [iris-Specific]
+Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+---
+ networking/ntpd.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/networking/ntpd.c b/networking/ntpd.c
+index c7519b8fb..9c5404e13 100644
+--- a/networking/ntpd.c
++++ b/networking/ntpd.c
+@@ -205,7 +205,7 @@
+ #define MINDISP         0.01    /* minimum dispersion (sec) */
+ #define MAXDISP         16      /* maximum dispersion (sec) */
+ #define MAXSTRAT        16      /* maximum stratum (infinity metric) */
+-#define MAXDIST         1       /* distance threshold (sec) */
++#define MAXDIST         3       /* distance threshold (sec) */
+ #define MIN_SELECTED    1       /* minimum intersection survivors */
+ #define MIN_CLUSTERED   3       /* minimum cluster survivors */
+ 
+-- 
+2.49.0
+

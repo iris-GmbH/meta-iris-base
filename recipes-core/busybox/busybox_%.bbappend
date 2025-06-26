@@ -3,7 +3,9 @@
 
 # Use helper variable SRC_URI_EXTRA to add non-R1 fragments
 SRC_URI_EXTRA = "file://fragments-R2.cfg"
-SRC_URI_EXTRA:poky-iris-0601 = ""
+SRC_URI_EXTRA:poky-iris-0601 = " \
+    file://0001-ntpd-Set-MAXDIST-to-3sec-same-as-chrony.patch \
+"
 
 SRC_URI:append = " \
     file://50default \
