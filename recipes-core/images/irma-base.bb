@@ -31,12 +31,7 @@ IRIS_TOOLCHAIN_TARGET_TASK = " \
 
 # protobuf-staticdev only exists on scarthgap, swupdate is not used on R1
 ADDITIONAL_IRIS_TOOLCHAIN_TARGET_TASK = "protobuf-staticdev swupdate"
-
-# FIXME: MARE-378: Remove the mbedtls dependency, after webserver and
-# irma-crypto has been switched from openssl to mbedtls.
-ADDITIONAL_IRIS_TOOLCHAIN_TARGET_TASK:poky-iris-0601 = " \
-    mbedtls \
-"
+ADDITIONAL_IRIS_TOOLCHAIN_TARGET_TASK:poky-iris-0601 = ""
 
 TOOLCHAIN_TARGET_TASK:append = " ${IRIS_TOOLCHAIN_TARGET_TASK} ${ADDITIONAL_IRIS_TOOLCHAIN_TARGET_TASK}"
 
