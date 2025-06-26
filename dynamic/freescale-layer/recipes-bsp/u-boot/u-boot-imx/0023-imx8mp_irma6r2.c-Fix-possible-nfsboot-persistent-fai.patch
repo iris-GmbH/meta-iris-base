@@ -1,0 +1,28 @@
+From 946bf7e432d44cbf73ba47cf0e4e9aa0220c10db Mon Sep 17 00:00:00 2001
+From: Ian Dannapel <ian.dannapel@iris-sensing.com>
+Date: Tue, 24 Jun 2025 14:07:59 +0000
+Subject: [PATCH] imx8mp_irma6r2.c: Fix possible nfsboot persistent failure
+
+If nfsboot achieves bootcount_error limit, altbootcmd is used but not set.
+
+Signed-off-by: Ian Dannapel <ian.dannapel@iris-sensing.com>
+---
+ board/freescale/imx8mp_irma6r2/imx8mp_irma6r2.c | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/board/freescale/imx8mp_irma6r2/imx8mp_irma6r2.c b/board/freescale/imx8mp_irma6r2/imx8mp_irma6r2.c
+index 3d0a4bbba87..84a1a05e4f7 100644
+--- a/board/freescale/imx8mp_irma6r2/imx8mp_irma6r2.c
++++ b/board/freescale/imx8mp_irma6r2/imx8mp_irma6r2.c
+@@ -533,6 +533,8 @@ void board_autogenerate_bootcmd (void)
+ 
+ 	if (nfs_boot) {
+ 		snprintf(bootcmd, sizeof(bootcmd), "run netfitboot; reset;");
++		/* if nfsboot achieves bootcount_error limit, do not switch partition */
++		snprintf(altbootcmd, sizeof(altbootcmd), "run netfitboot; reset;");
+ 	} else {
+ 		/* Combine the (alt)bootcmd according to the change of variable "firmware" */
+ 		snprintf(partboot, sizeof(partboot), "linuxboot_%s", firmware);
+-- 
+2.44.3
+
