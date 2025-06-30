@@ -25,7 +25,16 @@ if [ "$LAZY" -eq 1 ]; then
     exit 0
 fi
 
-# Skip rj45 short check on nfs boot
-if ! grep -q '/dev/nfs' /proc/cmdline; then
+if grep -q '/dev/nfs' /proc/cmdline; then
+    echo "Skip factory reset short check on NFS boot!"
+    exit 0
+fi
+
+ifconfig eth0 up
+
+if [ "$(cat /sys/class/net/eth0/carrier)" -eq 0 ]; then
     short_detected && factory_reset || exit 1
+else
+    echo "Skip factory reset short check. Link is up!"
+    exit 0
 fi

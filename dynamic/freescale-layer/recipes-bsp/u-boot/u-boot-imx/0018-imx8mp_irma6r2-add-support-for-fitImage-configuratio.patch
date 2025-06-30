@@ -1,0 +1,192 @@
+From 66d99eaa264174d91a6600095c71cecfd5e3c245 Mon Sep 17 00:00:00 2001
+From: Ian Dannapel <ian.dannapel@iris-sensing.com>
+Date: Wed, 16 Oct 2024 09:52:06 +0000
+Subject: [PATCH] imx8mp_irma6r2: add support for fitImage configurations
+
+Supported processor pcb revisions:
+- imx8mp-irma6r2-rev2: tc358746
+- imx8mp-irma6r2-rev3: overlay for efinix t13 (fpga)
+- fallback to default configuration if config not supported
+
+Signed-off-by: Ian Dannapel <ian.dannapel@iris-sensing.com>
+---
+ board/freescale/imx8mp_irma6r2/Makefile       |  1 +
+ .../freescale/imx8mp_irma6r2/imx8mp_irma6r2.c | 18 ++++-
+ .../freescale/imx8mp_irma6r2/processor_unit.c | 70 +++++++++++++++++++
+ .../freescale/imx8mp_irma6r2/processor_unit.h | 16 +++++
+ include/configs/imx8mp_irma6r2.h              |  4 +-
+ 5 files changed, 106 insertions(+), 3 deletions(-)
+ create mode 100644 board/freescale/imx8mp_irma6r2/processor_unit.c
+ create mode 100644 board/freescale/imx8mp_irma6r2/processor_unit.h
+
+diff --git a/board/freescale/imx8mp_irma6r2/Makefile b/board/freescale/imx8mp_irma6r2/Makefile
+index 304a81bd522..a55fe88dae9 100644
+--- a/board/freescale/imx8mp_irma6r2/Makefile
++++ b/board/freescale/imx8mp_irma6r2/Makefile
+@@ -8,6 +8,7 @@
+ obj-y += imx8mp_irma6r2.o
+ obj-y += i2c_memory.o
+ obj-y += interface_unit.o
++obj-y += processor_unit.o
+ 
+ ifdef CONFIG_SPL_BUILD
+ obj-y += spl.o
+diff --git a/board/freescale/imx8mp_irma6r2/imx8mp_irma6r2.c b/board/freescale/imx8mp_irma6r2/imx8mp_irma6r2.c
+index 799e9906457..3d0a4bbba87 100644
+--- a/board/freescale/imx8mp_irma6r2/imx8mp_irma6r2.c
++++ b/board/freescale/imx8mp_irma6r2/imx8mp_irma6r2.c
+@@ -27,6 +27,7 @@
+ #include <usb.h>
+ #include <dwc3-uboot.h>
+ #include "interface_unit.h"
++#include "processor_unit.h"
+ #include <mmc.h>
+ #include <fuse.h>
+ 
+@@ -454,6 +455,7 @@ void board_autogenerate_bootcmd (void)
+     char altbootcmd[50];
+     char partboot[20];
+     char altpartboot[20];
++    char fit_conf[50] = {0};
+     int upgrade_available = env_get_ulong("upgrade_available", 10, 0);
+     int ustate = env_get_ulong("ustate", 10, 0);
+ 
+@@ -514,7 +516,21 @@ void board_autogenerate_bootcmd (void)
+ 			nfs_boot = IU_get_nfs_boot_flag();
+ 		}
+ 	}
+-	
++
++	/* 
++	 Check processor revision to select the Linux fitImage configuration
++	 rev2 -> tc358748
++	 rev3 -> efinix t13
++	 default: rev2
++	*/
++	if (PU_read_eeprom()) {
++		snprintf(fit_conf, sizeof(fit_conf), "#imx8mp-irma6r2-rev%d", PU_get_proc_revision());
++	}
++	env_set("fit_conf", fit_conf);
++#if DEBUG
++	printf("FitImage Configuration ${fit_conf}: %s\n", fit_conf);
++#endif
++
+ 	if (nfs_boot) {
+ 		snprintf(bootcmd, sizeof(bootcmd), "run netfitboot; reset;");
+ 	} else {
+diff --git a/board/freescale/imx8mp_irma6r2/processor_unit.c b/board/freescale/imx8mp_irma6r2/processor_unit.c
+new file mode 100644
+index 00000000000..9b54243ce08
+--- /dev/null
++++ b/board/freescale/imx8mp_irma6r2/processor_unit.c
+@@ -0,0 +1,70 @@
++#include "processor_unit.h"
++#include <common.h>
++#include <net.h>
++#include <command.h>
++#include <linux/ctype.h>
++#include "i2c_memory.h"
++
++#define PU_EEPROM_ADDR      0x54
++#define PU_EEPROM_BUS_NUM   2
++
++#define PU_BASE_ADDR        0x00
++
++#define PU_EEPROM_BLOCK_MAGIC { 0x49, 0x52, 0x49, 0x53 }
++#define PU_CIB_VERSION 0x10
++
++
++/* 'Spec_iris Hardwareerkennung_03.pdf' */
++struct __attribute__ ((__packed__)) component_identification_block {
++    uint8_t magic[4];
++    uint8_t version;
++
++    uint8_t crc[2];
++    uint8_t block_id;
++    uint8_t block_ver;
++    uint8_t payload_len;
++    uint8_t component_type;
++    uint8_t component_id;
++    uint8_t component_rev;
++    uint8_t serial_num[6];
++};
++
++static struct __attribute__ ((__packed__)) interface_eeprom {
++    struct component_identification_block cib;
++} eeprom;
++
++static bool eeprom_check_magic(struct component_identification_block* cib) {
++    uint8_t MAGIC[4] = PU_EEPROM_BLOCK_MAGIC;
++    if (memcmp(cib->magic, MAGIC, 4)) {
++        printf("[ERROR] Processor EEPROM unit has invalid magic\n");
++        return false;
++    }
++    return true;
++}
++
++static bool eeprom_check_supported_version(struct component_identification_block* cib) {
++    return cib->version == PU_CIB_VERSION;
++}
++
++static bool validate_cib_content(struct component_identification_block* cib) {
++    return eeprom_check_magic(cib) && eeprom_check_supported_version(cib);
++}
++
++bool PU_read_eeprom(void) {
++    int ret;
++    ret = read_memory(PU_EEPROM_BUS_NUM, PU_EEPROM_ADDR,
++            PU_BASE_ADDR, (void *) &eeprom, sizeof(eeprom));
++    if (ret) {
++        printf("[ERROR] Processor unit EEPROM content not readable!\n");
++        return false;
++    }
++    if (!validate_cib_content(&eeprom.cib)) {
++        printf("[ERROR] Processor unit EEPROM content invalid!\n");
++        return false;
++    }
++    return true;
++}
++
++uint8_t PU_get_proc_revision(void) {
++    return eeprom.cib.component_rev & 0x0F; // don't care pcb coating type
++}
+diff --git a/board/freescale/imx8mp_irma6r2/processor_unit.h b/board/freescale/imx8mp_irma6r2/processor_unit.h
+new file mode 100644
+index 00000000000..3bdf4b76a05
+--- /dev/null
++++ b/board/freescale/imx8mp_irma6r2/processor_unit.h
+@@ -0,0 +1,16 @@
++#ifndef BOARD_IMX8MP_PROCESSOR_UNIT_EEPROM_H_
++#define BOARD_IMX8MP_PROCESSOR_UNIT_EEPROM_H_
++
++#include <linux/types.h>
++
++/*
++ * Read the interface unit EEPROM content to memory and return whether EEPROM was accessible
++ */
++bool PU_read_eeprom(void);
++
++/*
++ * Gets the revision version of the processor unit
++ */
++uint8_t PU_get_proc_revision(void);
++
++#endif /* BOARD_IMX8MP_PROCESSOR_UNIT_EEPROM_H_ */
+diff --git a/include/configs/imx8mp_irma6r2.h b/include/configs/imx8mp_irma6r2.h
+index 3712cfeea42..c04f34b3494 100644
+--- a/include/configs/imx8mp_irma6r2.h
++++ b/include/configs/imx8mp_irma6r2.h
+@@ -123,8 +123,8 @@
+ 	"loadfdt=fatload mmc ${mmcdev}#${mmcpart} ${fdt_addr_r} ${fdtfile}\0" \
+ 	"fit_img=fitImage.signed\0" \
+ 	"fit_addr=0x48000000\0" \
+-	"fitboot=fatload mmc ${mmcdev}#${mmcpart} ${fit_addr} ${fit_img}; run mmcargs; bootm ${fit_addr}\0" \
+-	"netfitboot=dhcp ${fit_addr} ${fit_img}; run netargs; bootm ${fit_addr}\0" \
++	"fitboot=fatload mmc ${mmcdev}#${mmcpart} ${fit_addr} ${fit_img}; run mmcargs; bootm ${fit_addr}${fit_conf} || bootm ${fit_addr}\0" \
++	"netfitboot=dhcp ${fit_addr} ${fit_img}; run netargs; bootm ${fit_addr}${fit_conf} || bootm ${fit_addr}\0" \
+ 	"nfsroot=/srv/nfs\0" \
+ 	"mmcboot=echo Booting from mmc ...; " \
+ 		"run mmcargs; " \
+-- 
+2.43.0
+

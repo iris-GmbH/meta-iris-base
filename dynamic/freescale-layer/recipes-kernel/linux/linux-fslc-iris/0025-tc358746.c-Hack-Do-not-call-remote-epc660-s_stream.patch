@@ -1,4 +1,4 @@
-From 693b319d9e5653a82ecf1c2c66a36040d9e5c761 Mon Sep 17 00:00:00 2001
+From b84e4c40c81b130338eb05d7ef3a7ca862308af0 Mon Sep 17 00:00:00 2001
 From: Ian Dannapel <ian.dannapel@iris-sensing.com>
 Date: Mon, 30 Sep 2024 14:23:21 +0000
 Subject: [PATCH] tc358746.c: Hack: Do not call remote (epc660) s_stream
@@ -36,5 +36,5 @@ index ee6747a3ee92..2aeb8ebe3691 100644
  
  static int tc358746_init_cfg(struct v4l2_subdev *sd,
 -- 
-2.44.1
+2.47.0
 

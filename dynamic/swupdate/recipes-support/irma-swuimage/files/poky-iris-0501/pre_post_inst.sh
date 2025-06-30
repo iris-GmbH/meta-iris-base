@@ -38,7 +38,7 @@ set_device_names() {
 
 mount_keystore() {
 	if ! findmnt ${KEYSTORE}; then
-		mount ${KEYSTORE_DEV} ${KEYSTORE} || exit 1
+		mount -t ext4 -o noatime ${KEYSTORE_DEV} ${KEYSTORE} || exit 1
 	fi
 }
 
@@ -53,6 +53,11 @@ check_identity() {
 	if ! [ -f "$SENSOR_KEY" ] || ! [ -f "$SENSOR_CRT" ]; then
 		echo "ERROR: Device has no identity certificate or key"; exit 1;
 	fi
+}
+
+verify_roothash_signature() {
+	PUBKEY="/etc/iris/signing/roothash-public-key.pem"
+	/usr/bin/openssl dgst -sha256 -verify "${PUBKEY}" -signature "${ROOT_HASH_SIGNATURE}" "${ROOT_HASH}" || exit 1
 }
 
 create_symlinks() {
@@ -125,8 +130,30 @@ set_upgrade_available() {
 }
 
 check_srks() {
-	# FIXME: MARE-183
-	echo "WARN: check_srks not yet implemented"
+	# Read SRK Hash from fuse word 128 (128*4=512) with size 32
+	hash=$(hexdump -ve '1/1 "%02x"' -s 512  -n 32 /sys/bus/nvmem/devices/fsb_s400_fuse0/nvmem)
+
+	# Check if srk hash is blown
+	if echo $hash | grep -qE '^0{64}$'; then
+		echo "WARN: SRK Hash is not fused! Skip Sanity Check!"; return 0;
+	fi
+
+	KEY=$(cut -d' ' -f1 < /mnt/iris/swupdate/encryption.key) || exit 1
+	IV=$(grep ivt /tmp/sw-description | cut -d'"' -f2 | head -1) || exit 1
+
+	for pair in /tmp/imx-boot.signed=0x400 /tmp/irma-fitimage.itb.signed=0x0; do
+		file=${pair%%=*}
+		offset=${pair#*=}
+		file_decrypted="/tmp/file_decrypted"
+		openssl enc -d -aes-256-cbc -K "$KEY" -iv "$IV" -in "$file" > "$file_decrypted"
+
+		hash2=$(srk_hash $file_decrypted $offset)
+		rm $file_decrypted
+		if [ "$hash" != "$hash2" ]; then
+			echo "ERROR: $file has invalid srk hash: $hash2!"; exit 1;
+		fi
+		echo "SRK hash check passed for $(basename $file)"
+	done
 }
 
 remove_userdata_sync_files() {
@@ -145,7 +172,7 @@ remove_userdata_sync_files() {
 		crypt aes-cbc-essiv:sha256 :32:trusted:kmk 0 ${USERDATA_ALT_DEV} 0 1 sector_size:4096"
 
 		mkdir -p "$USERDATA_ALT_MOUNTP"
-		mount "/dev/mapper/${USERDATA_ALT_NAME}" "$USERDATA_ALT_MOUNTP"
+		mount -t ext4 -o rw,noatime "/dev/mapper/${USERDATA_ALT_NAME}" "$USERDATA_ALT_MOUNTP"
 		rm -f "$USERDATA_ALT_MOUNTP/$SYNC_FILE_NAME"
 		umount "$USERDATA_ALT_MOUNTP"
 		rm -rf "$USERDATA_ALT_MOUNTP"
@@ -170,6 +197,7 @@ if [ "$1" = "postinst" ]; then
 	parse_cmdline
 	set_device_names
 	lock_device
+	verify_roothash_signature
 	umount_keystore
 	remove_userdata_sync_files
 	set_upgrade_available

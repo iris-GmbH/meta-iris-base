@@ -1,0 +1,216 @@
+From bebb04dfd085676c753b697f56b762c20ca1317d Mon Sep 17 00:00:00 2001
+From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+Date: Mon, 4 Mar 2024 10:24:00 +0100
+Subject: [PATCH] Adapt imx93evk board files for Matrix UP
+
+Upstream-Status: Inappropriate [use-case specific changes]
+Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+---
+ board/freescale/imx93_evk/imx93_evk.c | 50 +++++++++++++++++++++++++++
+ configs/imx93_11x11_evk_defconfig     | 15 ++++++--
+ include/configs/imx93_evk.h           | 40 +++++++++++----------
+ 3 files changed, 83 insertions(+), 22 deletions(-)
+
+diff --git a/board/freescale/imx93_evk/imx93_evk.c b/board/freescale/imx93_evk/imx93_evk.c
+index 105e4d585e3..d20977c0f85 100644
+--- a/board/freescale/imx93_evk/imx93_evk.c
++++ b/board/freescale/imx93_evk/imx93_evk.c
+@@ -259,6 +259,55 @@ int board_phy_config(struct phy_device *phydev)
+ 	return 0;
+ }
+ 
++void board_autogenerate_bootcmd (void)
++{
++	int firmware_env = env_get_ulong("firmware", 10, 0);
++	char *firmware;
++	char *altfirmware;
++	char bootcmd[50];
++	char altbootcmd[50];
++	char partboot[20];
++	char altpartboot[20];
++	int upgrade_available = env_get_ulong("upgrade_available", 10, 0);
++	int ustate = env_get_ulong("ustate", 10, 0);
++	int nfs_boot = env_get_ulong("nfs_boot", 10, 0);
++
++	if ((upgrade_available == 1) && (ustate == 1)) {
++		if (firmware_env == 1) {
++			firmware = "a";
++			altfirmware = "b";
++			firmware_env = 0;
++		} else {
++			firmware = "b";
++			altfirmware = "a";
++			firmware_env = 1;
++		}
++		env_set_ulong("firmware", firmware_env);
++		ustate = 2;
++		env_set_ulong("ustate", ustate);
++		env_save();
++	} else {
++		if (firmware_env == 1) {
++			firmware = "b";
++			altfirmware = "a";
++		} else {
++			firmware = "a";
++			altfirmware = "b";
++		}
++}
++
++	if (nfs_boot) {
++		snprintf(bootcmd, sizeof(bootcmd), "run netfitboot; reset;");
++	} else {
++		snprintf(partboot, sizeof(partboot), "linuxboot_%s", firmware);
++		snprintf(altpartboot, sizeof(altpartboot), "linuxboot_%s", altfirmware);
++		snprintf(bootcmd, sizeof(bootcmd), "setenv mmcpart %s; run fitboot; reset;", partboot);
++		snprintf(altbootcmd, sizeof(altbootcmd), "setenv mmcpart %s; run fitboot; reset;", altpartboot);
++	}
++	env_set("bootcmd", bootcmd);
++	env_set("altbootcmd", altbootcmd);
++}
++
+ static void board_gpio_init(void)
+ {
+ 	struct gpio_desc desc;
+@@ -332,6 +381,7 @@ int board_late_init(void)
+ 	env_set("board_name", "11X11_EVK");
+ 	env_set("board_rev", "iMX93");
+ #endif
++	board_autogenerate_bootcmd();
+ 	return 0;
+ }
+ 
+diff --git a/configs/imx93_11x11_evk_defconfig b/configs/imx93_11x11_evk_defconfig
+index 93b5c5a6575..e4b59c7c7e7 100644
+--- a/configs/imx93_11x11_evk_defconfig
++++ b/configs/imx93_11x11_evk_defconfig
+@@ -12,14 +12,17 @@ CONFIG_ENV_OFFSET=0x700000
+ CONFIG_DM_GPIO=y
+ CONFIG_DEFAULT_DEVICE_TREE="imx93-11x11-evk"
+ CONFIG_SPL_TEXT_BASE=0x2049A000
++CONFIG_AHAB_BOOT=y
+ CONFIG_USB_TCPC=y
+ CONFIG_TARGET_IMX93_11X11_EVK=y
+ CONFIG_OF_LIBFDT_OVERLAY=y
+ CONFIG_SYS_MONITOR_LEN=524288
+ CONFIG_SPL_SERIAL=y
+ CONFIG_SPL_DRIVERS_MISC=y
++CONFIG_BOOTCOUNT_BOOTLIMIT=3
+ CONFIG_SPL_STACK=0x20519dd0
+ CONFIG_SPL=y
++CONFIG_ENV_OFFSET_REDUND=0x704000
+ CONFIG_CMD_DEKBLOB=y
+ CONFIG_SPL_IMX_ROMAPI_LOADADDR=0x88000000
+ CONFIG_SYS_LOAD_ADDR=0x80400000
+@@ -34,6 +37,9 @@ CONFIG_BOOTCOMMAND="run sr_ir_v2_cmd;run distro_bootcmd;run bsp_bootcmd"
+ CONFIG_DEFAULT_FDT_FILE="imx93-11x11-evk.dtb"
+ CONFIG_SYS_CBSIZE=2048
+ CONFIG_SYS_PBSIZE=2074
++# CONFIG_CMD_BOOTFLOW is not set
++# CONFIG_CMD_BOOTI is not set
++# CONFIG_CMD_ELF is not set
+ CONFIG_ARCH_MISC_INIT=y
+ CONFIG_BOARD_EARLY_INIT_F=y
+ CONFIG_BOARD_LATE_INIT=y
+@@ -86,15 +92,19 @@ CONFIG_SPL_OF_CONTROL=y
+ CONFIG_ENV_OVERWRITE=y
+ CONFIG_ENV_IS_NOWHERE=y
+ CONFIG_ENV_IS_IN_MMC=y
++CONFIG_SYS_REDUNDAND_ENVIRONMENT=y
+ CONFIG_SYS_RELOC_GD_ENV_ADDR=y
+ CONFIG_SYS_MMC_ENV_DEV=1
++CONFIG_ENV_WRITEABLE_LIST=y
++CONFIG_ENV_ACCESS_IGNORE_FORCE=y
+ CONFIG_USE_ETHPRIME=y
+ CONFIG_ETHPRIME="eth1"
++CONFIG_VERSION_VARIABLE=y
+ CONFIG_NET_RANDOM_ETHADDR=y
+ CONFIG_SPL_DM=y
+ CONFIG_SYSCON=y
+-CONFIG_ADC=y
+-CONFIG_ADC_IMX93=y
++CONFIG_BOOTCOUNT_LIMIT=y
++CONFIG_BOOTCOUNT_ENV=y
+ CONFIG_SPL_CLK_IMX93=y
+ CONFIG_CLK_IMX93=y
+ CONFIG_CPU=y
+@@ -184,7 +194,6 @@ CONFIG_VIDEO_ADV7535=y
+ CONFIG_ULP_WATCHDOG=y
+ CONFIG_SPL_RSA=y
+ CONFIG_SHA384=y
+-CONFIG_LEGACY_IMAGE_FORMAT=y
+ CONFIG_LZO=y
+ CONFIG_BZIP2=y
+ CONFIG_EFI_MM_COMM_TEE=y
+diff --git a/include/configs/imx93_evk.h b/include/configs/imx93_evk.h
+index 27313d272bd..3bef544175a 100644
+--- a/include/configs/imx93_evk.h
++++ b/include/configs/imx93_evk.h
+@@ -56,6 +56,16 @@
+ 	"initrd_high=0xffffffffffffffff\0" \
+ 	"emmc_dev=0\0"\
+ 	"sd_dev=1\0" \
++	"firmware=0\0" \
++	"upgrade_available=0\0" \
++	"ustate=0\0"
++
++/* Limit write access to a minimum*/
++#define CFG_ENV_FLAGS_LIST_STATIC \
++	"upgrade_available:dw," \
++	"bootcount:dw," \
++	"ustate:dw," \
++	"firmware:dw"
+ 
+ /* Initial environment variables */
+ #define CFG_EXTRA_ENV_SETTINGS		\
+@@ -82,12 +92,21 @@
+ 	"mmcpart=1\0" \
+ 	"mmcroot=/dev/mmcblk1p2 rootwait rw\0" \
+ 	"mmcautodetect=yes\0" \
+-	"mmcargs=setenv bootargs ${jh_clk} ${mcore_clk} console=${console} root=${mmcroot}\0 " \
++	"mmcargs=setenv bootargs ${jh_clk} ${mcore_clk} console=${console} root=${mmcroot} lpj=96000 ${mmcpart}\0 " \
+ 	"loadbootscript=fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${script};\0" \
+ 	"bootscript=echo Running bootscript from mmc ...; " \
+ 		"source\0" \
+ 	"loadimage=fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${image}\0" \
+ 	"loadfdt=fatload mmc ${mmcdev}:${mmcpart} ${fdt_addr_r} ${fdtfile}\0" \
++	"fit_img=fitImage.signed\0" \
++	"fit_addr=0x88000000\0" \
++	"fitboot=ext4load mmc ${mmcdev}#${mmcpart} ${fit_addr} ${fit_img}; run mmcargs; bootm ${fit_addr}; reset;\0" \
++	"firmware=0\0" \
++	"upgrade_available=0\0" \
++	"ustate=0\0" \
++	"netfitboot=dhcp ${fit_addr} ${fit_img}; run netargs; bootm ${fit_addr}\0" \
++	"nfsroot=/srv/nfs\0" \
++	"nfs_boot=0\0" \
+ 	"loadcntr=fatload mmc ${mmcdev}:${mmcpart} ${cntr_addr} ${cntr_file}\0" \
+ 	"auth_os=auth_cntr ${cntr_addr}\0" \
+ 	"boot_os=booti ${loadaddr} - ${fdt_addr_r};\0" \
+@@ -139,24 +158,7 @@
+ 				"fi; " \
+ 			"fi;" \
+ 		"fi;\0" \
+-	"bsp_bootcmd=echo Running BSP bootcmd ...; " \
+-		"mmc dev ${mmcdev}; if mmc rescan; then " \
+-		   "if run loadbootscript; then " \
+-			   "run bootscript; " \
+-		   "else " \
+-			   "if test ${sec_boot} = yes; then " \
+-				   "if run loadcntr; then " \
+-					   "run mmcboot; " \
+-				   "else run netboot; " \
+-				   "fi; " \
+-			    "else " \
+-				   "if run loadimage; then " \
+-					   "run mmcboot; " \
+-				   "else run netboot; " \
+-				   "fi; " \
+-				"fi; " \
+-		   "fi; " \
+-	   "fi;"
++	"bsp_bootcmd=run fitboot;"
+ 
+ /* Link Definitions */
+ 
+-- 
+2.46.1
+

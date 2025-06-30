@@ -1,7 +1,7 @@
-From afc4225eaaf927f1e20d01776780e099b9c139de Mon Sep 17 00:00:00 2001
+From e264b5be00a77b3a7fcda27dc4532eec0eeb083f Mon Sep 17 00:00:00 2001
 From: "Duc-Long, Le" <duclong.linux@gmail.com>
 Date: Sat, 14 Oct 2023 20:19:46 -0400
-Subject: [PATCH 20/24] media: tc358746: fix the pll calculating function
+Subject: [PATCH] media: tc358746: fix the pll calculating function
 
 Following formula of Pll_clk in 5.2 section, 50th page of
 TC358746AXBG/748XBG/748IXBG Functional Specification Rev 1.1 document.
@@ -38,5 +38,5 @@ index 566f5eaddd57..4f54773886cc 100644
  		delta = abs(fout - tmp);
  		if (delta < min_delta) {
 -- 
-2.44.1
+2.47.0
 

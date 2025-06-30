@@ -10,10 +10,7 @@ remove_dm_lvm_rule () {
     sed -i "s|69-dm-lvm.rules||g" "${S}/udev/Makefile"
 }
 
-do_compile:append:poky-iris-0501 () {
+do_compile:append () {
     remove_dm_lvm_rule
 }
 
-do_compile:append:poky-iris-0602 () {
-    remove_dm_lvm_rule
-}

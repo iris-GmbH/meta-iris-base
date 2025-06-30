@@ -17,7 +17,7 @@ exists() {
 
 power_on_selftest() {
 	# Check that all necessary tools are available and running
-	tools="nginx WebInterfaceServer swupdate" # FIXME: MARE-183: Add "count_von_count" and "i6ls", if stable enough
+	tools="nginx WebInterfaceServer swupdate count_von_count i6ls"
 	log "[STARTED] power on self test started!"
 	for tool in $tools; do
 		exists "$tool" || return 1
@@ -59,8 +59,8 @@ update_alternative_firmware() {
 
 	# Update alternative fitImage partition
 	mkdir /tmp/alt_fitimage_dev
-	mount "$CUR_FITIMAGE_DEV" /boot
-	mount "$ALT_FITIMAGE_DEV" /tmp/alt_fitimage_dev
+	mount -t ext4 -o ro "$CUR_FITIMAGE_DEV" /boot
+	mount -t ext4 -o rw,noatime "$ALT_FITIMAGE_DEV" /tmp/alt_fitimage_dev
 	cp /boot/fitImage.signed /tmp/alt_fitimage_dev/fitImage.signed || \
 		{ log "Error: Failed to copy alternative fitImage"; err=1; }
 	umount /boot /tmp/alt_fitimage_dev
@@ -88,7 +88,7 @@ update_alternative_firmware() {
 		{ log "Error: Failed to copy alternative rootfs hash device"; err=1; return "$err"; }
 
 	# Update alternative roothash.signature
-	mount /dev/mapper/matrixlvm-keystore /mnt/keystore
+	mount -t ext4 -o rw,noatime /dev/mapper/matrixlvm-keystore /mnt/keystore
 	cp "/mnt/keystore/rootfs_${CUR_FW_SUFFIX}_roothash.signature" "/mnt/keystore/rootfs_${ALT_FW_SUFFIX}_roothash.signature" || \
 		{ log "Error: Failed to copy alternative roothash.signature"; err=1; }
 
@@ -109,7 +109,7 @@ rsync_alternative_userdata() {
 	# sync userdata A and B
 	USERDATA_MOUNTP="/tmp/userdata_${ALT_FW_SUFFIX}"
 	mkdir -p $USERDATA_MOUNTP
-	mount /dev/mapper/decrypted-matrixlvm-userdata_${ALT_FW_SUFFIX} $USERDATA_MOUNTP || err=1
+	mount -t ext4 -o rw,noatime /dev/mapper/decrypted-matrixlvm-userdata_${ALT_FW_SUFFIX} $USERDATA_MOUNTP || err=1
 	rsync -a --delete /mnt/iris/ $USERDATA_MOUNTP || err=1
 	umount $USERDATA_MOUNTP
 	rm -rf $USERDATA_MOUNTP
@@ -127,7 +127,7 @@ is_alt_fw_update_required() {
 	ret=1
 
 	# Alternative firmware needs an update if roothash differs
-	mount /dev/mapper/matrixlvm-keystore /mnt/keystore
+	mount -t ext4 -o ro /dev/mapper/matrixlvm-keystore /mnt/keystore
 	if ! cmp -s /mnt/keystore/rootfs_a_roothash /mnt/keystore/rootfs_b_roothash; then
 		ret=0
 	fi

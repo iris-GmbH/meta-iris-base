@@ -1,0 +1,69 @@
+From 7538dbdcc87ea4f6cf31a371a1834630d56e4563 Mon Sep 17 00:00:00 2001
+From: Erik Schumacher <erik.schumacher@iris-sensing.com>
+Date: Mon, 13 Jan 2025 14:00:46 +0000
+Subject: [PATCH] fpga/xilinx-spi: Lock spi device for exclusive access
+
+During configuration it is crucial that no other communication happens
+on the bus as the xilinx fpga has no means to check if data send on the
+data pin is for itself or for other devices on the bus
+
+Signed-off-by: Erik Schumacher <erik.schumacher@iris-sensing.com>
+---
+ drivers/fpga/xilinx-spi.c | 19 ++++++++++++++++++-
+ 1 file changed, 18 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/fpga/xilinx-spi.c b/drivers/fpga/xilinx-spi.c
+index 4738b50f5935..e0c7fab16cd7 100644
+--- a/drivers/fpga/xilinx-spi.c
++++ b/drivers/fpga/xilinx-spi.c
+@@ -136,6 +136,19 @@ static int xilinx_spi_write_init(struct fpga_manager *mgr,
+ 	return 0;
+ }
+ 
++static int xilinx_spi_write_locked(struct spi_device *spi, const void *buf,
++			    size_t len)
++{
++	struct spi_transfer t = {
++		.tx_buf = buf,
++		.len    = len,
++	};
++	struct spi_message m;
++
++	spi_message_init_with_transfers(&m, &t, 1);
++	return spi_sync_locked(spi, &m);
++}
++
+ static int xilinx_spi_write(struct fpga_manager *mgr, const char *buf,
+ 			    size_t count)
+ {
+@@ -143,6 +156,8 @@ static int xilinx_spi_write(struct fpga_manager *mgr, const char *buf,
+ 	const char *fw_data = buf;
+ 	const char *fw_data_end = fw_data + count;
+ 
++	spi_bus_lock(conf->spi->controller);
++
+ 	while (fw_data < fw_data_end) {
+ 		size_t remaining, stride;
+ 		int ret;
+@@ -150,15 +165,17 @@ static int xilinx_spi_write(struct fpga_manager *mgr, const char *buf,
+ 		remaining = fw_data_end - fw_data;
+ 		stride = min_t(size_t, remaining, SZ_4K);
+ 
+-		ret = spi_write(conf->spi, fw_data, stride);
++		ret = xilinx_spi_write_locked(conf->spi, fw_data, stride);
+ 		if (ret) {
+ 			dev_err(&mgr->dev, "SPI error in firmware write: %d\n",
+ 				ret);
++			spi_bus_unlock(conf->spi->controller);
+ 			return ret;
+ 		}
+ 		fw_data += stride;
+ 	}
+ 
++	spi_bus_unlock(conf->spi->controller);
+ 	return 0;
+ }
+ 
+-- 
+2.44.1
+

@@ -19,8 +19,9 @@ SRC_URI:append := " \
 	file://swupdate.cfg.in \
 	file://bootloader_update.lua \
 	file://0001-Apply-iris-Coporate-Design-to-webinterface.patch \
-	file://0002-Use-bool-for-verbose.patch \
-	file://0004-mongoose_multipart-Allow-raw-binary-uploads.patch \
+	file://0002-mongoose_multipart-Allow-raw-binary-uploads.patch \
+	file://0004-mongoose_interface-Fix-free-invalid-pointer.patch \
+	file://0005-Makefile.flags-Fix-handling-of-EXTRAVERSION.patch \
 	file://Findswupdate.cmake \
 "
 
@@ -50,6 +51,10 @@ RDEPENDS:${PN}:append:mx8mp-nxp-bsp = " \
 	hab-csf-parser \
 	hab-srktool-scripts \
 	keyctl-caam \
+"
+
+RDEPENDS:${PN}:append:poky-iris-0501 = " \
+	irma-helper-scripts \
 "
 
 FILES:${PN} += " \

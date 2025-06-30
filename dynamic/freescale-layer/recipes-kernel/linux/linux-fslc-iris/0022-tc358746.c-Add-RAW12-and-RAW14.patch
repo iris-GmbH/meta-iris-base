@@ -1,7 +1,7 @@
-From c7681581f4470a433861e603a2fc861734fa9b3c Mon Sep 17 00:00:00 2001
+From 2211bcca44ce5cb2ea64c0eea3b9747ad4136396 Mon Sep 17 00:00:00 2001
 From: Erik Schumacher <erik.schumacher@iris-sensing.com>
 Date: Mon, 24 Jun 2024 15:12:24 +0000
-Subject: [PATCH 22/24] tc358746.c: Add RAW12 and RAW14
+Subject: [PATCH] tc358746.c: Add RAW12 and RAW14
 
 Signed-off-by: Erik Schumacher <erik.schumacher@iris-sensing.com>
 Signed-off-by: Ian Dannapel <ian.dannapel@iris-sensing.com>
@@ -33,5 +33,5 @@ index 92d46b08b583..839e933d5f8a 100644
  };
  
 -- 
-2.44.1
+2.47.0
 

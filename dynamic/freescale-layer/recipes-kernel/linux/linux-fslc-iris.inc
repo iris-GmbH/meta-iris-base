@@ -37,9 +37,40 @@ SRC_URI:append = " \
     file://0023-tc358746.c-Add-empty-s_power-and-link_setup-function.patch \
     file://0024-tc358746.c-Implement-hsync-vsync-polarity-config.patch \
     file://0025-tc358746.c-Hack-Do-not-call-remote-epc660-s_stream.patch \
+    file://0026-imx93-matrixup.dts-Copy-device-tree-from-imx93-11x11.patch \
+    file://0027-imx93-matrixup.dts-Remove-FEC-node.patch \
+    file://0028-imx93-matrixup.dts-Remove-flexcan2.patch \
+    file://0029-imx93-matrixup.dts-Remove-lcdif-adv7535-dsi.patch \
+    file://0030-imx93-matrixup.dts-Remove-unused-nodes.patch \
+    file://0031-imx93-matrixup.dts-Adapt-pmic-eqos-phy-nodes-and-rem.patch \
+    file://0032-imx93-matrixup.dts-Remove-ptn5110-usbotg-nodes.patch \
+    file://0033-imx93-matrixup.dts-Configure-pinctrl-for-GPIO3-s.patch \
+    file://0034-imx93-matrixup.dts-Add-fpga-and-related-nodes.patch \
+    file://0035-usb-usbmisc_imx-Workaround-for-i.MX93-ERR051725.patch \
+    file://0036-Backport-dp83822.c.patch \
+    file://0037-net-phy-dp83822-Configure-RMII-mode-on-DP83825-devic.patch \
+    file://0039-fpga-Add-Efinix-Trion-Titanium-serial-SPI-programmin.patch \
+    file://0040-trion-mipi-Add-fpga-bridge-driver.patch \
+    file://0041-imx8mp-irma6r2.dts-tc358746-csi-dphy-450Mhz.patch \
+    file://0042-imx8mp-irma6r2-Add-dts-overlay-for-board-revision-3.patch \
+    file://0043-imx8-isi-cap.c-improve-output-in-case-of-discarded-b.patch \
+    file://0044-powerfail-manager-Add-driver.patch \
+    file://0045-nvmem-imx-ocotp-fsb-s400-Add-property-fsb_disable_sh.patch \
+    file://0046-firmware-imx-ele-Fix-fuse-write-for-payload-0x0.patch \
+    file://0047-ele-Avoid-special-threatment-for-fuse_id-1.patch \
+    file://0048-trion-mipi.c-Add-custom-ioctl-to-load-fpga-firmware.patch \
+    file://0049-marec-fpga.c-Add-custom-ioctl-to-load-fpga-firmware.patch \
+    file://0050-fpga-xilinx-spi-Lock-spi-device-for-exclusive-access.patch \
+    file://0051-hwmon-ad7314-Force-spi-controller-to-operate-with-16.patch \
+    file://0052-hwmon-ad7314-Validate-leading-zero-bits-and-return-e.patch \
+    file://0053-trion-mipi.c-Enable-resolution-change.patch \
+    file://0054-imx93-matrixup.dts-Configure-memory-ranges-for-512-M.patch \
+    file://0055-epc660.c-remove-register-writes-on-v4l-callbacks.patch \
 "
 
-KERNEL_DEVICETREE:mx93-nxp-bsp = " freescale/${KERNEL_DEVICETREE_BASENAME}-marec-fpga.dtb"
+# It has no effect to set KERNEL_DEVICETREE in the conf/multiconfig/imx93-evk.conf,
+# because it is overwritten from the meta-freescale/conf/machine/imx93-11x11-lpddr4x-evk.conf.
+KERNEL_DEVICETREE:imx93-11x11-lpddr4x-evk = " freescale/${KERNEL_DEVICETREE_BASENAME}-marec-fpga.dtb"
 
 SRC_URI:append:poky-iris-deploy = "\
     file://deploy.cfg \

@@ -1,0 +1,161 @@
+From f4e9857327a3cefc8faf8cf63b02f0374595ce97 Mon Sep 17 00:00:00 2001
+From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+Date: Wed, 13 Dec 2023 14:20:09 +0100
+Subject: [PATCH] mongoose_multipart: Allow raw binary uploads
+
+SWUpdate normally accepts file uploads for the Content-Type: multipart/formdata.
+For compatibility reasons, raw binary uploads without boundaries are now
+possible, too.
+
+Example:
+OLD: > curl "http://<IP>/swupdate/upload" -F "file=@firmware.swu
+NEW: > curl "http://<IP>/swupdate/upload" --data-binary "@firmware.swu"
+
+Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+---
+ mongoose/mongoose_multipart.c | 55 +++++++++++++++++++++++++++++++----
+ 1 file changed, 50 insertions(+), 5 deletions(-)
+
+diff --git a/mongoose/mongoose_multipart.c b/mongoose/mongoose_multipart.c
+index 4af5d4dc..358c3efa 100644
+--- a/mongoose/mongoose_multipart.c
++++ b/mongoose/mongoose_multipart.c
+@@ -38,6 +38,8 @@ struct mg_http_multipart_stream {
+ 	int processing_part;
+ 	int data_avail;
+ 	size_t len;
++	bool raw_binary_format;
++	size_t total_bytes_written;
+ };
+ 
+ static void mg_http_free_proto_data_mp_stream(
+@@ -68,6 +70,7 @@ static void mg_http_multipart_begin(struct mg_connection *c,
+ 	struct mg_iobuf *io = &c->recv;
+ 
+ 	struct mg_str boundary;
++	bool raw_binary_format = false;
+ 
+ 	ct = mg_http_get_header(hm, "Content-Type");
+ 	if (ct == NULL) {
+@@ -75,6 +78,10 @@ static void mg_http_multipart_begin(struct mg_connection *c,
+ 		return;
+ 	}
+ 
++	if (ct->len >= 11 && strncmp(ct->buf, "application", 11) == 0) {
++		raw_binary_format = true;
++	} else {
++
+ 	/* Content-type should start with "multipart" */
+ 	if (ct->len < 9 || strncmp(ct->buf, "multipart", 9) != 0) {
+ 		return;
+@@ -91,6 +98,8 @@ static void mg_http_multipart_begin(struct mg_connection *c,
+ 		return;
+ 	}
+ 
++	}
++
+ 	/* If we reach this place - that is multipart request */
+ 
+ 	if (c->pfn_data != NULL) {
+@@ -106,13 +115,20 @@ static void mg_http_multipart_begin(struct mg_connection *c,
+ 			c->is_draining = 1;
+ 			return;
+ 		}
+-		mp_stream->state = MPS_BEGIN;
++		mp_stream->state = !raw_binary_format ? MPS_BEGIN: MPS_GOT_BOUNDARY;
++		mp_stream->raw_binary_format = raw_binary_format;
++		mp_stream->total_bytes_written = 0;
+ 		mp_stream->boundary = mg_strdup(boundary);
+ 		mp_stream->part.name.buf = mp_stream->part.filename.buf = NULL;
+ 		mp_stream->part.name.len = mp_stream->part.filename.len = 0;
+ 		mp_stream->len = hm->body.len;
+ 		c->pfn_data = mp_stream;
+-		mg_iobuf_del(io, 0, hm->head.len + 2);
++
++		if (mp_stream->raw_binary_format) {
++			mg_iobuf_del(io, 0, hm->head.len);
++		} else {
++			mg_iobuf_del(io, 0, hm->head.len + 2);
++		}
+ 	}
+ }
+ 
+@@ -194,6 +210,19 @@ static int mg_http_multipart_process_boundary(struct mg_connection *c) {
+ 	struct mg_iobuf *io = &c->recv;
+ 	struct mg_http_multipart_stream *mp_stream = c->pfn_data;
+ 	size_t line_len;
++
++	if (mp_stream->raw_binary_format) {
++		if (mp_stream->processing_part != 0) {
++			mg_http_multipart_call_handler(c, MG_EV_HTTP_PART_END, NULL, 0);
++		}
++		mp_stream->part.name = mg_strdup(mg_str("file"));
++		mp_stream->part.filename = mg_strdup(mg_str("firmware.swu"));
++		mg_http_multipart_call_handler(c, MG_EV_HTTP_PART_BEGIN, NULL, 0);
++		mp_stream->state = MPS_WAITING_FOR_CHUNK;
++		mp_stream->processing_part++;
++		return 1;
++	} else {
++
+ 	boundary = mg_strstr(mg_str_n((char *) io->buf, io->len), mp_stream->boundary);
+ 	block_begin = boundary + mp_stream->boundary.len + 2;
+ 	data_size = io->len - (block_begin - (char *) io->buf);
+@@ -239,13 +268,16 @@ static int mg_http_multipart_process_boundary(struct mg_connection *c) {
+ 	mp_stream->state = MPS_WAITING_FOR_BOUNDARY;
+ 
+ 	return 0;
++	}
+ }
+ 
+ static int mg_http_multipart_continue_wait_for_chunk(struct mg_connection *c) {
+ 	struct mg_http_multipart_stream *mp_stream = c->pfn_data;
+ 	struct mg_iobuf *io = &c->recv;
+-
+ 	const char *boundary;
++
++	if (!mp_stream->raw_binary_format) {
++
+ 	if ((int) io->len < mp_stream->boundary.len + 6 /* \r\n, --, -- */) {
+ 		return 0;
+ 	}
+@@ -272,6 +304,19 @@ static int mg_http_multipart_continue_wait_for_chunk(struct mg_connection *c) {
+ 			return 0;
+ 		}
+ 	}
++
++	} else {
++		size_t consumed = mg_http_multipart_call_handler(c, MG_EV_HTTP_PART_DATA,
++			(char *) io->buf, io->len);
++		mg_iobuf_del(io, 0, consumed);
++		mp_stream->total_bytes_written +=consumed;
++		if (mp_stream->total_bytes_written==mp_stream->len) {
++			mp_stream->state = MPS_FINALIZE;
++			return 1;
++		} else {
++			return 0;
++		}
++	}
+ }
+ 
+ static void mg_http_multipart_continue(struct mg_connection *c) {
+@@ -322,7 +367,7 @@ void multipart_upload_handler(struct mg_connection *c, int ev, void *ev_data)
+ 	struct mg_http_multipart_stream *mp_stream = c->pfn_data;
+ 	struct mg_str *s;
+ 
+-	if (mp_stream != NULL && mp_stream->boundary.len != 0) {
++	if (mp_stream != NULL && (mp_stream->boundary.len != 0 || mp_stream->raw_binary_format)) {
+ 		if (ev == MG_EV_READ || (ev == MG_EV_POLL && mp_stream->data_avail)) {
+ 			mg_http_multipart_continue(c);
+ 		} else if (ev == MG_EV_CLOSE) {
+@@ -343,7 +388,7 @@ void multipart_upload_handler(struct mg_connection *c, int ev, void *ev_data)
+ 			return;
+ 		}
+ 		s = mg_http_get_header(hm, "Content-Type");
+-		if (s != NULL && s->len >= 9 && strncmp(s->buf, "multipart", 9) == 0) {
++		if (s != NULL && s->len >= 11 && (strncmp(s->buf, "multipart", 9) == 0 || strncmp(s->buf, "application", 11) == 0)) {
+ 			/* New request - new proto data */
+ 			c->data[0] = 'M';
+ 
+-- 
+2.47.1
+

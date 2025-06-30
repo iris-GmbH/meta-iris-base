@@ -1,0 +1,44 @@
+From 27fb13a51654342e54c9bd493df01e075b4e9ec9 Mon Sep 17 00:00:00 2001
+From: Erik Schumacher <erik.schumacher@iris-sensing.com>
+Date: Thu, 17 Oct 2024 13:07:15 +0000
+Subject: [PATCH] usb: usbmisc_imx: Workaround for i.MX93 ERR051725
+
+The i.MX93 is not always able to detach an USB connection by
+setting the USBCMD RS bit, especially with long data lines.
+This workaround first forces a detach by using the CTRL2 register, then
+returns to normal settings again.
+
+Tested for flashing with uuu only!
+
+Signed-off-by: Erik Schumacher <erik.schumacher@iris-sensing.com>
+---
+ drivers/usb/chipidea/usbmisc_imx.c | 13 +++++++++++++
+ 1 file changed, 13 insertions(+)
+
+diff --git a/drivers/usb/chipidea/usbmisc_imx.c b/drivers/usb/chipidea/usbmisc_imx.c
+index b2550cfddd9d..19f9385d2e66 100644
+--- a/drivers/usb/chipidea/usbmisc_imx.c
++++ b/drivers/usb/chipidea/usbmisc_imx.c
+@@ -673,6 +673,19 @@ static int usbmisc_imx7d_init(struct imx_usbmisc_data *data)
+ 	if (!data->hsic) {
+ 		reg = readl(usbmisc->base + MX7D_USBNC_USB_CTRL2);
+ 		reg &= ~MX7D_USB_VBUS_WAKEUP_SOURCE_MASK;
++		/*
++		 * Workaround for errata ERR051725
++		 * The i.MX93 is not always able to detach an USB connection by setting
++		 * the USBCMD RS bit, especially with long data lines. The workaround
++		 * uses CTRL2 of the usbmisc registers.
++		 * First, force a detach, wait a bit, return to normal mode afterwards
++		 */
++		writel(reg | MX7D_USBNC_USB_CTRL2_OPMODE(1)
++			| MX7D_USBNC_USB_CTRL2_OPMODE_OVERRIDE_EN
++			| MX7D_USB_VBUS_WAKEUP_SOURCE_BVALID
++			| MX7D_USBNC_AUTO_RESUME,
++			usbmisc->base + MX7D_USBNC_USB_CTRL2);
++		udelay(500);
+ 		writel(reg | MX7D_USB_VBUS_WAKEUP_SOURCE_BVALID
+ 			| MX7D_USBNC_AUTO_RESUME,
+ 			usbmisc->base + MX7D_USBNC_USB_CTRL2);
+-- 
+2.47.0
+

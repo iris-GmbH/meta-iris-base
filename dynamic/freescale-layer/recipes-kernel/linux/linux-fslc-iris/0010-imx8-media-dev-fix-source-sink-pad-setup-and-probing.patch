@@ -1,7 +1,7 @@
-From 23fb004a153036406295e756439ed41321c11337 Mon Sep 17 00:00:00 2001
+From b5d6ce34ea2589686458b0c5e96722eb38b4ffb6 Mon Sep 17 00:00:00 2001
 From: Rouven Czerwinski <r.czerwinski@pengutronix.de>
 Date: Thu, 24 Mar 2022 10:04:31 +0100
-Subject: [PATCH 10/24] imx8-media-dev: fix source sink pad setup and probing
+Subject: [PATCH] imx8-media-dev: fix source sink pad setup and probing
 
 Pads:
 The NXP media driver assumes that there are only sensors connected to
@@ -60,5 +60,5 @@ index 534fa5a4cd14..3a4a76e7a901 100644
  
  	return 0;
 -- 
-2.44.1
+2.47.0
 

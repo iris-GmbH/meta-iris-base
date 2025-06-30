@@ -7,6 +7,7 @@ LICENSE = "MIT"
 inherit irma-core-image
 IMAGE_ROOTFS_SIZE ?= "8192"
 IMAGE_ROOTFS_EXTRA_SPACE:append = "${@bb.utils.contains("DISTRO_FEATURES", "systemd", " + 4096", "" ,d)}"
+
 TOOLCHAIN_HOST_TASK += " \
     nativesdk-make \
     nativesdk-cmake \
@@ -17,11 +18,10 @@ TOOLCHAIN_HOST_TASK += " \
     nativesdk-git \
 "
 
-TOOLCHAIN_TARGET_TASK += " \
+IRIS_TOOLCHAIN_TARGET_TASK = " \
     libstdc++-staticdev \
     googletest \
     protobuf \
-    protobuf-staticdev \
     dlib \
     nlohmann-json \
     json-schema-validator \
@@ -29,11 +29,11 @@ TOOLCHAIN_TARGET_TASK += " \
     libpng \
 "
 
-TOOLCHAIN_TARGET_TASK:append:poky-iris-0501 = " swupdate"
-TOOLCHAIN_TARGET_TASK:append:poky-iris-0602 = " swupdate"
+# protobuf-staticdev only exists on scarthgap, swupdate is not used on R1
+ADDITIONAL_IRIS_TOOLCHAIN_TARGET_TASK = "protobuf-staticdev swupdate"
+ADDITIONAL_IRIS_TOOLCHAIN_TARGET_TASK:poky-iris-0601 = ""
 
-# Remove protobuf-staticdev from R1 kirkstone build because it only exists on scarthgap
-TOOLCHAIN_TARGET_TASK:remove:poky-iris-0601 = " protobuf-staticdev"
+TOOLCHAIN_TARGET_TASK:append = " ${IRIS_TOOLCHAIN_TARGET_TASK} ${ADDITIONAL_IRIS_TOOLCHAIN_TARGET_TASK}"
 
 PV = "${DISTRO_VERSION}"
 inherit irma-firmware-versioning
@@ -42,10 +42,7 @@ IRMA_BASE_PACKAGES = " \
 	iris-ca-certificates \
 "
 
-IRMA_EXTRA_PACKAGES = ""
-
-# IRMA6 Release 2 only packages
-IRMA_EXTRA_PACKAGES:poky-iris-0602 = " \
+IRMA_EXTRA_PACKAGES = " \
 	iris-signing \
 	rsyslog \
 	chrony \
@@ -53,18 +50,11 @@ IRMA_EXTRA_PACKAGES:poky-iris-0602 = " \
 	wpa-supplicant \
 "
 
-# IRMA6 Release 1 only packages
+# install no extra packages on R1
 IRMA_EXTRA_PACKAGES:poky-iris-0601 = " \
 "
 
-# IRMA Matrix only packages
-IRMA_EXTRA_PACKAGES:poky-iris-0501 = " \
-"
-
-IMAGE_INSTALL:append = " \
-	${IRMA_BASE_PACKAGES} \
-	${IRMA_EXTRA_PACKAGES} \
-"
+IMAGE_INSTALL:append = " ${IRMA_BASE_PACKAGES} ${IRMA_EXTRA_PACKAGES}"
 
 # Include swupdate in image if swupdate is part of the update procedure
 IMAGE_INSTALL:append = " ${@bb.utils.contains('UPDATE_PROCEDURE', 'swupdate', 'swupdate swupdate-www', '', d)}"
@@ -89,40 +79,45 @@ replace_etc_version () {
 python () {
     d.appendVar('ROOTFS_POSTPROCESS_COMMAND', 'replace_etc_version;')
 
-    # Add task R2 only for ext4 builds
-    image_fstypes = d.getVar('IMAGE_FSTYPES')
-    compat_machines = (d.getVar('MACHINEOVERRIDES') or "").split(":")
-    if ('mx8mp-nxp-bsp' in compat_machines or 'mx93-nxp-bsp' in compat_machines) and 'ext4' in image_fstypes:
-        bb.build.addtask('do_generate_dmverity_hashes', 'do_image_complete', 'do_image_ext4', d)
-        d.prependVarFlag('do_generate_dmverity_hashes', 'postfuncs', 'create_symlinks ')
-        d.appendVarFlag('do_generate_dmverity_hashes', 'subimages', ' ' + ' '.join(["ext4.roothash", "ext4.roothash.signature", "ext4.hashdevice"]))
+    # Create .version file as image artifact
+    bb.build.addtask('do_image_version_artifact', 'do_image_complete', 'do_image', d)
+    d.prependVarFlag('do_image_version_artifact', 'postfuncs', 'create_symlinks ')
+    d.appendVarFlag('do_image_version_artifact', 'subimages', ' version')
+
+    # Add do_finalize_dmverity() task when creating a verity image
+    if 'verity' in d.getVar('IMAGE_FSTYPES'):
+        # read dm-verity salt to variable
+        d.setVar('VERITY_SALT', open(d.getVar('ROOTHASH_DM_VERITY_SALT'), 'r').read().strip())
+
+        # Set HASHDEV_SUFFIX so the dmverity image class creates a seperate hashdevice image
+        d.setVar('VERITY_IMAGE_HASHDEV_SUFFIX', '.hashdevice')
+
+        # Reduce the overhead factor to 1, because the verity rootfs will be read-only and free space is useless
+        d.setVar('IMAGE_OVERHEAD_FACTOR', '1.0')
+
+        # Add do_finalize_dmverity() task
+        bb.build.addtask('do_finalize_dmverity', 'do_image_complete', 'do_image_verity', d)
+        d.prependVarFlag('do_finalize_dmverity', 'postfuncs', 'create_symlinks ')
+        d.appendVarFlag('do_finalize_dmverity', 'subimages', ' ' + ' '.join(["ext4.roothash", "ext4.roothash.signature", "ext4.verity.gz"]))
 }
 
-# Generate dm-verity root hash
-SECURE_BOOT_DEPENDS = " cryptsetup-native gzip-native bc-native xxd-native openssl-native"
-DEPENDS:append:mx8mp-nxp-bsp = "${SECURE_BOOT_DEPENDS}"
-DEPENDS:append:mx93-nxp-bsp = "${SECURE_BOOT_DEPENDS}"
-do_generate_dmverity_hashes () {
-    blockdev=$(mktemp)
-    paddeddev=$(mktemp)
-    hashdev=$(mktemp)
 
-    # unzip ext4.gz image to tempfile
-    ext4img="${IMGDEPLOYDIR}/${IMAGE_NAME}.ext4.gz"
-    gzip -dc "${ext4img}" > "${blockdev}"
+IRMA_IMAGE_INHERIT = "image_types_verity"
+IRMA_IMAGE_INHERIT:poky-iris-0601 = "irma6-firmware-zip"
+inherit ${IRMA_IMAGE_INHERIT}
 
-    # get size of ext4 image and pad it to next 4MB block
-    ext4size=$(stat -c%s "${blockdev}")
-    paddedsize=$(echo "(((ext4size/(4*1024*1024)) + ((ext4size % (4*1024*1024)) > 0)) * (4*1024*1024))" | bc)
-    cat "${blockdev}" /dev/zero | head -c "${paddedsize}" > "${paddeddev}"
+# DEPEND on openssl and gzip
+do_finalize_dmverity[depends] += "openssl-native:do_populate_sysroot pigz-native:do_populate_sysroot"
 
-    salt=$(cat ${ROOTHASH_DM_VERITY_SALT})
-    output=$(veritysetup format -s "${salt}" "${blockdev}" "${hashdev}")
-    roothash=$(echo "$output" | grep "^Root hash:" | cut -f2)
+do_finalize_dmverity () {
+    # Compress verity image, unfortunately "verity.gz" does not work as IMAGE_FSTYPES as verity does not utilize the image creation core logic
+    # Command copied from poky - image_types.bbclass - CONVERSION_CMD:gz
+    gzip -f -9 -n -c --rsyncable ${IMGDEPLOYDIR}/${IMAGE_NAME}.ext4.verity > ${IMGDEPLOYDIR}/${IMAGE_NAME}.ext4.verity.gz
 
     # write roothash to image directory
+    verity_params="${IMGDEPLOYDIR}/${IMAGE_NAME}.ext4.verity-params"
     roothashfile="${IMGDEPLOYDIR}/${IMAGE_NAME}.ext4.roothash"
-    echo "${roothash}" > "${roothashfile}"
+    sed -ne '/VERITY_ROOT_HASH/s/VERITY_ROOT_HASH=//p' "${verity_params}" > "${roothashfile}"
 
     # sign roothash and write signature to image directory
     roothash_signature_file="${roothashfile}.signature"
@@ -131,13 +126,8 @@ do_generate_dmverity_hashes () {
         bbfatal "Signing roothash failed"
         exit 1
     fi
-
-    # copy hash device to image directory
-    hashdevfile="${IMGDEPLOYDIR}/${IMAGE_NAME}.ext4.hashdevice"
-    cp "${hashdev}" "${hashdevfile}"
-
-    # delete tempfiles
-    rm "${blockdev}" "${paddeddev}" "${hashdev}"
 }
 
-inherit irma6-firmware-zip
+do_image_version_artifact () {
+    echo "${FIRMWARE_VERSION}" > "${IMGDEPLOYDIR}/${IMAGE_NAME}.version"
+}

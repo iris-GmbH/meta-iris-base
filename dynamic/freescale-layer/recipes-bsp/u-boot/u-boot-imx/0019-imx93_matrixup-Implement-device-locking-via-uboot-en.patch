@@ -1,0 +1,91 @@
+From f607a92cb35b478a5b69b631437927df5cd98f36 Mon Sep 17 00:00:00 2001
+From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+Date: Tue, 10 Dec 2024 09:51:22 +0000
+Subject: [PATCH] imx93_matrixup: Implement device locking via uboot env:
+ lock_device
+
+Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+---
+ .../freescale/imx93_matrixup/imx93_matrixup.c | 36 +++++++++++++++++--
+ include/configs/imx93_matrixup.h              |  4 ++-
+ 2 files changed, 37 insertions(+), 3 deletions(-)
+
+diff --git a/board/freescale/imx93_matrixup/imx93_matrixup.c b/board/freescale/imx93_matrixup/imx93_matrixup.c
+index 7143cfc6445..b90c3aeae7c 100644
+--- a/board/freescale/imx93_matrixup/imx93_matrixup.c
++++ b/board/freescale/imx93_matrixup/imx93_matrixup.c
+@@ -13,6 +13,7 @@
+ #include <asm/arch-imx9/ccm_regs.h>
+ #include <asm/arch/sys_proto.h>
+ #include <asm/arch-imx9/imx93_pins.h>
++#include <asm/mach-imx/ele_api.h>
+ #include <asm/arch/clock.h>
+ #include <power/pmic.h>
+ #include "../common/tcpc.h"
+@@ -237,7 +238,9 @@ void board_autogenerate_bootcmd (void)
+ 	char altpartboot[20];
+ 	int upgrade_available = env_get_ulong("upgrade_available", 10, 0);
+ 	int ustate = env_get_ulong("ustate", 10, 0);
+-	int nfs_boot = env_get_ulong("nfs_boot", 10, 0);
++	int nfs_boot = 0;
++	int err = 0;
++	u32 lifecycle = 0, response = 0;
+ 
+ 	if ((upgrade_available == 1) && (ustate == 1)) {
+ 		if (firmware_env == 1) {
+@@ -261,7 +264,36 @@ void board_autogenerate_bootcmd (void)
+ 			firmware = "a";
+ 			altfirmware = "b";
+ 		}
+-}
++	}
++
++	/* The lifecycle value returned by ele_get_info() differs from the register
++	 * FSB_LC_OFFSET value. There might be a bug for the imx93. Since there is
++	 * no errata nor documentation on those register, we rely on similar nxp
++	 * code for checking the lifecycle state: See ele_ahab.c:do_ahab_close
++	 */
++#define FSB_LC_OFFSET 0x41c
++#define LC_OEM_OPEN 0x8
++
++	lifecycle = readl(FSB_BASE_ADDR + FSB_LC_OFFSET);
++	lifecycle &= 0x3ff;
++	printf("Lifecycle: 0x%08X\n", lifecycle);
++
++	if (lifecycle == LC_OEM_OPEN) {
++		// NFS Boot is only allowed in OPEN state
++		nfs_boot = env_get_ulong("nfs_boot", 10, 0);
++
++		// Close Device if requested from env: lock_device
++		if (env_get_ulong("lock_device", 10, 0)) {
++			err = ele_forward_lifecycle(8, &response);
++			if (err != 0) {
++				printf("Error in API call: forward lifecycle for state OEM CLOSED\n");
++			} else {
++				printf("Change to state OEM CLOSED successfully completed\n");
++			}
++			env_set_ulong("lock_device", 0);
++			env_save();
++		}
++	}
+ 
+ 	if (nfs_boot) {
+ 		snprintf(bootcmd, sizeof(bootcmd), "run netfitboot; reset;");
+diff --git a/include/configs/imx93_matrixup.h b/include/configs/imx93_matrixup.h
+index b4f7fb71572..3d0170ba22c 100644
+--- a/include/configs/imx93_matrixup.h
++++ b/include/configs/imx93_matrixup.h
+@@ -54,7 +54,9 @@
+ 	"upgrade_available:dw," \
+ 	"bootcount:dw," \
+ 	"ustate:dw," \
+-	"firmware:dw"
++	"firmware:dw," \
++	"nfs_boot:dw," \
++	"lock_device:dw"
+ 
+ /* Initial environment variables */
+ #define CFG_EXTRA_ENV_SETTINGS		\
+-- 
+2.47.1
+

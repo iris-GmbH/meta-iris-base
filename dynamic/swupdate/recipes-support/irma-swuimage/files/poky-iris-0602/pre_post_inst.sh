@@ -49,21 +49,40 @@ set_device_names() {
 	export LVM_SUPPRESS_FD_WARNINGS=1
 }
 
-unlock_device() {
-	# Add Black key to keyring
-	caam-keygen import $KEYSTORE/caam/volumeKey.bb volumeKey
-	keyctl padd logon logkey: @us < $KEYSTORE/caam/volumeKey
+add_hwkey_to_keyring() {
+	# remove possible persistent session caamkey left behind by uuu or pvsn flash
+	rm -f $KEYSTORE/caam/volumeKey
 
+	# create a session key from persistent key blob
+	caam-keygen import $KEYSTORE/caam/volumeKey.bb /tmp/volumeKey # has no usable exit codes
+
+	if ! [ -f /tmp/volumeKey ]; then
+		# compatibility for caam-keygen which does not allow absolute paths
+		# can be removed on firmware 7.x
+		caam-keygen import $KEYSTORE/caam/volumeKey.bb volumeKey
+		mv $KEYSTORE/caam/volumeKey /tmp/volumeKey
+	fi
+
+	# add session key to keyring
+	if ! keyctl padd logon logkey: @us < /tmp/volumeKey; then
+		rm -f /tmp/volumeKey
+		echo "Error: Failed to add logon key"
+		exit 1
+	fi
+	rm -f /tmp/volumeKey
+}
+
+unlock_alt_rootfs() {
 	# Remove the volume from previous failed run
 	if [ -b "$DECRYPT_ROOT_DEV" ]; then
-		lock_device
+		lock_alt_rootfs
 	fi
 
 	dmsetup create ${DECRYPT_NAME} --table "0 $(blockdev --getsz ${ROOT_DEV}) \
 		crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 ${ROOT_DEV} 0 1 sector_size:4096" || exit 1
 }
 
-lock_device() {
+lock_alt_rootfs() {
 	dmsetup remove ${DECRYPT_NAME}
 }
 
@@ -94,12 +113,14 @@ remove_symlinks() {
 
 mount_keystore() {
 	if ! grep -qs "${KEYSTORE}" /proc/mounts; then
-		mount -t vfat ${KEYSTORE_DEV} ${KEYSTORE} || exit 1
+		mount -t vfat -o rw,noatime ${KEYSTORE_DEV} ${KEYSTORE} || exit 1
 	fi
 }
 
 umount_keystore() {
-	umount ${KEYSTORE}
+	if grep -qs "${KEYSTORE}" /proc/mounts; then
+		umount ${KEYSTORE}
+	fi
 }
 
 imx_fuse_read () {
@@ -293,11 +314,12 @@ if [ "$1" = "preinst" ]; then
 	cmds_exist
 	parse_cmdline
 	set_device_names
-	mount_keystore
 	check_hab_srk
 	check_identity
 	resize_rootfs_lvm
-	unlock_device
+	mount_keystore
+	add_hwkey_to_keyring
+	unlock_alt_rootfs
 	get_bootdev_name
 	create_symlinks
 	create_webserver_symlinks
@@ -308,7 +330,7 @@ if [ "$1" = "postinst" ]; then
 	parse_cmdline
 	set_device_names
 	get_bootdev_name
-	lock_device
+	lock_alt_rootfs
 	verify_roothash_signature
 	remove_symlinks
 	umount_keystore

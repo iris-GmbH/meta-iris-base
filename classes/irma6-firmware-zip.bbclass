@@ -121,4 +121,4 @@ python do_createfirmwarezip() {
     create_meta_and_zip(deployfiles, 'bootloader', ['u-boot'])
 }
 
-addtask createfirmwarezip after do_rootfs before do_build
+addtask createfirmwarezip after do_image_complete

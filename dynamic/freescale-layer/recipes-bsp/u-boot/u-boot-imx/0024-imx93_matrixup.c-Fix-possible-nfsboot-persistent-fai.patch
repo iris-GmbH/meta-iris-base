@@ -1,0 +1,28 @@
+From 9bfb74ae1ff7a7a2995c91722b68eb63cfcb7d38 Mon Sep 17 00:00:00 2001
+From: Ian Dannapel <ian.dannapel@iris-sensing.com>
+Date: Tue, 24 Jun 2025 14:08:31 +0000
+Subject: [PATCH] imx93_matrixup.c: Fix possible nfsboot persistent failure
+
+If nfsboot achieves bootcount_error limit, altbootcmd is used but not set.
+
+Signed-off-by: Ian Dannapel <ian.dannapel@iris-sensing.com>
+---
+ board/freescale/imx93_matrixup/imx93_matrixup.c | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/board/freescale/imx93_matrixup/imx93_matrixup.c b/board/freescale/imx93_matrixup/imx93_matrixup.c
+index d0bf850c1dd..3d2eca9aa85 100644
+--- a/board/freescale/imx93_matrixup/imx93_matrixup.c
++++ b/board/freescale/imx93_matrixup/imx93_matrixup.c
+@@ -301,6 +301,8 @@ void board_autogenerate_bootcmd (void)
+ 
+ 	if (nfs_boot) {
+ 		snprintf(bootcmd, sizeof(bootcmd), "run netfitboot; reset;");
++		/* if nfsboot achieves bootcount_error limit, do not switch partition */
++		snprintf(altbootcmd, sizeof(altbootcmd), "run netfitboot; reset;");
+ 	} else {
+ 		snprintf(partboot, sizeof(partboot), "linuxboot_%s", firmware);
+ 		snprintf(altpartboot, sizeof(altpartboot), "linuxboot_%s", altfirmware);
+-- 
+2.44.3
+

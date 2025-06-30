@@ -1,0 +1,43 @@
+From 9b0348b4336884764b98cf426c83370e124ac0db Mon Sep 17 00:00:00 2001
+From: Erik Schumacher <erik.schumacher@iris-sensing.com>
+Date: Thu, 6 Feb 2025 16:04:17 +0000
+Subject: [PATCH] hwmon/ad7314: Force spi controller to operate with 16 bpw
+
+Due to the spi implementation on the i.MX93 the CS signal is deasserted
+between two consecutive 8 bit read operations. This behavior is a bit
+weird and leads to unwanted effects with the AD7314. The AD7314 will
+start to transmit the temperature value every time the chip select is
+asserted.
+
+Set bits_per_word to 16 so the chip select stays asserted during the
+whole temperature read-out.
+
+Signed-off-by: Erik Schumacher <erik.schumacher@iris-sensing.com>
+---
+ drivers/hwmon/ad7314.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/hwmon/ad7314.c b/drivers/hwmon/ad7314.c
+index 7802bbf5f958..11646371cf26 100644
+--- a/drivers/hwmon/ad7314.c
++++ b/drivers/hwmon/ad7314.c
+@@ -49,7 +49,7 @@ static int ad7314_spi_read(struct ad7314_data *chip)
+ 		return ret;
+ 	}
+ 
+-	return be16_to_cpu(chip->rx);
++	return chip->rx;
+ }
+ 
+ static ssize_t ad7314_temperature_show(struct device *dev,
+@@ -104,6 +104,7 @@ static int ad7314_probe(struct spi_device *spi_dev)
+ 	if (chip == NULL)
+ 		return -ENOMEM;
+ 
++	spi_dev->bits_per_word = 16;
+ 	chip->spi_dev = spi_dev;
+ 	hwmon_dev = devm_hwmon_device_register_with_groups(&spi_dev->dev,
+ 							   spi_dev->modalias,
+-- 
+2.48.1
+

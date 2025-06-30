@@ -1,28 +1,30 @@
-From 6f3bd4d043b25e19ad90c3a104cae71beaef16b1 Mon Sep 17 00:00:00 2001
-From: Ian Dannapel <ian.dannapel@iris-sensing.com>
-Date: Tue, 2 Aug 2022 16:19:22 +0200
+From 3abc1db05acf494b93f64dcb191c6fc47109061a Mon Sep 17 00:00:00 2001
+From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+Date: Fri, 1 Nov 2024 09:21:48 +0100
 Subject: [PATCH] createSRKFuses: add ecc keys
 
+Signed-off-by: Ian Dannapel <ian.dannapel@iris-sensing.com>
+Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
 ---
- createSRKFuses | 93 +++++++++++++++++++++++++++++---------------------
- 1 file changed, 54 insertions(+), 39 deletions(-)
+ createSRKFuses | 91 +++++++++++++++++++++++++++++---------------------
+ 1 file changed, 53 insertions(+), 38 deletions(-)
 
 diff --git a/createSRKFuses b/createSRKFuses
-index d8cbe65..1a47f31 100755
+index b7b0ad0..54cca71 100755
 --- a/createSRKFuses
 +++ b/createSRKFuses
-@@ -1,8 +1,8 @@
+@@ -1,9 +1,9 @@
 +#!/bin/bash
+ # SPDX-License-Identifier: BSD-3-Clause
  #
--# Copyright 2017-2018 NXP
-+# Copyright 2017-2018, 2022 NXP
+ # Copyright 2017-2018, 2023 NXP
  #
  ##########################################################################
 -#!/bin/bash
  #
  # SCRIPT:  	createSRKFuses
  #
-@@ -17,14 +17,21 @@
+@@ -18,14 +18,21 @@
  #Debug
  DEBUG=0
  
@@ -51,7 +53,7 @@ index d8cbe65..1a47f31 100755
  fi
  
  # Input SRK Table file
-@@ -33,12 +40,7 @@ if [[ -n "$SRKtablefile" &&  -f "$SRKtablefile" ]] ; then
+@@ -34,12 +41,7 @@ if [[ -n "$SRKtablefile" &&  -f "$SRKtablefile" ]] ; then
  	echo "SRK table file is $1"
  else
  	echo "File $1 doesnt exist or is empty"
@@ -65,7 +67,7 @@ index d8cbe65..1a47f31 100755
  fi
  
  # Number of SRK certs
-@@ -47,37 +49,50 @@ if [[ $2 > 0 && $2 < 5 ]] ; then
+@@ -48,37 +50,50 @@ if [[ $2 > 0 && $2 < 5 ]] ; then
  	echo "Number of SRKs are $nSRK"
  else
  	echo "Number of SRKs need to be between 1 and 4"
@@ -137,7 +139,7 @@ index d8cbe65..1a47f31 100755
  fi
  
  
-@@ -86,7 +101,7 @@ i=$nSRK
+@@ -87,7 +102,7 @@ i=$nSRK
  for nSRK in {1..4} ; do
  	dd if=$1 of=SRKCert$nSRK bs=1 skip=$((4+($countSize*($nSRK-1)))) count=$countSize
  	echo "File SRKCert$nSRK created"
@@ -146,7 +148,7 @@ index d8cbe65..1a47f31 100755
  		break
  	fi
  done
-@@ -99,7 +114,7 @@ for fSRK in SRKCert[1234] ; do
+@@ -100,7 +115,7 @@ for fSRK in SRKCert[1234] ; do
  			perl -e 'print pack "H*", <STDIN>' | \
  				dd of=$fSRK.bin bs=1 count=32
  	echo "File $fSRK.bin created"
@@ -155,7 +157,7 @@ index d8cbe65..1a47f31 100755
  		break
  	fi
  	i=$((i+1))
-@@ -112,7 +127,7 @@ cat SRKCert[1234].bin | \
+@@ -113,7 +128,7 @@ cat SRKCert[1234].bin | \
  			dd of=SRK_fuses.bin bs=1 count=32
  
  #remove all temp files
@@ -165,5 +167,5 @@ index d8cbe65..1a47f31 100755
  fi
  
 -- 
-2.25.1
+2.46.1
 

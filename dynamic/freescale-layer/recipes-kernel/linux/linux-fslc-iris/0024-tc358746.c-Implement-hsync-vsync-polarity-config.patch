@@ -1,7 +1,7 @@
-From 3c84ac6d9818ea70d05082edeb807c01ecc03b39 Mon Sep 17 00:00:00 2001
+From f4ad2794e46b7ba43062faaca3a41821bcb93227 Mon Sep 17 00:00:00 2001
 From: Erik Schumacher <erik.schumacher@iris-sensing.com>
 Date: Tue, 25 Jun 2024 13:38:08 +0000
-Subject: [PATCH 24/24] tc358746.c: Implement hsync/vsync polarity config
+Subject: [PATCH] tc358746.c: Implement hsync/vsync polarity config
 
 Use bus flags to set HVALIDP and VVALIDP registers
 
@@ -81,5 +81,5 @@ index 93604fd5d872..ee6747a3ee92 100644
  	asd = v4l2_async_nf_add_fwnode_remote(&tc358746->notifier, ep,
  					      struct v4l2_async_connection);
 -- 
-2.44.1
+2.47.0
 

@@ -1,0 +1,40 @@
+From 10a093823f4d445ee0b47f8521dbede563ce8197 Mon Sep 17 00:00:00 2001
+From: Ian Dannapel <ian.dannapel@iris-sensing.com>
+Date: Thu, 21 Nov 2024 17:39:04 +0100
+Subject: [PATCH] imx8-isi-cap.c: improve output in case of discarded buffers
+
+Signed-off-by: Ian Dannapel <ian.dannapel@iris-sensing.com>
+---
+ drivers/staging/media/imx/imx8-isi-cap.c | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/staging/media/imx/imx8-isi-cap.c b/drivers/staging/media/imx/imx8-isi-cap.c
+index 80b9e1053f79..1e92368671cb 100644
+--- a/drivers/staging/media/imx/imx8-isi-cap.c
++++ b/drivers/staging/media/imx/imx8-isi-cap.c
+@@ -221,11 +221,13 @@ void mxc_isi_cap_frame_write_done(struct mxc_isi_dev *mxc_isi)
+ 	 */
+ 	if ((is_buf_active(mxc_isi, 1) && buf->id == MXC_ISI_BUF1) ||
+ 	    (is_buf_active(mxc_isi, 2) && buf->id == MXC_ISI_BUF2)) {
+-		dev_dbg(dev, "status=0x%x id=%d\n", mxc_isi->status, buf->id);
++		dev_warn(dev, "unmatched buffer skipped. status=0x%x id=%d\n",
++			mxc_isi->status, buf->id);
+ 		goto unlock;
+ 	}
+ 
+ 	if (buf->discard) {
++		dev_warn(dev, "buffer discarded\n");
+ 		list_move_tail(isi_cap->out_active.next, &isi_cap->out_discard);
+ 	} else {
+ 		vb2 = &buf->v4l2_buf.vb2_buf;
+@@ -237,6 +239,7 @@ void mxc_isi_cap_frame_write_done(struct mxc_isi_dev *mxc_isi)
+ 	isi_cap->frame_count++;
+ 
+ 	if (list_empty(&isi_cap->out_pending)) {
++		dev_warn(dev, "no output buffers available\n");
+ 		if (list_empty(&isi_cap->out_discard)) {
+ 			dev_warn(dev, "trying to access empty discard list\n");
+ 			goto unlock;
+-- 
+2.43.0
+

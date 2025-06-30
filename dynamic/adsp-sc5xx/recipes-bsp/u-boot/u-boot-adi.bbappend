@@ -40,3 +40,14 @@ do_install:append() {
     install -d ${D}/${datadir}
     install ${B}/include/config/uboot.release ${D}${datadir}/uboot.release
 }
+
+do_fixldr() {
+    if [ "${TARGET_SYS}" != "arm-poky-linux-gnueabi" ]
+    then
+        # Layer "lnxdsp-adi-meta" (branch release/yocto-1.0.0) brings a pre-build LDR binary
+        # Create symlink if libc is not provided by glibc/gnueabi
+        cd "${WORKDIR}" && ln -sf arm-poky-linux-gnueabi-ldr "${TARGET_SYS}-ldr"
+    fi
+}
+
+addtask do_fixldr after do_unpack before do_configure

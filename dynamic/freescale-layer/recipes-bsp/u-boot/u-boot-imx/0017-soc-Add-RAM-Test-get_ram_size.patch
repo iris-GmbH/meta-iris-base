@@ -1,0 +1,72 @@
+From 6b3e8c2a4aec10e52ef036a604c71bd3b9d06c84 Mon Sep 17 00:00:00 2001
+From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+Date: Fri, 8 Nov 2024 12:29:11 +0000
+Subject: [PATCH] soc: Add RAM Test: get_ram_size
+
+U-Boot 2024.04-00018-ge986f0ade41 (Nov 08 2024 - 13:32:22 +0100)
+
+Reset Status: POR
+
+CPU:   NXP i.MX93(22) Rev1.1 A55 at 1700 MHz
+CPU:   Industrial temperature grade  (-40C to 105C) at 38C
+
+Model: NXP i.MX93 MATRIX UP board
+DRAM:  Test passed. 2GiB                           <--- !!!
+optee optee: OP-TEE api uid mismatch
+Core:  213 devices, 30 uclasses, devicetree: separate
+MMC:   FSL_SDHC: 0, FSL_SDHC: 1
+Loading Environment from nowhere... OK
+In:    serial
+Out:   serial
+Err:   serial
+
+Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+---
+ board/freescale/imx93_matrixup/imx93_matrixup.c | 17 +++++++++++++++++
+ include/configs/imx93_matrixup.h                |  2 ++
+ 2 files changed, 19 insertions(+)
+
+diff --git a/board/freescale/imx93_matrixup/imx93_matrixup.c b/board/freescale/imx93_matrixup/imx93_matrixup.c
+index 47fea8694fa..7143cfc6445 100644
+--- a/board/freescale/imx93_matrixup/imx93_matrixup.c
++++ b/board/freescale/imx93_matrixup/imx93_matrixup.c
+@@ -345,6 +345,23 @@ int board_late_init(void)
+ 	return 0;
+ }
+ 
++#if defined(CFG_SYS_DRAM_TEST)
++int testdram(void)
++{
++	long ram_size;
++
++	ram_size = get_ram_size((void*)CFG_SYS_SDRAM_BASE, PHYS_SDRAM_SIZE);
++	if (PHYS_SDRAM_SIZE != ram_size) {
++		printf("Test failed: expected %ld bytes, detected %ld bytes.\n",
++               (long) PHYS_SDRAM_SIZE, ram_size);
++		return 1;
++	}
++
++	printf("Test passed. ");
++	return 0;
++}
++#endif
++
+ #ifdef CONFIG_FSL_FASTBOOT
+ #ifdef CONFIG_ANDROID_RECOVERY
+ int is_recovery_key_pressing(void)
+diff --git a/include/configs/imx93_matrixup.h b/include/configs/imx93_matrixup.h
+index cee3d604e4e..b4f7fb71572 100644
+--- a/include/configs/imx93_matrixup.h
++++ b/include/configs/imx93_matrixup.h
+@@ -157,6 +157,8 @@
+ #define PHYS_SDRAM                      0x80000000
+ #define PHYS_SDRAM_SIZE			0x20000000 /* 512MB DDR */
+ 
++#define CFG_SYS_DRAM_TEST
++
+ /* Using ULP WDOG for reset */
+ #define WDOG_BASE_ADDR          WDG3_BASE_ADDR
+ 
+-- 
+2.47.1
+

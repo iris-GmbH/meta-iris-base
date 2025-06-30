@@ -1,0 +1,53 @@
+From de03f34fa3a55a03969c0594065033c1eac22645 Mon Sep 17 00:00:00 2001
+From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+Date: Wed, 19 Feb 2025 10:29:14 +0100
+Subject: [PATCH] imx93_matrixup: Populate lifecycle state via uboot-env
+
+Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+---
+ board/freescale/imx93_matrixup/imx93_matrixup.c | 4 ++++
+ include/configs/imx93_matrixup.h                | 6 ++++--
+ 2 files changed, 8 insertions(+), 2 deletions(-)
+
+diff --git a/board/freescale/imx93_matrixup/imx93_matrixup.c b/board/freescale/imx93_matrixup/imx93_matrixup.c
+index b90c3aeae7c..d0bf850c1dd 100644
+--- a/board/freescale/imx93_matrixup/imx93_matrixup.c
++++ b/board/freescale/imx93_matrixup/imx93_matrixup.c
+@@ -277,6 +277,10 @@ void board_autogenerate_bootcmd (void)
+ 	lifecycle = readl(FSB_BASE_ADDR + FSB_LC_OFFSET);
+ 	lifecycle &= 0x3ff;
+ 	printf("Lifecycle: 0x%08X\n", lifecycle);
++	if (lifecycle != env_get_hex("lifecycle", LC_OEM_OPEN)) {
++		env_set_hex("lifecycle", lifecycle);
++		env_save();
++	}
+ 
+ 	if (lifecycle == LC_OEM_OPEN) {
+ 		// NFS Boot is only allowed in OPEN state
+diff --git a/include/configs/imx93_matrixup.h b/include/configs/imx93_matrixup.h
+index 3d0170ba22c..07b511d0882 100644
+--- a/include/configs/imx93_matrixup.h
++++ b/include/configs/imx93_matrixup.h
+@@ -47,7 +47,8 @@
+ 	"sd_dev=1\0" \
+ 	"firmware=0\0" \
+ 	"upgrade_available=0\0" \
+-	"ustate=0\0"
++	"ustate=0\0" \
++	"lifecycle=8\0"
+ 
+ /* Limit write access to a minimum*/
+ #define CFG_ENV_FLAGS_LIST_STATIC \
+@@ -56,7 +57,8 @@
+ 	"ustate:dw," \
+ 	"firmware:dw," \
+ 	"nfs_boot:dw," \
+-	"lock_device:dw"
++	"lock_device:dw," \
++	"lifecycle:dw"
+ 
+ /* Initial environment variables */
+ #define CFG_EXTRA_ENV_SETTINGS		\
+-- 
+2.48.1
+

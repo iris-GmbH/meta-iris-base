@@ -1,0 +1,746 @@
+From c477c902c15729aa668a27f22812d8fc1d24b9e0 Mon Sep 17 00:00:00 2001
+From: Erik Schumacher <erik.schumacher@iris-sensing.com>
+Date: Fri, 27 Sep 2024 07:16:10 +0000
+Subject: [PATCH] Adapt imx93-matrixup board files
+
+Configure to 512 MB of RAM
+Set DDR VDDQ voltage (buck2) to 1.1V
+
+Upstream-Status: Inappropriate [hardware specific changes]
+Signed-off-by: Erik Schumacher <erik.schumacher@iris-sensing.com>
+Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+---
+ arch/arm/dts/imx93-matrixup-u-boot.dtsi       |  26 +-
+ arch/arm/dts/imx93-matrixup.dts               | 320 +++---------------
+ board/freescale/imx93_matrixup/Kconfig        |   2 +-
+ board/freescale/imx93_matrixup/Makefile       |   4 +-
+ .../freescale/imx93_matrixup/imx93_matrixup.c |  40 ---
+ board/freescale/imx93_matrixup/spl.c          |  10 +-
+ configs/imx93_matrixup_defconfig              |  21 +-
+ include/configs/imx93_matrixup.h              |  22 +-
+ 8 files changed, 59 insertions(+), 386 deletions(-)
+
+diff --git a/arch/arm/dts/imx93-matrixup-u-boot.dtsi b/arch/arm/dts/imx93-matrixup-u-boot.dtsi
+index 67caed023f2..7b0595ed54f 100644
+--- a/arch/arm/dts/imx93-matrixup-u-boot.dtsi
++++ b/arch/arm/dts/imx93-matrixup-u-boot.dtsi
+@@ -145,11 +145,11 @@
+ 	bootph-pre-ram;
+ };
+ 
+-&{/soc@0/bus@44000000/i2c@44350000/pmic@25} {
++&{/soc@0/bus@44000000/i2c@44340000/pmic@25} {
+ 	bootph-pre-ram;
+ };
+ 
+-&{/soc@0/bus@44000000/i2c@44350000/pmic@25/regulators} {
++&{/soc@0/bus@44000000/i2c@44340000/pmic@25/regulators} {
+ 	bootph-pre-ram;
+ };
+ 
+@@ -165,28 +165,6 @@
+ 	bootph-pre-ram;
+ };
+ 
+-&fec {
+-	phy-reset-gpios = <&pcal6524 16 GPIO_ACTIVE_LOW>;
+-	phy-reset-duration = <15>;
+-	phy-reset-post-delay = <100>;
+-};
+-
+-&ethphy1 {
+-	reset-gpios = <&pcal6524 15 GPIO_ACTIVE_LOW>;
+-	reset-assert-us = <15000>;
+-	reset-deassert-us = <100000>;
+-};
+-
+-&usbotg1 {
+-	status = "okay";
+-	extcon = <&ptn5110>;
+-};
+-
+-&usbotg2 {
+-	status = "okay";
+-	extcon = <&ptn5110_2>;
+-};
+-
+ &s4muap {
+ 	bootph-pre-ram;
+ 	bootph-some-ram;
+diff --git a/arch/arm/dts/imx93-matrixup.dts b/arch/arm/dts/imx93-matrixup.dts
+index b94165230ba..66d5a412760 100644
+--- a/arch/arm/dts/imx93-matrixup.dts
++++ b/arch/arm/dts/imx93-matrixup.dts
+@@ -5,16 +5,11 @@
+ 
+ /dts-v1/;
+ 
+-#include <dt-bindings/usb/pd.h>
+ #include "imx93.dtsi"
+ 
+ / {
+-	model = "NXP i.MX93 11X11 EVK board";
+-	compatible = "fsl,imx93-11x11-evk", "fsl,imx93";
+-
+-	aliases {
+-		rtc0 = &pcf2131;
+-	 };
++	model = "NXP i.MX93 MATRIX UP board";
++	compatible = "fsl,imx93-matrixup", "fsl,imx93";
+ 
+ 	chosen {
+ 		bootargs = "console=ttyLP0,115200";
+@@ -29,21 +24,12 @@
+ 		linux,cma {
+ 			compatible = "shared-dma-pool";
+ 			reusable;
+-			alloc-ranges = <0 0x80000000 0 0x40000000>;
+-			size = <0 0x10000000>;
++			alloc-ranges = <0 0x80000000 0 0x16000000>;
++			size = <0 0x6000000>;
+ 			linux,cma-default;
+ 		};
+ 	};
+ 
+-	reg_can2_stby: regulator-can2-stby {
+-		compatible = "regulator-fixed";
+-		regulator-name = "can2-stby";
+-		regulator-min-microvolt = <3300000>;
+-		regulator-max-microvolt = <3300000>;
+-		gpio = <&adp5585gpio 5 GPIO_ACTIVE_LOW>;
+-		enable-active-low;
+-	};
+-
+ 	reg_vref_1v8: regulator-adc-vref {
+ 		compatible = "regulator-fixed";
+ 		regulator-name = "vref_1v8";
+@@ -62,39 +48,6 @@
+ 		off-on-delay-us = <12000>;
+ 		enable-active-high;
+ 	};
+-
+-	reg_vdd_12v: regulator-vdd-12v {
+-		compatible = "regulator-fixed";
+-		regulator-name = "reg_vdd_12v";
+-		regulator-min-microvolt = <12000000>;
+-		regulator-max-microvolt = <12000000>;
+-		gpio = <&pcal6524 14 GPIO_ACTIVE_HIGH>;
+-		enable-active-high;
+-	};
+-
+-	dsi_host: dsi-host {
+-		compatible = "synopsys,dw-mipi-dsi";
+-		status = "okay";
+-	};
+-
+-	rm67199_panel {
+-		compatible = "raydium,rm67199";
+-		reset-gpio = <&adp5585gpio 6 GPIO_ACTIVE_LOW>;
+-		dsi-lanes = <4>;
+-		video-mode = <2>;	/* 0: burst mode
+-					 * 1: non-burst mode with sync event
+-					 * 2: non-burst mode with sync pulse
+-					 */
+-		width-mm = <68>;
+-		height-mm = <121>;
+-		status = "okay";
+-
+-		port {
+-			panel_in: endpoint {
+-				remote-endpoint = <&dsi_out>;
+-			};
+-		};
+-	};
+ };
+ 
+ &adc1 {
+@@ -106,24 +59,6 @@
+ 	status = "okay";
+ };
+ 
+-&dsi {
+-	status = "okay";
+-
+-	ports {
+-		port@1 {
+-			dsi_to_adv7535: endpoint {
+-				remote-endpoint = <&adv7535_to_dsi>;
+-			};
+-		};
+-
+-		port@2 {
+-			dsi_out: endpoint {
+-				remote-endpoint = <&panel_in>;
+-			};
+-		};
+-	};
+-};
+-
+ &mu1 {
+ 	status = "okay";
+ };
+@@ -135,9 +70,10 @@
+ &eqos {
+ 	pinctrl-names = "default";
+ 	pinctrl-0 = <&pinctrl_eqos>;
+-	phy-mode = "rgmii-id";
++	phy-mode = "rmii";
+ 	phy-handle = <&ethphy1>;
+ 	status = "okay";
++	assigned-clock-rates = <100000000>, <50000000>;
+ 
+ 	mdio {
+ 		compatible = "snps,dwmac-mdio";
+@@ -145,38 +81,17 @@
+ 		#size-cells = <0>;
+ 		clock-frequency = <5000000>;
+ 
+-		ethphy1: ethernet-phy@1 {
+-			reg = <1>;
++		ethphy1: ethernet-phy@0 {
++			compatible = "ethernet-phy-ieee802.3-c22";
++			reg = <0>;
+ 			eee-broken-1000t;
++			reset-gpios = <&gpio3 21 GPIO_ACTIVE_LOW>;
++			reset-assert-us = <10000>;
++			reset-deassert-us = <80000>;
+ 		};
+ 	};
+ };
+ 
+-&fec {
+-	pinctrl-names = "default";
+-	pinctrl-0 = <&pinctrl_fec>;
+-	phy-mode = "rgmii-id";
+-	phy-handle = <&ethphy2>;
+-	fsl,magic-packet;
+-	status = "okay";
+-
+-	mdio {
+-		#address-cells = <1>;
+-		#size-cells = <0>;
+-		clock-frequency = <5000000>;
+-
+-		ethphy2: ethernet-phy@2 {
+-			reg = <2>;
+-			eee-broken-1000t;
+-		};
+-	};
+-};
+-
+-&lcdif {
+-	status = "okay";
+-	assigned-clock-rates = <484000000>, <121000000>, <400000000>, <133333333>;
+-};
+-
+ &lpi2c1 {
+ 	#address-cells = <1>;
+ 	#size-cells = <0>;
+@@ -186,35 +101,13 @@
+ 	pinctrl-1 = <&pinctrl_lpi2c1>;
+ 	status = "okay";
+ 
+-	adv7535: hdmi@3d {
+-		compatible = "adi,adv7535";
+-		reg = <0x3d>;
+-		adi,addr-cec = <0x3c>;
+-		adi,dsi-lanes = <4>;
+-		status = "okay";
+-
+-		port {
+-			adv7535_to_dsi: endpoint {
+-				remote-endpoint = <&dsi_to_adv7535>;
+-			};
+-		};
+-	};
+-};
+-
+-&lpi2c2 {
+-	#address-cells = <1>;
+-	#size-cells = <0>;
+-	clock-frequency = <400000>;
+-	pinctrl-names = "default", "sleep";
+-	pinctrl-0 = <&pinctrl_lpi2c2>;
+-	pinctrl-1 = <&pinctrl_lpi2c2>;
+-	status = "okay";
+-
+ 	pmic@25 {
+ 		compatible = "nxp,pca9451a";
+ 		reg = <0x25>;
+-		interrupt-parent = <&pcal6524>;
+-		interrupts = <11 IRQ_TYPE_EDGE_FALLING>;
++		pinctrl-names = "default";
++		pinctrl-0 = <&pinctrl_pmic>;
++		interrupt-parent = <&gpio3>;
++		interrupts = <20 IRQ_TYPE_EDGE_FALLING>;
+ 
+ 		regulators {
+ 			buck1: BUCK1 {
+@@ -284,26 +177,16 @@
+ 			};
+ 		};
+ 	};
++};
+ 
+-	pcal6524: gpio@22 {
+-		compatible = "nxp,pcal6524";
+-		pinctrl-names = "default";
+-		pinctrl-0 = <&pinctrl_pcal6524>;
+-		reg = <0x22>;
+-		gpio-controller;
+-		#gpio-cells = <2>;
+-		interrupt-controller;
+-		#interrupt-cells = <2>;
+-		interrupt-parent = <&gpio3>;
+-		interrupts = <27 IRQ_TYPE_LEVEL_LOW>;
+-	};
+-
+-	adp5585gpio: gpio@34 {
+-		compatible = "adp5585";
+-		reg = <0x34>;
+-		gpio-controller;
+-		#gpio-cells = <2>;
+-	};
++&lpi2c2 {
++	#address-cells = <1>;
++	#size-cells = <0>;
++	clock-frequency = <400000>;
++	pinctrl-names = "default", "sleep";
++	pinctrl-0 = <&pinctrl_lpi2c2>;
++	pinctrl-1 = <&pinctrl_lpi2c2>;
++	status = "okay";
+ };
+ 
+ &lpi2c3 {
+@@ -314,68 +197,6 @@
+ 	pinctrl-0 = <&pinctrl_lpi2c3>;
+ 	pinctrl-1 = <&pinctrl_lpi2c3>;
+ 	status = "okay";
+-
+-	pcf2131: rtc@53 {
+-		compatible = "nxp,pcf2131";
+-		reg = <0x53>;
+-		interrupt-parent = <&pcal6524>;
+-		interrupts = <1 IRQ_TYPE_LEVEL_LOW>;
+-		status = "okay";
+-	};
+-
+-	ptn5110: tcpc@50 {
+-		compatible = "nxp,ptn5110";
+-		reg = <0x50>;
+-		interrupt-parent = <&gpio3>;
+-		interrupts = <27 IRQ_TYPE_LEVEL_LOW>;
+-		status = "okay";
+-
+-		port {
+-			typec1_dr_sw: endpoint {
+-				remote-endpoint = <&usb1_drd_sw>;
+-			};
+-		};
+-
+-		typec1_con: connector {
+-			compatible = "usb-c-connector";
+-			label = "USB-C";
+-			power-role = "dual";
+-			data-role = "dual";
+-			try-power-role = "sink";
+-			source-pdos = <PDO_FIXED(5000, 3000, PDO_FIXED_USB_COMM)>;
+-			sink-pdos = <PDO_FIXED(5000, 3000, PDO_FIXED_USB_COMM)
+-				     PDO_VAR(5000, 20000, 3000)>;
+-			op-sink-microwatt = <15000000>;
+-			self-powered;
+-		};
+-	};
+-
+-	ptn5110_2: tcpc@51 {
+-		compatible = "nxp,ptn5110";
+-		reg = <0x51>;
+-		interrupt-parent = <&gpio3>;
+-		interrupts = <27 IRQ_TYPE_LEVEL_LOW>;
+-		status = "okay";
+-
+-		port {
+-			typec2_dr_sw: endpoint {
+-				remote-endpoint = <&usb2_drd_sw>;
+-			};
+-		};
+-
+-		typec2_con: connector {
+-			compatible = "usb-c-connector";
+-			label = "USB-C";
+-			power-role = "dual";
+-			data-role = "dual";
+-			try-power-role = "sink";
+-			source-pdos = <PDO_FIXED(5000, 3000, PDO_FIXED_USB_COMM)>;
+-			sink-pdos = <PDO_FIXED(5000, 3000, PDO_FIXED_USB_COMM)
+-				     PDO_VAR(5000, 20000, 3000)>;
+-			op-sink-microwatt = <15000000>;
+-			self-powered;
+-		};
+-	};
+ };
+ 
+ &lpuart1 { /* console */
+@@ -388,42 +209,6 @@
+ 	status = "okay";
+ };
+ 
+-&usbotg1 {
+-	dr_mode = "otg";
+-	hnp-disable;
+-	srp-disable;
+-	adp-disable;
+-	usb-role-switch;
+-	disable-over-current;
+-	samsung,picophy-pre-emp-curr-control = <3>;
+-	samsung,picophy-dc-vol-level-adjust = <7>;
+-	status = "okay";
+-
+-	port {
+-		usb1_drd_sw: endpoint {
+-			remote-endpoint = <&typec1_dr_sw>;
+-		};
+-	};
+-};
+-
+-&usbotg2 {
+-	dr_mode = "otg";
+-	hnp-disable;
+-	srp-disable;
+-	adp-disable;
+-	usb-role-switch;
+-	disable-over-current;
+-	samsung,picophy-pre-emp-curr-control = <3>;
+-	samsung,picophy-dc-vol-level-adjust = <7>;
+-	status = "okay";
+-
+-	port {
+-		usb2_drd_sw: endpoint {
+-			remote-endpoint = <&typec2_dr_sw>;
+-		};
+-	};
+-};
+-
+ &usdhc1 {
+ 	pinctrl-names = "default", "state_100mhz", "state_200mhz";
+ 	pinctrl-0 = <&pinctrl_usdhc1>;
+@@ -475,20 +260,18 @@
+ &iomuxc {
+ 	pinctrl_eqos: eqosgrp {
+ 		fsl,pins = <
+-			MX93_PAD_ENET1_MDC__ENET_QOS_MDC			0x57e
+-			MX93_PAD_ENET1_MDIO__ENET_QOS_MDIO			0x57e
+-			MX93_PAD_ENET1_RD0__ENET_QOS_RGMII_RD0			0x57e
+-			MX93_PAD_ENET1_RD1__ENET_QOS_RGMII_RD1			0x57e
+-			MX93_PAD_ENET1_RD2__ENET_QOS_RGMII_RD2			0x57e
+-			MX93_PAD_ENET1_RD3__ENET_QOS_RGMII_RD3			0x57e
+-			MX93_PAD_ENET1_RXC__CCM_ENET_QOS_CLOCK_GENERATE_RX_CLK	0x5fe
+-			MX93_PAD_ENET1_RX_CTL__ENET_QOS_RGMII_RX_CTL		0x57e
+-			MX93_PAD_ENET1_TD0__ENET_QOS_RGMII_TD0			0x57e
+-			MX93_PAD_ENET1_TD1__ENET_QOS_RGMII_TD1			0x57e
+-			MX93_PAD_ENET1_TD2__ENET_QOS_RGMII_TD2			0x57e
+-			MX93_PAD_ENET1_TD3__ENET_QOS_RGMII_TD3			0x57e
+-			MX93_PAD_ENET1_TXC__CCM_ENET_QOS_CLOCK_GENERATE_TX_CLK	0x5fe
+-			MX93_PAD_ENET1_TX_CTL__ENET_QOS_RGMII_TX_CTL		0x57e
++			MX93_PAD_ENET1_MDC__ENET_QOS_MDC                        0x57e
++			MX93_PAD_ENET1_MDIO__ENET_QOS_MDIO                      0x57e
++			MX93_PAD_ENET1_RD0__ENET_QOS_RGMII_RD0                  0x57e
++			MX93_PAD_ENET1_RD1__ENET_QOS_RGMII_RD1                  0x57e
++			MX93_PAD_ENET1_RX_CTL__ENET_QOS_RGMII_RX_CTL            0x57e
++			MX93_PAD_ENET1_TD0__ENET_QOS_RGMII_TD0                  0x57e
++			MX93_PAD_ENET1_TD1__ENET_QOS_RGMII_TD1                  0x57e
++			MX93_PAD_ENET1_TX_CTL__ENET_QOS_RGMII_TX_CTL            0x57e
++			MX93_PAD_ENET1_RXC__ENET_QOS_RX_ER                      0x57e
++			MX93_PAD_ENET1_TD2__CCM_ENET_QOS_CLOCK_GENERATE_REF_CLK 0x400005fe
++			MX93_PAD_SD3_CMD__GPIO3_IO21                            0x31e /* E_NRST */
++			MX93_PAD_SD3_DATA0__GPIO3_IO22                          0x31e /* E_INT */
+ 		>;
+ 	};
+ 
+@@ -503,25 +286,6 @@
+ 		>;
+ 	};
+ 
+-	pinctrl_fec: fecgrp {
+-		fsl,pins = <
+-			MX93_PAD_ENET2_MDC__ENET1_MDC			0x57e
+-			MX93_PAD_ENET2_MDIO__ENET1_MDIO			0x57e
+-			MX93_PAD_ENET2_RD0__ENET1_RGMII_RD0		0x57e
+-			MX93_PAD_ENET2_RD1__ENET1_RGMII_RD1		0x57e
+-			MX93_PAD_ENET2_RD2__ENET1_RGMII_RD2		0x57e
+-			MX93_PAD_ENET2_RD3__ENET1_RGMII_RD3		0x57e
+-			MX93_PAD_ENET2_RXC__ENET1_RGMII_RXC		0x5fe
+-			MX93_PAD_ENET2_RX_CTL__ENET1_RGMII_RX_CTL	0x57e
+-			MX93_PAD_ENET2_TD0__ENET1_RGMII_TD0		0x57e
+-			MX93_PAD_ENET2_TD1__ENET1_RGMII_TD1		0x57e
+-			MX93_PAD_ENET2_TD2__ENET1_RGMII_TD2		0x57e
+-			MX93_PAD_ENET2_TD3__ENET1_RGMII_TD3		0x57e
+-			MX93_PAD_ENET2_TXC__ENET1_RGMII_TXC		0x5fe
+-			MX93_PAD_ENET2_TX_CTL__ENET1_RGMII_TX_CTL	0x57e
+-		>;
+-	};
+-
+ 	pinctrl_lpi2c1: lpi2c1grp {
+ 		fsl,pins = <
+ 			MX93_PAD_I2C1_SCL__LPI2C1_SCL			0x40000b9e
+@@ -543,16 +307,16 @@
+ 		>;
+ 	};
+ 
+-	pinctrl_pcal6524: pcal6524grp {
++	pinctrl_uart1: uart1grp {
+ 		fsl,pins = <
+-			MX93_PAD_CCM_CLKO2__GPIO3_IO27			0x31e
++			MX93_PAD_UART1_RXD__LPUART1_RX			0x31e
++			MX93_PAD_UART1_TXD__LPUART1_TX			0x31e
+ 		>;
+ 	};
+ 
+-	pinctrl_uart1: uart1grp {
++	pinctrl_pmic: pmicgrp {
+ 		fsl,pins = <
+-			MX93_PAD_UART1_RXD__LPUART1_RX			0x31e
+-			MX93_PAD_UART1_TXD__LPUART1_TX			0x31e
++			MX93_PAD_SD3_CLK__GPIO3_IO20			0x31e
+ 		>;
+ 	};
+ 
+diff --git a/board/freescale/imx93_matrixup/Kconfig b/board/freescale/imx93_matrixup/Kconfig
+index 804f82899d0..a358c6cda99 100644
+--- a/board/freescale/imx93_matrixup/Kconfig
++++ b/board/freescale/imx93_matrixup/Kconfig
+@@ -9,7 +9,7 @@ config SYS_VENDOR
+ config SYS_CONFIG_NAME
+ 	default "imx93_matrixup"
+ 
+-config IMX93_EVK_LPDDR4X
++config IMX93_MATRIXUP_LPDDR4X
+ 	bool "Using LPDDR4X Timing and PMIC voltage"
+ 	default y
+ 	select IMX9_LPDDR4X
+diff --git a/board/freescale/imx93_matrixup/Makefile b/board/freescale/imx93_matrixup/Makefile
+index ebb46997364..54a083ad266 100644
+--- a/board/freescale/imx93_matrixup/Makefile
++++ b/board/freescale/imx93_matrixup/Makefile
+@@ -9,8 +9,8 @@ obj-y += imx93_matrixup.o
+ ifdef CONFIG_SPL_BUILD
+ obj-y += spl.o
+ ifdef CONFIG_IMX9_DRAM_INLINE_ECC
+-obj-$(CONFIG_IMX93_EVK_LPDDR4X) += lpddr4x_timing_ecc.o lpddr4x_timing_1866mts_ecc.o
++obj-$(CONFIG_IMX93_MATRIXUP_LPDDR4X) += lpddr4x_timing_ecc.o lpddr4x_timing_1866mts_ecc.o
+ else
+-obj-$(CONFIG_IMX93_EVK_LPDDR4X) += lpddr4x_timing.o lpddr4x_timing_1866mts.o
++obj-$(CONFIG_IMX93_MATRIXUP_LPDDR4X) += lpddr4x_timing.o lpddr4x_timing_1866mts.o
+ endif
+ endif
+diff --git a/board/freescale/imx93_matrixup/imx93_matrixup.c b/board/freescale/imx93_matrixup/imx93_matrixup.c
+index d20977c0f85..47fea8694fa 100644
+--- a/board/freescale/imx93_matrixup/imx93_matrixup.c
++++ b/board/freescale/imx93_matrixup/imx93_matrixup.c
+@@ -154,34 +154,6 @@ struct tcpc_port_config port2_config = {
+ 	.disable_pd = true,
+ };
+ 
+-static int setup_typec(void)
+-{
+-	int ret;
+-
+-	debug("tcpc_init port pd\n");
+-	ret = tcpc_init(&portpd, portpd_config, NULL);
+-	if (ret) {
+-		printf("%s: tcpc portpd init failed, err=%d\n",
+-		       __func__, ret);
+-	}
+-
+-	debug("tcpc_init port 2\n");
+-	ret = tcpc_init(&port2, port2_config, NULL);
+-	if (ret) {
+-		printf("%s: tcpc port2 init failed, err=%d\n",
+-		       __func__, ret);
+-	}
+-
+-	debug("tcpc_init port 1\n");
+-	ret = tcpc_init(&port1, port1_config, NULL);
+-	if (ret) {
+-		printf("%s: tcpc port1 init failed, err=%d\n",
+-		       __func__, ret);
+-	}
+-
+-	return ret;
+-}
+-
+ int board_usb_init(int index, enum usb_init_type init)
+ {
+ 	int ret = 0;
+@@ -246,11 +218,6 @@ int board_ehci_usb_phy_mode(struct udevice *dev)
+ }
+ #endif
+ 
+-static int setup_fec(void)
+-{
+-	return set_clk_enet(ENET_125MHZ);
+-}
+-
+ int board_phy_config(struct phy_device *phydev)
+ {
+ 	if (phydev->drv->config)
+@@ -354,13 +321,6 @@ static void board_gpio_init(void)
+ 
+ int board_init(void)
+ {
+-#ifdef CONFIG_USB_TCPC
+-	setup_typec();
+-#endif
+-
+-	if (IS_ENABLED(CONFIG_FEC_MXC))
+-		setup_fec();
+-
+ 	board_gpio_init();
+ 
+ 	return 0;
+diff --git a/board/freescale/imx93_matrixup/spl.c b/board/freescale/imx93_matrixup/spl.c
+index e52a95522ab..8c42f7e3f78 100644
+--- a/board/freescale/imx93_matrixup/spl.c
++++ b/board/freescale/imx93_matrixup/spl.c
+@@ -71,7 +71,7 @@ extern struct dram_timing_info dram_timing_1866mts;
+ void spl_dram_init(void)
+ {
+ 	struct dram_timing_info *ptiming = &dram_timing;
+-#if IS_ENABLED(CONFIG_IMX93_EVK_LPDDR4X)
++#if IS_ENABLED(CONFIG_IMX93_MATRIXUP_LPDDR4X)
+ 	if (is_voltage_mode(VOLT_LOW_DRIVE))
+ 		ptiming = &dram_timing_1866mts;
+ #endif
+@@ -192,10 +192,10 @@ int power_init_board(void)
+ 		pmic_reg_write(dev, PCA9450_BUCK3OUT_DVS0, buck_val + 0x4);
+ 	}
+ 
+-	if (IS_ENABLED(CONFIG_IMX93_EVK_LPDDR4)) {
+-		/* Set VDDQ to 1.1V from buck2 */
+-		pmic_reg_write(dev, PCA9450_BUCK2OUT_DVS0, 0x28);
+-	}
++	/* LPDDR4x on MatrixUP can operate with 0.6V or 1.1V
++	 * Operation is more stable at 1.1V, so
++	 * set VDDQ to 1.1V from buck2 */
++	pmic_reg_write(dev, PCA9450_BUCK2OUT_DVS0, 0x28);
+ 
+ 	/* set standby voltage to 0.65v */
+ 	if (val & PCA9450_REG_PWRCTRL_TOFF_DEB)
+diff --git a/configs/imx93_matrixup_defconfig b/configs/imx93_matrixup_defconfig
+index 540872d3048..203197a1332 100644
+--- a/configs/imx93_matrixup_defconfig
++++ b/configs/imx93_matrixup_defconfig
+@@ -10,11 +10,10 @@ CONFIG_SF_DEFAULT_SPEED=40000000
+ CONFIG_ENV_SIZE=0x4000
+ CONFIG_ENV_OFFSET=0x700000
+ CONFIG_DM_GPIO=y
+-CONFIG_DEFAULT_DEVICE_TREE="imx93-11x11-evk"
++CONFIG_DEFAULT_DEVICE_TREE="imx93-matrixup"
+ CONFIG_SPL_TEXT_BASE=0x2049A000
+ CONFIG_AHAB_BOOT=y
+-CONFIG_USB_TCPC=y
+-CONFIG_TARGET_IMX93_11X11_EVK=y
++CONFIG_TARGET_IMX93_MATRIXUP=y
+ CONFIG_OF_LIBFDT_OVERLAY=y
+ CONFIG_SYS_MONITOR_LEN=524288
+ CONFIG_SPL_SERIAL=y
+@@ -34,7 +33,7 @@ CONFIG_FIT_SIGNATURE=y
+ CONFIG_DISTRO_DEFAULTS=y
+ CONFIG_OF_SYSTEM_SETUP=y
+ CONFIG_BOOTCOMMAND="run sr_ir_v2_cmd;run distro_bootcmd;run bsp_bootcmd"
+-CONFIG_DEFAULT_FDT_FILE="imx93-11x11-evk.dtb"
++CONFIG_DEFAULT_FDT_FILE="imx93-matrixup.dtb"
+ CONFIG_SYS_CBSIZE=2048
+ CONFIG_SYS_PBSIZE=2074
+ CONFIG_ARCH_MISC_INIT=y
+@@ -77,8 +76,8 @@ CONFIG_CMD_POWEROFF=y
+ CONFIG_CMD_USB=y
+ CONFIG_CMD_USB_MASS_STORAGE=y
+ CONFIG_CMD_SNTP=y
+-CONFIG_CMD_BMP=y
+ CONFIG_CMD_CACHE=y
++CONFIG_CMD_CLS=y
+ CONFIG_CMD_EFIDEBUG=y
+ CONFIG_CMD_RTC=y
+ CONFIG_CMD_TIME=y
+@@ -179,18 +178,6 @@ CONFIG_USB_GADGET_VENDOR_NUM=0x1fc9
+ CONFIG_USB_GADGET_PRODUCT_NUM=0x0152
+ CONFIG_CI_UDC=y
+ CONFIG_USB_PORT_AUTO=y
+-CONFIG_VIDEO=y
+-CONFIG_VIDEO_LOGO=y
+-CONFIG_SYS_WHITE_ON_BLACK=y
+-CONFIG_VIDEO_LCD_RAYDIUM_RM67191=y
+-CONFIG_VIDEO_IMX_DW_DSI=y
+-CONFIG_VIDEO_IMX_LCDIFV3=y
+-CONFIG_SPLASH_SCREEN=y
+-CONFIG_SPLASH_SCREEN_ALIGN=y
+-CONFIG_BMP_16BPP=y
+-CONFIG_BMP_24BPP=y
+-CONFIG_BMP_32BPP=y
+-CONFIG_VIDEO_ADV7535=y
+ CONFIG_ULP_WATCHDOG=y
+ CONFIG_SPL_RSA=y
+ CONFIG_SHA384=y
+diff --git a/include/configs/imx93_matrixup.h b/include/configs/imx93_matrixup.h
+index 3bef544175a..0d5c4e3729e 100644
+--- a/include/configs/imx93_matrixup.h
++++ b/include/configs/imx93_matrixup.h
+@@ -3,8 +3,8 @@
+  * Copyright 2022 NXP
+  */
+ 
+-#ifndef __IMX93_EVK_H
+-#define __IMX93_EVK_H
++#ifndef __IMX93_MATRIXUP_H
++#define __IMX93_MATRIXUP_H
+ 
+ #include <linux/sizes.h>
+ #include <linux/stringify.h>
+@@ -31,17 +31,6 @@
+ #define BOOTENV
+ #endif
+ 
+-#define JH_ROOT_DTB    "imx93-11x11-evk-root.dtb"
+-
+-#define JAILHOUSE_ENV \
+-	"jh_root_dtb=" JH_ROOT_DTB "\0" \
+-	"jh_mmcboot=setenv fdtfile ${jh_root_dtb}; " \
+-		    "setenv jh_clk clk_ignore_unused mem=1248MB kvm-arm.mode=nvhe; " \
+-		    "if run loadimage; then run mmcboot;" \
+-		    "else run jh_netboot; fi; \0" \
+-	"jh_netboot=setenv fdtfile ${jh_root_dtb}; " \
+-		    "setenv jh_clk clk_ignore_unused mem=1248MB kvm-arm.mode=nvhe; run netboot; \0 "
+-
+ #define SR_IR_V2_COMMAND \
+ 	"nodes=/usbg1 /usbg2 /wdt-reboot /rm67199_panel /dsi-host /display-subsystem /soc@0/bus@44000000/dma-controller@44000000 /soc@0/bus@44000000/sai@443b0000 /soc@0/bus@44000000/mqs1 /soc@0/bus@44000000/bbnsm@44440000 /soc@0/bus@44000000/system-controller@44460000 /soc@0/bus@44000000/tmu@44482000 /soc@0/bus@44000000/micfil@44520000 /soc@0/bus@42000000/dma-controller@42000000 /soc@0/bus@44000000/i3c-master@44330000 /soc@0/bus@42000000/i3c-master@42520000 /soc@0/bus@42000000/sai@42650000 /soc@0/bus@42000000/sai@42660000 /soc@0/bus@42000000/mqs2 /soc@0/bus@42000000/xcvr@42680000 /soc@0/bus@42000000/flexio@425c0000 /soc@0/bus@42800000/epxp@4ae20000 /soc@0/bus@42800000/camera /soc@0/efuse@47510000 /soc@0/system-controller@4ac10000 /soc@0/ldb@4ac10020 /soc@0/phy@4ac10024 /soc@0/ele-mu /soc@0/dsi@4ae10000 /soc@0/lcd-controller@4ae30000 /soc@0/blk-ctrl@4e010000 /soc@0/memory-controller@4e300000 /soc@0/bus@44000000/i2c@44350000/pmic@25 /imx93-lpm  \0" \
+ 	"sr_ir_v2_cmd=cp.b ${fdtcontroladdr} ${fdt_addr_r} 0x10000;"\
+@@ -69,7 +58,6 @@
+ 
+ /* Initial environment variables */
+ #define CFG_EXTRA_ENV_SETTINGS		\
+-	JAILHOUSE_ENV \
+ 	CFG_MFG_ENV_SETTINGS \
+ 	BOOTENV \
+ 	AHAB_ENV \
+@@ -167,7 +155,7 @@
+ 
+ #define CFG_SYS_SDRAM_BASE           0x80000000
+ #define PHYS_SDRAM                      0x80000000
+-#define PHYS_SDRAM_SIZE			0x80000000 /* 2GB DDR */
++#define PHYS_SDRAM_SIZE			0x20000000 /* 512MB DDR */
+ 
+ /* Using ULP WDOG for reset */
+ #define WDOG_BASE_ADDR          WDG3_BASE_ADDR
+@@ -180,8 +168,4 @@
+ #define NS_ARCH_ARM64 1
+ #endif
+ 
+-#ifdef CONFIG_ANDROID_SUPPORT
+-#include "imx93_evk_android.h"
+-#endif
+-
+ #endif
+-- 
+2.48.1
+
