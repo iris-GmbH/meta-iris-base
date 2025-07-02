@@ -4,6 +4,7 @@ software =
     bootloader_transaction_marker = false;
     description = "Firmware update for IRMA image";
     hardware-compatibility = [ "@@SWU_HW_VERSION@@" ];
+    update-type="OS";
 
     files: (
         {
