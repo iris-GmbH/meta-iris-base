@@ -1,0 +1,41 @@
+From d1383c0c5cbab796d1156526260d07e8b0b2d458 Mon Sep 17 00:00:00 2001
+From: Stefano Babic <stefano.babic@swupdate.org>
+Date: Thu, 3 Jul 2025 14:46:28 +0200
+Subject: [PATCH 11/11] tools: swupdate-ipc: support for update-types
+
+Extend IPC for versions to pass the update-type's name. If not set, it
+works as before and the global versions are set.
+
+Signed-off-by: Stefano Babic <stefano.babic@swupdate.org>
+
+Upstream-Status: Submitted [https://groups.google.com/g/swupdate/c/7f3Q2PAgQPY]
+---
+ tools/swupdate-ipc.c | 8 ++++++--
+ 1 file changed, 6 insertions(+), 2 deletions(-)
+
+diff --git a/tools/swupdate-ipc.c b/tools/swupdate-ipc.c
+index 0dfaeac5..f3738193 100644
+--- a/tools/swupdate-ipc.c
++++ b/tools/swupdate-ipc.c
+@@ -420,12 +420,16 @@ static int sendaes(cmd_t *cmd, int argc, char *argv[]) {
+ }
+ 
+ static int setversions(cmd_t *cmd, int argc, char *argv[]) {
+-	if (argc != 4) {
++	char *type = NULL;
++	if (argc < 4) {
+ 		cmd->usage(argv[0]);
+ 		return 1;
+ 	}
+ 
+-	if (swupdate_set_version_range(argv[2], argv[3], argv[4])) {
++	if (argc == 5)
++		type = argv[5];
++
++	if (swupdate_set_version_range_type(type, argv[2], argv[3], argv[4])) {
+ 		fprintf(stderr, "Error IPC setting versions\n");
+ 		return 1;
+ 	}
+-- 
+2.44.3
+
