@@ -86,7 +86,7 @@ python () {
 
     # Add do_finalize_dmverity() task when creating a verity image
     if 'verity' in d.getVar('IMAGE_FSTYPES'):
-        # read dm-verity salt to variable
+        # read dm-verity salt to variable; file added to SRC_URI to fix basehash conflicts when the file content changes
         d.setVar('VERITY_SALT', open(d.getVar('ROOTHASH_DM_VERITY_SALT'), 'r').read().strip())
 
         # Set HASHDEV_SUFFIX so the dmverity image class creates a seperate hashdevice image
@@ -101,6 +101,8 @@ python () {
         d.appendVarFlag('do_finalize_dmverity', 'subimages', ' ' + ' '.join(["ext4.roothash", "ext4.roothash.signature", "ext4.verity.gz"]))
 }
 
+# Tell bitbake to track the salt file and to reparse the recipe when the salt changes
+SRC_URI += "file://${ROOTHASH_DM_VERITY_SALT}"
 
 IRMA_IMAGE_INHERIT = "image_types_verity"
 IRMA_IMAGE_INHERIT:poky-iris-0601 = "irma6-firmware-zip"
