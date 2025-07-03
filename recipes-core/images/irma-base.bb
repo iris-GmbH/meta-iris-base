@@ -95,6 +95,12 @@ python () {
         d.appendVarFlag('do_finalize_dmverity', 'subimages', ' ' + ' '.join(["ext4.roothash", "ext4.roothash.signature", "ext4.verity.gz"]))
 }
 
+# Tell bitbake to track dmverity related files and to reparse the recipe when they change
+SRC_URI += "\
+    file://${ROOTHASH_DM_VERITY_SALT} \
+    file://${ROOTHASH_SIGNING_PRIVATE_KEY} \
+"
+
 python do_image_verity:prepend () {
     # We need to open an external file (ROOTHASH_DM_VERITY_SALT read into VERITY_SALT). Setting these variables in the
     # parsing phase with an anonymous python function leads to "basehash/taskhash changed" errors. So we prepend these
