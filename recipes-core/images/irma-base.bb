@@ -86,12 +86,6 @@ python () {
 
     # Add do_finalize_dmverity() task when creating a verity image
     if 'verity' in d.getVar('IMAGE_FSTYPES'):
-        # read dm-verity salt to variable; file added to SRC_URI to fix basehash conflicts when the file content changes
-        d.setVar('VERITY_SALT', open(d.getVar('ROOTHASH_DM_VERITY_SALT'), 'r').read().strip())
-
-        # Set HASHDEV_SUFFIX so the dmverity image class creates a seperate hashdevice image
-        d.setVar('VERITY_IMAGE_HASHDEV_SUFFIX', '.hashdevice')
-
         # Reduce the overhead factor to 1, because the verity rootfs will be read-only and free space is useless
         d.setVar('IMAGE_OVERHEAD_FACTOR', '1.0')
 
@@ -101,8 +95,17 @@ python () {
         d.appendVarFlag('do_finalize_dmverity', 'subimages', ' ' + ' '.join(["ext4.roothash", "ext4.roothash.signature", "ext4.verity.gz"]))
 }
 
-# Tell bitbake to track the salt file and to reparse the recipe when the salt changes
-SRC_URI += "file://${ROOTHASH_DM_VERITY_SALT}"
+python do_image_verity:prepend () {
+    # We need to open an external file (ROOTHASH_DM_VERITY_SALT read into VERITY_SALT). Setting these variables in the
+    # parsing phase with an anonymous python function leads to "basehash/taskhash changed" errors. So we prepend these
+    # steps here to the do_image_verity() function.
+
+    # read dm-verity salt to variable
+    d.setVar('VERITY_SALT', open(d.getVar('ROOTHASH_DM_VERITY_SALT'), 'r').read().strip())
+
+    # Set HASHDEV_SUFFIX so the dmverity image class creates a seperate hashdevice image
+    d.setVar('VERITY_IMAGE_HASHDEV_SUFFIX', '.hashdevice')
+}
 
 IRMA_IMAGE_INHERIT = "image_types_verity"
 IRMA_IMAGE_INHERIT:poky-iris-0601 = "irma6-firmware-zip"
