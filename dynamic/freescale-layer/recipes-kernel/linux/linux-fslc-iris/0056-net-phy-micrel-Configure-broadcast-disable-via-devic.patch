@@ -1,0 +1,67 @@
+From a7d802fe1a8a32d675b3ad3472cb930443d11c88 Mon Sep 17 00:00:00 2001
+From: Erik Schumacher <erik.schumacher@iris-sensing.com>
+Date: Mon, 21 Jul 2025 14:05:30 +0200
+Subject: [PATCH] net/phy/micrel: Configure broadcast disable via devicetree
+
+Introduce micrel,keep-broadcast-phyaddr-enabled devicetree option that
+stops the driver from disabling the broadcast address during
+initialization.
+
+Signed-off-by: Erik Schumacher <erik.schumacher@iris-sensing.com>
+---
+ Documentation/devicetree/bindings/net/micrel.txt | 12 ++++++++++++
+ drivers/net/phy/micrel.c                         | 11 ++++++++++-
+ 2 files changed, 22 insertions(+), 1 deletion(-)
+
+diff --git a/Documentation/devicetree/bindings/net/micrel.txt b/Documentation/devicetree/bindings/net/micrel.txt
+index a407dd1b4614..fbb276860f71 100644
+--- a/Documentation/devicetree/bindings/net/micrel.txt
++++ b/Documentation/devicetree/bindings/net/micrel.txt
+@@ -55,3 +55,15 @@ Optional properties:
+ 	to a GPIO of the SoC.
+ 
+ 	Supported on the LAN8814.
++
++ - micrel,keep-broadcast-phyaddr-enabled: If present, the phy will keep the PHY
++					  broadcast address enabled
++
++	Some PHYs offer the functionality to disable the PHY broadcast address
++	of 0x0 so that the PHY will only reply when it is addressed with its
++	actual address. This way, the address 0x0 can be used as a regular
++	address. By default, the PHY is set up with the broadcast address
++	disabled.
++
++	With this option, the broadcast address stays enabled. The PHY will
++	continue to reply on the broadcast address.
+diff --git a/drivers/net/phy/micrel.c b/drivers/net/phy/micrel.c
+index 9a0432145645..e425498b3506 100644
+--- a/drivers/net/phy/micrel.c
++++ b/drivers/net/phy/micrel.c
+@@ -585,6 +585,14 @@ static int kszphy_config_reset(struct phy_device *phydev)
+ 	return 0;
+ }
+ 
++static int kszphy_keep_broadcast_enabled(struct phy_device *phydev)
++{
++	struct device_node *of_node = phydev->mdio.dev.of_node;
++
++	return of_property_read_bool(of_node,
++				     "micrel,keep-broadcast-phyaddr-enabled");
++}
++
+ static int kszphy_config_init(struct phy_device *phydev)
+ {
+ 	struct kszphy_priv *priv = phydev->priv;
+@@ -595,7 +603,8 @@ static int kszphy_config_init(struct phy_device *phydev)
+ 
+ 	type = priv->type;
+ 
+-	if (type && type->has_broadcast_disable)
++	if (type && type->has_broadcast_disable &&
++	    !kszphy_keep_broadcast_enabled(phydev))
+ 		kszphy_broadcast_disable(phydev);
+ 
+ 	if (type && type->has_nand_tree_disable)
+-- 
+2.50.1
+
