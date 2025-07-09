@@ -66,6 +66,8 @@ SRC_URI:append = " \
     file://0053-trion-mipi.c-Enable-resolution-change.patch \
     file://0054-imx93-matrixup.dts-Configure-memory-ranges-for-512-M.patch \
     file://0055-epc660.c-remove-register-writes-on-v4l-callbacks.patch \
+    file://0056-net-phy-micrel-Configure-broadcast-disable-via-devic.patch \
+    file://0057-imx93-matrixup.dts-Add-support-for-KSZ8081-PHY.patch \
 "
 
 # It has no effect to set KERNEL_DEVICETREE in the conf/multiconfig/imx93-evk.conf,
