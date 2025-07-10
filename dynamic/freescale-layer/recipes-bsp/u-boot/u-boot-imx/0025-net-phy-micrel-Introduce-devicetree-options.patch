@@ -1,0 +1,129 @@
+From 821acbbea9283493711a4113d5f0c30d03b16261 Mon Sep 17 00:00:00 2001
+From: Erik Schumacher <erik.schumacher@iris-sensing.com>
+Date: Thu, 10 Jul 2025 09:55:25 +0000
+Subject: [PATCH] net: phy: micrel: Introduce devicetree options
+
+Add micrel,keep-broadcast-phyaddr-enabled to keep the broadcast phy
+address of 0x0 enabled.
+
+Add micrel,rmii-ref-50mhz to KSZ8081 to indicate that the provided clock
+is running at 50 MHz instead of the expected default of 25 MHz.
+
+Signed-off-by: Erik Schumacher <erik.schumacher@iris-sensing.com>
+---
+ .../net/micrel-ksz8xxx.txt                    | 19 +++++++++
+ drivers/net/phy/micrel_ksz8xxx.c              | 40 ++++++++++++++++---
+ 2 files changed, 54 insertions(+), 5 deletions(-)
+ create mode 100644 doc/device-tree-bindings/net/micrel-ksz8xxx.txt
+
+diff --git a/doc/device-tree-bindings/net/micrel-ksz8xxx.txt b/doc/device-tree-bindings/net/micrel-ksz8xxx.txt
+new file mode 100644
+index 00000000000..f52ed13aeaa
+--- /dev/null
++++ b/doc/device-tree-bindings/net/micrel-ksz8xxx.txt
+@@ -0,0 +1,19 @@
++Micrel KSZ8xxx Ethernet PHY
++
++Required properties:
++- reg: PHY address
++
++Optional properties:
++- micrel,rmii-ref-50mhz: (only for ksz8081) Indicate that the provided XI clock
++	runs at 50 MHz instead of the expected default of 25 MHz
++- micrel,keep-broadcast-phyaddr-enabled: Stops the driver from disabling the
++	broadcast phy address.
++
++Example:
++
++	ethernet-phy@0 {
++		reg = <0>;
++
++		micrel,rmii-ref-50mhz;
++		micrel,keep-broadcast-phyaddr-enabled;
++	};
+diff --git a/drivers/net/phy/micrel_ksz8xxx.c b/drivers/net/phy/micrel_ksz8xxx.c
+index b0f3abcb037..f8c28b801fb 100644
+--- a/drivers/net/phy/micrel_ksz8xxx.c
++++ b/drivers/net/phy/micrel_ksz8xxx.c
+@@ -28,16 +28,27 @@ U_BOOT_PHY_DRIVER(ksz804) = {
+ #define KSZPHY_OMSO_FACTORY_TEST BIT(15)
+ #define KSZPHY_OMSO_B_CAST_OFF	(1 << 9)
+ 
+-static int ksz_genconfig_bcastoff(struct phy_device *phydev)
++static int ksz_bcastoff(struct phy_device *phydev)
+ {
+ 	int ret;
+ 
++	if (ofnode_read_bool(phydev->node,
++			     "micrel,keep-broadcast-phyaddr-enabled"))
++		return 0;
++
+ 	ret = phy_read(phydev, MDIO_DEVAD_NONE, MII_KSZPHY_OMSO);
+ 	if (ret < 0)
+ 		return ret;
+ 
+-	ret = phy_write(phydev, MDIO_DEVAD_NONE, MII_KSZPHY_OMSO,
++	return phy_write(phydev, MDIO_DEVAD_NONE, MII_KSZPHY_OMSO,
+ 			ret | KSZPHY_OMSO_B_CAST_OFF);
++}
++
++static int ksz8031_config(struct phy_device *phydev)
++{
++	int ret;
++
++	ret = ksz_bcastoff(phydev);
+ 	if (ret < 0)
+ 		return ret;
+ 
+@@ -49,7 +60,7 @@ U_BOOT_PHY_DRIVER(ksz8031) = {
+ 	.uid = 0x221550,
+ 	.mask = 0xfffff0,
+ 	.features = PHY_BASIC_FEATURES,
+-	.config = &ksz_genconfig_bcastoff,
++	.config = &ksz8031_config,
+ 	.startup = &genphy_startup,
+ 	.shutdown = &genphy_shutdown,
+ };
+@@ -97,6 +108,9 @@ U_BOOT_PHY_DRIVER(ksz8061) = {
+ 	.shutdown = &genphy_shutdown,
+ };
+ 
++#define MII_KSZPHY_PHY_CTL_2	0x1F
++#define KSZPHY_RMII_REF_CLK_SEL	BIT(7)
++
+ static int ksz8081_config(struct phy_device *phydev)
+ {
+ 	int ret;
+@@ -107,11 +121,27 @@ static int ksz8081_config(struct phy_device *phydev)
+ 
+ 	ret &= ~KSZPHY_OMSO_FACTORY_TEST;
+ 
+-	ret = phy_write(phydev, MDIO_DEVAD_NONE, MII_KSZPHY_OMSO,
+-			ret | KSZPHY_OMSO_B_CAST_OFF);
++	ret = phy_write(phydev, MDIO_DEVAD_NONE, MII_KSZPHY_OMSO, ret);
++	if (ret < 0)
++		return ret;
++
++	ret = ksz_bcastoff(phydev);
+ 	if (ret < 0)
+ 		return ret;
+ 
++	if (ofnode_read_bool(phydev->node, "micrel,rmii-ref-50mhz")) {
++		ret = phy_read(phydev, MDIO_DEVAD_NONE, MII_KSZPHY_PHY_CTL_2);
++		if (ret < 0)
++			return ret;
++
++		ret |= KSZPHY_RMII_REF_CLK_SEL;
++
++		ret = phy_write(phydev, MDIO_DEVAD_NONE, MII_KSZPHY_PHY_CTL_2,
++				ret);
++		if (ret < 0)
++			return ret;
++	}
++
+ 	return genphy_config(phydev);
+ }
+ 
+-- 
+2.50.1
+
