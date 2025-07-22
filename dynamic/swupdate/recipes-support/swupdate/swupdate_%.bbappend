@@ -20,7 +20,6 @@ SRC_URI:append := " \
 	file://bootloader_update.lua \
 	file://0001-Apply-iris-Coporate-Design-to-webinterface.patch \
 	file://0002-mongoose_multipart-Allow-raw-binary-uploads.patch \
-	file://0004-mongoose_interface-Fix-free-invalid-pointer.patch \
 	file://0005-Makefile.flags-Fix-handling-of-EXTRAVERSION.patch \
 	file://Findswupdate.cmake \
 "
