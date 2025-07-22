@@ -1,0 +1,40 @@
+From 11844dac2d0ce35a742746db5499e7ca4916e99c Mon Sep 17 00:00:00 2001
+From: Erik Schumacher <erik.schumacher@iris-sensing.com>
+Date: Thu, 10 Jul 2025 09:56:30 +0000
+Subject: [PATCH] imx93-matrixup: Support KSZ8081 ethernet PHY
+
+Signed-off-by: Erik Schumacher <erik.schumacher@iris-sensing.com>
+---
+ arch/arm/dts/imx93-matrixup.dts  | 2 ++
+ configs/imx93_matrixup_defconfig | 2 ++
+ 2 files changed, 4 insertions(+)
+
+diff --git a/arch/arm/dts/imx93-matrixup.dts b/arch/arm/dts/imx93-matrixup.dts
+index 924e44f6fd7..955870b8cf1 100644
+--- a/arch/arm/dts/imx93-matrixup.dts
++++ b/arch/arm/dts/imx93-matrixup.dts
+@@ -89,6 +89,8 @@
+ 			reset-gpios = <&gpio3 21 GPIO_ACTIVE_LOW>;
+ 			reset-assert-us = <10000>;
+ 			reset-deassert-us = <80000>;
++			micrel,keep-broadcast-phyaddr-enabled;
++			micrel,rmii-ref-50mhz;
+ 		};
+ 	};
+ };
+diff --git a/configs/imx93_matrixup_defconfig b/configs/imx93_matrixup_defconfig
+index 203197a1332..318c069d5aa 100644
+--- a/configs/imx93_matrixup_defconfig
++++ b/configs/imx93_matrixup_defconfig
+@@ -131,6 +131,8 @@ CONFIG_FSL_USDHC=y
+ CONFIG_MTD=y
+ CONFIG_DM_SPI_FLASH=y
+ CONFIG_SPI_FLASH_STMICRO=y
++CONFIG_PHY_MICREL=y
++CONFIG_PHY_MICREL_KSZ8XXX=y
+ CONFIG_PHY_REALTEK=y
+ CONFIG_DM_ETH_PHY=y
+ CONFIG_PHY_GIGE=y
+-- 
+2.50.1
+
