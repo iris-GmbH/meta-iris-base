@@ -19,6 +19,7 @@ SRC_URI:append := " \
 	file://swupdate.cfg.in \
 	file://bootloader_update.lua \
 	file://0001-Apply-iris-Coporate-Design-to-webinterface.patch \
+	file://0002-mongoose_interface-BUG-Small-payload-16kB-are-not-ac.patch \
 	file://0003-mongoose_multipart-Allow-raw-binary-uploads.patch \
 	file://0005-Makefile.flags-Fix-handling-of-EXTRAVERSION.patch \
 	file://0006-Fix-warnings-due-to-missing-check-on-optarg.patch \
