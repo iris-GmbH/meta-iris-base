@@ -67,6 +67,7 @@ SRC_URI:append = " \
     file://0055-epc660.c-remove-register-writes-on-v4l-callbacks.patch \
     file://0056-net-phy-micrel-Configure-broadcast-disable-via-devic.patch \
     file://0057-imx93-matrixup.dts-Add-support-for-KSZ8081-PHY.patch \
+    file://0058-marec-fpga-Add-soft-reset-pin-and-custom-ioctl.patch \
 "
 
 # It has no effect to set KERNEL_DEVICETREE in the conf/multiconfig/imx93-evk.conf,
