@@ -34,7 +34,7 @@ FITLOADADDR:mx8mp-nxp-bsp = "0x48000000"
 python __anonymous () {
     overrides = d.getVar('OVERRIDES', True).split(':')
     if 'hab4' in overrides or 'ahab' in overrides:
-        d.appendVar("DEPENDS", " cst-native cst-signer-native perl-native")
+        d.appendVar("DEPENDS", " cst-native cst-signer-native perl-native hab-csf-parser-native")
 }
 
 set_imxboot_vars() {
@@ -52,10 +52,33 @@ do_sign_boot_image() {
     bbwarn "Signed boot not enabled."
 }
 
+check_srk_compatibility () {
+    # machine specific only
+    :
+}
+
+check_srk_compatibility:mx93-nxp-bsp() {
+    # TODO matrix-up https://iris-sensing.jira.com/browse/MARE-395
+    :
+}
+
+check_srk_compatibility:mx8mp-nxp-bsp() {
+    check_csf_compatibility "$1"
+}
+
+check_csf_compatibility() {
+    local signed_image="$1"
+    rm -f output/SRKTable.bin
+    csf_parser -s "${signed_image}" || true
+    if [ ! -f output/SRKTable.bin ]; then
+        bbfatal "generated ${signed_image} is not compatible with csf_parser and update on locked boards will not be accepted"
+    fi
+}
+
 sign_boot_image() {
-    bbnote "Signing boot image"
 	SIGNDIR="${S}"
     set_imxboot_vars
+    bbnote "Signing boot image ${BOOT_IMAGE_SD}"
 
     # Check if SD image is available
     if [ ! -e "${SIGNDIR}/${BOOT_IMAGE_SD}" ]; then
@@ -69,6 +92,8 @@ sign_boot_image() {
         bbfatal "Image signing failed"
     fi
     mv ${SIGNDIR}/signed-${BOOT_IMAGE_SD} ${SIGNDIR}/${BOOT_IMAGE_SD}.signed
+
+    check_srk_compatibility ${SIGNDIR}/${BOOT_IMAGE_SD}.signed
 }
 
 do_sign_boot_image:hab4() {
@@ -206,6 +231,8 @@ sign_fitimage() {
     cd "${SIGNDIR}"
     CST_EXE_PATH=cst CST_PATH=${HAB_DIR} cst_signer -d -i ${BOOT_STAGING}/flash_os.bin -c ${SIGNDIR}/csf.cfg
     mv ${SIGNDIR}/signed-flash_os.bin ${SIGNDIR}/${FITIMAGE_NAME}.signed
+
+    check_srk_compatibility ${SIGNDIR}/${FITIMAGE_NAME}.signed
 
     # Generate signed fitimage-uuu using cst_signer
     CST_EXE_PATH=cst CST_PATH=${HAB_DIR} cst_signer -d -i ${BOOT_STAGING}/flash_os.bin.uuu -c ${SIGNDIR}/csf.cfg

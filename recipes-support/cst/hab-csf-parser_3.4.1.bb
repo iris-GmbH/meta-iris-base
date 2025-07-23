@@ -20,3 +20,5 @@ do_install() {
     install -d ${D}${bindir}
     install -m 0755 ${B}/csf_parser ${D}${bindir}
 }
+
+BBCLASSEXTEND = "native"
