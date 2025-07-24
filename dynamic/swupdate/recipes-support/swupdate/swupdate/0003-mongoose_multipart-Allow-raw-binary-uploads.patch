@@ -1,4 +1,4 @@
-From f4e9857327a3cefc8faf8cf63b02f0374595ce97 Mon Sep 17 00:00:00 2001
+From 1b900980b7a60065eaf12683e11811f26c5c3f46 Mon Sep 17 00:00:00 2001
 From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
 Date: Wed, 13 Dec 2023 14:20:09 +0100
 Subject: [PATCH] mongoose_multipart: Allow raw binary uploads
@@ -17,7 +17,7 @@ Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
  1 file changed, 50 insertions(+), 5 deletions(-)
 
 diff --git a/mongoose/mongoose_multipart.c b/mongoose/mongoose_multipart.c
-index 4af5d4dc..358c3efa 100644
+index 5676183c..b810ea58 100644
 --- a/mongoose/mongoose_multipart.c
 +++ b/mongoose/mongoose_multipart.c
 @@ -38,6 +38,8 @@ struct mg_http_multipart_stream {
@@ -144,7 +144,7 @@ index 4af5d4dc..358c3efa 100644
  
 -	if (mp_stream != NULL && mp_stream->boundary.len != 0) {
 +	if (mp_stream != NULL && (mp_stream->boundary.len != 0 || mp_stream->raw_binary_format)) {
- 		if (ev == MG_EV_READ || (ev == MG_EV_POLL && mp_stream->data_avail)) {
+ 		if (ev == MG_EV_READ || ev == MG_EV_HTTP_MSG || (ev == MG_EV_POLL && mp_stream->data_avail)) {
  			mg_http_multipart_continue(c);
  		} else if (ev == MG_EV_CLOSE) {
 @@ -343,7 +388,7 @@ void multipart_upload_handler(struct mg_connection *c, int ev, void *ev_data)
@@ -157,5 +157,5 @@ index 4af5d4dc..358c3efa 100644
  			c->data[0] = 'M';
  
 -- 
-2.47.1
+2.50.1
 
