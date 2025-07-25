@@ -18,6 +18,10 @@ SRC_URI:append:mx93-nxp-bsp = " \
     file://switch-log-location.sh \
 "
 
+SRC_URI:append:sc57x = " \
+    file://0001-initscripts-sysfs.sh-make-dir-dev-shm.patch \
+"
+
 RDEPENDS:${PN}:append = " phytool"
 
 FILES:${PN} += " \
