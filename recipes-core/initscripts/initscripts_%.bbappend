@@ -20,6 +20,7 @@ SRC_URI:append:mx93-nxp-bsp = " \
 
 SRC_URI:append:sc57x = " \
     file://0001-initscripts-sysfs.sh-make-dir-dev-shm.patch \
+    file://mount-alternative-partition.sh \
 "
 
 RDEPENDS:${PN}:append = " phytool"
@@ -27,6 +28,10 @@ RDEPENDS:${PN}:append = " phytool"
 FILES:${PN} += " \
     ${datadir}/factory-reset/factory-reset-functions \
     ${bindir}/factory-reset.sh \
+"
+
+FILES:${PN}:append:sc57x = " \
+    ${sysconfdir}/init.d/mount-alternative-partition.sh \
 "
 
 do_install:append () {
@@ -72,4 +77,9 @@ do_install:append:mx93-nxp-bsp() {
     #         /var/volatile/log is created from S37populate-volatile.sh
     install -m 0755 ${WORKDIR}/switch-log-location.sh ${D}${sysconfdir}/init.d
     update-rc.d -r ${D} switch-log-location.sh start 37 S .
+}
+
+do_install:append:sc57x() {
+    install -m 0755 ${WORKDIR}/mount-alternative-partition.sh ${D}${sysconfdir}/init.d
+    update-rc.d -r ${D} mount-alternative-partition.sh start 28 S .
 }
