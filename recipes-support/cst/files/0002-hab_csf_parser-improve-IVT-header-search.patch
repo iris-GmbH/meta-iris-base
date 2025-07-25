@@ -1,0 +1,123 @@
+From 62cd038c7f79cbb387ec0257ffca45b40fd3798a Mon Sep 17 00:00:00 2001
+From: Ian Dannapel <ian.dannapel@iris-sensing.com>
+Date: Thu, 24 Jul 2025 15:12:48 +0200
+Subject: [PATCH] hab_csf_parser: improve IVT header search
+
+- Images with appended CSF might have coincidentally the IVT
+pattern (IVT_HDR_VAL) before the actual CSF.
+
+- This changes the search by checking if the CSF in the IVT is
+within boundaries and has a valid HAB_TAG_CSF or else it will
+continue searching for the IVT pattern.
+
+output/debug_log.txt example:
+Potential IVT header at = 0x00B94AC0
+CSF out of bounds or non existent
+
+Potential IVT header at = 0x01898000
+
+IVT : HEADER = 0x412000D1
+ START = 0x48000000
+ RES1 = 0x00000000
+ DCD = 0x00000000
+ BOOT DATA = 0x00000000
+ SELF = 0x49898000
+ CSF = 0x49898020
+ RES2 = 0x00000000
+
+IVT found at offset = 0x01898000
+...
+
+Upstream-Status: Submitted [https://community.nxp.com/t5/i-MX-Processors/Pach-imx-code-signing-tool-hab-csf-parser-improve-IVT-header/m-p/2140122#M239548]
+Signed-off-by: Ian Dannapel <ian.dannapel@iris-sensing.com>
+---
+ add-ons/hab_csf_parser/extract_csf.c | 67 ++++++++++++++--------------
+ 1 file changed, 34 insertions(+), 33 deletions(-)
+
+diff --git a/add-ons/hab_csf_parser/extract_csf.c b/add-ons/hab_csf_parser/extract_csf.c
+index 32b8e01..9b71efc 100644
+--- a/add-ons/hab_csf_parser/extract_csf.c
++++ b/add-ons/hab_csf_parser/extract_csf.c
+@@ -27,45 +27,46 @@ const uint8_t *extract_csf(const uint8_t *buf, int buf_size, int *csf_len)
+         int csf_hdr_len;
+ 
+         /* Find the header of the IVT - must be on a 32 bit alignment */
+-        while((ivt->header & IVT_HDR_MASK) != IVT_HDR_VAL) {
+-                pos += 4;
+-                if (pos > (buf_size - sizeof(ivt_t))) {
+-                        puts("Reached end of file. CSF not found.\n");
+-                        return NULL;
+-                }
+-
++        while(pos <= (buf_size - sizeof(ivt_t))) {
+                 ivt = (const ivt_t *)&buf[pos];
+-        }
++                if((ivt->header & IVT_HDR_MASK) == IVT_HDR_VAL) {
++                        if (debug_log)
++                                fprintf(fp_debug, "\nPotential IVT header at = 0x%08X\n", pos);
++                        csf_pos = pos + (ivt->csf - ivt->self);
++                        if (ivt->csf != 0 && csf_pos <= (buf_size - sizeof(hab_hdr_t))) {
++                                hdr = (hab_hdr_t *)&buf[csf_pos];
++                                if (hdr->tag == HAB_TAG_CSF) {
++                                        if (debug_log) {
++                                                fprintf(fp_debug, "\nIVT : HEADER = 0x%08X\n",ivt->header);
++                                                fprintf(fp_debug, " START = 0x%08X\n",ivt->start);
++                                                fprintf(fp_debug, " RES1 = 0x%08X\n",ivt->res1);
++                                                fprintf(fp_debug, " DCD = 0x%08X\n",ivt->dcd);
++                                                fprintf(fp_debug, " BOOT DATA = 0x%08X\n",ivt->boot_data);
++                                                fprintf(fp_debug, " SELF = 0x%08X\n",ivt->self);
++                                                fprintf(fp_debug, " CSF = 0x%08X\n",ivt->csf);
++                                                fprintf(fp_debug, " RES2 = 0x%08X\n\n",ivt->res2);
++                                                fprintf(fp_debug, "IVT found at offset = 0x%08X\n", pos);
++                                                fprintf(fp_debug, "\n");
++                                                fprintf(fp_debug, "CSF found at offset = 0x%08X\n", (int)csf_pos);
++                                        }
++                                        /* Found valid CSF with HAB Tag */
++                                        break;
++                                }
++                                if (debug_log)
++                                        fprintf(fp_debug, "HAB_TAG_CSF not found\n");
++                        } else {
++                                if (debug_log)
++                                        fprintf(fp_debug, "CSF out of bounds or non existent\n");
++                        }
+ 
+-        if (debug_log) {
+-                fprintf(fp_debug, "\nIVT : HEADER    = 0x%08X\n",ivt->header);
+-                fprintf(fp_debug, "      START     = 0x%08X\n",ivt->start);
+-                fprintf(fp_debug, "      RES1      = 0x%08X\n",ivt->res1);
+-                fprintf(fp_debug, "      DCD       = 0x%08X\n",ivt->dcd);
+-                fprintf(fp_debug, "      BOOT DATA = 0x%08X\n",ivt->boot_data);
+-                fprintf(fp_debug, "      SELF      = 0x%08X\n",ivt->self);
+-                fprintf(fp_debug, "      CSF       = 0x%08X\n",ivt->csf);
+-                fprintf(fp_debug, "      RES2      = 0x%08X\n\n",ivt->res2);
+-                fprintf(fp_debug, "IVT found at offset = 0x%08X\n", pos);
+-                fprintf(fp_debug, "\n");
+-        }
+ 
+-        csf_pos = pos + (ivt->csf - ivt->self);
+-        if (ivt->csf != 0 && csf_pos > (buf_size - sizeof(hab_hdr_t))) {
+-                /* CSF is out of bounds */
+-                puts("CSF out of bounds or non existent.\n");
+-                return NULL;
+-        }
++                }
+ 
+-        if (debug_log) {
+-                fprintf(fp_debug, "CSF found at offset = 0x%08X\n", (int)csf_pos);
++                pos += 4;
+         }
+ 
+-        hdr = (hab_hdr_t *)&buf[csf_pos];
+-
+-        if (hdr->tag != HAB_TAG_CSF) {
+-                /* Not a CSF */
+-                puts("Not a CSF.\n");
++        if (pos > (buf_size - sizeof(ivt_t))) {
++                puts("Reached end of file. Valid CSF not found.\n");
+                 return NULL;
+         }
+ 
+-- 
+2.43.0
+
