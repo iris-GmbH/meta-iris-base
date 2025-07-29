@@ -1,0 +1,57 @@
+From 176c99344cb1fb16c3e0b3f44995b4bb4d7a1637 Mon Sep 17 00:00:00 2001
+From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+Date: Tue, 29 Jul 2025 13:29:00 +0000
+Subject: [PATCH] Remove warning: Bad device specification
+
+Fix: Bad device specification mmc 2#linuxboot_a
+
+The string 2#linuxboot_a can not be handled by blk_get_device_part_str
+(in disk/part.c). The call is initiated by the efi loader.
+
+-> Disable CONFIG_EFI_LOADER for now!
+
+Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+---
+ configs/imx8mp_irma6r2_defconfig |  1 +
+ configs/imx93_matrixup_defconfig | 12 +-----------
+ 2 files changed, 2 insertions(+), 11 deletions(-)
+
+diff --git a/configs/imx8mp_irma6r2_defconfig b/configs/imx8mp_irma6r2_defconfig
+index 0b35ce210ee..d8bdd51f99e 100644
+--- a/configs/imx8mp_irma6r2_defconfig
++++ b/configs/imx8mp_irma6r2_defconfig
+@@ -154,3 +154,4 @@ CONFIG_USB_GADGET_VENDOR_NUM=0x1fc9
+ CONFIG_USB_GADGET_PRODUCT_NUM=0x0152
+ # CONFIG_RSA is not set
+ # CONFIG_SPL_SHA_HW_ACCEL is not set
++# CONFIG_EFI_LOADER is not set
+diff --git a/configs/imx93_matrixup_defconfig b/configs/imx93_matrixup_defconfig
+index 318c069d5aa..8a6f0933820 100644
+--- a/configs/imx93_matrixup_defconfig
++++ b/configs/imx93_matrixup_defconfig
+@@ -78,7 +78,6 @@ CONFIG_CMD_USB_MASS_STORAGE=y
+ CONFIG_CMD_SNTP=y
+ CONFIG_CMD_CACHE=y
+ CONFIG_CMD_CLS=y
+-CONFIG_CMD_EFIDEBUG=y
+ CONFIG_CMD_RTC=y
+ CONFIG_CMD_TIME=y
+ CONFIG_CMD_GETTIME=y
+@@ -185,13 +184,4 @@ CONFIG_SPL_RSA=y
+ CONFIG_SHA384=y
+ CONFIG_LZO=y
+ CONFIG_BZIP2=y
+-CONFIG_EFI_MM_COMM_TEE=y
+-CONFIG_EFI_VAR_BUF_SIZE=139264
+-CONFIG_EFI_SET_TIME=y
+-CONFIG_EFI_RUNTIME_UPDATE_CAPSULE=y
+-CONFIG_EFI_CAPSULE_ON_DISK=y
+-CONFIG_EFI_IGNORE_OSINDICATIONS=y
+-CONFIG_EFI_CAPSULE_FIRMWARE_RAW=y
+-CONFIG_EFI_CAPSULE_AUTHENTICATE=y
+-CONFIG_EFI_CAPSULE_ESL_FILE="CRT.esl"
+-CONFIG_EFI_SECURE_BOOT=y
++# CONFIG_EFI_LOADER is not set
+-- 
+2.50.1
+
