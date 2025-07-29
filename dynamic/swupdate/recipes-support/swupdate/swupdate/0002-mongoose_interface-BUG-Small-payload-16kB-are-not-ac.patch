@@ -1,0 +1,67 @@
+From 408256e3c09a7e9cbc64b47dbcb6172e19562987 Mon Sep 17 00:00:00 2001
+From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+Date: Tue, 22 Jul 2025 09:38:09 +0000
+Subject: [PATCH] mongoose_interface: BUG: Small payload <16kB are not accepted
+
+.. due to missing MG_EV_READ
+
+With Mongoose version (7.17) MG_IO_SIZE defaults, small uploads
+(e.g. <16kB) are received fully in one read operation and directly trigger
+MG_EV_HTTP_MSG without a prior MG_EV_READ event. This caused SWUpdate to
+skip processing those requests.
+
+The handler now correctly processes complete messages in MG_EV_HTTP_MSG,
+ensuring small payloads are accepted again.
+
+Introduced with mongoose rev-id: 44b3d606
+Fixes: e6f45638
+
+Upstream-Status: Backport [1d5d35db]
+Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+---
+ mongoose/mongoose_interface.c | 6 +++++-
+ mongoose/mongoose_multipart.c | 4 ++--
+ 2 files changed, 7 insertions(+), 3 deletions(-)
+
+diff --git a/mongoose/mongoose_interface.c b/mongoose/mongoose_interface.c
+index 9e09533a..fc5b42d5 100644
+--- a/mongoose/mongoose_interface.c
++++ b/mongoose/mongoose_interface.c
+@@ -691,7 +691,11 @@ static void ev_handler(struct mg_connection *nc, int ev, void *ev_data)
+ 			websocket_handler(nc, ev_data);
+ 		else if (mg_match(hm->uri, mg_str("#/restart"), NULL))
+ 			restart_handler(nc, ev_data);
+-		else
++	        else if (mg_match(hm->uri, mg_str("#/upload"), NULL)) {
++			nc->pfn = upload_handler;
++			nc->pfn_data = NULL;
++			multipart_upload_handler(nc, ev, hm);
++		} else
+ 			mg_http_serve_dir(nc, ev_data, &s_http_server_opts);
+ 	} else if (nc->data[0] != 'M' && nc->data[0] != 'W' && ev == MG_EV_READ) {
+ 		struct mg_http_message hm;
+diff --git a/mongoose/mongoose_multipart.c b/mongoose/mongoose_multipart.c
+index 4af5d4dc..5676183c 100644
+--- a/mongoose/mongoose_multipart.c
++++ b/mongoose/mongoose_multipart.c
+@@ -323,7 +323,7 @@ void multipart_upload_handler(struct mg_connection *c, int ev, void *ev_data)
+ 	struct mg_str *s;
+ 
+ 	if (mp_stream != NULL && mp_stream->boundary.len != 0) {
+-		if (ev == MG_EV_READ || (ev == MG_EV_POLL && mp_stream->data_avail)) {
++		if (ev == MG_EV_READ || ev == MG_EV_HTTP_MSG || (ev == MG_EV_POLL && mp_stream->data_avail)) {
+ 			mg_http_multipart_continue(c);
+ 		} else if (ev == MG_EV_CLOSE) {
+ 			/*
+@@ -336,7 +336,7 @@ void multipart_upload_handler(struct mg_connection *c, int ev, void *ev_data)
+ 		return;
+ 	}
+ 
+-	if (ev == MG_EV_READ) {
++	if (ev == MG_EV_READ || ev == MG_EV_HTTP_MSG) {
+ 		if(mg_strcasecmp(hm->method, mg_str("POST")) != 0) {
+ 			mg_http_reply(c, 405, "", "%s", "Method Not Allowed\n");
+ 			c->is_draining = 1;
+-- 
+2.50.1
+
