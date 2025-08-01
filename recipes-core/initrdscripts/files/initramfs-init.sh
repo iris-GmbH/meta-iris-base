@@ -209,42 +209,6 @@ lvm_volume_exists() {
     return $?
 }
 
-try_create_userdata_mirror(){
-    if ! lvm_volume_exists "userdata${FIRMWARE_SUFFIX}"; then
-        debug "Create userdata${FIRMWARE_SUFFIX}"
-        lvcreate -y --autobackup n -n "userdata${FIRMWARE_SUFFIX}" -L 256MB irma6lvm
-        vgchange -a y
-    fi
-    dmsetup create ${DECRYPT_USERDATA_NAME} --table "0 $(blockdev --getsz ${USERDATA_DEV}) \
-        crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 ${USERDATA_DEV} 0 1 sector_size:4096"
-    vgmknodes
-
-    # format ext4 current useradata if it is new
-    # or if it has inconsistencies. See APC-7461
-    is_ext_formated=0
-    is_healthy=0
-    blkid /dev/mapper/${DECRYPT_USERDATA_NAME} | grep -q 'TYPE="ext4"'
-    is_ext_formated=$?
-    [ "$is_ext_formated" -eq 0 ] && { e2fsck -f -p /dev/mapper/${DECRYPT_USERDATA_NAME}; is_healthy=$?; }
-
-    # is_healthy: Success: 0, 1 (errors corrected). Everything else considered failure
-    if [ "$is_ext_formated" -ne 0 ] || [ "$is_healthy" -gt 1 ]; then
-        debug "Formating filesystem on ${DECRYPT_USERDATA_NAME}"
-        debug "is_ext_formated: $is_ext_formated"
-        debug "is_healthy: $is_healthy"
-        mkfs.ext4 -F /dev/mapper/${DECRYPT_USERDATA_NAME}
-    fi
-    sleep 1 # workaround for removing without busy errors
-    dmsetup remove ${DECRYPT_USERDATA_NAME}
-}
-
-try_remove_staticdata(){
-    if lvm_volume_exists "staticdata" > /dev/null 2>&1; then
-        lvremove -A n -q -y "/dev/irma6lvm/staticdata_hash" > /dev/null 2>&1
-        lvremove -A n -q -y "/dev/irma6lvm/staticdata" > /dev/null 2>&1
-    fi
-}
-
 # sync_userdata_from_to
 # try to sync config from SRC to DST
 # $1: SRC_SUFFIX _a/_b
@@ -321,25 +285,6 @@ sync_userdata_from_to() {
     dmsetup remove "${DST_DEC_USER_NAME}"
 }
 
-try_create_datastore(){
-    if ! lvs ${DATASTORE_DEV} > /dev/null 2>&1; then
-        debug "Creating Datastore Volume..."
-        lvcreate -y --autobackup n -n "${DATASTORE_NAME}" -L 512MB irma6lvm
-        vgchange -a y
-    fi
-
-    dmsetup create ${DECRYPT_DATASTORE_NAME} --table "0 $(blockdev --getsz ${DATASTORE_DEV}) \
-        crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 ${DATASTORE_DEV} 0 1 sector_size:4096"
-    vgmknodes
-
-    # format datastore
-    if ! blkid /dev/mapper/${DECRYPT_DATASTORE_NAME} | grep -q 'TYPE="ext4"'; then
-        mkfs.ext4 -F /dev/mapper/${DECRYPT_DATASTORE_NAME}
-        sleep 1 # workaround for removing without busy errors
-    fi
-    dmsetup remove ${DECRYPT_DATASTORE_NAME}
-}
-
 mount_pseudo_fs
 
 # populate LVM mapper devices
@@ -414,26 +359,8 @@ BOOTLIMIT=$(fw_printenv bootlimit | awk -F'=' '{print $2}')
 
 # check if we are updating and not on fallback
 if [ "$PENDING_UPDATE" = "1" ] && [ "$BOOTCOUNT" -le "$BOOTLIMIT" ]; then
-    # power fail safe operations
-
-    # adjust lvm layout: can be removed on major release 5
-    try_create_userdata_mirror
-
-    # compatibility hack for old lvm layout with single userdata (fw =< 3.0.0)
-    # sync from userdata instead of userdata_a
-    # can be removed on major version 5
-    if lvm_volume_exists "userdata"; then
-        ALT_FIRMWARE_SUFFIX=""
-    fi
-
     # get config from alternative userdata on update
     sync_userdata_from_to "${ALT_FIRMWARE_SUFFIX}" "${FIRMWARE_SUFFIX}" 1
-
-    # adjust lvm layout: can be removed on major release 5
-    try_create_datastore
-
-    # adjust lvm layout: can be removed on major release 5
-    try_remove_staticdata
 fi
 
 debug "Unlocking encrypted device: ${ROOT_DEV}" 
