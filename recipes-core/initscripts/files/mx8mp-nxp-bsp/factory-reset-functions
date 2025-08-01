@@ -144,6 +144,10 @@ reset_userdata() {
     # Delete saved timestamp
     rm -f "$USERDATA_DIR"/timestamp
     rm -rf "$USERDATA_DIR"/dropbear
+
+    # Delete custom services
+    rm -rf /mnt/iris/services/*
+
     # Delete lazy flag
     rm -f "$USERDATA_DIR/$LAZY_RESET_FLAG"
     sync
