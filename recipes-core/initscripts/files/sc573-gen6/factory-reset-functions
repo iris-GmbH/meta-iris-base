@@ -103,6 +103,10 @@ reset_userdata() {
     rm -f /etc/counter/config.yaml*
     rm -rf /etc/counter/irma6webserver
     rm -rf /etc/counter/dropbear
+
+    # Delete custom services
+    rm -rf /mnt/iris/services/*
+
     rm -f "$LAZY_RESET_FLAG"
     sync
 }
