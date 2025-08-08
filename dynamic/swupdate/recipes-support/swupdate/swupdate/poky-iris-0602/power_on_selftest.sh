@@ -95,10 +95,6 @@ update_alternative_firmware() {
 	cp "/mnt/keystore/rootfs_${CUR_FW_SUFFIX}_roothash" "/mnt/keystore/rootfs_${ALT_FW_SUFFIX}_roothash" || \
 		{ log "Error: Failed to copy alternative roothash"; err=1; }
 	umount /mnt/keystore
-
-	# Delete obsolete directories that were migrated in pre_post_install script
-	# can be removed on major release 5
-	rm -rf "/mnt/iris/counter/webserver"
 	sync
 
 	return "$err";
@@ -123,49 +119,7 @@ close_userdata_volume(){
 update_alternative_userdata(){
 	log "Synchronizing config from ${CUR_FW_SUFFIX} to ${ALT_FW_SUFFIX}"
 
-	# Update alternative userdata
-	# can be removed on major release 5
-	if lvdisplay /dev/irma6lvm/userdata > /dev/null 2>&1; then
-		# rename old partition to A/B format
-		lvrename -y -A n /dev/irma6lvm/userdata userdata_${ALT_FW_SUFFIX}
-	fi
-
 	err=0
-	decrypt_userdata_volume ${ALT_FW_SUFFIX}
-
-	# resize alternative userdata to 256mb
-	# can be removed on major release 5
-	cur_size=$(lvs --select "lv_name = userdata_${ALT_FW_SUFFIX}" -o LV_SIZE --units m --nosuffix --noheadings | sed 's/  \([0-9]*\).*/\1/')
-	req_size=256 # mb
-	if [ "$cur_size" -gt "$req_size" ]; then
-		log "Resize userdata_${ALT_FW_SUFFIX} to $req_size M"
-
-		e2fsck -f -p /dev/mapper/decrypted-irma6lvm-userdata_${ALT_FW_SUFFIX}
-		is_healthy=$? # Success: 0, 1 (errors corrected). Everything else considered failure
-
-		if [ "$is_healthy" -lt 2 ] ; then
-			resize2fs "/dev/mapper/decrypted-irma6lvm-userdata_${ALT_FW_SUFFIX}" "$req_size"M || { log "resize2fs rc: $?"; err=1; }
-			# lvm resize can only execute if the file system resize was successful!
-			if [ "$err" -eq 0 ]; then
-				lvresize --autobackup n --force --yes --quiet -L "$req_size"M "/dev/mapper/irma6lvm-userdata_${ALT_FW_SUFFIX}" || err=1
-			fi
-		else
-			# force lvresize if filesystem is unhealthy
-			log "e2fsck failed with code: $is_healthy Formating userdata_${ALT_FW_SUFFIX} with $req_size M size"
-			close_userdata_volume ${ALT_FW_SUFFIX}
-			lvresize --autobackup n --force --yes --quiet -L "$req_size"M "/dev/mapper/irma6lvm-userdata_${ALT_FW_SUFFIX}" || { log "lvresize rc: $?"; err=1; }
-			[ "$err" -eq 0 ] && decrypt_userdata_volume ${ALT_FW_SUFFIX} || err=1
-			if [ "$err" -eq 0 ]; then
-				mkfs.ext4 -F /dev/mapper/decrypted-irma6lvm-userdata_${ALT_FW_SUFFIX} || { log "mkfs.ext4 rc: $?"; err=1; }
-			fi
-		fi
-	fi
-
-	# closing the decrytped device before using it avoids fs errors
-	close_userdata_volume ${ALT_FW_SUFFIX}
-
-	[ "$err" -eq 0 ] || return "$err"
-
 	decrypt_userdata_volume ${ALT_FW_SUFFIX}
 
 	# sync userdata A and B
