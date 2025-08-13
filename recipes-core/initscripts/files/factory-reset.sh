@@ -30,11 +30,9 @@ if grep -q '/dev/nfs' /proc/cmdline; then
     exit 0
 fi
 
-ifconfig eth0 up
+err=0
+short_detection_init
+short_detected && factory_reset || err=1
+short_detection_deinit
 
-if [ "$(cat /sys/class/net/eth0/carrier)" -eq 0 ]; then
-    short_detected && factory_reset || exit 1
-else
-    echo "Skip factory reset short check. Link is up!"
-    exit 0
-fi
+exit $err

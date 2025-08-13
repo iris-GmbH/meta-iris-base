@@ -63,6 +63,14 @@ cable_diagnostic() {
     return 0
 }
 
+short_detection_init() {
+    ifconfig eth0 up
+}
+
+short_detection_deinit() {
+    ifconfig eth0 down
+}
+
 # ADIN1200 short detection
 # Test if the cable pairs 1/2 and 3/6 are shorted
 # Caution: returns 0 on short, 1 otherwise
