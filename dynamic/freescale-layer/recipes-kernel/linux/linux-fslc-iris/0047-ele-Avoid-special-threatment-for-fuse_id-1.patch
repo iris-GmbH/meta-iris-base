@@ -1,30 +1,44 @@
-From 36faeccf77a78c9666a2a233510a621d31c50e61 Mon Sep 17 00:00:00 2001
+From a41d891d22a883a65760a621fb70215add94460a Mon Sep 17 00:00:00 2001
 From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
-Date: Thu, 19 Dec 2024 11:12:19 +0000
+Date: Thu, 14 Aug 2025 15:18:37 +0200
 Subject: [PATCH] ele: Avoid special threatment for fuse_id==1
 
 The 4 word read for fuse_id==1 (read_otp_uniq_id) is not supported
-for the imx93.
+for the imx93. This fix is needed because of
+"fsb_disable_shadowed_read".
 
 Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
 ---
- drivers/firmware/imx/ele_base_msg.c | 3 ---
- 1 file changed, 3 deletions(-)
+ drivers/firmware/imx/ele_base_msg.c | 9 ---------
+ 1 file changed, 9 deletions(-)
 
 diff --git a/drivers/firmware/imx/ele_base_msg.c b/drivers/firmware/imx/ele_base_msg.c
-index 375ed36a6c7b3..8fcd104a820cc 100644
+index 0cb8f9f497eb8..ebee6dd0b5b09 100644
 --- a/drivers/firmware/imx/ele_base_msg.c
 +++ b/drivers/firmware/imx/ele_base_msg.c
-@@ -532,9 +532,6 @@ int read_common_fuse(struct device *dev,
+@@ -559,9 +559,6 @@ int read_common_fuse(struct se_if_priv *priv,
+ 		goto exit;
+ 	}
+ 
+-	if (fuse_id == OTP_UNIQ_ID)
+-		rx_msg_sz = ELE_READ_FUSE_OTP_UNQ_ID_RSP_MSG_SZ;
+-
+ 	rx_msg = kzalloc(rx_msg_sz, GFP_KERNEL);
+ 	if (!rx_msg) {
+ 		ret = -ENOMEM;
+@@ -595,12 +592,6 @@ int read_common_fuse(struct se_if_priv *priv,
  		goto exit;
  
  	switch (fuse_id) {
 -	case OTP_UNIQ_ID:
--		ret = read_otp_uniq_id(priv, value);
+-		value[0] = rx_msg->data[1];
+-		value[1] = rx_msg->data[2];
+-		value[2] = rx_msg->data[3];
+-		value[3] = rx_msg->data[4];
 -		break;
  	default:
- 		ret = read_fuse_word(priv, value);
+ 		value[0] = rx_msg->data[1];
  		break;
 -- 
-2.44.1
+2.50.1
 

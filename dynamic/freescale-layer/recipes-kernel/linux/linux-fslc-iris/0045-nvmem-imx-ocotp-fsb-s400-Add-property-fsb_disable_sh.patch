@@ -1,6 +1,6 @@
-From 91891162c89ee1cc6df878c9a5ddc37bc2051fb3 Mon Sep 17 00:00:00 2001
+From dd80ee614b52cffc7dc8fcf5c901d2811041cf0d Mon Sep 17 00:00:00 2001
 From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
-Date: Fri, 6 Dec 2024 10:10:53 +0000
+Date: Thu, 14 Aug 2025 09:57:01 +0000
 Subject: [PATCH] nvmem: imx-ocotp-fsb-s400: Add property
  fsb_disable_shadowed_read
 
@@ -15,23 +15,26 @@ Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
  2 files changed, 6 insertions(+), 1 deletion(-)
 
 diff --git a/arch/arm64/boot/dts/freescale/imx93-matrixup.dts b/arch/arm64/boot/dts/freescale/imx93-matrixup.dts
-index 44bc63b87fd73..7bcbdb93eac09 100644
+index 38b1bdcfba9b9..f44fff75fe1a9 100644
 --- a/arch/arm64/boot/dts/freescale/imx93-matrixup.dts
 +++ b/arch/arm64/boot/dts/freescale/imx93-matrixup.dts
-@@ -593,3 +593,8 @@ cap_device {
- 		status = "okay";
+@@ -360,6 +360,11 @@ cap_device {
  	};
  };
-+
+ 
 +&aonmix_ns_gpr {
 +	/* disable shadow register read to enforce fuse sensing */
 +	fsb_disable_shadowed_read;
 +};
++
+ &parallel_csi {
+ 	#address-cells = <1>;
+ 	#size-cells = <0>;
 diff --git a/drivers/nvmem/imx-ocotp-fsb-s400.c b/drivers/nvmem/imx-ocotp-fsb-s400.c
-index 7fd3990f00ea9..698c0c62dca77 100644
+index 87e47df9b187d..bdcd5303fb885 100644
 --- a/drivers/nvmem/imx-ocotp-fsb-s400.c
 +++ b/drivers/nvmem/imx-ocotp-fsb-s400.c
-@@ -372,7 +372,7 @@ static int imx_fsb_s400_fuse_probe(struct platform_device *pdev)
+@@ -380,7 +380,7 @@ static int imx_fsb_s400_fuse_probe(struct platform_device *pdev)
  			return -ENOMEM;
  
  		v = readl_relaxed(reg + FUSE_ACC_DIS);
@@ -41,5 +44,5 @@ index 7fd3990f00ea9..698c0c62dca77 100644
  		else
  			fuse->fsb_read_dis = false;
 -- 
-2.47.1
+2.44.4
 
