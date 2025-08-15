@@ -1,6 +1,6 @@
-From e5810dab584c47c0d0187ef38495cc89d58e7e2b Mon Sep 17 00:00:00 2001
+From 245178d8031b0fcdc394c604504cd480736cd600 Mon Sep 17 00:00:00 2001
 From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
-Date: Thu, 21 Nov 2024 11:30:19 +0100
+Date: Thu, 14 Aug 2025 13:53:03 +0200
 Subject: [PATCH] firmware: imx: ele: Fix fuse write for payload 0x0
 
 Only fail if indicator is set too.
@@ -10,26 +10,48 @@ fsl-se-fw se-fw2: Command Id[214], Status=0x29, Indicator=0x0
 
 e.g. tx_msg: 0x17d60306 0x00202760 0x00000000
 
-Upstream-Status: Pending
-
+Upstream-Status: Inappropriate
 Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
 ---
- drivers/firmware/imx/ele_base_msg.c | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ drivers/firmware/imx/ele_common.c | 5 +++--
+ drivers/firmware/imx/se_ctrl.h    | 1 +
+ 2 files changed, 4 insertions(+), 2 deletions(-)
 
-diff --git a/drivers/firmware/imx/ele_base_msg.c b/drivers/firmware/imx/ele_base_msg.c
-index c553cd16f99e4..375ed36a6c7b3 100644
---- a/drivers/firmware/imx/ele_base_msg.c
-+++ b/drivers/firmware/imx/ele_base_msg.c
-@@ -147,7 +147,7 @@ int ele_write_fuse(struct device *dev, uint16_t fuse_id, u32 value, bool lock)
+diff --git a/drivers/firmware/imx/ele_common.c b/drivers/firmware/imx/ele_common.c
+index d75dde04a4097..d1606d5a4babf 100644
+--- a/drivers/firmware/imx/ele_common.c
++++ b/drivers/firmware/imx/ele_common.c
+@@ -268,7 +268,7 @@ int se_val_rsp_hdr_n_status(struct se_if_priv *priv,
+ 			    u8 sz,
+ 			    bool is_base_api)
+ {
+-	u32 status;
++	u32 status, ind;
+ 	struct se_msg_hdr *header = &msg->header;
  
- 	status = RES_STATUS(priv->rx_msg->data[0]);
- 	ind = RES_IND(priv->rx_msg->data[0]);
--	if (status != priv->success_tag) {
-+	if (status != priv->success_tag && ind != 0x0) {
- 		dev_err(dev, "Command Id[%d], Status=0x%x, Indicator=0x%x",
- 			ELE_WRITE_FUSE, status, ind);
- 		ret = -1;
+ 	if (header->tag != priv->if_defs->rsp_tag) {
+@@ -305,7 +305,8 @@ int se_val_rsp_hdr_n_status(struct se_if_priv *priv,
+ 	}
+ 
+ 	status = RES_STATUS(msg->data[0]);
+-	if (status != priv->if_defs->success_tag) {
++	ind = RES_IND(msg->data[0]);
++	if (status != priv->if_defs->success_tag && ind != 0x0) {
+ 		dev_err(priv->dev, "Command Id[%x], Response Failure = 0x%x",
+ 			header->command, status);
+ 		return -EPERM;
+diff --git a/drivers/firmware/imx/se_ctrl.h b/drivers/firmware/imx/se_ctrl.h
+index 0fcc8b012fea6..d15d723c4cfba 100644
+--- a/drivers/firmware/imx/se_ctrl.h
++++ b/drivers/firmware/imx/se_ctrl.h
+@@ -16,6 +16,7 @@
+ #define MAX_FW_LOAD_RETRIES		50
+ 
+ #define RES_STATUS(x)			FIELD_GET(0x000000ff, x)
++#define RES_IND(x)			FIELD_GET(0x0000ff00, x)
+ #define MAX_DATA_SIZE_PER_USER		(65 * 1024)
+ #define MAX_NVM_MSG_LEN			(256)
+ #define MESSAGING_VERSION_2		0x2
 -- 
-2.46.1
+2.44.4
 
