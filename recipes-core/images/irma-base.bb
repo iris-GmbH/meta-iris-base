@@ -31,7 +31,9 @@ IRIS_TOOLCHAIN_TARGET_TASK = " \
 
 # protobuf-staticdev only exists on scarthgap, swupdate is not used on R1
 ADDITIONAL_IRIS_TOOLCHAIN_TARGET_TASK = "protobuf-staticdev swupdate"
-ADDITIONAL_IRIS_TOOLCHAIN_TARGET_TASK:poky-iris-0601 = ""
+
+# manually include blasfeo for R1 since it is statically linked
+ADDITIONAL_IRIS_TOOLCHAIN_TARGET_TASK:poky-iris-0601 = "blasfeo-staticdev"
 
 TOOLCHAIN_TARGET_TASK:append = " ${IRIS_TOOLCHAIN_TARGET_TASK} ${ADDITIONAL_IRIS_TOOLCHAIN_TARGET_TASK}"
 
