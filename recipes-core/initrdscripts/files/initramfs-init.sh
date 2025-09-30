@@ -30,6 +30,7 @@ move_special_devices() {
     ${MOUNT} --move /dev ${ROOT_MNT}/dev
     ${MOUNT} --move /proc ${ROOT_MNT}/proc
     ${MOUNT} --move /sys ${ROOT_MNT}/sys
+    ${MOUNT} --move /run ${ROOT_MNT}/run
     ${MOUNT} --move /var/volatile ${ROOT_MNT}/var/volatile
 }
 
@@ -304,7 +305,7 @@ then
     exit 0
 fi
 
-/etc/init.d/udev start # we need udev to manage volumes cleanly
+/usr/sbin/udevd --daemon # we need udev to manage volumes cleanly
 
 # check if we are in provisioning and need to encrypt the volumes
 debug "Provisioning check..."
@@ -328,7 +329,7 @@ DECRYPT_NAME="decrypted-irma6lvm-rootfs${FIRMWARE_SUFFIX}"
 DECRYPT_ROOT_DEV="/dev/mapper/${DECRYPT_NAME}"
 
 USERDATA_DEV="/dev/mapper/irma6lvm-userdata${FIRMWARE_SUFFIX}"
-DECRYPT_USERDATA_NAME="decrypted-irma6lvm-userdata${FIRMWARE_SUFFIX}"
+DECRYPT_USERDATA_NAME="decrypted-irma6lvm-userdata"
 DECRYPT_USERDATA_LINK="/dev/mapper/decrypted-irma6lvm-userdata"
 ALT_DECRYPT_USERDATA_NAME="decrypted-irma6lvm-userdata${ALT_FIRMWARE_SUFFIX}"
 
@@ -375,8 +376,6 @@ debug "Unlocking encrypted device: ${DATASTORE_DEV}"
 dmsetup create ${DECRYPT_DATASTORE_NAME} --table "0 $(blockdev --getsz ${DATASTORE_DEV}) \
     crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 ${DATASTORE_DEV} 0 1 sector_size:4096"
 vgmknodes
-
-ln -s "/dev/mapper/${DECRYPT_USERDATA_NAME}" "${DECRYPT_USERDATA_LINK}" # symlink for /etc/fstab
 
 if ! /usr/bin/openssl dgst -sha256 -verify "${PUBKEY}" -signature "${ROOT_HASH_SIGNATURE}" "${ROOT_HASH}"
 then
