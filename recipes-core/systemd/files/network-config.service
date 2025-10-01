@@ -1,0 +1,14 @@
+[Unit]
+Description=Custom Network Configuration
+Before=network-online.target
+Wants=network-pre.target
+After=network-pre.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/etc/network/if-pre-up.d/eth0-pre-up
+Environment=IFACE=eth0
+
+[Install]
+WantedBy=multi-user.target
