@@ -58,8 +58,11 @@ short_detected() {
     id=$(printf '0x%.8X\n' "$(((id1 << 16) | id2))")
     [ "$((id))" -eq "$((PHY_ID_KSZRNB))" ] || { echo "Error: PHY ID is not supported"; return 1; }
 
+    reg_val_00=$(phytool read eth0/0x1/0x0000)
+    reg_val_1F=$(phytool read eth0/0x1/0x001F)
+
     # Prepare
-    phytool write eth0/0x1/0x0000 0x0100 # Disable Autonegotiation + 10Mbps
+    phytool write eth0/0x1/0x0000 0x0000 # Disable Autonegotiation + 10Mbps
 
     # The cable diagnostic might fail due to active link partner.
     # Try harder if link partner is active.
@@ -72,8 +75,8 @@ short_detected() {
     done
 
     # Reset
-    phytool write eth0/0x1/0x001F 0x8100 # Enable auto MDI/MDI-X
-    phytool write eth0/0x1/0x0000 0x3100 # Enable autonegotiation + 100Mbps
+    phytool write eth0/0x1/0x001F "$reg_val_1F" # Enable auto MDI/MDI-X
+    phytool write eth0/0x1/0x0000 "$reg_val_00" # Enable autonegotiation + 100Mbps
 
     [ "$i" -lt 20 ] || { echo "Error: Max retries reached"; return 1; }
 
