@@ -41,15 +41,15 @@ PV = "${DISTRO_VERSION}"
 inherit irma-firmware-versioning
 
 IRMA_BASE_PACKAGES = " \
-	iris-ca-certificates \
+    iris-ca-certificates \
 "
 
 IRMA_EXTRA_PACKAGES = " \
-	iris-signing \
-	rsyslog \
-	chrony \
-	nftables \
-	wpa-supplicant \
+    iris-signing \
+    rsyslog \
+    chrony \
+    nftables \
+    wpa-supplicant \
 "
 
 # install no extra packages on R1
@@ -73,7 +73,7 @@ ROOTFS_POSTPROCESS_COMMAND += "add_image_name_to_os_release; "
 # save the firmware version at /etc/version.
 # Although this probably is not a good idea (modifies file from deep within the yocto build system), this is done for backwards compatibility reasons
 replace_etc_version () {
-	echo "${FIRMWARE_VERSION}" > ${IMAGE_ROOTFS}${sysconfdir}/version
+    echo "${FIRMWARE_VERSION}" > ${IMAGE_ROOTFS}${sysconfdir}/version
 }
 
 # simply appending to ROOTFS_POSTPROCESS_COMMAND is not enough, as we need to run this after
