@@ -23,6 +23,8 @@ SRC_URI:append := " \
 	file://0002-mongoose_multipart-Allow-raw-binary-uploads.patch \
 "
 
+SRC_URI += "${@bb.utils.contains('DISTRO_FEATURES', 'systemd', 'file://swupdate-systemd.cfg', '', d)}"
+
 DEPENDS += " \
 	bc-native \
 "
