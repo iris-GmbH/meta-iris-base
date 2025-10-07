@@ -7,5 +7,6 @@
 
 if [ "$IFACE" = "eth0" ]; then
     echo "Network Configuration Script"
-    setupNetworkInterfaces &
+    setupNetworkInterfaces
+    exit 0
 fi

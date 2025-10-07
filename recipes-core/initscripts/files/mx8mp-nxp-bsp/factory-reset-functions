@@ -63,14 +63,6 @@ cable_diagnostic() {
     return 0
 }
 
-short_detection_init() {
-    ifconfig eth0 up
-}
-
-short_detection_deinit() {
-    ifconfig eth0 down
-}
-
 # ADIN1200 short detection
 # Test if the cable pairs 1/2 and 3/6 are shorted
 # Caution: returns 0 on short, 1 otherwise
@@ -93,6 +85,7 @@ reset_systemtime() {
 
 # call with path to mount point (will be created)
 mount_alternative_userdata() {
+    echo "Mount alternative userdata"
     ALT_SUFFIX="$2"
     dmsetup create "decrypted-irma6lvm-userdata${ALT_SUFFIX}" --table \
 	    "0 $(blockdev --getsz "/dev/mapper/irma6lvm-userdata${ALT_SUFFIX}") \
@@ -102,6 +95,7 @@ mount_alternative_userdata() {
 }
 
 unmount_alternative_userdata() {
+    echo "Umount alternative userdata"
     umount "$1"
     rm -rf "$1"
     ALT_SUFFIX="$2"

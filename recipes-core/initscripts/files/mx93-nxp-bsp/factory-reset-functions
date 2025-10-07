@@ -59,14 +59,6 @@ read_one_pair() {
     return 0
 }
 
-short_detection_init() {
-    ifconfig eth0 up
-}
-
-short_detection_deinit() {
-    ifconfig eth0 down
-}
-
 # KSZ8081 short detection
 # Test if the cable pairs 1/2 and 3/6 are shorted
 # returns 0 on short, 1 otherwise
@@ -79,8 +71,11 @@ short_detected() {
     id=$(printf '0x%.8X\n' "$(((id1 << 16) | id2))")
     [ "$((id))" -eq "$((PHY_ID_KSZRNB))" ] || { echo "Error: PHY ID is not supported"; return 1; }
 
+    reg_val_00=$(phytool read eth0/0x1/0x0000)
+    reg_val_1F=$(phytool read eth0/0x1/0x001F)
+
     # Prepare
-    phytool write eth0/0x1/0x0000 0x0100 # Disable Autonegotiation + 10Mbps
+    phytool write eth0/0x1/0x0000 0x0000 # Disable Autonegotiation + 10Mbps
 
     # The cable diagnostic might fail due to active link partner.
     # Try harder if link partner is active.
@@ -93,8 +88,8 @@ short_detected() {
     done
 
     # Reset
-    phytool write eth0/0x1/0x001F 0x8100 # Enable auto MDI/MDI-X
-    phytool write eth0/0x1/0x0000 0x3100 # Enable autonegotiation + 100Mbps
+    phytool write eth0/0x1/0x001F "$reg_val_1F" # Enable auto MDI/MDI-X
+    phytool write eth0/0x1/0x0000 "$reg_val_00" # Enable autonegotiation + 100Mbps
 
     [ "$i" -lt 20 ] || { echo "Error: Max retries reached"; return 1; }
 
@@ -109,12 +104,14 @@ short_detected() {
 }
 
 mount_alternative_userdata() {
+    echo "Mount alternative userdata"
     mkdir -p ${ALT_MNT}
     dmsetup create "decrypted-${vg}-userdata${ALT_SUFFIX}" --table "0 $(blockdev --getsz "/dev/mapper/${vg}-userdata${ALT_SUFFIX}") crypt aes-cbc-essiv:sha256 :32:trusted:kmk 0 /dev/mapper/${vg}-userdata${ALT_SUFFIX} 0 1 sector_size:4096"
 	mount -t ext4 "/dev/mapper/decrypted-${vg}-userdata${ALT_SUFFIX}" "${ALT_MNT}"
 }
 
 umount_alternative_userdata() {
+    echo "Umount alternative userdata"
     umount "${ALT_MNT}"
     dmsetup remove "decrypted-${vg}-userdata${ALT_SUFFIX}"
 	rm -rf ${ALT_MNT}

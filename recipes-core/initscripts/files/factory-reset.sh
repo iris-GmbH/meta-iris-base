@@ -30,9 +30,26 @@ if grep -q '/dev/nfs' /proc/cmdline; then
     exit 0
 fi
 
-err=0
-short_detection_init
-short_detected && factory_reset || err=1
-short_detection_deinit
+# NOTE: Only perform short check if link ready and down!
+carrier_file="/sys/class/net/eth0/carrier"
+carrier=""
+for i in $(seq 10); do
+    if [ ! -r "$carrier_file" ]; then
+        echo "WARN: Carrier file not present or not readable"
+    else
+        carrier=`cat "$carrier_file" 2>/dev/null`
+        case "$carrier" in
+            1) break ;;
+            0) echo "Link is down (retrying...)" ;;
+            *) echo "WARN: Carrier file not ready" ;;
+        esac
+    fi
+    echo "Wait for carrier .. ($i)"
+    sleep 1
+done
 
-exit $err
+case "$carrier" in
+    1) echo "Link is up: Skip eth0 short check" ;;
+    0) echo "Link is down: Perform eth0 short check"; short_detected && factory_reset || exit 1 ;;
+    *) echo "WARN: Carrier status unknown"; exit 1 ;;
+esac
