@@ -1,0 +1,2 @@
+# i2c device permissions - equivalent to /etc/mdev.conf rule: i2c-[0-9] 0:85 0660
+SUBSYSTEM=="i2c-dev", KERNEL=="i2c-[0-9]*", GROUP="i2c", MODE="0660"

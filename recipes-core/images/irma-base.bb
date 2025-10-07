@@ -50,6 +50,7 @@ IRMA_EXTRA_PACKAGES = " \
     chrony \
     nftables \
     wpa-supplicant \
+    udev-extraconf-iris \
 "
 
 # install no extra packages on R1
