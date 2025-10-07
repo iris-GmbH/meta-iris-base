@@ -69,6 +69,7 @@ add_hwkey_to_keyring() {
 		echo "Error: Failed to add logon key"
 		exit 1
 	fi
+
 	rm -f /tmp/volumeKey
 }
 
