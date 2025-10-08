@@ -11,10 +11,6 @@ exists() {
 	command -v "$1" >/dev/null 2>&1 || { log "ERROR: $1 not found"; return 1; }
 }
 
-# pidofproc()
-. /etc/init.d/functions
-
-
 power_on_selftest() {
 	# Check that all necessary tools are available and running
 	tools="nginx WebInterfaceServer swupdate count_von_count i6ls"
@@ -23,7 +19,7 @@ power_on_selftest() {
 		exists "$tool" || return 1
 		retries=5
 		while [ "$retries" -gt 0 ]; do
-			if pidofproc "$tool" >/dev/null 2>&1; then
+			if pgrep -f "(^|/)${tool}($| )" >/dev/null 2>&1; then
 				log "[PASSED] $tool"; break;
 			else
 				log "Retry $((i+=1)) getting pid of $tool"; sleep 1;
@@ -103,6 +99,7 @@ update_alternative_firmware() {
 # open userdata A or B
 # $1: "a" or "b"
 decrypt_userdata_volume(){
+	keyctl link @us @s # link user session key to session for systemd dmsetup
 	dmsetup create decrypted-irma6lvm-userdata_"$1" --table \
 		"0 $(blockdev --getsz /dev/mapper/irma6lvm-userdata_"$1") \
 		crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 /dev/mapper/irma6lvm-userdata_$1 0 1 sector_size:4096"
@@ -119,9 +116,11 @@ close_userdata_volume(){
 update_alternative_userdata(){
 	log "Synchronizing config from ${CUR_FW_SUFFIX} to ${ALT_FW_SUFFIX}"
 
-	err=0
-	decrypt_userdata_volume ${ALT_FW_SUFFIX}
+	if ! decrypt_userdata_volume ${ALT_FW_SUFFIX}; then
+		return 1
+	fi
 
+	err=0
 	# sync userdata A and B
 	USERDATA_MOUNTP="/tmp/userdata_${ALT_FW_SUFFIX}"
 	mkdir -p $USERDATA_MOUNTP
@@ -165,8 +164,8 @@ reset_uboot_envs() {
 }
 
 update_security_report(){
-	MONIT_LOG_FILE="/var/log/irma-monitoring/console.log"
-	/usr/bin/security-check.sh >> "$MONIT_LOG_FILE"
+	# update the security report since synced A/B partitions are a security requirement
+	/usr/bin/security-check.sh
 	log "Security report updated"
 }
 
