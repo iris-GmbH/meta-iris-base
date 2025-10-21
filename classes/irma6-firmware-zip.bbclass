@@ -28,7 +28,6 @@ python do_createfirmwarezip() {
     import yaml
     import errno
     import tempfile
-    import re
 
     if "firmwarezip" not in (d.getVar('UPDATE_PROCEDURE', '') or ""):
         return
@@ -64,13 +63,6 @@ python do_createfirmwarezip() {
         deployfiles['u-boot']  = get_fullpath(deploy_dir, select_file('FIRMWARE_ZIP_BOOTLOADER_NAME', 'UBOOT_SYMLINK'))
         return deployfiles
 
-    def version_workaround(version_string):
-        version_matches = re.match(r"^(.*)-(\d+\.\d+)(-.*)$", version_string)
-        prefix = version_matches.group(1)
-        version = version_matches.group(2)
-        suffix = version_matches.group(3)
-        return f"{prefix}-{version}.0{suffix}"
-
     def create_meta_and_zip(deployfiles, metatype, file_list):
         version_string = d.getVar('FIRMWARE_VERSION', True)
 
@@ -79,7 +71,7 @@ python do_createfirmwarezip() {
         meta[metatype] = {}
         for f in file_list:
             meta[metatype][f] = { 'file': os.path.basename(deployfiles[f]) }
-        meta["version"] = version_workaround(version_string)
+        meta["version"] = version_string
         # additionally, add the bootloader versioning to the meta.yml file
         if metatype == "bootloader":
             with open(d.getVar('STAGING_DIR_HOST', True) + d.getVar('datadir', True) + '/uboot.release','r') as f:
