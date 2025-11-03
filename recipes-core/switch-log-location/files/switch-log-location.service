@@ -1,0 +1,13 @@
+[Unit]
+Description=Setup log location (persistent or volatile)
+DefaultDependencies=no
+Before=systemd-journald.service
+After=local-fs.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/switch-log-location.sh
+
+[Install]
+WantedBy=sysinit.target

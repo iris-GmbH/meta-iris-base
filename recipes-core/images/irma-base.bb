@@ -51,6 +51,7 @@ IRMA_EXTRA_PACKAGES = " \
     nftables \
     wpa-supplicant \
     udev-extraconf-iris \
+    switch-log-location \
 "
 
 # install no extra packages on R1
