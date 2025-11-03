@@ -70,7 +70,15 @@ add_image_name_to_os_release(){
     echo "FIRMWARE_VERSION=\"${FIRMWARE_VERSION}\"" >> ${IMAGE_ROOTFS}${sysconfdir}/os-release
 }
 
+setup_machine_id() {
+    # Generate a persistent machine-id for systemd
+    if [ ! -f ${IMAGE_ROOTFS}/etc/machine-id ]; then
+        cat /proc/sys/kernel/random/uuid | tr -d '-' > ${IMAGE_ROOTFS}/etc/machine-id
+    fi
+}
+
 ROOTFS_POSTPROCESS_COMMAND += "add_image_name_to_os_release; "
+ROOTFS_POSTPROCESS_COMMAND += "${@bb.utils.contains('DISTRO_FEATURES', 'systemd', 'setup_machine_id;', '', d)}"
 
 # save the firmware version at /etc/version.
 # Although this probably is not a good idea (modifies file from deep within the yocto build system), this is done for backwards compatibility reasons
