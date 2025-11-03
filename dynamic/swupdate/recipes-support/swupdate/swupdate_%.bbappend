@@ -22,6 +22,12 @@ SRC_URI:append := " \
 	file://0002-mongoose_interface-BUG-Small-payload-16kB-are-not-ac.patch \
 	file://0003-mongoose_multipart-Allow-raw-binary-uploads.patch \
 	file://0005-Makefile.flags-Fix-handling-of-EXTRAVERSION.patch \
+	file://0006-Fix-warnings-due-to-missing-check-on-optarg.patch \
+	file://0007-Factorize-function-to-parse-linux-command-line.patch \
+	file://0008-Prepare-to-introduce-update-type-feature.patch \
+	file://0009-settings-cosmetic-group-the-public-functions.patch \
+	file://0010-FEATURE-introduce-update-type.patch \
+	file://0011-tools-swupdate-ipc-support-for-update-types.patch \
 	file://Findswupdate.cmake \
 "
 
