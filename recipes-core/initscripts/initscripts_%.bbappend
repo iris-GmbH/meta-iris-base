@@ -3,7 +3,6 @@ FILESEXTRAPATHS:prepend := "${THISDIR}/files:"
 SRC_URI += " \
     file://save-rtc-loop.sh \
     file://timestamp \
-    file://set-hostname.sh \
 "
 
 SRC_URI:append:sc57x = " \
@@ -23,9 +22,6 @@ do_install:append () {
 
     install -m 0755 ${WORKDIR}/save-rtc-loop.sh ${D}${sysconfdir}/init.d
     update-rc.d -r ${D} save-rtc-loop.sh start 45 S .
-
-    install -D -m 0755 ${WORKDIR}/set-hostname.sh ${D}${sysconfdir}/init.d/set-hostname
-    update-rc.d -r ${D} set-hostname start 40 S .
 }
 
 do_install_shared() {

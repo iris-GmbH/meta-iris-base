@@ -1,0 +1,29 @@
+#!/bin/sh
+### BEGIN INIT INFO
+# Provides:          set-hostname
+# Required-Start:    $local_fs
+# Required-Stop:
+# Default-Start:     S
+# Default-Stop:
+# Short-Description: Set hostname based on MAC address
+### END INIT INFO
+
+case "$1" in
+    start)
+        /usr/bin/set-hostname.sh || exit 1
+        ;;
+    stop)
+        # Nothing to do on stop
+        :
+        ;;
+    restart|reload|force-reload)
+        # Nothing to do
+        :
+        ;;
+    *)
+        echo "Usage: $0 {start|stop|restart|reload|force-reload}"
+        exit 1
+        ;;
+esac
+
+exit 0
