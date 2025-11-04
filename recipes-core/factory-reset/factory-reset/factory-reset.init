@@ -5,4 +5,3 @@ DESC="Factory reset on RX (1/2) TX (3/6) short"
 if [ "$1" = "start" ] ; then
     /usr/bin/factory-reset.sh || exit 1
 fi
-

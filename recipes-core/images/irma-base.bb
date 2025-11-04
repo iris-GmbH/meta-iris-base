@@ -42,6 +42,7 @@ inherit irma-firmware-versioning
 
 IRMA_BASE_PACKAGES = " \
     iris-ca-certificates \
+    factory-reset \
 "
 
 IRMA_EXTRA_PACKAGES = " \
