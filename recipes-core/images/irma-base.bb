@@ -53,6 +53,7 @@ IRMA_EXTRA_PACKAGES = " \
     wpa-supplicant \
     udev-extraconf-iris \
     switch-log-location \
+    set-mount-permissions \
 "
 
 # install no extra packages on R1

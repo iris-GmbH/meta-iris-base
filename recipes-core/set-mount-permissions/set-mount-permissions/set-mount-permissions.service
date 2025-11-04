@@ -1,0 +1,13 @@
+[Unit]
+Description=Set permissions for IRIS mount point and identity files
+DefaultDependencies=no
+After=local-fs.target
+RequiresMountsFor=/mnt/iris
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/mnt-iris-permissions.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=local-fs.target

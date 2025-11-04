@@ -4,7 +4,6 @@ SRC_URI += " \
     file://save-rtc-loop.sh \
     file://timestamp \
     file://set-hostname.sh \
-    file://set-mount-permissions.sh \
 "
 
 SRC_URI:append:sc57x = " \
@@ -32,9 +31,6 @@ do_install:append () {
 do_install_shared() {
     # Set timestamp file. /etc/default/timestamp will be sourced by the init-scripts
     install -D -m 0644 ${WORKDIR}/timestamp ${D}${sysconfdir}/default/timestamp
-
-    install -m 0755 ${WORKDIR}/set-mount-permissions.sh ${D}${sysconfdir}/init.d
-    update-rc.d -r ${D} set-mount-permissions.sh start 40 S .
 }
 
 do_install:append:sc57x() {
