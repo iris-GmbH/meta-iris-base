@@ -1,0 +1,10 @@
+[Unit]
+Description=Periodically save system clock to timestamp file
+RequiresMountsFor=/mnt/iris
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=30min
+
+[Install]
+WantedBy=timers.target

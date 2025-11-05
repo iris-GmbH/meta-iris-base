@@ -55,6 +55,7 @@ IRMA_EXTRA_PACKAGES = " \
     udev-extraconf-iris \
     switch-log-location \
     set-mount-permissions \
+    save-rtc \
 "
 
 # install no extra packages on R1
