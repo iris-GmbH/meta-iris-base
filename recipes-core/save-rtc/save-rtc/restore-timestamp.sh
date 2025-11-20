@@ -32,4 +32,15 @@ if [ "$SAVED_EPOCH" -gt "$CURRENT_EPOCH" ]; then
     timedatectl set-time "$FORMATTED_TIME" # timedatectl also sets the rtc
 else
     echo "System time is newer than saved timestamp, not restoring"
+
+    # Read RTC time to epoch (ignore warnings from pcf8563)
+    RTC_EPOCH=$(date -d "$(hwclock -r 2>/dev/null)" +%s 2>/dev/null)
+
+    # If RTC older than system time, update it
+    if [ -n "$RTC_EPOCH" ] && [ "$RTC_EPOCH" -lt "$CURRENT_EPOCH" ]; then
+        echo "RTC is older than system time ($RTC_EPOCH < $CURRENT_EPOCH), updating RTC"
+        hwclock --systohc
+    else
+        echo "RTC is up-to-date or unreadable, not updating"
+    fi
 fi
