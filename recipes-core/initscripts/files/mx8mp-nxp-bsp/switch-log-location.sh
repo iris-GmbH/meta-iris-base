@@ -2,14 +2,6 @@
 
 SWITCH_LOG_LOCATION=/mnt/iris/irma6webserver/use_persistent_log_location
 USER_DATA_LOG_DIR=/mnt/datastore/log
-USER_DATA_LOG_DIR_LEGACY=/mnt/iris/log
-
-# compatibility to new lvm layout: can be removed in major release 5.
-if [ -d "$USER_DATA_LOG_DIR_LEGACY" ]; then
-    mkdir -p "$USER_DATA_LOG_DIR"
-    mv $USER_DATA_LOG_DIR_LEGACY/* $USER_DATA_LOG_DIR
-    rm -rf $USER_DATA_LOG_DIR_LEGACY
-fi
 
 if [ -f "$SWITCH_LOG_LOCATION" ]; then
     mkdir -p "$USER_DATA_LOG_DIR"

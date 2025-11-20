@@ -18,11 +18,20 @@ SRC_URI:append:mx93-nxp-bsp = " \
     file://switch-log-location.sh \
 "
 
+SRC_URI:append:sc57x = " \
+    file://0001-initscripts-sysfs.sh-make-dir-dev-shm.patch \
+    file://mount-alternative-partition.sh \
+"
+
 RDEPENDS:${PN}:append = " phytool"
 
 FILES:${PN} += " \
     ${datadir}/factory-reset/factory-reset-functions \
     ${bindir}/factory-reset.sh \
+"
+
+FILES:${PN}:append:sc57x = " \
+    ${sysconfdir}/init.d/mount-alternative-partition.sh \
 "
 
 do_install:append () {
@@ -37,7 +46,7 @@ do_install:append () {
     install -D -m 0755 ${WORKDIR}/factory-reset-functions ${D}${datadir}/factory-reset/factory-reset-functions
     install -D -m 0755 ${WORKDIR}/factory-reset.sh ${D}${bindir}/factory-reset.sh
     install -D -m 0755 ${WORKDIR}/factory-reset.init ${D}${sysconfdir}/init.d/factory-reset
-    update-rc.d -r ${D} factory-reset start 90 S .
+    update-rc.d -r ${D} factory-reset start 8 5 .
 
     install -D -m 0755 ${WORKDIR}/set-hostname.sh ${D}${sysconfdir}/init.d/set-hostname
     update-rc.d -r ${D} set-hostname start 40 S .
@@ -68,4 +77,9 @@ do_install:append:mx93-nxp-bsp() {
     #         /var/volatile/log is created from S37populate-volatile.sh
     install -m 0755 ${WORKDIR}/switch-log-location.sh ${D}${sysconfdir}/init.d
     update-rc.d -r ${D} switch-log-location.sh start 37 S .
+}
+
+do_install:append:sc57x() {
+    install -m 0755 ${WORKDIR}/mount-alternative-partition.sh ${D}${sysconfdir}/init.d
+    update-rc.d -r ${D} mount-alternative-partition.sh start 28 S .
 }

@@ -1,4 +1,4 @@
-From c477c902c15729aa668a27f22812d8fc1d24b9e0 Mon Sep 17 00:00:00 2001
+From fdf8d12d7bb70fbc45850322d9e7c98a3b02d437 Mon Sep 17 00:00:00 2001
 From: Erik Schumacher <erik.schumacher@iris-sensing.com>
 Date: Fri, 27 Sep 2024 07:16:10 +0000
 Subject: [PATCH] Adapt imx93-matrixup board files
@@ -17,8 +17,8 @@ Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
  .../freescale/imx93_matrixup/imx93_matrixup.c |  40 ---
  board/freescale/imx93_matrixup/spl.c          |  10 +-
  configs/imx93_matrixup_defconfig              |  21 +-
- include/configs/imx93_matrixup.h              |  22 +-
- 8 files changed, 59 insertions(+), 386 deletions(-)
+ include/configs/imx93_matrixup.h              |  36 +-
+ 8 files changed, 62 insertions(+), 397 deletions(-)
 
 diff --git a/arch/arm/dts/imx93-matrixup-u-boot.dtsi b/arch/arm/dts/imx93-matrixup-u-boot.dtsi
 index 67caed023f2..7b0595ed54f 100644
@@ -683,7 +683,7 @@ index 540872d3048..203197a1332 100644
  CONFIG_SPL_RSA=y
  CONFIG_SHA384=y
 diff --git a/include/configs/imx93_matrixup.h b/include/configs/imx93_matrixup.h
-index 3bef544175a..0d5c4e3729e 100644
+index 3bef544175a..e5cc58b0c89 100644
 --- a/include/configs/imx93_matrixup.h
 +++ b/include/configs/imx93_matrixup.h
 @@ -3,8 +3,8 @@
@@ -723,7 +723,39 @@ index 3bef544175a..0d5c4e3729e 100644
  	CFG_MFG_ENV_SETTINGS \
  	BOOTENV \
  	AHAB_ENV \
-@@ -167,7 +155,7 @@
+@@ -108,16 +96,12 @@
+ 	"nfsroot=/srv/nfs\0" \
+ 	"nfs_boot=0\0" \
+ 	"loadcntr=fatload mmc ${mmcdev}:${mmcpart} ${cntr_addr} ${cntr_file}\0" \
+-	"auth_os=auth_cntr ${cntr_addr}\0" \
++	"auth_os=booti ${cntr_addr}\0" \
+ 	"boot_os=booti ${loadaddr} - ${fdt_addr_r};\0" \
+ 	"mmcboot=echo Booting from mmc ...; " \
+ 		"run mmcargs; " \
+ 		"if test ${sec_boot} = yes; then " \
+-			"if run auth_os; then " \
+-				"run boot_os; " \
+-			"else " \
+-				"echo ERR: failed to authenticate; " \
+-			"fi; " \
++			"run auth_os; " \
+ 		"else " \
+ 			"if test ${boot_fit} = yes || test ${boot_fit} = try; then " \
+ 				"bootm ${loadaddr}; " \
+@@ -141,11 +125,7 @@
+ 		"fi; " \
+ 		"if test ${sec_boot} = yes; then " \
+ 			"${get_cmd} ${cntr_addr} ${cntr_file}; " \
+-			"if run auth_os; then " \
+-				"run boot_os; " \
+-			"else " \
+-				"echo ERR: failed to authenticate; " \
+-			"fi; " \
++			"run auth_os; " \
+ 		"else " \
+ 			"${get_cmd} ${loadaddr} ${image}; " \
+ 			"if test ${boot_fit} = yes || test ${boot_fit} = try; then " \
+@@ -167,7 +147,7 @@
  
  #define CFG_SYS_SDRAM_BASE           0x80000000
  #define PHYS_SDRAM                      0x80000000
@@ -732,7 +764,7 @@ index 3bef544175a..0d5c4e3729e 100644
  
  /* Using ULP WDOG for reset */
  #define WDOG_BASE_ADDR          WDG3_BASE_ADDR
-@@ -180,8 +168,4 @@
+@@ -180,8 +160,4 @@
  #define NS_ARCH_ARM64 1
  #endif
  
@@ -742,5 +774,5 @@ index 3bef544175a..0d5c4e3729e 100644
 -
  #endif
 -- 
-2.48.1
+2.51.0
 

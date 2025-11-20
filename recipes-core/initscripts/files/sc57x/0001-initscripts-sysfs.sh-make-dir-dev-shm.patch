@@ -1,0 +1,23 @@
+From 415abe73cb5dc46a29f99f8d926d411d380567cd Mon Sep 17 00:00:00 2001
+From: Ian Dannapel <ian.dannapel@iris-sensing.com>
+Date: Fri, 25 Jul 2025 09:39:34 +0200
+Subject: [PATCH] initscripts/sysfs.sh: make dir /dev/shm
+
+Signed-off-by: Ian Dannapel <ian.dannapel@iris-sensing.com>
+---
+ sysfs.sh | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/sysfs.sh b/sysfs.sh
+index da9ad485c1..b41104f4f1 100644
+--- a/sysfs.sh
++++ b/sysfs.sh
+@@ -37,3 +37,5 @@ fi
+ if ! [ -e /dev/zero ] && [ -e /dev ] && grep -q devtmpfs /proc/filesystems; then
+   mount -n -t devtmpfs devtmpfs /dev
+ fi
++
++[ -e /dev/shm ] || mkdir -m 1777 /dev/shm
+-- 
+2.43.0
+

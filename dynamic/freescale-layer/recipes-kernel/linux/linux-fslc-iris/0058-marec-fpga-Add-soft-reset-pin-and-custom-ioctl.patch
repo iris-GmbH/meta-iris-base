@@ -1,0 +1,191 @@
+From 69d9ff8b86950f5895018f4b1f585d7f0aeee21c Mon Sep 17 00:00:00 2001
+From: Erik Schumacher <erik.schumacher@iris-sensing.com>
+Date: Wed, 23 Jul 2025 15:12:32 +0200
+Subject: [PATCH] marec-fpga: Add soft reset pin and custom ioctl's
+
+Add soft reset GPIO as active low pin to matrix-up devicetree and make
+it accessable via a new custom ioctl's of marec-fpga. This GPIO is
+optional, ENODEV is returned if the ioctl is called without a soft
+reset gpio given in the devicetree. Add another ioctl's for enabling/
+disabling the fpga clk.
+
+Remove lpi2c node as the soft reset gpio is routed through i2c2 scl,
+this bus was not used anyway.
+
+Signed-off-by: Erik Schumacher <erik.schumacher@iris-sensing.com>
+Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+---
+ .../boot/dts/freescale/imx93-matrixup.dts     | 27 ++++------
+ drivers/media/i2c/marec-fpga.c                | 53 ++++++++++++++++++-
+ 2 files changed, 61 insertions(+), 19 deletions(-)
+
+diff --git a/arch/arm64/boot/dts/freescale/imx93-matrixup.dts b/arch/arm64/boot/dts/freescale/imx93-matrixup.dts
+index 04c53f39a0335..f44fff75fe1a9 100644
+--- a/arch/arm64/boot/dts/freescale/imx93-matrixup.dts
++++ b/arch/arm64/boot/dts/freescale/imx93-matrixup.dts
+@@ -271,7 +271,7 @@ marec_fpga: marec_fpga@54 {
+ 		compatible = "marec-fpga";
+ 		reg = <0x54>;
+ 		pinctrl-names    = "default";
+-		pinctrl-0        = <&pinctrl_parallel_csi>, <&pinctrl_pwrsv_en>;
++		pinctrl-0        = <&pinctrl_parallel_csi>, <&pinctrl_pwrsv_en>, <&pinctrl_fpga_soft_reset>;
+ 		status = "okay";
+ 
+ 		clocks = <&clk_fpga_mclk>;
+@@ -279,6 +279,7 @@ marec_fpga: marec_fpga@54 {
+ 
+ 		pwrsv-en1-gpios = <&gpio3 25 GPIO_ACTIVE_HIGH>;
+ 		pwrsv-en2-gpios = <&gpio3 24 GPIO_ACTIVE_HIGH>;
++		soft-reset-gpios = <&gpio1 2 GPIO_ACTIVE_LOW>;
+ 
+ 		fpga-mgr = <&fpga_mgr_spi>;
+ 		fpga-bin = "marec-fpga-firmware.bit";
+@@ -296,16 +297,6 @@ marec_ep: endpoint {
+ 	};
+ };
+ 
+-&lpi2c2 {
+-	#address-cells = <1>;
+-	#size-cells = <0>;
+-	clock-frequency = <400000>;
+-	pinctrl-names = "default", "sleep";
+-	pinctrl-0 = <&pinctrl_lpi2c2>;
+-	pinctrl-1 = <&pinctrl_lpi2c2>;
+-	status = "okay";
+-};
+-
+ &lpi2c3 {
+ 	#address-cells = <1>;
+ 	#size-cells = <0>;
+@@ -458,13 +449,6 @@ MX93_PAD_I2C1_SDA__LPI2C1_SDA			0x40000b9e
+ 		>;
+ 	};
+ 
+-	pinctrl_lpi2c2: lpi2c2grp {
+-		fsl,pins = <
+-			MX93_PAD_I2C2_SCL__LPI2C2_SCL			0x40000b9e
+-			MX93_PAD_I2C2_SDA__LPI2C2_SDA			0x40000b9e
+-		>;
+-	};
+-
+ 	pinctrl_lpi2c3: lpi2c3grp {
+ 		fsl,pins = <
+ 			MX93_PAD_GPIO_IO28__LPI2C3_SDA			0x40000b9e
+@@ -504,6 +488,13 @@ MX93_PAD_SD3_DATA3__GPIO3_IO25  0x31e
+ 		>;
+ 	};
+ 
++	pinctrl_fpga_soft_reset: fpgasoftresetgrp {
++		fsl,pins = <
++			// F_RST - with pull up
++			MX93_PAD_I2C2_SCL__GPIO1_IO02  0x31e
++		>;
++	};
++
+ 	pinctrl_parallel_csi: parallelcsigrp {
+ 		fsl,pins = <
+ 			MX93_PAD_GPIO_IO01__MEDIAMIX_CAM_DATA00		0xb9e
+diff --git a/drivers/media/i2c/marec-fpga.c b/drivers/media/i2c/marec-fpga.c
+index d4f192e000e3c..02978eca6a246 100644
+--- a/drivers/media/i2c/marec-fpga.c
++++ b/drivers/media/i2c/marec-fpga.c
+@@ -19,6 +19,11 @@
+ #include <media/v4l2-fwnode.h>
+ 
+ #define MAREC_IOC_S_LOAD_FW _IO('v', BASE_VIDIOC_PRIVATE + 1)
++#define MAREC_IOC_S_SOFT_RESET_LOW _IO('v', BASE_VIDIOC_PRIVATE + 2)
++#define MAREC_IOC_S_SOFT_RESET_HIGH _IO('v', BASE_VIDIOC_PRIVATE + 3)
++#define MAREC_IOC_S_FPGA_CLK_ENABLE _IO('v', BASE_VIDIOC_PRIVATE + 4)
++#define MAREC_IOC_S_FPGA_CLK_DISABLE _IO('v', BASE_VIDIOC_PRIVATE + 5)
++
+ 
+ struct marec_fpga_format {
+ 	u32 mbus_code;
+@@ -33,9 +38,11 @@ struct marec_fpga {
+ 	struct i2c_client *i2c_client;
+ 	struct gpio_desc *powersave_en1;
+ 	struct gpio_desc *powersave_en2;
+-
++	struct gpio_desc *soft_reset;
++	struct clk *mclk;
+ 	struct fpga_manager *fpga_mgr;
+ 	struct fpga_image_info fpga_image;
++	bool clk_enabled;
+ };
+ 
+ static int marec_fpga_read_reg(struct marec_fpga *sensor, u8 reg, u8 *val)
+@@ -96,6 +103,34 @@ static int marec_loadfw(struct marec_fpga *sensor)
+ 	return ret;
+ }
+ 
++static int marec_fpga_set_soft_reset(struct marec_fpga *sensor, bool enable)
++{
++	if (!sensor->soft_reset) {
++		return -ENODEV;
++	}
++	gpiod_set_value(sensor->soft_reset, enable ? 1 : 0);
++	return 0;
++}
++
++static int marec_fpga_enable_fpga_clk(struct marec_fpga *sensor, bool enable)
++{
++	if (!sensor->mclk) {
++		return -ENODEV;
++	}
++
++	if (enable == sensor->clk_enabled) {
++		return 0;
++	}
++
++	if (enable) {
++		clk_prepare_enable(sensor->mclk);
++	} else {
++		clk_disable_unprepare(sensor->mclk);
++	}
++	sensor->clk_enabled = enable;
++	return 0;
++}
++
+ static long marec_ioctl(struct v4l2_subdev *sd, unsigned int cmd, void *arg)
+ {
+ 	struct marec_fpga *sensor = to_marec_fpga(sd);
+@@ -103,6 +138,14 @@ static long marec_ioctl(struct v4l2_subdev *sd, unsigned int cmd, void *arg)
+ 	switch (cmd) {
+ 	case MAREC_IOC_S_LOAD_FW:
+ 		return marec_loadfw(sensor);
++	case MAREC_IOC_S_SOFT_RESET_HIGH:
++		return marec_fpga_set_soft_reset(sensor, true);
++	case MAREC_IOC_S_SOFT_RESET_LOW:
++		return marec_fpga_set_soft_reset(sensor, false);
++	case MAREC_IOC_S_FPGA_CLK_ENABLE:
++		return marec_fpga_enable_fpga_clk(sensor, true);
++	case MAREC_IOC_S_FPGA_CLK_DISABLE:
++		return marec_fpga_enable_fpga_clk(sensor, false);
+ 	}
+ 	return -ENOTTY;
+ }
+@@ -279,6 +322,8 @@ static int marec_fpga_probe(struct i2c_client *client)
+ 	if (IS_ERR(mclk))
+ 		return dev_err_probe(dev, PTR_ERR(mclk),
+ 				     "Could not enable fpga mclk\n");
++	sensor->mclk = mclk;
++	sensor->clk_enabled = true;
+ 
+ 	/* read and set pwrsv_en1/2 gpios */
+ 	sensor->powersave_en1 = devm_gpiod_get_optional(dev, "pwrsv-en1",
+@@ -293,6 +338,12 @@ static int marec_fpga_probe(struct i2c_client *client)
+ 		return dev_err_probe(dev, PTR_ERR(sensor->powersave_en2),
+ 				     "Could not retrieve pwrsv-en2 GPIO\n");
+ 
++	sensor->soft_reset = devm_gpiod_get_optional(dev, "soft-reset",
++							GPIOD_OUT_LOW);
++	if (IS_ERR(sensor->soft_reset))
++		return dev_err_probe(dev, PTR_ERR(sensor->soft_reset),
++				     "Could not retrieve soft-reset GPIO\n");
++
+ 	/* set PWRSV_EN1 to high */
+ 	if (sensor->powersave_en1)
+ 		gpiod_set_value(sensor->powersave_en1, 1);
+-- 
+2.51.0
+

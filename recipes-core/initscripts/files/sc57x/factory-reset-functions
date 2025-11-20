@@ -1,7 +1,6 @@
 #!/bin/sh
 
 LAZY_RESET_FLAG="/etc/counter/lazy_factory_reset"
-cable_is_shorted=0
 
 print_info() {
     [ "$1" -eq 0 ] && printf "GOOD"
@@ -47,11 +46,10 @@ read_one_pair() {
     return 0
 }
 
-# KSZ8081 cable diagnostic
-# Test if the cable pairs 1/2 and 3/6 are shorted and store the result in the
-# variable: cable_is_shorted: 0: Not shorted, 1: Shorted
-# returns 0 on success, 1 otherwise
-cable_diagnostic() {
+# KSZ8081 short detection
+# Test if the cable pairs 1/2 and 3/6 are shorted
+# returns 0 on short, 1 otherwise
+short_detected() {
     echo "Start KSZ8081 short check"
 
     PHY_ID_KSZRNB=0x00221561
@@ -60,8 +58,11 @@ cable_diagnostic() {
     id=$(printf '0x%.8X\n' "$(((id1 << 16) | id2))")
     [ "$((id))" -eq "$((PHY_ID_KSZRNB))" ] || { echo "Error: PHY ID is not supported"; return 1; }
 
+    reg_val_00=$(phytool read eth0/0x1/0x0000)
+    reg_val_1F=$(phytool read eth0/0x1/0x001F)
+
     # Prepare
-    phytool write eth0/0x1/0x0000 0x0100 # Disable Autonegotiation + 10Mbps
+    phytool write eth0/0x1/0x0000 0x0000 # Disable Autonegotiation + 10Mbps
 
     # The cable diagnostic might fail due to active link partner.
     # Try harder if link partner is active.
@@ -74,8 +75,8 @@ cable_diagnostic() {
     done
 
     # Reset
-    phytool write eth0/0x1/0x001F 0x8100 # Enable auto MDI/MDI-X
-    phytool write eth0/0x1/0x0000 0x3100 # Enable autonegotiation + 100Mbps
+    phytool write eth0/0x1/0x001F "$reg_val_1F" # Enable auto MDI/MDI-X
+    phytool write eth0/0x1/0x0000 "$reg_val_00" # Enable autonegotiation + 100Mbps
 
     [ "$i" -lt 20 ] || { echo "Error: Max retries reached"; return 1; }
 
@@ -83,16 +84,10 @@ cable_diagnostic() {
     echo "  B: $pair_b $(print_info "$pair_b")"
 
     if [ "$pair_a" -eq 2 ] && [ "$pair_b" -eq 2 ]; then
-        cable_is_shorted=1
+        return 0
     fi
-}
 
-# KSZRNB short detection
-# Test if the cable pairs 1/2 and 3/6 are shorted
-# Caution: returns 0 on short, 1 otherwise
-short_detected() {
-    cable_diagnostic || return 1
-    [ "$cable_is_shorted" -eq 1 ] && return 0 || return 1
+    return 1
 }
 
 reset_systemtime() {
@@ -106,14 +101,21 @@ reset_systemtime() {
     date -s "$year-$month-$day $hour:$minute:$second"
 }
 
-factory_reset() {
-    echo "Factory reset!"
+reset_userdata() {
     rm -f /etc/counter/config_customer*
     rm -f /etc/counter/config.yaml*
     rm -rf /etc/counter/irma6webserver
     rm -rf /etc/counter/dropbear
-    reset_systemtime
+
+    # Delete custom services
+    rm -rf /mnt/iris/services/*
+
     rm -f "$LAZY_RESET_FLAG"
     sync
 }
 
+factory_reset() {
+    echo "Factory reset!"
+    reset_systemtime
+    reset_userdata
+}

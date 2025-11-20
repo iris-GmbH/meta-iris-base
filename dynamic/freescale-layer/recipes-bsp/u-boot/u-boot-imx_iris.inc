@@ -35,6 +35,7 @@ SRC_URI:append = "\
 	file://0024-imx93_matrixup.c-Fix-possible-nfsboot-persistent-fai.patch \
 	file://0025-net-phy-micrel-Introduce-devicetree-options.patch \
 	file://0026-imx93-matrixup-Support-KSZ8081-ethernet-PHY.patch \
+	file://0027-Remove-warning-Bad-device-specification.patch \
 "
 
 SRC_URI:append:poky-iris-deploy = "\

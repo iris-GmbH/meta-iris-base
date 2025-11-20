@@ -209,4 +209,5 @@ setupNetworkInterfaces() {
     setCommunicationParameters
     createCustomerAdapter
     createServiceAdapter
+    return 0
 }

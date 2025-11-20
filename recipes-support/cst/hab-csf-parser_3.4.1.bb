@@ -10,6 +10,7 @@ FILES:${PN} += " \
 
 SRC_URI += " \
     file://0001-Makefile-Enable-cross-compilation.patch;patchdir=${WORKDIR}/cst-${PV}/add-ons/hab_csf_parser \
+    file://0002-hab_csf_parser-improve-IVT-header-search.patch; \
 "
 
 B = "${S}/add-ons/hab_csf_parser"
