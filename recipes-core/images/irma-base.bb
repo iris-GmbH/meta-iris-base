@@ -88,11 +88,9 @@ python () {
 
     # Add do_finalize_dmverity() task when creating a verity image
     if 'verity' in d.getVar('IMAGE_FSTYPES'):
-        # Reduce the overhead factor to 1, because the verity rootfs will be read-only and free space is useless
-        d.setVar('IMAGE_OVERHEAD_FACTOR', '1.0')
-
-        # add extra space for ext4 overhead
-        d.setVar('IMAGE_ROOTFS_EXTRA_SPACE', '8192')
+        # Reduce the overhead factor to 1.1
+        # free space in RO-Rootfs is useless, but yocto does not consider filesystem overhead
+        d.setVar('IMAGE_OVERHEAD_FACTOR', '1.1')
 
         # Add do_finalize_dmverity() task
         bb.build.addtask('do_finalize_dmverity', 'do_image_complete', 'do_image_verity', d)
