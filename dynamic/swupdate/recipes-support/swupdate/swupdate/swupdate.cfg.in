@@ -7,13 +7,13 @@ globals :
     public-key-file = "/etc/iris/ca-certificates/swupdate-ca.crt";
     aes-key-file = "/mnt/iris/swupdate/encryption.key";
     update-type-required = true;
-    postupdatecmd = "reboot;"
+    postupdatecmd = "touch /tmp/reboot_flag;"
 };
 
 update-types: (
     {
         name="OS";
-        postupdatecmd = "reboot;"
+        postupdatecmd = "touch /tmp/reboot_flag;"
         preupdatecmd = "if [ \"$(fw_printenv upgrade_available | cut -d= -f2)\" = 1 ] || [ -f \"/tmp/power_on_selftest.lock\" ]; then exit 1; fi";
         no-downgrading = "FW_VERSION";
         max-version = "MAX_VERSION";
