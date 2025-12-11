@@ -168,6 +168,9 @@ reset_datastore() {
 
 factory_reset() {
     echo "Factory reset!"
+    # flag helper for irma-monitoring to determine boot complete
+    mkdir -p /tmp/bootcheck
+    touch /tmp/bootcheck/factory-reset-executed
     reset_systemtime
     reset_userdata
     reset_datastore
