@@ -15,6 +15,7 @@ done
 
 # Check if the factory reset is forced or if the reset flag is set
 if [ "$FORCE" -eq 1 ] || is_flag_set; then
+    echo "Factory-Reset is triggered by flag file"
     factory_reset
     exit 0
 fi
