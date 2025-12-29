@@ -5,13 +5,12 @@ inherit irma6-bootloader-version hab hab-compatibility-check
 PV = "${IRIS_IMX_BOOT_RELEASE}"
 
 FILESEXTRAPATHS:prepend := "${THISDIR}/files:"
+SRC_URI:append = " file://${HAB_DIR}/csf.cfg"
 SRC_URI:append:hab4 = " \
     file://0001-Use-imx8mp-irma6r2.dtb-instead-of-imx8mp-ddr4-evk.dt.patch \
-    file://csf_hab4.cfg \
 "
 
 SRC_URI:append:ahab = " \
-    file://csf_ahab.cfg \
     file://0001-Add-flash_fitimage-for-imx93.patch \
 "
 
@@ -74,12 +73,12 @@ sign_boot_image() {
 }
 
 do_sign_boot_image:hab4() {
-    install -m 0755 ${WORKDIR}/csf_hab4.cfg ${S}/csf.cfg
+    install -m 0755 ${HAB_DIR}/csf.cfg ${S}/csf.cfg
     sign_boot_image
 }
 
 do_sign_boot_image:ahab() {
-    install -m 0755 ${WORKDIR}/csf_ahab.cfg ${S}/csf.cfg
+    install -m 0755 ${HAB_DIR}/csf.cfg ${S}/csf.cfg
     sign_boot_image
 }
 
