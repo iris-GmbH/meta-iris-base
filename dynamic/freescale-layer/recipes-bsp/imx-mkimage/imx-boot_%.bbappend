@@ -14,22 +14,6 @@ SRC_URI:append:ahab = " \
     file://0001-Add-flash_fitimage-for-imx93.patch \
 "
 
-# Make irma-fitimage as dependent on the do_compile task of imx-boot
-COMPILE_DEPENDS = ""
-COMPILE_DEPENDS:ahab = " \
-    irma-fitimage:do_assemble_fit \
-    irma-fitimage-uuu:do_assemble_fit \
-"
-COMPILE_DEPENDS:hab4 = " \
-    irma-fitimage:do_assemble_fit \
-    irma-fitimage-uuu:do_assemble_fit \
-"
-do_compile[depends] += "${COMPILE_DEPENDS}"
-
-FITIMAGE_NAME = "irma-fitimage.itb"
-FITIMAGE_UUU_NAME = "irma-fitimage-uuu.itb"
-FITLOADADDR:mx8mp-nxp-bsp = "0x48000000"
-
 python __anonymous () {
     overrides = d.getVar('OVERRIDES', True).split(':')
     if 'hab4' in overrides or 'ahab' in overrides:
