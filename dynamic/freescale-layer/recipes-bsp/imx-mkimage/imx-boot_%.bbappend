@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: MIT
 # Copyright (C) 2022 iris-GmbH infrared & intelligent sensors
 
-inherit irma6-bootloader-version hab
+inherit irma6-bootloader-version hab hab-compatibility-check
 PV = "${IRIS_IMX_BOOT_RELEASE}"
 
 FILESEXTRAPATHS:prepend := "${THISDIR}/files:"
@@ -34,7 +34,7 @@ FITLOADADDR:mx8mp-nxp-bsp = "0x48000000"
 python __anonymous () {
     overrides = d.getVar('OVERRIDES', True).split(':')
     if 'hab4' in overrides or 'ahab' in overrides:
-        d.appendVar("DEPENDS", " cst-native cst-signer-native perl-native hab-csf-parser-native")
+        d.appendVar("DEPENDS", " cst-native cst-signer-native")
 }
 
 set_imxboot_vars() {
@@ -50,29 +50,6 @@ set_imxboot_vars() {
 
 do_sign_boot_image() {
     bbwarn "Signed boot not enabled."
-}
-
-check_srk_compatibility () {
-    # machine specific only
-    :
-}
-
-check_srk_compatibility:mx93-nxp-bsp() {
-    # TODO matrix-up https://iris-sensing.jira.com/browse/MARE-395
-    :
-}
-
-check_srk_compatibility:mx8mp-nxp-bsp() {
-    check_csf_compatibility "$1"
-}
-
-check_csf_compatibility() {
-    local signed_image="$1"
-    rm -f output/SRKTable.bin
-    csf_parser -s "${signed_image}" || true
-    if [ ! -f output/SRKTable.bin ]; then
-        bbfatal "generated ${signed_image} is not compatible with csf_parser and update on locked boards will not be accepted"
-    fi
 }
 
 sign_boot_image() {
@@ -139,131 +116,6 @@ do_deploy:append:hab4() {
 
 do_deploy:append:ahab() {
     deploy_boot_image
-}
-
-do_compile:append:ahab() {
-    # Create flash.bin for the uuu kernel fitimage -> flash_os.bin.uuu
-    cp ${DEPLOY_DIR_IMAGE}/${FITIMAGE_UUU_NAME} ${BOOT_STAGING}/${FITIMAGE_UUU_NAME}
-    FITIMAGE=${FITIMAGE_UUU_NAME} make SOC=${IMX_BOOT_SOC_TARGET} flash_fitimage
-    mv ${BOOT_STAGING}/flash_os.bin ${BOOT_STAGING}/flash_os.bin.uuu
-
-    # Create flash.bin for the kernel fitimage -> flash_os.bin
-    cp ${DEPLOY_DIR_IMAGE}/${FITIMAGE_NAME} ${BOOT_STAGING}/${FITIMAGE_NAME}
-    FITIMAGE=${FITIMAGE_NAME} make SOC=${IMX_BOOT_SOC_TARGET} flash_fitimage
-}
-
-attach_ivt() {
-	if [ -z "${FITLOADADDR}" ]; then
-		bbfatal "FITLOADADDR is not set!"
-	fi
-
-	IMAGE_SIZE="`wc -c < ${1}`"
-	get_align_size_emit_file get_align_size.pl
-	genivt_emit_file imx6-genIVT.pl
-	ALIGNED_SIZE="$(perl -w get_align_size.pl ${IMAGE_SIZE})"
-	objcopy -I binary -O binary --pad-to ${ALIGNED_SIZE} --gap-fill=0x00 ${1} ${1}-pad
-	perl -w imx6-genIVT.pl ${FITLOADADDR} `printf "0x%x" ${ALIGNED_SIZE}`
-	cat ${1}-pad ivt.bin > ${1}-ivt
-	rm -f ${1}-pad
-}
-
-get_align_size_emit_file() {
-
-	cat << 'EOF' > ${1}
-use strict;
-my $image_size = $ARGV[0];
-my $aligned_size = (($image_size + 0x1000 - 1)  & ~ (0x1000 - 1));
-print  "$aligned_size\n";
-EOF
-}
-
-genivt_emit_file() {
-
-	cat << 'EOF' > ${1}
-use strict;
-my $loadaddr = hex(shift);
-my $img_size = hex(shift);
-
-my $entry = $loadaddr;
-my $ivt_addr = $loadaddr + $img_size;
-my $csf_addr = $ivt_addr + 0x20;
-
-open(my $out, '>:raw', 'ivt.bin') or die "Unable to open: $!";
-print $out pack("V", 0x412000D1); # IVT Header
-print $out pack("V", $entry); # Jump Location
-print $out pack("V", 0x0); # Reserved
-print $out pack("V", 0x0); # DCD pointer
-print $out pack("V", 0x0); # Boot Data
-print $out pack("V", $ivt_addr); # Self Pointer
-print $out pack("V", $csf_addr); # CSF Pointer
-print $out pack("V", 0x0); # Reserved
-close($out);
-EOF
-}
-
-do_compile:append:hab4() {
-    # Copy fitimage
-    cp ${DEPLOY_DIR_IMAGE}/${FITIMAGE_NAME} ${BOOT_STAGING}/${FITIMAGE_NAME}
-    cp ${DEPLOY_DIR_IMAGE}/${FITIMAGE_UUU_NAME} ${BOOT_STAGING}/${FITIMAGE_UUU_NAME}
-
-    # Append Image Vector Table
-    attach_ivt ${BOOT_STAGING}/${FITIMAGE_NAME}
-    attach_ivt ${BOOT_STAGING}/${FITIMAGE_UUU_NAME}
-
-    # Create the kernel (uuu) fitimage'S -> flash_os.bin, flash_os.bin.uuu
-    mv ${BOOT_STAGING}/${FITIMAGE_NAME}-ivt ${BOOT_STAGING}/flash_os.bin
-    mv ${BOOT_STAGING}/${FITIMAGE_UUU_NAME}-ivt ${BOOT_STAGING}/flash_os.bin.uuu
-}
-
-do_sign_fitimage() {
-    bbwarn "Signed fitimage not enabled."
-}
-
-sign_fitimage() {
-    bbnote "Signing fitimage"
-
-    SIGNDIR="${S}"
-    if [ ! -f ${SIGNDIR}/csf.cfg ]; then
-        install -m 0755 ${WORKDIR}/csf_ahab.cfg ${SIGNDIR}/csf.cfg
-    fi
-
-    # Generate signed fitimage using cst_signer
-    cd "${SIGNDIR}"
-    CST_EXE_PATH=cst CST_PATH=${HAB_DIR} cst_signer -d -i ${BOOT_STAGING}/flash_os.bin -c ${SIGNDIR}/csf.cfg
-    mv ${SIGNDIR}/signed-flash_os.bin ${SIGNDIR}/${FITIMAGE_NAME}.signed
-
-    check_srk_compatibility ${SIGNDIR}/${FITIMAGE_NAME}.signed
-
-    # Generate signed fitimage-uuu using cst_signer
-    CST_EXE_PATH=cst CST_PATH=${HAB_DIR} cst_signer -d -i ${BOOT_STAGING}/flash_os.bin.uuu -c ${SIGNDIR}/csf.cfg
-    mv ${SIGNDIR}/signed-flash_os.bin.uuu ${SIGNDIR}/${FITIMAGE_UUU_NAME}.signed
-}
-
-do_sign_fitimage:hab4() {
-    sign_fitimage
-}
-
-do_sign_fitimage:ahab() {
-    sign_fitimage
-}
-
-addtask do_sign_fitimage before do_deploy do_install after do_sign_boot_image
-
-deploy_fitimage() {
-    if [ -e "${S}/${FITIMAGE_NAME}.signed" ] || [ -e "${S}/${FITIMAGE_UUU_NAME}.signed" ]; then
-        install -m 0644 ${S}/${FITIMAGE_NAME}.signed ${DEPLOYDIR}
-        install -m 0644 ${S}/${FITIMAGE_UUU_NAME}.signed ${DEPLOYDIR}
-    else
-        bbfatal "Could not deploy Signed fitimage"
-    fi
-}
-
-do_deploy:append:ahab() {
-    deploy_fitimage
-}
-
-do_deploy:append:hab4() {
-    deploy_fitimage
 }
 
 check_iris_version_string() {

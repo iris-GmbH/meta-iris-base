@@ -116,4 +116,7 @@ do_assemble_fit() {
 
 addtask do_assemble_fit before do_install after do_compile
 
-do_assemble_fit[depends] += "${RESCUE_NAME}:do_image_complete"
+FITIMAGE_IMAGE_NAME = "${ITB_FNAME}"
+HAB_INHERIT = "hab-signed-fitimage"
+HAB_INHERIT:poky-iris-0601 = ""
+inherit ${HAB_INHERIT}
