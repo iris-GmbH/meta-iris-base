@@ -1,5 +1,5 @@
 [Unit]
-Description=SSH Key Generation
+Description=SSH Key Generation with persistent configuration on /mnt/iris
 RequiresMountsFor=/var /var/lib
 ConditionPathExists=!/etc/dropbear/dropbear_rsa_host_key
 ConditionPathExists=!/var/lib/dropbear/dropbear_rsa_host_key
