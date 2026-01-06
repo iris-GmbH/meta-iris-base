@@ -16,7 +16,7 @@ FILES:${PN} += " \
 inherit systemd
 inherit update-rc.d
 
-# Note 1: /var/volatile/log is created and mounted in the initramfs
+# Note 1: poky-iris-0602: /var/volatile/log is created and mounted in the initramfs
 # Note 2: switch-log-location.sh should first be called after all other
 #         devices are mounted (S03mountall.sh)
 
