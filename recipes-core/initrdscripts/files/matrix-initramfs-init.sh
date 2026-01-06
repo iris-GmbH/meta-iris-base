@@ -17,8 +17,6 @@ mount_pseudo_fs() {
 	${MOUNT} -t tmpfs tmp /run
 	${MOUNT} -t proc proc /proc
 	${MOUNT} -t sysfs sysfs /sys
-	${MOUNT} -t tmpfs tmpfs /var/volatile
-	mkdir -p /var/volatile/log
 }
 
 move_special_devices() {    
