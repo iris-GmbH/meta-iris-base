@@ -22,6 +22,10 @@ S = "${WORKDIR}"
 RDEPENDS:${PN} += " \
     rsync \
     procps \
+    lvm2 \
+    libubootenv-bin \
+    keyutils \
+    cryptsetup \
 "
 
 inherit update-rc.d systemd
