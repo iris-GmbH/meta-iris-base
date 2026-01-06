@@ -5,7 +5,7 @@ Wants=nginx.service WebInterfaceServer.service swupdate.service count_von_count.
 
 [Service]
 Type=oneshot
-ExecStart=/usr/sbin/power-on-selftest.sh
+ExecStart=/usr/share/iris/power-on-selftest.sh
 RemainAfterExit=yes
 StandardOutput=journal+console
 StandardError=journal+console

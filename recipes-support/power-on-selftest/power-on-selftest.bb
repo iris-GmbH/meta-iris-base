@@ -12,7 +12,7 @@ SRC_URI = " \
 "
 
 FILES:${PN} += " \
-    ${sbindir}/power-on-selftest.sh \
+    ${datadir}/iris/power-on-selftest.sh \
     ${sysconfdir}/init.d/power-on-selftest \
     ${systemd_system_unitdir}/power-on-selftest.service \
 "
@@ -33,8 +33,8 @@ SYSTEMD_SERVICE:${PN} = "power-on-selftest.service"
 
 do_install() {
     # Install the main script
-    install -d ${D}${sbindir}
-    install -m 0755 ${WORKDIR}/power-on-selftest.sh ${D}${sbindir}/power-on-selftest.sh
+    install -d ${D}${datadir}/iris
+    install -m 0755 ${WORKDIR}/power-on-selftest.sh ${D}${datadir}/iris/power-on-selftest.sh
 
     # Install SysVinit script, automatically removed on systemd
     install -d ${D}${sysconfdir}/init.d

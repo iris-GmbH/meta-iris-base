@@ -12,7 +12,7 @@
 case "$1" in
     start)
         echo "Running Power-On Self Test..."
-        /usr/sbin/power-on-selftest.sh
+        /usr/share/iris/power-on-selftest.sh
         ;;
     stop|restart|reload|force-reload|status)
         # No-op for these actions
