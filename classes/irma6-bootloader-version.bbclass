@@ -5,5 +5,5 @@
 # u-boot-spl.
 
 IRIS_IMX_BOOT_RELEASE = "iris-boot_0.0.0"
-IRIS_IMX_BOOT_RELEASE:mx8mp-nxp-bsp = "iris-boot_2.3.7"
+IRIS_IMX_BOOT_RELEASE:mx8mp-nxp-bsp = "iris-boot_2.3.8"
 IRIS_IMX_BOOT_RELEASE:mx93-nxp-bsp = "iris-boot_1.1.7"
