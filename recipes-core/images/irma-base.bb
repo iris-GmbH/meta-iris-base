@@ -57,6 +57,7 @@ IRMA_EXTRA_PACKAGES = " \
     set-mount-permissions \
     save-rtc \
 "
+IRMA_EXTRA_PACKAGES:append = "${@bb.utils.contains('DISTRO_FEATURES', 'systemd', ' remount-nfs-root', '', d)}"
 
 # install no extra packages on R1
 IRMA_EXTRA_PACKAGES:poky-iris-0601 = " \
