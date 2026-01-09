@@ -1,4 +1,5 @@
 #!/bin/sh
+set -eu
 
 SWITCH_LOG_LOCATION=/mnt/iris/irma6webserver/use_persistent_log_location
 USER_DATA_LOG_DIR=/mnt/datastore/log
@@ -8,9 +9,11 @@ if [ -f "$SWITCH_LOG_LOCATION" ]; then
     # Preserve and append current initramfs.log
     [ -f /var/volatile/log/initramfs.log ] && cat /var/volatile/log/initramfs.log >> "$USER_DATA_LOG_DIR/initramfs.log" && rm /var/volatile/log/initramfs.log
     mount --bind "$USER_DATA_LOG_DIR" /var/volatile/log
+    echo "Persistent logging activated on $USER_DATA_LOG_DIR"
 elif [ -d "$USER_DATA_LOG_DIR" ]; then
     # Remove user data log dir except when the initramfs reports errors
     if [ "$(find $USER_DATA_LOG_DIR -mindepth 1 -maxdepth 1 | wc -l)" -ne 1 ] || [ ! -f "$USER_DATA_LOG_DIR/initramfs.log" ]; then
         rm -fr "$USER_DATA_LOG_DIR"
+        echo "Removed persistent logging folder on $USER_DATA_LOG_DIR"
     fi
 fi
