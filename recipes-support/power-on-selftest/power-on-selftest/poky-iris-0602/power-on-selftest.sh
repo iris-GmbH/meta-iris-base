@@ -13,7 +13,7 @@ exists() {
 
 power_on_selftest() {
 	# Check that all necessary tools are available and running
-	tools="nginx WebInterfaceServer swupdate count_von_count i6ls"
+	tools="nginx WebInterfaceServer swupdate count_von_count i6ls irma-monitoring"
 	log "[STARTED] power on self test started!"
 	for tool in $tools; do
 		exists "$tool" || return 1
