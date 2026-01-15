@@ -7,10 +7,11 @@ remove_dm_lvm_rule () {
     fi
 
     # Remove 69-dm-lvm.rules from the final Makefile, because it requires systemd, see https://github.com/lvmteam/lvm2/blob/v2_03_16/udev/69-dm-lvm.rules.in#L83
-    sed -i "s|69-dm-lvm.rules||g" "${S}/udev/Makefile"
+    if [ "${@bb.utils.contains('DISTRO_FEATURES', 'systemd', 'true', 'false', d)}" = "false" ]; then
+        sed -i "s|69-dm-lvm.rules||g" "${S}/udev/Makefile"
+    fi
 }
 
 do_compile:append () {
     remove_dm_lvm_rule
 }
-

@@ -41,15 +41,21 @@ PV = "${DISTRO_VERSION}"
 inherit irma-firmware-versioning
 
 IRMA_BASE_PACKAGES = " \
-	iris-ca-certificates \
+    iris-ca-certificates \
+    factory-reset \
+    set-hostname \
 "
 
 IRMA_EXTRA_PACKAGES = " \
-	iris-signing \
-	rsyslog \
-	chrony \
-	nftables \
-	wpa-supplicant \
+    iris-signing \
+    rsyslog \
+    chrony \
+    nftables \
+    wpa-supplicant \
+    udev-extraconf-iris \
+    switch-log-location \
+    set-mount-permissions \
+    save-rtc \
 "
 
 # install no extra packages on R1
@@ -68,12 +74,20 @@ add_image_name_to_os_release(){
     echo "FIRMWARE_VERSION=\"${FIRMWARE_VERSION}\"" >> ${IMAGE_ROOTFS}${sysconfdir}/os-release
 }
 
+setup_machine_id() {
+    # Generate a persistent machine-id for systemd
+    if [ ! -f ${IMAGE_ROOTFS}/etc/machine-id ]; then
+        cat /proc/sys/kernel/random/uuid | tr -d '-' > ${IMAGE_ROOTFS}/etc/machine-id
+    fi
+}
+
 ROOTFS_POSTPROCESS_COMMAND += "add_image_name_to_os_release; "
+ROOTFS_POSTPROCESS_COMMAND += "${@bb.utils.contains('DISTRO_FEATURES', 'systemd', 'setup_machine_id;', '', d)}"
 
 # save the firmware version at /etc/version.
 # Although this probably is not a good idea (modifies file from deep within the yocto build system), this is done for backwards compatibility reasons
 replace_etc_version () {
-	echo "${FIRMWARE_VERSION}" > ${IMAGE_ROOTFS}${sysconfdir}/version
+    echo "${FIRMWARE_VERSION}" > ${IMAGE_ROOTFS}${sysconfdir}/version
 }
 
 # simply appending to ROOTFS_POSTPROCESS_COMMAND is not enough, as we need to run this after

@@ -63,7 +63,8 @@ FBK: ucmd sh -c '. /tmp/hashsums; echo "((($SIZE_ROOTFSVERITY/(4*1024*1024)) + (
 FBK: ucmd mmc=`cat /tmp/mmcdev`; pvcreate -ff -y /dev/mmcblk${mmc}p5
 FBK: ucmd mmc=`cat /tmp/mmcdev`; vgcreate irma6lvm /dev/mmcblk${mmc}p5
 # start udev daemon so lvm can synchronize devices
-FBK: ucmd /etc/init.d/udev start
+FBK: ucmd udevd --daemon
+FBK: ucmd udevadm settle
 FBK: ucmd lvcreate -y -n rootfs_a -L "$(cat /tmp/size_rootfs)"B irma6lvm
 FBK: ucmd lvcreate -y -n rootfs_a_hash -L "$(cat /tmp/size_rootfsverity)"B irma6lvm
 FBK: ucmd lvcreate -y -n rootfs_b -L "$(cat /tmp/size_rootfs)"B irma6lvm

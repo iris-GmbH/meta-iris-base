@@ -106,6 +106,7 @@ short_detected() {
 mount_alternative_userdata() {
     echo "Mount alternative userdata"
     mkdir -p ${ALT_MNT}
+    keyctl link @us @s # link user session key to session for systemd dmsetup
     dmsetup create "decrypted-${vg}-userdata${ALT_SUFFIX}" --table "0 $(blockdev --getsz "/dev/mapper/${vg}-userdata${ALT_SUFFIX}") crypt aes-cbc-essiv:sha256 :32:trusted:kmk 0 /dev/mapper/${vg}-userdata${ALT_SUFFIX} 0 1 sector_size:4096"
 	mount -t ext4 "/dev/mapper/decrypted-${vg}-userdata${ALT_SUFFIX}" "${ALT_MNT}"
 }

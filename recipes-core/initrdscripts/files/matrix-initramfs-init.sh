@@ -13,15 +13,19 @@ fi
 mount_pseudo_fs() {
 	echo "Mount pseudo fs's"
 	${MOUNT} -t devtmpfs none /dev
+	${MOUNT} -t tmpfs tmp /tmp
+	${MOUNT} -t tmpfs tmp /run
 	${MOUNT} -t proc proc /proc
 	${MOUNT} -t sysfs sysfs /sys
 }
 
-move_pseudo_fs() {
+move_special_devices() {    
 	echo "Move pseudo fs's"
 	${MOUNT} --move /dev ${ROOT_MNT}/dev
 	${MOUNT} --move /proc ${ROOT_MNT}/proc
 	${MOUNT} --move /sys ${ROOT_MNT}/sys
+	${MOUNT} --move /run ${ROOT_MNT}/run
+	${MOUNT} --move /var/volatile ${ROOT_MNT}/var/volatile
 }
 
 parse_cmdline() {
@@ -50,8 +54,7 @@ parse_cmdline() {
 	DECRYPT_NAME="decrypted-matrixlvm-rootfs_${FIRMWARE_SUFFIX}"
 	DECRYPT_ROOT_DEV="/dev/mapper/${DECRYPT_NAME}"
 	USERDATA_DEV="/dev/mapper/matrixlvm-userdata_${FIRMWARE_SUFFIX}"
-	DECRYPT_USERDATA_NAME="decrypted-matrixlvm-userdata_${FIRMWARE_SUFFIX}"
-	DECRYPT_USERDATA_SYM="/dev/mapper/decrypted-matrixlvm-userdata"
+	DECRYPT_USERDATA_NAME="decrypted-matrixlvm-userdata"
 	DATASTORE_DEV="/dev/mapper/matrixlvm-datastore"
 	DECRYPT_DATASTORE_NAME="decrypted-matrixlvm-datastore"
 }
@@ -116,8 +119,8 @@ check_user_data_sync() {
 	fi
 }
 
-
 echo "Initramfs Bootstrap..."
+/usr/sbin/udevd --daemon # we need udev to manage volumes cleanly
 mount_pseudo_fs
 
 echo "Populate LVM mapper devices"
@@ -161,9 +164,6 @@ else
 	fi
 	echo "Switch root to eMMC"
 fi
-
-echo "Create ${DECRYPT_USERDATA_SYM} symlink for /etc/fstab"
-ln -s "/dev/mapper/${DECRYPT_USERDATA_NAME}" "${DECRYPT_USERDATA_SYM}"
 
 move_pseudo_fs
 exec switch_root "${ROOT_MNT}" "${INIT}" "${CMDLINE}"

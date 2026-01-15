@@ -5,16 +5,11 @@ FILESEXTRAPATHS:prepend := "${THISDIR}/${PN}:"
 
 wwwdir = "/var/www/swupdate"
 
-# Put reset script right after counting application
-RESET_SCRIPT="power_on_selftest.sh"
-RESET_SCRIPT_SYM="S93power_on_selftest"
-
 # use git instead of quilt to apply binary patch as well
 PATCHTOOL = "git"
 
 SRC_URI:append := " \
 	file://defconfig \
-	file://${RESET_SCRIPT} \
 	file://swupdate.sh \
 	file://swupdate.cfg.in \
 	file://bootloader_update.lua \
@@ -22,6 +17,8 @@ SRC_URI:append := " \
 	file://0001-Apply-iris-Coporate-Design-to-webinterface.patch \
 	file://0002-mongoose_multipart-Allow-raw-binary-uploads.patch \
 "
+
+SRC_URI += "${@bb.utils.contains('DISTRO_FEATURES', 'systemd', 'file://swupdate-systemd.cfg', '', d)}"
 
 DEPENDS += " \
 	bc-native \
@@ -36,12 +33,12 @@ RDEPENDS:${PN} += " \
 	nginx \
 	lvm2 \
 	mmc-utils \
-	rsync \
 	e2fsprogs-resize2fs \
 	e2fsprogs-e2fsck \
 	util-linux-blockdev \
 	keyutils \
 	cryptsetup \
+	power-on-selftest \
 "
 
 # Include more RDEPENDS for pre_post_inst.sh in swuimage, but only for real hardware
@@ -57,19 +54,12 @@ RDEPENDS:${PN}:append:poky-iris-0501 = " \
 
 FILES:${PN} += " \
 	${SWUPDATE_HW_COMPATIBILITY_FILE} \
-	${sysconfdir}/init.d/${RESET_SCRIPT} \
-	${sysconfdir}/rc5.d/${RESET_SCRIPT_SYM} \
 	${sysconfdir}/swupdate.cfg \
 "
 
 SWU_HW_VERSION ?= "${@'0.0' if not d.getVar('HW_VERSION') else d.getVar('HW_VERSION')}"
 
 do_install:append () {
-	install -d ${D}${sysconfdir}/init.d
-	install -d ${D}${sysconfdir}/rc5.d
-	install -m 0755 ${WORKDIR}/${RESET_SCRIPT} ${D}${sysconfdir}/init.d
-	ln -s -r ${D}${sysconfdir}/init.d/${RESET_SCRIPT} ${D}${sysconfdir}/rc5.d/${RESET_SCRIPT_SYM}
-
 	# create swupdate.cfg and replace variables
 	cp ${WORKDIR}/swupdate.cfg.in ${WORKDIR}/swupdate.cfg
 	export FW_VERSION=`echo ${DISTRO_VERSION} | grep -oP '\d+\.\d+'`

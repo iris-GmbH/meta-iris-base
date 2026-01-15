@@ -1,0 +1,11 @@
+[Unit]
+Description=Core dump handler configuration
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/share/core-dump/configure-core-dump start
+ExecStop=/usr/share/core-dump/configure-core-dump stop
+
+[Install]
+WantedBy=sysinit.target

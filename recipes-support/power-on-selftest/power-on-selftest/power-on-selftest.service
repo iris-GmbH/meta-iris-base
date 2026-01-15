@@ -1,0 +1,14 @@
+[Unit]
+Description=Power-On Self Test
+After=nginx.service WebInterfaceServer.service swupdate.service count_von_count.service i6ls.service
+Wants=nginx.service WebInterfaceServer.service swupdate.service count_von_count.service i6ls.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/share/iris/power-on-selftest.sh
+RemainAfterExit=yes
+StandardOutput=journal+console
+StandardError=journal+console
+
+[Install]
+WantedBy=multi-user.target
