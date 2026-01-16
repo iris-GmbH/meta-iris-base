@@ -25,7 +25,6 @@ move_special_devices() {
     ${MOUNT} --move /proc ${ROOT_MNT}/proc
     ${MOUNT} --move /sys ${ROOT_MNT}/sys
     ${MOUNT} --move /run ${ROOT_MNT}/run
-    ${MOUNT} --move /var/volatile ${ROOT_MNT}/var/volatile
 }
 
 parse_cmdline() {
@@ -119,13 +118,16 @@ check_user_data_sync() {
     fi
 }
 
-echo "Initramfs Bootstrap..."
-/usr/sbin/udevd --daemon # we need udev to manage volumes cleanly
 mount_pseudo_fs
+
+# we need udev to manage volumes cleanly
+/sbin/udevd --daemon
 
 echo "Populate LVM mapper devices"
 vgchange -a y
 vgmknodes
+
+echo "Initramfs Bootstrap..."
 
 parse_cmdline
 echo "Root mnt     : ${ROOT_MNT}"
@@ -165,5 +167,6 @@ else
     echo "Switch root to eMMC"
 fi
 
-move_pseudo_fs
+udevadm settle
+move_special_devices
 exec switch_root "${ROOT_MNT}" "${INIT}" "${CMDLINE}"
