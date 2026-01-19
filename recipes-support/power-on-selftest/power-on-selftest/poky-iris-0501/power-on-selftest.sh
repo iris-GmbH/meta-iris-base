@@ -99,7 +99,7 @@ update_alternative_firmware() {
 rsync_alternative_userdata() {
 	log "Synchronizing config from ${CUR_FW_SUFFIX} to ${ALT_FW_SUFFIX}"
 	err=0
-
+	keyctl link @us @s # link user session key to session for systemd dmsetup
 	dmsetup create decrypted-matrixlvm-userdata_${ALT_FW_SUFFIX} --table "0 $(blockdev --getsz /dev/mapper/matrixlvm-userdata_${ALT_FW_SUFFIX}) crypt aes-cbc-essiv:sha256 :32:trusted:kmk 0 /dev/mapper/matrixlvm-userdata_${ALT_FW_SUFFIX} 0 1 sector_size:4096"
 
 	# sync userdata A and B
