@@ -288,6 +288,9 @@ sync_userdata_from_to() {
 
 mount_pseudo_fs
 
+# we need udev to manage volumes cleanly
+/sbin/udevd --daemon
+
 # populate LVM mapper devices
 vgchange -a y
 vgmknodes
@@ -304,8 +307,6 @@ then
     exec switch_root ${ROOT_MNT} "${INIT}" "${CMDLINE}"
     exit 0
 fi
-
-/usr/sbin/udevd --daemon # we need udev to manage volumes cleanly
 
 # check if we are in provisioning and need to encrypt the volumes
 debug "Provisioning check..."
@@ -395,5 +396,6 @@ then
     emergency_switch
 fi
 debug "Switching root to verity device"
+udevadm settle
 move_special_devices
 exec switch_root ${ROOT_MNT} "${INIT}" "${CMDLINE}"
