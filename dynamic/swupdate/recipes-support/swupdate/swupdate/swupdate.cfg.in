@@ -7,7 +7,6 @@ globals :
     public-key-file = "/etc/iris/ca-certificates/swupdate-ca.crt";
     aes-key-file = "/mnt/iris/swupdate/encryption.key";
     update-type-required = true;
-    postupdatecmd = "touch /tmp/reboot_flag;"
 };
 
 update-types: (
