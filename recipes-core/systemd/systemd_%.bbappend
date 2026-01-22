@@ -3,6 +3,8 @@ FILESEXTRAPATHS:prepend := "${THISDIR}/files:"
 SRC_URI += "\
     file://10-keep-eth0.conf \
     file://01-custom-journald.conf \
+    file://emergency-override.conf \
+    file://rescue-override.conf \
     file://99-watchdog.conf \
     file://clock-epoch \
 "
@@ -16,6 +18,9 @@ do_install:append() {
     install -m 0644 ${WORKDIR}/10-keep-eth0.conf ${D}${sysconfdir}/systemd/network/99-default.link.d/
 
     install -D -m0644 ${WORKDIR}/01-custom-journald.conf ${D}${sysconfdir}/systemd/journald.conf.d/01-custom-journald.conf
+
+    install -D -m0644 ${WORKDIR}/emergency-override.conf ${D}${sysconfdir}/systemd/system/emergency.service.d/override.conf
+    install -D -m0644 ${WORKDIR}/rescue-override.conf ${D}${sysconfdir}/systemd/system/rescue.service.d/override.conf
 
     install -D -m0644 ${WORKDIR}/99-watchdog.conf ${D}${sysconfdir}/systemd/system.conf.d/99-watchdog.conf
 
