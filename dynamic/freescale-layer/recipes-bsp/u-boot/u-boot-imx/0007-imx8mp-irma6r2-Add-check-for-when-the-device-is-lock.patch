@@ -1,17 +1,18 @@
-From db627c5be36bcb72375ce07248de99cedac12886 Mon Sep 17 00:00:00 2001
+From 8100ac99149fe99b041629e45b268dc82138bac0 Mon Sep 17 00:00:00 2001
 From: "philipp.schoewe" <Philipp.Schoewe@iris-sensing.com>
 Date: Tue, 16 Aug 2022 08:41:20 +0200
 Subject: [PATCH] imx8mp-irma6r2: Add check for when the device is locked to
  not nfs boot
 
 Signed-off-by: philipp.schoewe <Philipp.Schoewe@iris-sensing.com>
+Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
 Upstream-Status: Inappropriate [hardware specific]
 ---
  board/freescale/imx8mp_irma6r2/imx8mp_irma6r2.c | 17 ++++++++++++++++-
  1 file changed, 16 insertions(+), 1 deletion(-)
 
 diff --git a/board/freescale/imx8mp_irma6r2/imx8mp_irma6r2.c b/board/freescale/imx8mp_irma6r2/imx8mp_irma6r2.c
-index 08f055b781d..799e9906457 100644
+index 08f055b781d..2f9eeec3d52 100644
 --- a/board/freescale/imx8mp_irma6r2/imx8mp_irma6r2.c
 +++ b/board/freescale/imx8mp_irma6r2/imx8mp_irma6r2.c
 @@ -28,6 +28,7 @@
@@ -31,7 +32,7 @@ index 08f055b781d..799e9906457 100644
 +	u32 fuse_word = 0;
 +	// 0x470 (bank 1, word 3) bit 25 = SEC_CONFIG[1] - Closed (Security On)
 +	if (fuse_sense(1, 3, &fuse_word) != 0) {
-+		fuse_word = 1; // in case of corrupt fuse box do not allow nfs boot
++		return 1; // in case of corrupt fuse box do not allow nfs boot
 +	}
 +	return (fuse_word & 0x02000000); // 0x02000000 = Bit 25
 +}
@@ -53,5 +54,5 @@ index 08f055b781d..799e9906457 100644
  	
  	if (nfs_boot) {
 -- 
-2.46.1
+2.51.0
 
