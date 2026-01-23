@@ -226,7 +226,6 @@ start_alt_fw_update(){
 		else
 			log "Alternative firmware update failed"
 		fi
-		update_security_report
 	fi
 
 	# config/userdata is always synced, in case of rootfs with the same roothash
@@ -237,6 +236,7 @@ start_alt_fw_update(){
 		log "Alternative config update failed"
 	fi
 
+	update_security_report
 	# clear lock file
 	rm -f "$LOCK_FILE"
 }
