@@ -3,6 +3,7 @@ Description=Setup log location (persistent or volatile)
 DefaultDependencies=no
 Before=systemd-journald.service
 After=local-fs.target
+RequiresMountsFor=/mnt/datastore
 
 [Service]
 Type=oneshot
@@ -10,4 +11,4 @@ RemainAfterExit=yes
 ExecStart=/usr/bin/switch-log-location.sh
 
 [Install]
-WantedBy=sysinit.target
+WantedBy=local-fs.target

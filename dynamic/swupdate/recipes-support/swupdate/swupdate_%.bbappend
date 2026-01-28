@@ -18,7 +18,7 @@ SRC_URI:append := " \
 	file://0002-mongoose_multipart-Allow-raw-binary-uploads.patch \
 "
 
-SRC_URI += "${@bb.utils.contains('DISTRO_FEATURES', 'systemd', 'file://swupdate-systemd.cfg', '', d)}"
+SRC_URI += "${@bb.utils.contains('DISTRO_FEATURES', 'systemd', 'file://swupdate-systemd.cfg file://50-keyring.conf', '', d)}"
 
 DEPENDS += " \
 	bc-native \
@@ -90,4 +90,9 @@ do_install:append () {
 
 	install -d ${D}${datadir}/cmake/Modules
 	install -m 644 ${WORKDIR}/Findswupdate.cmake ${D}${datadir}/cmake/Modules
+
+	if ${@bb.utils.contains('DISTRO_FEATURES', 'systemd', 'true', 'false', d)}; then
+		install -d ${D}${sysconfdir}/systemd/system/swupdate.service.d
+		install -m 0644 ${WORKDIR}/50-keyring.conf ${D}${sysconfdir}/systemd/system/swupdate.service.d/50-keyring.conf
+	fi
 }

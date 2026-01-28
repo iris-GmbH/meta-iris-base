@@ -1,4 +1,4 @@
-FILESEXTRAPATHS:prepend := "${THISDIR}/${PN}:"
+FILESEXTRAPATHS:prepend := "${THISDIR}/${PN}${@bb.utils.contains('DISTRO_FEATURES', 'systemd', '-systemd', '', d)}:"
 
 SRC_URI += "file://fstab"
 

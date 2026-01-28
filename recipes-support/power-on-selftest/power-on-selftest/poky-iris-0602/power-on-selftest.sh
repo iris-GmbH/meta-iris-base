@@ -13,7 +13,7 @@ exists() {
 
 power_on_selftest() {
 	# Check that all necessary tools are available and running
-	tools="nginx WebInterfaceServer swupdate count_von_count i6ls"
+	tools="nginx WebInterfaceServer swupdate count_von_count i6ls irma-monitoring"
 	log "[STARTED] power on self test started!"
 	for tool in $tools; do
 		exists "$tool" || return 1
@@ -226,7 +226,6 @@ start_alt_fw_update(){
 		else
 			log "Alternative firmware update failed"
 		fi
-		update_security_report
 	fi
 
 	# config/userdata is always synced, in case of rootfs with the same roothash
@@ -237,6 +236,7 @@ start_alt_fw_update(){
 		log "Alternative config update failed"
 	fi
 
+	update_security_report
 	# clear lock file
 	rm -f "$LOCK_FILE"
 }

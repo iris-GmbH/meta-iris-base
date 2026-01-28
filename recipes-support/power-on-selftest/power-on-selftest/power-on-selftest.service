@@ -1,7 +1,7 @@
 [Unit]
 Description=Power-On Self Test
-After=nginx.service WebInterfaceServer.service swupdate.service count_von_count.service i6ls.service
-Wants=nginx.service WebInterfaceServer.service swupdate.service count_von_count.service i6ls.service
+After=nginx.service WebInterfaceServer.service swupdate.service count_von_count.service i6ls.service irma-monitoring.service
+Wants=nginx.service WebInterfaceServer.service swupdate.service count_von_count.service i6ls.service irma-monitoring.service
 
 [Service]
 Type=oneshot

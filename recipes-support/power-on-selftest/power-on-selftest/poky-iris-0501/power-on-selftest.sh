@@ -13,7 +13,7 @@ exists() {
 
 power_on_selftest() {
 	# Check that all necessary tools are available and running
-	tools="nginx WebInterfaceServer swupdate count_von_count i6ls"
+	tools="nginx WebInterfaceServer swupdate count_von_count i6ls irma-monitoring"
 	log "[STARTED] power on self test started!"
 	for tool in $tools; do
 		exists "$tool" || return 1
@@ -99,7 +99,7 @@ update_alternative_firmware() {
 rsync_alternative_userdata() {
 	log "Synchronizing config from ${CUR_FW_SUFFIX} to ${ALT_FW_SUFFIX}"
 	err=0
-
+	keyctl link @us @s # link user session key to session for systemd dmsetup
 	dmsetup create decrypted-matrixlvm-userdata_${ALT_FW_SUFFIX} --table "0 $(blockdev --getsz /dev/mapper/matrixlvm-userdata_${ALT_FW_SUFFIX}) crypt aes-cbc-essiv:sha256 :32:trusted:kmk 0 /dev/mapper/matrixlvm-userdata_${ALT_FW_SUFFIX} 0 1 sector_size:4096"
 
 	# sync userdata A and B
@@ -141,7 +141,6 @@ check_alt_fw_update() {
 	if is_alt_fw_update_required; then
 		result=$(update_alternative_firmware && echo "successful" || echo "failed")
 		log "Alternative firmware update $result"
-		update_security_report
 	fi
 
 	# config/userdata is always synced, in case of rootfs with the same roothash
@@ -149,6 +148,7 @@ check_alt_fw_update() {
 	result=$(rsync_alternative_userdata && echo "successful" || echo "failed")
 	log "Alternative config update $result"
 
+	update_security_report
 	# clear lock file
 	rm -f "$LOCK_FILE"
 }

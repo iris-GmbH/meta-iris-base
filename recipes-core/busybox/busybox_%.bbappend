@@ -29,9 +29,14 @@ SRC_URI:append:poky-iris-maintenance = " ${SRC_URI_MAINTENANCE}"
 
 FILESEXTRAPATHS:prepend := "${THISDIR}/${PN}:"
 
+inherit update-rc.d
+
+INITSCRIPT_NAME = "busybox_watchdog.sh"
+# busybox_watchdog does not need stop since its nowayout configured
+INITSCRIPT_PARAMS = "start 01 5 ."
+
 FILES:${PN} += " \
     ${sysconfdir}/init.d/busybox_watchdog.sh \
-    ${sysconfdir}/rc5.d/S01watchdog \
     ${sysconfdir}/udhcpc.d/50default \
     ${sysconfdir}/udhcpc.d/60-add-eth0-alias \
     ${sysconfdir}/udhcpc.d/dhcp_option_42/read_usedhcpoption42_script.sh \
@@ -40,7 +45,6 @@ FILES:${PN} += " \
 "
 
 initd="${D}${sysconfdir}/init.d"
-rc5d="${D}${sysconfdir}/rc5.d"
 udhcp="${D}${sysconfdir}/udhcpc.d"
 udhcpoption42="${udhcp}/dhcp_option_42"
 ntpstatus="${D}${bindir}"
@@ -58,11 +62,9 @@ do_iris_install() {
     do_iris_install_shared
 
     install -d ${initd}
-    install -d ${rc5d}
 
     #busybox's watchdog support
     install -m 0755 ${WORKDIR}/busybox_watchdog.sh ${initd}/
-    ln -s -r ${initd}/busybox_watchdog.sh ${rc5d}/S01watchdog
 }
 
 do_iris_install:poky-iris-0601() {

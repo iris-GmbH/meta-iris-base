@@ -1,5 +1,10 @@
 #!/bin/sh
 
+if grep -q '/dev/nfs' /proc/cmdline; then
+    echo "Skip factory reset NFS boot!"
+    exit 0
+fi
+
 . /usr/share/factory-reset/factory-reset-functions || exit 1
 
 FORCE=0
@@ -23,11 +28,6 @@ fi
 # Set a flag to perform a factory reset on the next reboot
 if [ "$LAZY" -eq 1 ]; then
     set_flag
-    exit 0
-fi
-
-if grep -q '/dev/nfs' /proc/cmdline; then
-    echo "Skip factory reset short check on NFS boot!"
     exit 0
 fi
 

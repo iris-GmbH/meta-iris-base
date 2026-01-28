@@ -1,0 +1,14 @@
+/dev/root            /                    auto       ro                    1  1
+proc                 /proc                proc       defaults              0  0
+devpts               /dev/pts             devpts     mode=0620,ptmxmode=0666,gid=5      0  0
+tmpfs                /run                 tmpfs      mode=0755,nodev,nosuid,strictatime 0  0
+
+# initramfs decrypted devices (not available nfsboot)
+/dev/mapper/decrypted-irma6lvm-userdata     /mnt/iris ext4 defaults,nofail,x-systemd.device-timeout=3        0   0
+/dev/mapper/decrypted-irma6lvm-datastore    /mnt/datastore ext4 defaults,nofail,x-systemd.device-timeout=3   0   0
+
+# bind mount directories for r/w access (not available nfsboot)
+/mnt/iris/counter    /etc/counter         none       defaults,bind,nofail         0  0
+
+# /var/volatile is mounted in the initramfs
+# tmpfs                /var/volatile        tmpfs      defaults              0  0
