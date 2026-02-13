@@ -100,62 +100,11 @@ python () {
     bb.build.addtask('do_image_version_artifact', 'do_image_complete', 'do_image', d)
     d.prependVarFlag('do_image_version_artifact', 'postfuncs', 'create_symlinks ')
     d.appendVarFlag('do_image_version_artifact', 'subimages', ' version')
-
-    # Add do_finalize_dmverity() task when creating a verity image
-    if 'verity' in d.getVar('IMAGE_FSTYPES'):
-        # Reduce the overhead factor to 1.1
-        # free space in RO-Rootfs is useless, but yocto does not consider filesystem overhead
-        d.setVar('IMAGE_OVERHEAD_FACTOR', '1.1')
-
-        # Add do_finalize_dmverity() task
-        bb.build.addtask('do_finalize_dmverity', 'do_image_complete', 'do_image_verity', d)
-        d.prependVarFlag('do_finalize_dmverity', 'postfuncs', 'create_symlinks ')
-        d.appendVarFlag('do_finalize_dmverity', 'subimages', ' ' + ' '.join(["ext4.roothash", "ext4.roothash.signature", "ext4.verity.gz"]))
 }
 
-# Tell bitbake to track dmverity related files and to reparse the recipe when they change
-SRC_URI += "\
-    file://${ROOTHASH_DM_VERITY_SALT} \
-    file://${ROOTHASH_SIGNING_PRIVATE_KEY} \
-"
-
-python do_image_verity:prepend () {
-    # We need to open an external file (ROOTHASH_DM_VERITY_SALT read into VERITY_SALT). Setting these variables in the
-    # parsing phase with an anonymous python function leads to "basehash/taskhash changed" errors. So we prepend these
-    # steps here to the do_image_verity() function.
-
-    # read dm-verity salt to variable
-    d.setVar('VERITY_SALT', open(d.getVar('ROOTHASH_DM_VERITY_SALT'), 'r').read().strip())
-
-    # Set HASHDEV_SUFFIX so the dmverity image class creates a seperate hashdevice image
-    d.setVar('VERITY_IMAGE_HASHDEV_SUFFIX', '.hashdevice')
-}
-
-IRMA_IMAGE_INHERIT = "image_types_verity"
+IRMA_IMAGE_INHERIT = "signed-verity-image"
 IRMA_IMAGE_INHERIT:poky-iris-0601 = "irma6-firmware-zip"
 inherit ${IRMA_IMAGE_INHERIT}
-
-# DEPEND on openssl and gzip
-do_finalize_dmverity[depends] += "openssl-native:do_populate_sysroot pigz-native:do_populate_sysroot"
-
-do_finalize_dmverity () {
-    # Compress verity image, unfortunately "verity.gz" does not work as IMAGE_FSTYPES as verity does not utilize the image creation core logic
-    # Command copied from poky - image_types.bbclass - CONVERSION_CMD:gz
-    gzip -f -9 -n -c --rsyncable ${IMGDEPLOYDIR}/${IMAGE_NAME}.ext4.verity > ${IMGDEPLOYDIR}/${IMAGE_NAME}.ext4.verity.gz
-
-    # write roothash to image directory
-    verity_params="${IMGDEPLOYDIR}/${IMAGE_NAME}.ext4.verity-params"
-    roothashfile="${IMGDEPLOYDIR}/${IMAGE_NAME}.ext4.roothash"
-    sed -ne '/VERITY_ROOT_HASH/s/VERITY_ROOT_HASH=//p' "${verity_params}" > "${roothashfile}"
-
-    # sign roothash and write signature to image directory
-    roothash_signature_file="${roothashfile}.signature"
-    if ! openssl dgst -sha256 -sign "${ROOTHASH_SIGNING_PRIVATE_KEY}" -out "${roothash_signature_file}" "${roothashfile}"
-    then
-        bbfatal "Signing roothash failed"
-        exit 1
-    fi
-}
 
 do_image_version_artifact () {
     echo "${FIRMWARE_VERSION}" > "${IMGDEPLOYDIR}/${IMAGE_NAME}.version"
