@@ -149,7 +149,7 @@ reset_userdata() {
     rm -rf "$USERDATA_DIR"/dropbear
 
     # Delete custom services
-    rm -rf /mnt/iris/services/*
+    rm -rf "$USERDATA_DIR"/services/*
 
     # Delete lazy flag
     rm -f "$USERDATA_DIR/$LAZY_RESET_FLAG"

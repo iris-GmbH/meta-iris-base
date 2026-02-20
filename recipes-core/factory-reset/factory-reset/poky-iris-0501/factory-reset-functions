@@ -154,7 +154,7 @@ reset_userdata() {
         ln -sf /mnt/iris/identity "$dir"/eaptls
 
         # Delete custom services
-        rm -rf /mnt/iris/services/*
+        rm -rf "$dir"/services/*
 
         # Delete lazy flag
         rm -f "$dir/$LAZY_RESET_FLAG"
