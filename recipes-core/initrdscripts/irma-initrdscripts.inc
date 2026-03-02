@@ -19,7 +19,7 @@ RDEPENDS:${PN} = " \
     mmc-utils \
     lvm2 \
     openssl-bin \
-    iris-signing \
+    iris-signing-pubkey \
     e2fsprogs-mke2fs \
     e2fsprogs-e2fsck \
     nfs-utils \
