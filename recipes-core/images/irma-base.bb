@@ -47,7 +47,7 @@ IRMA_BASE_PACKAGES = " \
 "
 
 IRMA_EXTRA_PACKAGES = " \
-    iris-signing \
+    iris-signing-pubkey \
     rsyslog \
     chrony \
     nftables \
