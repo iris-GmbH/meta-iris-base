@@ -189,6 +189,15 @@ pvsn_flash() {
     fi
 }
 
+remove_legacy_buffer_volumes() {
+    if [ -e "/dev/mapper/irma6lvm-pvsn_buffer1" ]; then
+        lvremove --force --yes "/dev/mapper/irma6lvm-pvsn_buffer1"
+    fi
+    if [ -e "/dev/mapper/irma6lvm-pvsn_buffer2" ]; then
+        lvremove --force --yes "/dev/mapper/irma6lvm-pvsn_buffer2"
+    fi
+}
+
 emergency_switch() {
     pending_update=$(/usr/bin/fw_printenv upgrade_available | awk -F'=' '{print $2}')
     if [ "$pending_update" = "1" ]; then
@@ -322,6 +331,7 @@ if [ -e "/dev/mapper/irma6lvm-pvsn_rootfs" ]; then
     pvsn_flash
 fi
 
+remove_legacy_buffer_volumes
 
 KEYSTORE_DEV="/dev/mapper/irma6lvm-keystore"
 KEYSTORE="/mnt/keystore"
