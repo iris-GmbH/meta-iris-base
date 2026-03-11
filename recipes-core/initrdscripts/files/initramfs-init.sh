@@ -62,8 +62,11 @@ parse_cmdline() {
 
 pvsn_wipe() {
     sector_size=512 # 512 bytes
-    first_pe=2048 # first physical extent starts at 1 MiB (2048 sectors * 512B sector size) (LVM MDA is located here)
     partition_offset=$(cat "/sys/class/block/mmcblk2p5/start")
+    erase_size_bytes=$(cat "/sys/class/block/mmcblk2/device/erase_size")
+    pe_start_bytes=$(pvs --no-heading --no-suffix -o pe_start --unit B | xargs | sed 's/\.00$//') # first physical extent offset in bytes
+    pe_start=$((pe_start_bytes / sector_size))
+    erase_size=$((erase_size_bytes / sector_size))
     pv_size=$(pvs --no-heading --no-suffix -o pv_size --unit B | xargs) # physical volume size in bytes
     pe_count=$(pvs --no-heading -o pv_pe_count | xargs) # physical extent count
     pe_size=$((pv_size / pe_count)) # physical extent size in bytes (should be 4 MiB)
@@ -71,8 +74,13 @@ pvsn_wipe() {
     lv_size_pe=$(pvs --no-headings -o seg_size_pe --select "lv_name = $1" | xargs) # size of logical volume in physical extents
 
     # convert bytes to mmc sectors (512B per sector)
-    start=$((lv_start_pe * pe_size / sector_size + partition_offset + first_pe))
-    end=$(((lv_start_pe + lv_size_pe) * pe_size / sector_size + partition_offset + first_pe - 1))
+    start=$((lv_start_pe * pe_size / sector_size + partition_offset + pe_start))
+    end=$(((lv_start_pe + lv_size_pe) * pe_size / sector_size + partition_offset + pe_start - 1))
+
+    if [ $((erase_size_bytes % sector_size)) -ne 0 ] || [ $((start % erase_size)) -ne 0 ] || [ $(((end + 1) % erase_size)) -ne 0 ]; then
+        debug "Refusing secure erase for $1: range ${start}-${end} is not aligned to erase_size ${erase_size_bytes} bytes"
+        exit 1
+    fi
 
     mmc erase secure-erase "$start" "$end" "/dev/mmcblk2"
 }
@@ -178,6 +186,15 @@ pvsn_flash() {
     if lvs "/dev/irma6lvm/staticdata" ; then
         lvremove -A n -q -y "/dev/irma6lvm/staticdata_hash"
         lvremove -A n -q -y "/dev/irma6lvm/staticdata"
+    fi
+}
+
+remove_legacy_buffer_volumes() {
+    if [ -e "/dev/mapper/irma6lvm-pvsn_buffer1" ]; then
+        lvremove --force --yes "/dev/mapper/irma6lvm-pvsn_buffer1"
+    fi
+    if [ -e "/dev/mapper/irma6lvm-pvsn_buffer2" ]; then
+        lvremove --force --yes "/dev/mapper/irma6lvm-pvsn_buffer2"
     fi
 }
 
@@ -314,6 +331,7 @@ if [ -e "/dev/mapper/irma6lvm-pvsn_rootfs" ]; then
     pvsn_flash
 fi
 
+remove_legacy_buffer_volumes
 
 KEYSTORE_DEV="/dev/mapper/irma6lvm-keystore"
 KEYSTORE="/mnt/keystore"
