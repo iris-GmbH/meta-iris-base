@@ -1,8 +1,8 @@
 [Unit]
 Description=System Logging Service
 Requires=syslog.socket
-Wants=network.target network-online.target
-After=network.target network-online.target
+Wants=network.target
+After=network.target
 Documentation=man:rsyslogd(8)
 Documentation=http://www.rsyslog.com/doc/
 
