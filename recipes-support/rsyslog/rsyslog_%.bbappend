@@ -4,10 +4,10 @@
 FILESEXTRAPATHS:prepend := "${THISDIR}/${PN}:"
 
 RDEPENDS:${PN} += "bash"
-RDEPENDS:${PN}:remove = "logrotate"
 
 SRC_URI:append := " \
 	file://rsyslog.conf \
+	file://rsyslog-systemd.conf \
 	file://udhcp_custom_syslog_option.sh \
 "
 
@@ -15,7 +15,7 @@ FILES:${PN}:append = " \
 		${sysconfdir} \
 		${sysconfdir}/rsyslog.conf \
 		${sysconfdir}/udhcpc.d/dhcp_custom_option/udhcp_custom_syslog_option.sh \
-		"
+"
 
 # use gnutls since openssl does not support self signed
 PACKAGECONFIG:remove = " openssl"
@@ -29,10 +29,7 @@ do_install:append() {
 	install -d ${D}/${sysconfdir}
 	install -d ${udhcp}
 	install -d ${udhcp_option}
-	install -m 0755 ${WORKDIR}/rsyslog.conf ${D}/${sysconfdir}/rsyslog.conf
+	install -m 0755 ${WORKDIR}/${@bb.utils.contains('DISTRO_FEATURES', 'systemd', 'rsyslog-systemd.conf', 'rsyslog.conf', d)} ${D}/${sysconfdir}/rsyslog.conf
 	install -m 0755 ${WORKDIR}/udhcp_custom_syslog_option.sh ${udhcp_option}/udhcp_custom_syslog_option.sh
-
-	# drop upstream logrotate snippet since it conflicts with our logrotate configuration
-	rm -f ${D}${sysconfdir}/logrotate.d/logrotate.rsyslog
-	rmdir --ignore-fail-on-non-empty ${D}${sysconfdir}/logrotate.d || true
+	
 }
