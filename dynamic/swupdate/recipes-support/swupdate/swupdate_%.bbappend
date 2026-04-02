@@ -16,6 +16,7 @@ SRC_URI:append := " \
 	file://Findswupdate.cmake \
 	file://0001-Apply-iris-Coporate-Design-to-webinterface.patch \
 	file://0002-mongoose_multipart-Allow-raw-binary-uploads.patch \
+	file://0003-mongoose-Integer-Underflow-in-Multipart-Upload-Parse.patch \
 "
 
 SRC_URI += "${@bb.utils.contains('DISTRO_FEATURES', 'systemd', 'file://swupdate-systemd.cfg file://50-keyring.conf', '', d)}"
