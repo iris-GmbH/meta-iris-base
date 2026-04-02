@@ -1,0 +1,15 @@
+[Unit]
+Description=Bind mount writable Avahi services directory
+Requires=avahi-services-setup.service
+After=avahi-services-setup.service
+Before=avahi-daemon.service
+RequiresMountsFor=/mnt/iris/avahi/services
+
+[Mount]
+What=/mnt/iris/avahi/services
+Where=/etc/avahi/services
+Type=none
+Options=bind
+
+[Install]
+WantedBy=multi-user.target
