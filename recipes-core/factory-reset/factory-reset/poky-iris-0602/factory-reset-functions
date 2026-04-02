@@ -124,6 +124,15 @@ is_flag_set() {
     return "$ret"
 }
 
+# Set symlinks (only if not already set correctly)
+create_symlink() {
+    target="$1"
+    link="$2"
+    if [ "$(readlink "$link")" != "$target" ]; then
+        ln -sf "$target" "$link"
+    fi
+}
+
 reset_userdata() {
     USERDATA_DIR="$1"
     rm -f  "$USERDATA_DIR"/counter/config_customer*
@@ -139,11 +148,11 @@ reset_userdata() {
     rm -rf "$USERDATA_DIR"/device_flags
     rm -f "$USERDATA_DIR"/userdata_synced
     # Set default symlinks
-    ln -sf /etc/nginx/sites-available/reverse_proxy_https.conf "$USERDATA_DIR"/nginx/sites-enabled/default_server
-    ln -sf /mnt/iris/identity "$USERDATA_DIR"/webtls
-    ln -sf /mnt/iris/identity "$USERDATA_DIR"/nts
-    ln -sf /mnt/iris/identity "$USERDATA_DIR"/syslogtls
-    ln -sf /mnt/iris/identity "$USERDATA_DIR"/eaptls
+    create_symlink /etc/nginx/sites-available/reverse_proxy_https.conf "$USERDATA_DIR"/nginx/sites-enabled/default_server
+    create_symlink /mnt/iris/identity "$USERDATA_DIR"/webtls
+    create_symlink /mnt/iris/identity "$USERDATA_DIR"/nts
+    create_symlink /mnt/iris/identity "$USERDATA_DIR"/syslogtls
+    create_symlink /mnt/iris/identity "$USERDATA_DIR"/eaptls
     # Delete saved timestamp
     rm -f "$USERDATA_DIR"/timestamp
     rm -rf "$USERDATA_DIR"/dropbear

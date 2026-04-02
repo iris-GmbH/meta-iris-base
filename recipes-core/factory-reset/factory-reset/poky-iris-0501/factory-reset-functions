@@ -130,6 +130,15 @@ reset_systemtime() {
     hwclock --systohc
 }
 
+# Set symlinks (only if not already set correctly)
+create_symlink() {
+    target="$1"
+    link="$2"
+    if [ "$(readlink "$link")" != "$target" ]; then
+        ln -sf "$target" "$link"
+    fi
+}
+
 reset_userdata() {
     mount_alternative_userdata
     for dir in /mnt/iris "$ALT_MNT"; do
@@ -147,11 +156,11 @@ reset_userdata() {
         rm -rf "$dir"/dropbear
 
         # Set default symlinks
-        ln -sf /etc/nginx/sites-available/reverse_proxy_https.conf "$dir"/nginx/sites-enabled/default_server
-        ln -sf /mnt/iris/identity "$dir"/webtls
-        ln -sf /mnt/iris/identity "$dir"/nts
-        ln -sf /mnt/iris/identity "$dir"/syslogtls
-        ln -sf /mnt/iris/identity "$dir"/eaptls
+        create_symlink /etc/nginx/sites-available/reverse_proxy_https.conf "$dir"/nginx/sites-enabled/default_server
+        create_symlink /mnt/iris/identity "$dir"/webtls
+        create_symlink /mnt/iris/identity "$dir"/nts
+        create_symlink /mnt/iris/identity "$dir"/syslogtls
+        create_symlink /mnt/iris/identity "$dir"/eaptls
 
         # Delete custom services
         rm -rf "$dir"/services/*
