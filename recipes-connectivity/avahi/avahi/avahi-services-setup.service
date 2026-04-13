@@ -1,6 +1,5 @@
 [Unit]
 Description=Prepare writable Avahi service directory
-RequiresMountsFor=/mnt/iris/avahi/services
 Before=etc-avahi-services.mount avahi-daemon.service
 
 [Service]
