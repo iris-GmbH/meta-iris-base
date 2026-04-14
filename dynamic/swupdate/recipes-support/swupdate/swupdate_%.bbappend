@@ -17,6 +17,8 @@ SRC_URI:append := " \
 	file://0001-Apply-iris-Coporate-Design-to-webinterface.patch \
 	file://0002-mongoose_multipart-Allow-raw-binary-uploads.patch \
 	file://0003-mongoose-Integer-Underflow-in-Multipart-Upload-Parse.patch \
+	file://0004-mongoose-Update-to-version-7.21.patch \
+	file://0005-mongoose-Use-GPL-2.0-only.patch \
 "
 
 SRC_URI += "${@bb.utils.contains('DISTRO_FEATURES', 'systemd', 'file://swupdate-systemd.cfg file://50-keyring.conf', '', d)}"
