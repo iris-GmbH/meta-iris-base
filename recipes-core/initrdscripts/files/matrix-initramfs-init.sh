@@ -27,6 +27,45 @@ move_special_devices() {
     ${MOUNT} --move /run ${ROOT_MNT}/run
 }
 
+mount_runtime_volumes() {
+    USERDATA_MNT="${ROOT_MNT}/mnt/iris"
+    DATASTORE_MNT="${ROOT_MNT}/mnt/datastore"
+    DEVICE_DATA_MNT="${ROOT_MNT}/mnt/devicedata"
+    COUNTER_MNT="${ROOT_MNT}/etc/counter"
+
+    for mountpoint in "${USERDATA_MNT}" "${DATASTORE_MNT}" "${DEVICE_DATA_MNT}" "${COUNTER_MNT}"; do
+        if [ ! -d "${mountpoint}" ]; then
+            echo "ERROR: Missing mountpoint: ${mountpoint}"
+            return 1
+        fi
+    done
+
+    echo "Mount userdata: /dev/mapper/${DECRYPT_USERDATA_NAME} -> ${USERDATA_MNT}"
+    ${MOUNT} -t ext4 "/dev/mapper/${DECRYPT_USERDATA_NAME}" "${USERDATA_MNT}" || return 1
+
+    echo "Mount datastore: /dev/mapper/${DECRYPT_DATASTORE_NAME} -> ${DATASTORE_MNT}"
+    if ! ${MOUNT} -t ext4 "/dev/mapper/${DECRYPT_DATASTORE_NAME}" "${DATASTORE_MNT}"; then
+        ${UMOUNT} "${USERDATA_MNT}"
+        return 1
+    fi
+
+    echo "Mount devicedata: /dev/mapper/matrixlvm-devicedata -> ${DEVICE_DATA_MNT}"
+    if ! ${MOUNT} -t ext4 "/dev/mapper/matrixlvm-devicedata" "${DEVICE_DATA_MNT}"; then
+        ${UMOUNT} "${DATASTORE_MNT}"
+        ${UMOUNT} "${USERDATA_MNT}"
+        return 1
+    fi
+
+    echo "Bind mount counter config: ${USERDATA_MNT}/counter -> ${COUNTER_MNT}"
+    mkdir -p "${USERDATA_MNT}/counter"
+    if ! ${MOUNT} --bind "${USERDATA_MNT}/counter" "${COUNTER_MNT}"; then
+        ${UMOUNT} "${DEVICE_DATA_MNT}"
+        ${UMOUNT} "${DATASTORE_MNT}"
+        ${UMOUNT} "${USERDATA_MNT}"
+        return 1
+    fi
+}
+
 parse_cmdline() {
     CMDLINE="$(cat /proc/cmdline)"
     echo "Kernel cmdline: $CMDLINE"
@@ -164,7 +203,11 @@ else
         echo "ERROR: Mount root device failed"
         exit 1
     fi
-    echo "Switch root to eMMC"
+    if ! mount_runtime_volumes; then
+        echo "ERROR: Mount runtime volumes failed"
+        exit 1
+    fi
+    echo "Switching root to eMMC"
 fi
 
 udevadm settle
