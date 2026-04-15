@@ -1,6 +1,5 @@
 [Unit]
 Description=Restore system clock from timestamp file if newer
-RequiresMountsFor=/mnt/iris
 
 [Service]
 Type=oneshot
