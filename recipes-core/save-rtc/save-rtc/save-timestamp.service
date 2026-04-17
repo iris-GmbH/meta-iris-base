@@ -1,6 +1,5 @@
 [Unit]
 Description=Save system clock to timestamp file
-RequiresMountsFor=/mnt/iris
 
 [Service]
 Type=oneshot

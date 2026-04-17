@@ -38,6 +38,36 @@ debug() {
     echo "$(date): ${*}" | tee -a "/var/volatile/log/initramfs.log"
 }
 
+mount_runtime_volumes() {
+    USERDATA_MNT="${ROOT_MNT}/mnt/iris"
+    DATASTORE_MNT="${ROOT_MNT}/mnt/datastore"
+    COUNTER_MNT="${ROOT_MNT}/etc/counter"
+
+    for mountpoint in "${USERDATA_MNT}" "${DATASTORE_MNT}" "${COUNTER_MNT}"; do
+        if [ ! -d "${mountpoint}" ]; then
+            debug "Missing mountpoint: ${mountpoint}"
+            return 1
+        fi
+    done
+
+    debug "Mount userdata: /dev/mapper/${DECRYPT_USERDATA_NAME} -> ${USERDATA_MNT}"
+    ${MOUNT} -t ext4 "/dev/mapper/${DECRYPT_USERDATA_NAME}" "${USERDATA_MNT}" || return 1
+
+    debug "Mount datastore: /dev/mapper/${DECRYPT_DATASTORE_NAME} -> ${DATASTORE_MNT}"
+    if ! ${MOUNT} -t ext4 "/dev/mapper/${DECRYPT_DATASTORE_NAME}" "${DATASTORE_MNT}"; then
+        ${UMOUNT} "${USERDATA_MNT}"
+        return 1
+    fi
+
+    debug "Bind mount counter config: ${USERDATA_MNT}/counter -> ${COUNTER_MNT}"
+    mkdir -p "${USERDATA_MNT}/counter"
+    if ! ${MOUNT} --bind "${USERDATA_MNT}/counter" "${COUNTER_MNT}"; then
+        ${UMOUNT} "${DATASTORE_MNT}"
+        ${UMOUNT} "${USERDATA_MNT}"
+        return 1
+    fi
+}
+
 parse_cmdline() {
     #Parse kernel cmdline to extract base device path
     CMDLINE="$(cat /proc/cmdline)"
@@ -349,10 +379,7 @@ DECRYPT_ROOT_DEV="/dev/mapper/${DECRYPT_NAME}"
 
 USERDATA_DEV="/dev/mapper/irma6lvm-userdata${FIRMWARE_SUFFIX}"
 DECRYPT_USERDATA_NAME="decrypted-irma6lvm-userdata"
-DECRYPT_USERDATA_LINK="/dev/mapper/decrypted-irma6lvm-userdata"
-ALT_DECRYPT_USERDATA_NAME="decrypted-irma6lvm-userdata${ALT_FIRMWARE_SUFFIX}"
 
-DATASTORE_NAME="datastore"
 DATASTORE_DEV="/dev/mapper/irma6lvm-datastore"
 DECRYPT_DATASTORE_NAME="decrypted-irma6lvm-datastore"
 
@@ -413,6 +440,13 @@ then
     debug "Mount root device failed"
     emergency_switch
 fi
+
+if ! mount_runtime_volumes
+then
+    debug "Mount runtime volumes failed"
+    exit 1
+fi
+
 debug "Switching root to verity device"
 udevadm settle
 move_special_devices

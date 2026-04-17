@@ -21,7 +21,12 @@ SRC_URI:append := " \
 	file://0005-mongoose-Use-GPL-2.0-only.patch \
 "
 
-SRC_URI += "${@bb.utils.contains('DISTRO_FEATURES', 'systemd', 'file://swupdate-systemd.cfg file://50-keyring.conf', '', d)}"
+SYSTEMD_SRC_URI = " \
+	file://swupdate-systemd.cfg \
+	file://50-keyring.conf \
+"
+
+SRC_URI += "${@bb.utils.contains('DISTRO_FEATURES', 'systemd', '${SYSTEMD_SRC_URI}', '', d)}"
 
 DEPENDS += " \
 	bc-native \
