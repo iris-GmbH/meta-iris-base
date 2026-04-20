@@ -1,0 +1,29 @@
+#!/bin/sh
+### BEGIN INIT INFO
+# Provides:          iris-permissions
+# Required-Start:    $local_fs
+# Required-Stop:
+# Default-Start:     S
+# Default-Stop:
+# Short-Description: Set permissions for IRIS mount point and identity files
+### END INIT INFO
+
+case "$1" in
+    start)
+        /usr/bin/mnt-iris-permissions.sh || exit 1
+        ;;
+    stop)
+        # Nothing to do on stop
+        :
+        ;;
+    restart|reload|force-reload)
+        # Nothing to do
+        :
+        ;;
+    *)
+        echo "Usage: $0 {start|stop|restart|reload|force-reload}"
+        exit 1
+        ;;
+esac
+
+exit 0

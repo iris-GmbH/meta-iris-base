@@ -1,0 +1,4 @@
+# add i2c devices to group i2c and give group RW
+SUBSYSTEM=="i2c-dev", KERNEL=="i2c-[0-9]*", GROUP="i2c", MODE="0660"
+# add gpio devices to group gpio and give group RW
+SUBSYSTEM=="gpio", KERNEL=="gpiochip*", GROUP="gpio", MODE="0660"

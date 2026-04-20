@@ -17,14 +17,10 @@ DEPLOY_SNAKEOIL_KEYS ?= "1"
 INSTALL_DEPENDS = " \
     ${IMAGENAME}:do_image_complete \
     virtual/kernel:do_deploy \
+    ${FITIMAGE_NAME}:do_deploy \
+    ${FITIMAGE_UUU_NAME}:do_deploy \
 "
-INSTALL_DEPENDS:append:mx8mp-nxp-bsp = " \
-    irma-fitimage:do_assemble_fit \
-    irma-fitimage-uuu:do_assemble_fit \
-"
-INSTALL_DEPENDS:append:mx93-nxp-bsp = " \
-    imx-boot:do_deploy \
-"
+
 do_install[depends] = "${INSTALL_DEPENDS}"
 
 DEPENDS = "imx-boot"

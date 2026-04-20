@@ -30,11 +30,42 @@ move_special_devices() {
     ${MOUNT} --move /dev ${ROOT_MNT}/dev
     ${MOUNT} --move /proc ${ROOT_MNT}/proc
     ${MOUNT} --move /sys ${ROOT_MNT}/sys
+    ${MOUNT} --move /run ${ROOT_MNT}/run
     ${MOUNT} --move /var/volatile ${ROOT_MNT}/var/volatile
 }
 
 debug() {
     echo "$(date): ${*}" | tee -a "/var/volatile/log/initramfs.log"
+}
+
+mount_runtime_volumes() {
+    USERDATA_MNT="${ROOT_MNT}/mnt/iris"
+    DATASTORE_MNT="${ROOT_MNT}/mnt/datastore"
+    COUNTER_MNT="${ROOT_MNT}/etc/counter"
+
+    for mountpoint in "${USERDATA_MNT}" "${DATASTORE_MNT}" "${COUNTER_MNT}"; do
+        if [ ! -d "${mountpoint}" ]; then
+            debug "Missing mountpoint: ${mountpoint}"
+            return 1
+        fi
+    done
+
+    debug "Mount userdata: /dev/mapper/${DECRYPT_USERDATA_NAME} -> ${USERDATA_MNT}"
+    ${MOUNT} -t ext4 "/dev/mapper/${DECRYPT_USERDATA_NAME}" "${USERDATA_MNT}" || return 1
+
+    debug "Mount datastore: /dev/mapper/${DECRYPT_DATASTORE_NAME} -> ${DATASTORE_MNT}"
+    if ! ${MOUNT} -t ext4 "/dev/mapper/${DECRYPT_DATASTORE_NAME}" "${DATASTORE_MNT}"; then
+        ${UMOUNT} "${USERDATA_MNT}"
+        return 1
+    fi
+
+    debug "Bind mount counter config: ${USERDATA_MNT}/counter -> ${COUNTER_MNT}"
+    mkdir -p "${USERDATA_MNT}/counter"
+    if ! ${MOUNT} --bind "${USERDATA_MNT}/counter" "${COUNTER_MNT}"; then
+        ${UMOUNT} "${DATASTORE_MNT}"
+        ${UMOUNT} "${USERDATA_MNT}"
+        return 1
+    fi
 }
 
 parse_cmdline() {
@@ -61,8 +92,11 @@ parse_cmdline() {
 
 pvsn_wipe() {
     sector_size=512 # 512 bytes
-    first_pe=2048 # first physical extent starts at 1 MiB (2048 sectors * 512B sector size) (LVM MDA is located here)
     partition_offset=$(cat "/sys/class/block/mmcblk2p5/start")
+    erase_size_bytes=$(cat "/sys/class/block/mmcblk2/device/erase_size")
+    pe_start_bytes=$(pvs --no-heading --no-suffix -o pe_start --unit B | xargs | sed 's/\.00$//') # first physical extent offset in bytes
+    pe_start=$((pe_start_bytes / sector_size))
+    erase_size=$((erase_size_bytes / sector_size))
     pv_size=$(pvs --no-heading --no-suffix -o pv_size --unit B | xargs) # physical volume size in bytes
     pe_count=$(pvs --no-heading -o pv_pe_count | xargs) # physical extent count
     pe_size=$((pv_size / pe_count)) # physical extent size in bytes (should be 4 MiB)
@@ -70,8 +104,13 @@ pvsn_wipe() {
     lv_size_pe=$(pvs --no-headings -o seg_size_pe --select "lv_name = $1" | xargs) # size of logical volume in physical extents
 
     # convert bytes to mmc sectors (512B per sector)
-    start=$((lv_start_pe * pe_size / sector_size + partition_offset + first_pe))
-    end=$(((lv_start_pe + lv_size_pe) * pe_size / sector_size + partition_offset + first_pe - 1))
+    start=$((lv_start_pe * pe_size / sector_size + partition_offset + pe_start))
+    end=$(((lv_start_pe + lv_size_pe) * pe_size / sector_size + partition_offset + pe_start - 1))
+
+    if [ $((erase_size_bytes % sector_size)) -ne 0 ] || [ $((start % erase_size)) -ne 0 ] || [ $(((end + 1) % erase_size)) -ne 0 ]; then
+        debug "Refusing secure erase for $1: range ${start}-${end} is not aligned to erase_size ${erase_size_bytes} bytes"
+        exit 1
+    fi
 
     mmc erase secure-erase "$start" "$end" "/dev/mmcblk2"
 }
@@ -177,6 +216,15 @@ pvsn_flash() {
     if lvs "/dev/irma6lvm/staticdata" ; then
         lvremove -A n -q -y "/dev/irma6lvm/staticdata_hash"
         lvremove -A n -q -y "/dev/irma6lvm/staticdata"
+    fi
+}
+
+remove_legacy_buffer_volumes() {
+    if [ -e "/dev/mapper/irma6lvm-pvsn_buffer1" ]; then
+        lvremove --force --yes "/dev/mapper/irma6lvm-pvsn_buffer1"
+    fi
+    if [ -e "/dev/mapper/irma6lvm-pvsn_buffer2" ]; then
+        lvremove --force --yes "/dev/mapper/irma6lvm-pvsn_buffer2"
     fi
 }
 
@@ -287,6 +335,9 @@ sync_userdata_from_to() {
 
 mount_pseudo_fs
 
+# we need udev to manage volumes cleanly
+/sbin/udevd --daemon
+
 # populate LVM mapper devices
 vgchange -a y
 vgmknodes
@@ -304,14 +355,13 @@ then
     exit 0
 fi
 
-/etc/init.d/udev start # we need udev to manage volumes cleanly
-
 # check if we are in provisioning and need to encrypt the volumes
 debug "Provisioning check..."
 if [ -e "/dev/mapper/irma6lvm-pvsn_rootfs" ]; then
     pvsn_flash
 fi
 
+remove_legacy_buffer_volumes
 
 KEYSTORE_DEV="/dev/mapper/irma6lvm-keystore"
 KEYSTORE="/mnt/keystore"
@@ -328,11 +378,8 @@ DECRYPT_NAME="decrypted-irma6lvm-rootfs${FIRMWARE_SUFFIX}"
 DECRYPT_ROOT_DEV="/dev/mapper/${DECRYPT_NAME}"
 
 USERDATA_DEV="/dev/mapper/irma6lvm-userdata${FIRMWARE_SUFFIX}"
-DECRYPT_USERDATA_NAME="decrypted-irma6lvm-userdata${FIRMWARE_SUFFIX}"
-DECRYPT_USERDATA_LINK="/dev/mapper/decrypted-irma6lvm-userdata"
-ALT_DECRYPT_USERDATA_NAME="decrypted-irma6lvm-userdata${ALT_FIRMWARE_SUFFIX}"
+DECRYPT_USERDATA_NAME="decrypted-irma6lvm-userdata"
 
-DATASTORE_NAME="datastore"
 DATASTORE_DEV="/dev/mapper/irma6lvm-datastore"
 DECRYPT_DATASTORE_NAME="decrypted-irma6lvm-datastore"
 
@@ -376,8 +423,6 @@ dmsetup create ${DECRYPT_DATASTORE_NAME} --table "0 $(blockdev --getsz ${DATASTO
     crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 ${DATASTORE_DEV} 0 1 sector_size:4096"
 vgmknodes
 
-ln -s "/dev/mapper/${DECRYPT_USERDATA_NAME}" "${DECRYPT_USERDATA_LINK}" # symlink for /etc/fstab
-
 if ! /usr/bin/openssl dgst -sha256 -verify "${PUBKEY}" -signature "${ROOT_HASH_SIGNATURE}" "${ROOT_HASH}"
 then
     debug "Root hash signature invalid"
@@ -395,6 +440,14 @@ then
     debug "Mount root device failed"
     emergency_switch
 fi
+
+if ! mount_runtime_volumes
+then
+    debug "Mount runtime volumes failed"
+    exit 1
+fi
+
 debug "Switching root to verity device"
+udevadm settle
 move_special_devices
 exec switch_root ${ROOT_MNT} "${INIT}" "${CMDLINE}"

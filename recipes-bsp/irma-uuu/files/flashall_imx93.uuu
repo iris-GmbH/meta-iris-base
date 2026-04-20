@@ -65,10 +65,14 @@ FBK: ucmd sh -c '. /tmp/hashsums; echo "((($SIZE_ROOTFS/(4*1024*1024)) + (($SIZE
 FBK: ucmd sh -c '. /tmp/hashsums; echo "((($SIZE_ROOTFSVERITY/(4*1024*1024)) + (($SIZE_ROOTFSVERITY % (4*1024*1024)) > 0)) * (4*1024*1024))" | bc' > /tmp/size_rootfsverity
 
 # Create LVM
-FBK: ucmd mmc=`cat /tmp/mmcdev`; pvcreate -ff -y /dev/mmcblk${mmc}p5
+FBK: ucmd mmc=`cat /tmp/mmcdev`; cat /sys/class/block/mmcblk${mmc}/device/erase_size 2>/dev/null > /tmp/erase_size || true
+FBK: ucmd sh -c 'if ! grep -q "^[0-9]\\+$" /tmp/erase_size 2>/dev/null; then echo $((512*1024)) > /tmp/erase_size; fi'
+FBK: ucmd sh -c 'ERASE_SIZE=$(cat /tmp/erase_size); LVM_PE_SIZE=$((4*1024*1024)); if [ $((LVM_PE_SIZE % ERASE_SIZE)) -ne 0 ]; then echo "Error: eMMC erase_size (${ERASE_SIZE} bytes) does not divide LVM PE size (${LVM_PE_SIZE} bytes)"; exit 1; fi'
+FBK: ucmd sh -c 'ERASE_SIZE=$(cat /tmp/erase_size); echo "Creating lvm with dataalignment: ${ERASE_SIZE} bytes"; pvcreate -ff -y --dataalignment "${ERASE_SIZE}B" /dev/mmcblk$(cat /tmp/mmcdev)p5'
 FBK: ucmd mmc=`cat /tmp/mmcdev`; vgcreate matrixlvm /dev/mmcblk${mmc}p5
 # start udev daemon so lvm can synchronize devices
-FBK: ucmd /etc/init.d/udev start
+FBK: ucmd udevd --daemon
+FBK: ucmd udevadm settle
 FBK: ucmd lvcreate -y -n rootfs_a -L "$(cat /tmp/size_rootfs)"B matrixlvm
 FBK: ucmd lvcreate -y -n rootfs_a_hash -L "$(cat /tmp/size_rootfsverity)"B matrixlvm
 FBK: ucmd lvcreate -y -n rootfs_b -L "$(cat /tmp/size_rootfs)"B matrixlvm

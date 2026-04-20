@@ -3,6 +3,8 @@
 
 FILESEXTRAPATHS:prepend := "${THISDIR}/${PN}:"
 
+require ${@bb.utils.contains('DISTRO_FEATURES', 'systemd', 'init-ifupdown-systemd.inc', '', d)}
+
 SRC_URI += " \
     file://eth0-pre-up \
     file://network-helper-script.sh \

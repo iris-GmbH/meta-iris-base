@@ -5,23 +5,28 @@ FILESEXTRAPATHS:prepend := "${THISDIR}/${PN}:"
 
 wwwdir = "/var/www/swupdate"
 
-# Put reset script right after counting application
-RESET_SCRIPT="power_on_selftest.sh"
-RESET_SCRIPT_SYM="S93power_on_selftest"
-
 # use git instead of quilt to apply binary patch as well
 PATCHTOOL = "git"
 
 SRC_URI:append := " \
 	file://defconfig \
-	file://${RESET_SCRIPT} \
 	file://swupdate.sh \
 	file://swupdate.cfg.in \
 	file://bootloader_update.lua \
 	file://Findswupdate.cmake \
 	file://0001-Apply-iris-Coporate-Design-to-webinterface.patch \
 	file://0002-mongoose_multipart-Allow-raw-binary-uploads.patch \
+	file://0003-mongoose-Integer-Underflow-in-Multipart-Upload-Parse.patch \
+	file://0004-mongoose-Update-to-version-7.21.patch \
+	file://0005-mongoose-Use-GPL-2.0-only.patch \
 "
+
+SYSTEMD_SRC_URI = " \
+	file://swupdate-systemd.cfg \
+	file://50-keyring.conf \
+"
+
+SRC_URI += "${@bb.utils.contains('DISTRO_FEATURES', 'systemd', '${SYSTEMD_SRC_URI}', '', d)}"
 
 DEPENDS += " \
 	bc-native \
@@ -36,12 +41,12 @@ RDEPENDS:${PN} += " \
 	nginx \
 	lvm2 \
 	mmc-utils \
-	rsync \
 	e2fsprogs-resize2fs \
 	e2fsprogs-e2fsck \
 	util-linux-blockdev \
 	keyutils \
 	cryptsetup \
+	power-on-selftest \
 "
 
 # Include more RDEPENDS for pre_post_inst.sh in swuimage, but only for real hardware
@@ -57,19 +62,12 @@ RDEPENDS:${PN}:append:poky-iris-0501 = " \
 
 FILES:${PN} += " \
 	${SWUPDATE_HW_COMPATIBILITY_FILE} \
-	${sysconfdir}/init.d/${RESET_SCRIPT} \
-	${sysconfdir}/rc5.d/${RESET_SCRIPT_SYM} \
 	${sysconfdir}/swupdate.cfg \
 "
 
 SWU_HW_VERSION ?= "${@'0.0' if not d.getVar('HW_VERSION') else d.getVar('HW_VERSION')}"
 
 do_install:append () {
-	install -d ${D}${sysconfdir}/init.d
-	install -d ${D}${sysconfdir}/rc5.d
-	install -m 0755 ${WORKDIR}/${RESET_SCRIPT} ${D}${sysconfdir}/init.d
-	ln -s -r ${D}${sysconfdir}/init.d/${RESET_SCRIPT} ${D}${sysconfdir}/rc5.d/${RESET_SCRIPT_SYM}
-
 	# create swupdate.cfg and replace variables
 	cp ${WORKDIR}/swupdate.cfg.in ${WORKDIR}/swupdate.cfg
 	export FW_VERSION=`echo ${DISTRO_VERSION} | grep -oP '\d+\.\d+'`
@@ -100,4 +98,9 @@ do_install:append () {
 
 	install -d ${D}${datadir}/cmake/Modules
 	install -m 644 ${WORKDIR}/Findswupdate.cmake ${D}${datadir}/cmake/Modules
+
+	if ${@bb.utils.contains('DISTRO_FEATURES', 'systemd', 'true', 'false', d)}; then
+		install -d ${D}${sysconfdir}/systemd/system/swupdate.service.d
+		install -m 0644 ${WORKDIR}/50-keyring.conf ${D}${sysconfdir}/systemd/system/swupdate.service.d/50-keyring.conf
+	fi
 }

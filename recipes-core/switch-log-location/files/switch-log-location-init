@@ -1,0 +1,24 @@
+#!/bin/sh
+### BEGIN INIT INFO
+# Provides:          switch-log-location
+# Required-Start:    $local_fs mountall
+# Required-Stop:
+# Default-Start:     S
+# Default-Stop:
+# Short-Description: Switch log location based on persistent configuration
+### END INIT INFO
+
+case "$1" in
+    start)
+        /usr/bin/switch-log-location.sh
+        ;;
+    stop|restart|reload|force-reload|status)
+        # No-op for these
+        ;;
+    *)
+        echo "Usage: $0 {start|stop|restart|reload|force-reload|status}"
+        exit 1
+        ;;
+esac
+
+exit 0

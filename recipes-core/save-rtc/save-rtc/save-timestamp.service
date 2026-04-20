@@ -1,0 +1,6 @@
+[Unit]
+Description=Save system clock to timestamp file
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/save-timestamp.sh

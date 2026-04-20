@@ -1,0 +1,8 @@
+[Unit]
+Description=Prepare writable Avahi service directory
+Before=etc-avahi-services.mount avahi-daemon.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/avahi-services-setup.sh
+RemainAfterExit=yes

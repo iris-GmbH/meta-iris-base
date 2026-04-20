@@ -1,0 +1,42 @@
+From 1d923b15db9c9fc93a424f81769f9586e33fe1cb Mon Sep 17 00:00:00 2001
+From: Michael Glembotzki <m.glembo@gmail.com>
+Date: Fri, 21 Mar 2025 15:09:19 +0100
+Subject: [PATCH 2/2] mongoose: Use GPL-2.0-only
+
+Upstream-Status: Submitted [https://groups.google.com/g/swupdate/c/iyj4NrN4q8A]
+
+Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+---
+ mongoose/mongoose.c | 2 +-
+ mongoose/mongoose.h | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/mongoose/mongoose.c b/mongoose/mongoose.c
+index df80dfc3..7242720b 100644
+--- a/mongoose/mongoose.c
++++ b/mongoose/mongoose.c
+@@ -15,7 +15,7 @@
+ // Alternatively, you can license this software under a commercial
+ // license, as set out in https://www.mongoose.ws/licensing/
+ //
+-// SPDX-License-Identifier: GPL-2.0-only or commercial
++// SPDX-License-Identifier: GPL-2.0-only
+ 
+ #include "mongoose.h"
+ 
+diff --git a/mongoose/mongoose.h b/mongoose/mongoose.h
+index 0f17fae8..56ecc345 100644
+--- a/mongoose/mongoose.h
++++ b/mongoose/mongoose.h
+@@ -15,7 +15,7 @@
+ // Alternatively, you can license this software under a commercial
+ // license, as set out in https://www.mongoose.ws/licensing/
+ //
+-// SPDX-License-Identifier: GPL-2.0-only or commercial
++// SPDX-License-Identifier: GPL-2.0-only
+ 
+ #ifndef MONGOOSE_H
+ #define MONGOOSE_H
+-- 
+2.53.0
+

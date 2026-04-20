@@ -1,0 +1,13 @@
+[Unit]
+Description=Set hostname based on MAC address
+DefaultDependencies=no
+After=local-fs.target systemd-udev-settle.service
+Before=network-pre.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/set-hostname.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=sysinit.target

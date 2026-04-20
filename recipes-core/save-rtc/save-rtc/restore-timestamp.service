@@ -1,0 +1,10 @@
+[Unit]
+Description=Restore system clock from timestamp file if newer
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/restore-timestamp.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=sysinit.target

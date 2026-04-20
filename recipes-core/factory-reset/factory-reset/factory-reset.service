@@ -1,0 +1,14 @@
+[Unit]
+Description=Factory reset on RX (1/2) TX (3/6) short
+DefaultDependencies=no
+After=local-fs.target network.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/factory-reset.sh
+RemainAfterExit=yes
+StandardOutput=journal+console
+StandardError=journal+console
+
+[Install]
+WantedBy=multi-user.target

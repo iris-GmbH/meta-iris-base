@@ -15,11 +15,14 @@ DEPENDS += " \
 	u-boot-mkimage-native \
 "
 
-do_assemble_fit[depends] += "virtual/kernel:do_deploy"
+inherit deploy kernel-artifact-names
+
+do_fitimage[depends] += "virtual/kernel:do_deploy"
+do_fitimage[depends] += "${RESCUE_NAME}:do_image_complete"
 
 do_patch[noexec] = "1"
 do_configure[noexec] = "1"
-do_assemble_fit[nostamp] = "1"
+do_fitimage[nostamp] = "1"
 do_package[noexec] = "1"
 do_packagedata[noexec] = "1"
 deltask package_write_ipk
@@ -31,7 +34,8 @@ deltask do_rootfs
 S = "${WORKDIR}"
 B = "${S}"
 
-ITB_FNAME = "${PN}.itb"
+FITIMAGE_IMAGE_NAME = "${PN}-${KERNEL_FIT_NAME}.itb"
+FITIMAGE_IMAGE_LINK_NAME = "${PN}.itb"
 FITIMAGE_RUNNING_VERSION = "1.0"
 FITIMAGE_RUNNING_VERSION:mx8mp-nxp-bsp = "2.0"
 FITIMAGE_DESCRIPTION = "IRMA FIT image"
@@ -56,7 +60,7 @@ ITS_KERNEL_ENTRY_ADDR:mx9-nxp-bsp = "0x80400000"
 ITS_DTB_LOAD_ADDR:mx9-nxp-bsp = "0x83000000"
 
 
-do_assemble_fit() {
+do_fitimage() {
 	echo "STAGING_KERNEL_DIR" ${STAGING_KERNEL_DIR}
 	echo "STAGING_KERNEL_BUILDDIR" ${STAGING_KERNEL_BUILDDIR}
 	echo "KERNEL_SRC_PATH" ${KERNEL_SRC_PATH}
@@ -85,7 +89,7 @@ do_assemble_fit() {
 	echo "B" ${B}
 	echo "S" ${S}
 	echo $DEPLOY_DIR_IMAGE
-	echo "FNAME " ${ITB_FNAME}
+	echo "FNAME fitImage"
 	cd ${B}
 	cp ${B}/rescue.its.in ${B}/rescue.its
 	sed -i "s|DEPLOY_DIR_IMAGE|$DEPLOY_DIR_IMAGE|g" rescue.its
@@ -104,16 +108,23 @@ do_assemble_fit() {
 	sed -i "s|ITS_KERNEL_ENTRY_ADDR|$ITS_KERNEL_ENTRY_ADDR|g" rescue.its
 	cat rescue.its
 	echo "======== create itb file ==========="
-	uboot-mkimage -D "-I dts -O dtb -p 0x1000" -f rescue.its ${ITB_FNAME}
+	uboot-mkimage -D "-I dts -O dtb -p 0x1000" -f rescue.its fitImage
 		if [ $? -ne 0 ]; then
 		echo create FIT image failed
 		exit 1
 	fi
+}
+addtask fitimage after do_compile before do_deploy
 
-	install -d ${DEPLOY_DIR_IMAGE}
-	install -m 644 ${ITB_FNAME} ${DEPLOY_DIR_IMAGE}/${ITB_FNAME}
+do_deploy() {
+	install -m 644 ${B}/fitImage ${DEPLOYDIR}/${FITIMAGE_IMAGE_NAME}
+
+	cd ${DEPLOYDIR}
+	ln -sf ${FITIMAGE_IMAGE_NAME} ${FITIMAGE_IMAGE_LINK_NAME}
 }
 
-addtask do_assemble_fit before do_install after do_compile
+addtask deploy after do_fitimage before do_build
 
-do_assemble_fit[depends] += "${RESCUE_NAME}:do_image_complete"
+HAB_INHERIT = "hab-signed-fitimage"
+HAB_INHERIT:poky-iris-0601 = ""
+inherit ${HAB_INHERIT}
