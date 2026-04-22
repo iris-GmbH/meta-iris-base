@@ -8,12 +8,13 @@ Index: base-passwd-3.5.26/group.master
 ===================================================================
 --- base-passwd-3.5.26.orig/group.master
 +++ base-passwd-3.5.26/group.master
-@@ -39,5 +39,9 @@
+@@ -39,5 +39,10 @@
  games:*:60:
  shutdown:*:70:
  wheel:*:80:
 +i2c:*:85:
 +gpio:*:86:
++rtc:*:87:
 +irma_identity:*:98:
 +irma_userdata:*:99:
  users:*:100:
