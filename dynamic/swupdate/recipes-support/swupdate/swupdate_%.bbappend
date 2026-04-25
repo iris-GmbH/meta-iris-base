@@ -44,7 +44,6 @@ RDEPENDS:${PN} += " \
 	util-linux-blockdev \
 	keyutils \
 	cryptsetup \
-	power-on-selftest \
 "
 
 # Include more RDEPENDS for pre_post_inst.sh in swuimage, but only for real hardware
@@ -55,7 +54,12 @@ RDEPENDS:${PN}:append:mx8mp-nxp-bsp = " \
 "
 
 RDEPENDS:${PN}:append:poky-iris-0501 = " \
+	power-on-selftest \
 	irma-helper-scripts \
+"
+
+RDEPENDS:${PN}:append:poky-iris-0602 = " \
+	power-on-selftest \
 "
 
 FILES:${PN} += " \
