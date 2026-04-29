@@ -15,7 +15,7 @@ EXTRA_IMAGECMD:jffs2 = "--little-endian --pad=0x0 --pagesize=0x1000 --eraseblock
 
 SERIAL_CONSOLES = "115200;ttySC0"
 
-PREFERRED_PROVIDER_virtual/kernel ?= "linux-gen6"
+PREFERRED_PROVIDER_virtual/kernel ?= "linux-adi"
 PREFERRED_PROVIDER_virtual/bootloader = "u-boot-adi"
 PREFERRED_PROVIDER_u-boot = "u-boot-adi"
 
