@@ -51,3 +51,5 @@ do_fixldr() {
 }
 
 addtask do_fixldr after do_unpack before do_configure
+
+WARN_QA:remove:pn-u-boot-adi = "textrel"
