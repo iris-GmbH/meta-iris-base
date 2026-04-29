@@ -1,3 +1,5 @@
+Upstream-Status: Inappropriate [configuration]
+
 diff --git a/jffsX-utils/compr_zlib.c b/jffsX-utils/compr_zlib.c
 index 1f94628..d73fc9e 100644
 --- a/jffsX-utils/compr_zlib.c
