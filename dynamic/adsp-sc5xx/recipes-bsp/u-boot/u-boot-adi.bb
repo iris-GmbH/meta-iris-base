@@ -13,7 +13,7 @@ SRC_URI += " \
 	file://arm-poky-linux-gnueabi-ldr \
 "
 
-FILES_${PN} = " \
+FILES:${PN} = " \
 	u-boot-${BOARD}.ldr \
 	u-boot-${BOARD} \
 	init-${BOARD}.elf \
@@ -21,7 +21,7 @@ FILES_${PN} = " \
 
 INIT_PATH = "${@ 'arch/arm/cpu/armv7/%s' %('sc57x' if MACHINE == 'adsp-sc573-ezkit' else 'sc58x')}"
 
-do_compile_prepend(){
+do_compile:prepend(){
 	#Use U-boot's FDT header files, not Linux's (in case they are different)
 	cp ${WORKDIR}/git/include/libfdt_env.h ${WORKDIR}/recipe-sysroot-native/usr/include/libfdt_env.h
 	cp ${WORKDIR}/git/include/libfdt.h ${WORKDIR}/recipe-sysroot-native/usr/include/libfdt.h

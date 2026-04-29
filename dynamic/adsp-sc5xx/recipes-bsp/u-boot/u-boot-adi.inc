@@ -1,10 +1,10 @@
 SUMMARY = "U-Boot For ADSP-SC5xx Products"
 
-inherit analog-devices-baremetal autotools
+inherit autotools
 
 require ${COREBASE}/meta/recipes-bsp/u-boot/u-boot.inc
 
-FILESEXTRAPATHS_prepend := "${THISDIR}/u-boot-adi:"
+FILESEXTRAPATHS:prepend := "${THISDIR}/u-boot-adi:"
 
 UBOOT_GIT_URI ?= "git://github.com/analogdevicesinc/u-boot-sharc.git"
 UBOOT_GIT_PROTOCOL = "https"
@@ -16,13 +16,13 @@ SRC_URI += " \
     ${WATCHDOG_PATCH} \
 "
 
-PV_append = "+git${SRCPV}"
+PV:append = "+git${SRCPV}"
 
 DEPENDS += "dtc-native bc-native lzop-native"
 
 PROVIDES += "u-boot"
-PKG_${PN} = "u-boot"
-PKG_${PN}-dev = "u-boot-dev"
-PKG_${PN}-dbg = "u-boot-dbg"
+PKG:${PN} = "u-boot"
+PKG:${PN}-dev = "u-boot-dev"
+PKG:${PN}-dbg = "u-boot-dbg"
 
 S = "${WORKDIR}/git"
