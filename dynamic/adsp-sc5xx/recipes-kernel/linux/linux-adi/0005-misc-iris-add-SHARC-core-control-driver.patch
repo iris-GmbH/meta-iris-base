@@ -1,0 +1,263 @@
+From 30d8910eb8f1779afd4ffeaf9dc7f5b4e23dcf3c Mon Sep 17 00:00:00 2001
+From: Ian Dannapel <ian.dannapel@iris-sensing.com>
+Date: Fri, 5 Jun 2026 09:19:23 +0200
+Subject: [PATCH 05/29] misc: iris: add SHARC core control driver
+
+Add the legacy /dev/corectrl ABI on top of the ADI RCU phandle API.
+The driver supports SHARC start-vector programming and start/stop ioctls for the two Gen6 SHARC cores.
+
+Signed-off-by: Ian Dannapel <ian.dannapel@iris-sensing.com>
+---
+ drivers/misc/iris/Kconfig         |  10 ++
+ drivers/misc/iris/Makefile        |   1 +
+ drivers/misc/iris/irma-corectrl.c | 211 ++++++++++++++++++++++++++++++
+ 3 files changed, 222 insertions(+)
+ create mode 100644 drivers/misc/iris/irma-corectrl.c
+
+diff --git a/drivers/misc/iris/Kconfig b/drivers/misc/iris/Kconfig
+index 0ae94aef478f1..28015fa30be5a 100644
+--- a/drivers/misc/iris/Kconfig
++++ b/drivers/misc/iris/Kconfig
+@@ -24,3 +24,13 @@ config IRMA_CACHE_FLUSH
+ 	  clean/invalidate plus outer-cache flush for a userspace virtual range
+ 	  and matching physical range.  Invalidate-only is intentionally not
+ 	  implemented, matching the old probed behavior.
++
++config IRMA_CORECTRL
++	bool "IRMA legacy SHARC corectrl compatibility driver"
++	depends on ARCH_SC57X && OF
++	select IRMA_MISC
++	default n
++	help
++	  Exposes the legacy /dev/corectrl device used by Iris Gen6
++	  userspace to set SHARC start vectors and start or stop SHARC
++	  cores through the ADI RCU phandle API.
+diff --git a/drivers/misc/iris/Makefile b/drivers/misc/iris/Makefile
+index 31ca038049584..72939ddc32bed 100644
+--- a/drivers/misc/iris/Makefile
++++ b/drivers/misc/iris/Makefile
+@@ -2,3 +2,4 @@
+ 
+ obj-$(CONFIG_IRMA_DSP_ADDR)		+= irma-dsp-addr.o
+ obj-$(CONFIG_IRMA_CACHE_FLUSH)		+= irma-cache-flush.o
++obj-$(CONFIG_IRMA_CORECTRL)		+= irma-corectrl.o
+diff --git a/drivers/misc/iris/irma-corectrl.c b/drivers/misc/iris/irma-corectrl.c
+new file mode 100644
+index 0000000000000..9c8b29aefd393
+--- /dev/null
++++ b/drivers/misc/iris/irma-corectrl.c
+@@ -0,0 +1,211 @@
++// SPDX-License-Identifier: GPL-2.0-or-later
++/*
++ * IRMA SHARC corectrl compatibility driver.
++ *
++ * Provides the legacy /dev/corectrl ioctl ABI on top of the ADI RCU
++ * phandle API used by the current sc57x device tree.
++ */
++
++#include <linux/bits.h>
++#include <linux/delay.h>
++#include <linux/device.h>
++#include <linux/errno.h>
++#include <linux/fs.h>
++#include <linux/ioctl.h>
++#include <linux/limits.h>
++#include <linux/miscdevice.h>
++#include <linux/module.h>
++#include <linux/of.h>
++#include <linux/platform_device.h>
++#include <linux/slab.h>
++#include <linux/soc/adi/rcu.h>
++
++#define IRMA_CORECTRL_DRV_NAME		"irma-corectrl"
++
++#define CCTRL_CORE1			1
++#define CCTRL_CORE2			2
++
++#define CMD_CORE_START			_IO('b', 0)
++#define CMD_CORE_STOP			_IO('b', 1)
++#define CMD_SET_SVECT1			_IO('m', 17)
++#define CMD_SET_SVECT2			_IO('m', 18)
++
++struct irma_corectrl {
++	struct miscdevice miscdev;
++	struct adi_rcu *rcu;
++};
++
++static int irma_corectrl_stop(struct irma_corectrl *ctrl, unsigned int coreid)
++{
++	u32 val;
++	int ret;
++
++	ret = adi_rcu_check_coreid_valid(ctrl->rcu, coreid);
++	if (ret)
++		return ret;
++
++	if (adi_rcu_readl(ctrl->rcu, ADI_RCU_REG_CRCTL) & BIT(coreid))
++		return 0;
++
++	adi_rcu_writel(BIT(coreid), ctrl->rcu, ADI_RCU_REG_CRSTAT);
++
++	val = adi_rcu_readl(ctrl->rcu, ADI_RCU_REG_SIDIS);
++	adi_rcu_writel(val | BIT(coreid - 1), ctrl->rcu,
++		       ADI_RCU_REG_SIDIS);
++
++	/* Anomaly 36-10-0005: SISTAT cannot reliably acknowledge SIDIS. */
++	/* while (readl(REG_RCU0_SISTAT) & 1 << (coreid - 1) != 1); */
++	usleep_range(50, 100);
++
++	val = adi_rcu_readl(ctrl->rcu, ADI_RCU_REG_CRCTL);
++	adi_rcu_writel(val | BIT(coreid), ctrl->rcu, ADI_RCU_REG_CRCTL);
++
++	val = adi_rcu_readl(ctrl->rcu, ADI_RCU_REG_SIDIS);
++	adi_rcu_writel(val & ~BIT(coreid - 1), ctrl->rcu,
++		       ADI_RCU_REG_SIDIS);
++
++	/* Anomaly 36-10-0005: keep the legacy fixed settle delay. */
++	/* while (readl(REG_RCU0_SISTAT) & 1 << (coreid - 1) != 1); */
++	usleep_range(50, 100);
++
++	adi_rcu_writel(BIT(coreid), ctrl->rcu, ADI_RCU_REG_CRSTAT);
++
++	return 0;
++}
++
++static int irma_corectrl_start(struct irma_corectrl *ctrl, unsigned int coreid)
++{
++	u32 val;
++	int ret;
++
++	ret = irma_corectrl_stop(ctrl, coreid);
++	if (ret)
++		return ret;
++
++	val = adi_rcu_readl(ctrl->rcu, ADI_RCU_REG_CRCTL);
++	adi_rcu_writel(val & ~BIT(coreid), ctrl->rcu, ADI_RCU_REG_CRCTL);
++	adi_rcu_writel(BIT(coreid), ctrl->rcu, ADI_RCU_REG_CRSTAT);
++	adi_rcu_writel(BIT(18 + coreid), ctrl->rcu, ADI_RCU_REG_MSG_SET);
++
++	return 0;
++}
++
++static int irma_corectrl_set_svect(struct irma_corectrl *ctrl,
++				   unsigned int coreid, unsigned long svect)
++{
++	int ret;
++
++	ret = adi_rcu_check_coreid_valid(ctrl->rcu, coreid);
++	if (ret)
++		return ret;
++
++	if (!svect || svect > U32_MAX)
++		return -EINVAL;
++
++	if (coreid == CCTRL_CORE1)
++		adi_rcu_writel((u32)svect, ctrl->rcu, ADI_RCU_REG_SVECT1);
++	else if (coreid == CCTRL_CORE2)
++		adi_rcu_writel((u32)svect, ctrl->rcu, ADI_RCU_REG_SVECT2);
++	else
++		return -EINVAL;
++
++	return 0;
++}
++
++static long irma_corectrl_ioctl(struct file *filp, unsigned int cmd,
++				unsigned long arg)
++{
++	struct irma_corectrl *ctrl = filp->private_data;
++
++	switch (cmd) {
++	case CMD_SET_SVECT1:
++		return irma_corectrl_set_svect(ctrl, CCTRL_CORE1, arg);
++	case CMD_SET_SVECT2:
++		return irma_corectrl_set_svect(ctrl, CCTRL_CORE2, arg);
++	case CMD_CORE_START:
++		return irma_corectrl_start(ctrl, arg);
++	case CMD_CORE_STOP:
++		return irma_corectrl_stop(ctrl, arg);
++	default:
++		return -EINVAL;
++	}
++}
++
++static int irma_corectrl_open(struct inode *inode, struct file *filp)
++{
++	struct miscdevice *miscdev = filp->private_data;
++	struct irma_corectrl *ctrl;
++
++	ctrl = container_of(miscdev, struct irma_corectrl, miscdev);
++	filp->private_data = ctrl;
++
++	return 0;
++}
++
++static const struct file_operations irma_corectrl_fops = {
++	.owner		= THIS_MODULE,
++	.open		= irma_corectrl_open,
++	.unlocked_ioctl	= irma_corectrl_ioctl,
++	.llseek		= noop_llseek,
++};
++
++static int irma_corectrl_probe(struct platform_device *pdev)
++{
++	struct device *dev = &pdev->dev;
++	struct irma_corectrl *ctrl;
++	int ret;
++
++	ctrl = devm_kzalloc(dev, sizeof(*ctrl), GFP_KERNEL);
++	if (!ctrl)
++		return -ENOMEM;
++
++	ctrl->rcu = get_adi_rcu_from_node(dev);
++	if (IS_ERR(ctrl->rcu))
++		return dev_err_probe(dev, PTR_ERR(ctrl->rcu),
++				     "failed to get RCU\n");
++
++	ctrl->miscdev.minor = MISC_DYNAMIC_MINOR;
++	ctrl->miscdev.name = "corectrl";
++	ctrl->miscdev.fops = &irma_corectrl_fops;
++	ctrl->miscdev.parent = dev;
++
++	ret = misc_register(&ctrl->miscdev);
++	if (ret) {
++		put_adi_rcu(ctrl->rcu);
++		return dev_err_probe(dev, ret,
++				     "failed to register /dev/corectrl\n");
++	}
++
++	platform_set_drvdata(pdev, ctrl);
++
++	return 0;
++}
++
++static int irma_corectrl_remove(struct platform_device *pdev)
++{
++	struct irma_corectrl *ctrl = platform_get_drvdata(pdev);
++
++	misc_deregister(&ctrl->miscdev);
++	put_adi_rcu(ctrl->rcu);
++
++	return 0;
++}
++
++static const struct of_device_id irma_corectrl_of_match[] = {
++	{ .compatible = "iris,irma-corectrl" },
++	{ }
++};
++MODULE_DEVICE_TABLE(of, irma_corectrl_of_match);
++
++static struct platform_driver irma_corectrl_driver = {
++	.probe = irma_corectrl_probe,
++	.remove = irma_corectrl_remove,
++	.driver = {
++		.name = IRMA_CORECTRL_DRV_NAME,
++		.of_match_table = irma_corectrl_of_match,
++	},
++};
++module_platform_driver(irma_corectrl_driver);
++
++MODULE_DESCRIPTION("IRMA legacy /dev/corectrl compatibility driver");
++MODULE_LICENSE("GPL v2");
+-- 
+2.44.4
+

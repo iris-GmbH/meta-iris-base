@@ -1,0 +1,56 @@
+From 4cf50966ae8a5fec2f8ea1634ca62d27703b9052 Mon Sep 17 00:00:00 2001
+From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+Date: Fri, 8 May 2026 07:43:22 +0000
+Subject: [PATCH 21/29] ARM: dts: sc573-gen6: enable DMA for SPI flash
+
+Enable ADI SPI DMA for the IS25LP256 flash on SPI2.
+
+Describe the flash as an IS25LP256 device, lower the maximum SPI clock to
+30 MHz, and log whether DMA mode is enabled for each SPI device during setup.
+
+Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+---
+ arch/arm/boot/dts/sc573-gen6.dts | 7 ++++---
+ drivers/spi/spi-adi-v3.c         | 1 +
+ 2 files changed, 5 insertions(+), 3 deletions(-)
+
+diff --git a/arch/arm/boot/dts/sc573-gen6.dts b/arch/arm/boot/dts/sc573-gen6.dts
+index 0935acba277f1..7d1ac43509973 100644
+--- a/arch/arm/boot/dts/sc573-gen6.dts
++++ b/arch/arm/boot/dts/sc573-gen6.dts
+@@ -186,16 +186,17 @@ &spi2 {
+ 	cs-gpios = <&gpb 15 GPIO_ACTIVE_LOW>;
+ 	status = "okay";
+ 
+-	flash: is25lp256d@0 {
++	flash: is25lp256@0 {
+ 		#address-cells = <1>;
+ 		#size-cells = <1>;
+-		compatible = "issi,is25lp256d", "jedec,spi-nor";
++		compatible = "issi,is25lp256", "jedec,spi-nor";
+ 		reg = <0>;
+-		spi-max-frequency = <50000000>;
++		spi-max-frequency = <30000000>;
+ 		spi-cpol;
+ 		spi-cpha;
+ 		spi-tx-bus-width = <4>;
+ 		spi-rx-bus-width = <4>;
++		adi,enable-dma;
+ 
+ 		partition@0 {
+ 			label = "uboot (spi)";
+diff --git a/drivers/spi/spi-adi-v3.c b/drivers/spi/spi-adi-v3.c
+index e59f188b1db7a..efc6be2eebd73 100644
+--- a/drivers/spi/spi-adi-v3.c
++++ b/drivers/spi/spi-adi-v3.c
+@@ -665,6 +665,7 @@ static int adi_spi_setup(struct spi_device *spi)
+ 	chip->dma = false;
+ 	if (of_property_read_bool(np, "adi,enable-dma"))
+ 		chip->dma = true;
++	dev_info(&spi->dev, "DMA mode %s\n", chip->dma ? "enabled" : "disabled");
+ 
+ 	chip->control = 0;
+ 	if (of_property_read_bool(np, "adi,open-drain-mode"))
+-- 
+2.44.4
+

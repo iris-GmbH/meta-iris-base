@@ -1,0 +1,402 @@
+From 4a6ff07fe7f962f908d2254783384ea160aeb578 Mon Sep 17 00:00:00 2001
+From: Ian Dannapel <ian.dannapel@iris-sensing.com>
+Date: Fri, 5 Jun 2026 09:19:23 +0200
+Subject: [PATCH 06/29] misc: iris: add SHARC mailbox driver
+
+Add the legacy /dev/left_sharc and /dev/right_sharc mailbox ABI.
+The driver exposes read/write/poll over the shared SRAM command area and uses ADI TRU software triggers plus IRQ wakeups to notify the SHARC cores and userspace.
+
+Signed-off-by: Ian Dannapel <ian.dannapel@iris-sensing.com>
+---
+ drivers/misc/iris/Kconfig      |  10 +
+ drivers/misc/iris/Makefile     |   1 +
+ drivers/misc/iris/irma-sharc.c | 350 +++++++++++++++++++++++++++++++++
+ 3 files changed, 361 insertions(+)
+ create mode 100644 drivers/misc/iris/irma-sharc.c
+
+diff --git a/drivers/misc/iris/Kconfig b/drivers/misc/iris/Kconfig
+index 28015fa30be5a..bf43dab07fade 100644
+--- a/drivers/misc/iris/Kconfig
++++ b/drivers/misc/iris/Kconfig
+@@ -34,3 +34,13 @@ config IRMA_CORECTRL
+ 	  Exposes the legacy /dev/corectrl device used by Iris Gen6
+ 	  userspace to set SHARC start vectors and start or stop SHARC
+ 	  cores through the ADI RCU phandle API.
++
++config IRMA_SHARC
++	tristate "IRMA SHARC mailbox compatibility driver"
++	depends on ARCH_SC57X && OF
++	select IRMA_MISC
++	default n
++	help
++	  Exposes the legacy /dev/left_sharc and /dev/right_sharc mailbox ABI
++	  used by Iris Gen6 userspace to exchange small command blocks with the
++	  SHARC cores and wake them through ADI TRU software triggers.
+diff --git a/drivers/misc/iris/Makefile b/drivers/misc/iris/Makefile
+index 72939ddc32bed..3e1a793427b8b 100644
+--- a/drivers/misc/iris/Makefile
++++ b/drivers/misc/iris/Makefile
+@@ -3,3 +3,4 @@
+ obj-$(CONFIG_IRMA_DSP_ADDR)		+= irma-dsp-addr.o
+ obj-$(CONFIG_IRMA_CACHE_FLUSH)		+= irma-cache-flush.o
+ obj-$(CONFIG_IRMA_CORECTRL)		+= irma-corectrl.o
++obj-$(CONFIG_IRMA_SHARC)		+= irma-sharc.o
+diff --git a/drivers/misc/iris/irma-sharc.c b/drivers/misc/iris/irma-sharc.c
+new file mode 100644
+index 0000000000000..c5772beedc038
+--- /dev/null
++++ b/drivers/misc/iris/irma-sharc.c
+@@ -0,0 +1,350 @@
++// SPDX-License-Identifier: GPL-2.0-or-later
++/*
++ * IRMA SHARC mailbox compatibility driver.
++ *
++ * Provides the legacy /dev/left_sharc and /dev/right_sharc read/write/poll
++ * ABI over a small shared SRAM mailbox and ADI TRU software triggers.
++ */
++
++#include <linux/atomic.h>
++#include <linux/device.h>
++#include <linux/errno.h>
++#include <linux/fs.h>
++#include <linux/interrupt.h>
++#include <linux/io.h>
++#include <linux/limits.h>
++#include <linux/miscdevice.h>
++#include <linux/module.h>
++#include <linux/of.h>
++#include <linux/platform_device.h>
++#include <linux/poll.h>
++#include <linux/slab.h>
++#include <linux/soc/adi/icc.h>
++#include <linux/spinlock.h>
++#include <linux/types.h>
++#include <linux/uaccess.h>
++#include <linux/wait.h>
++
++#define IRMA_SHARC_DRV_NAME	"irma-sharc"
++
++struct sharc_device {
++	wait_queue_head_t read_waitqueue;
++	wait_queue_head_t write_waitqueue;
++	wait_queue_head_t poll_waitqueue;
++	struct miscdevice misc_device;
++	struct adi_tru *tru;
++	struct device *dev;
++	void __iomem *membase;
++	resource_size_t mem_size;
++	spinlock_t lock;
++	atomic_t opened;
++	u8 core_id;
++	int irq;
++	int read_pending;
++	int write_pending;
++};
++
++static int sharc_open(struct inode *inode, struct file *filp)
++{
++	struct miscdevice *miscdev = filp->private_data;
++	struct sharc_device *sharc;
++
++	sharc = container_of(miscdev, struct sharc_device, misc_device);
++	if (atomic_cmpxchg(&sharc->opened, 0, 1))
++		return -EBUSY;
++
++	filp->private_data = sharc;
++
++	spin_lock_irq(&sharc->lock);
++	sharc->read_pending = 0;
++	sharc->write_pending = 1;
++	spin_unlock_irq(&sharc->lock);
++
++	return 0;
++}
++
++static int sharc_release(struct inode *inode, struct file *filp)
++{
++	struct sharc_device *sharc = filp->private_data;
++
++	atomic_set(&sharc->opened, 0);
++	return 0;
++}
++
++static ssize_t sharc_read(struct file *filp, char __user *buf, size_t len,
++			  loff_t *off)
++{
++	struct sharc_device *sharc = filp->private_data;
++	unsigned char *kbuf;
++	unsigned long flags;
++	ssize_t ret;
++
++	if (len > sharc->mem_size)
++		return -EINVAL;
++
++	if (filp->f_flags & O_NONBLOCK) {
++		spin_lock_irqsave(&sharc->lock, flags);
++		if (!sharc->read_pending) {
++			spin_unlock_irqrestore(&sharc->lock, flags);
++			return -EAGAIN;
++		}
++		spin_unlock_irqrestore(&sharc->lock, flags);
++	} else {
++		ret = wait_event_interruptible(sharc->read_waitqueue,
++					       READ_ONCE(sharc->read_pending));
++		if (ret)
++			return ret;
++	}
++
++	kbuf = kmalloc(len, GFP_KERNEL);
++	if (!kbuf)
++		return -ENOMEM;
++
++	spin_lock_irqsave(&sharc->lock, flags);
++	if (!sharc->read_pending) {
++		spin_unlock_irqrestore(&sharc->lock, flags);
++		ret = -EAGAIN;
++		goto out_free;
++	}
++
++	sharc->read_pending = 0;
++	memcpy_fromio(kbuf, sharc->membase, len);
++	sharc->write_pending = 1;
++	spin_unlock_irqrestore(&sharc->lock, flags);
++
++	if (copy_to_user(buf, kbuf, len))
++		ret = -EFAULT;
++	else
++		ret = len;
++
++	wake_up_interruptible(&sharc->write_waitqueue);
++	wake_up_interruptible(&sharc->poll_waitqueue);
++
++out_free:
++	kfree(kbuf);
++	return ret;
++}
++
++static ssize_t sharc_write(struct file *filp, const char __user *buf,
++			   size_t len, loff_t *offset)
++{
++	struct sharc_device *sharc = filp->private_data;
++	unsigned char *kbuf;
++	unsigned long flags;
++	ssize_t ret;
++
++	if (len > sharc->mem_size)
++		return -EINVAL;
++
++	kbuf = kmalloc(len, GFP_KERNEL);
++	if (!kbuf)
++		return -ENOMEM;
++
++	if (filp->f_flags & O_NONBLOCK) {
++		spin_lock_irqsave(&sharc->lock, flags);
++		if (!sharc->write_pending) {
++			spin_unlock_irqrestore(&sharc->lock, flags);
++			ret = -EAGAIN;
++			goto out_free;
++		}
++		spin_unlock_irqrestore(&sharc->lock, flags);
++	} else {
++		ret = wait_event_interruptible(sharc->write_waitqueue,
++					       READ_ONCE(sharc->write_pending));
++		if (ret)
++			goto out_free;
++	}
++
++	if (copy_from_user(kbuf, buf, len)) {
++		ret = -EFAULT;
++		goto out_free;
++	}
++
++	spin_lock_irqsave(&sharc->lock, flags);
++	if (!sharc->write_pending) {
++		spin_unlock_irqrestore(&sharc->lock, flags);
++		ret = -EAGAIN;
++		goto out_free;
++	}
++
++	sharc->write_pending = 0;
++	memcpy_toio(sharc->membase, kbuf, len);
++	spin_unlock_irqrestore(&sharc->lock, flags);
++
++	ret = adi_tru_trigger_device(sharc->tru, sharc->dev);
++	if (ret) {
++		spin_lock_irqsave(&sharc->lock, flags);
++		sharc->write_pending = 1;
++		spin_unlock_irqrestore(&sharc->lock, flags);
++		wake_up_interruptible(&sharc->write_waitqueue);
++		wake_up_interruptible(&sharc->poll_waitqueue);
++	} else {
++		ret = len;
++	}
++
++out_free:
++	kfree(kbuf);
++	return ret;
++}
++
++static __poll_t sharc_poll(struct file *filp, struct poll_table_struct *wait)
++{
++	struct sharc_device *sharc = filp->private_data;
++	unsigned long flags;
++	__poll_t ret = 0;
++
++	poll_wait(filp, &sharc->poll_waitqueue, wait);
++
++	spin_lock_irqsave(&sharc->lock, flags);
++	if (sharc->read_pending)
++		ret |= EPOLLIN | EPOLLRDNORM;
++	if (sharc->write_pending)
++		ret |= EPOLLOUT | EPOLLWRNORM;
++	spin_unlock_irqrestore(&sharc->lock, flags);
++
++	return ret;
++}
++
++static irqreturn_t sharc_core_irq(int irq, void *dev_id)
++{
++	struct sharc_device *sharc = dev_id;
++	unsigned long flags;
++
++	spin_lock_irqsave(&sharc->lock, flags);
++	if (sharc->read_pending != INT_MAX)
++		sharc->read_pending++;
++	spin_unlock_irqrestore(&sharc->lock, flags);
++
++	wake_up_interruptible(&sharc->read_waitqueue);
++	wake_up_interruptible(&sharc->poll_waitqueue);
++
++	return IRQ_HANDLED;
++}
++
++static const struct file_operations sharc_fops = {
++	.owner		= THIS_MODULE,
++	.open		= sharc_open,
++	.release	= sharc_release,
++	.read		= sharc_read,
++	.write		= sharc_write,
++	.poll		= sharc_poll,
++	.llseek		= noop_llseek,
++};
++
++static int sharc_probe(struct platform_device *pdev)
++{
++	struct device *dev = &pdev->dev;
++	struct sharc_device *sharc;
++	struct resource *res;
++	const char *name;
++	u32 core_id;
++	int ret;
++
++	sharc = devm_kzalloc(dev, sizeof(*sharc), GFP_KERNEL);
++	if (!sharc)
++		return -ENOMEM;
++
++	ret = of_property_read_u32(dev->of_node, "coreid", &core_id);
++	if (ret)
++		ret = of_property_read_u32(dev->of_node, "adi,core-id",
++					   &core_id);
++	if (ret)
++		return dev_err_probe(dev, ret, "missing coreid property\n");
++	if (core_id > U8_MAX)
++		return dev_err_probe(dev, -EINVAL, "invalid coreid %u\n",
++				     core_id);
++
++	init_waitqueue_head(&sharc->read_waitqueue);
++	init_waitqueue_head(&sharc->write_waitqueue);
++	init_waitqueue_head(&sharc->poll_waitqueue);
++	spin_lock_init(&sharc->lock);
++	atomic_set(&sharc->opened, 0);
++
++	sharc->dev = dev;
++	sharc->core_id = core_id;
++	sharc->write_pending = 1;
++
++	sharc->tru = get_adi_tru_from_node(dev);
++	if (IS_ERR(sharc->tru))
++		return dev_err_probe(dev, PTR_ERR(sharc->tru),
++				     "failed to get TRU\n");
++
++	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
++	if (!res) {
++		ret = -ENODEV;
++		goto put_tru;
++	}
++
++	sharc->mem_size = resource_size(res);
++	sharc->membase = devm_ioremap(dev, res->start, sharc->mem_size);
++	if (!sharc->membase) {
++		ret = -ENOMEM;
++		goto put_tru;
++	}
++
++	sharc->irq = platform_get_irq(pdev, 0);
++	if (sharc->irq < 0) {
++		ret = sharc->irq;
++		goto put_tru;
++	}
++
++	ret = devm_request_irq(dev, sharc->irq, sharc_core_irq, 0,
++			       dev_name(dev), sharc);
++	if (ret)
++		goto put_tru;
++
++	name = devm_kasprintf(dev, GFP_KERNEL, "%pOFn", dev->of_node);
++	if (!name) {
++		ret = -ENOMEM;
++		goto put_tru;
++	}
++
++	sharc->misc_device.minor = MISC_DYNAMIC_MINOR;
++	sharc->misc_device.name = name;
++	sharc->misc_device.fops = &sharc_fops;
++	sharc->misc_device.parent = dev;
++
++	ret = misc_register(&sharc->misc_device);
++	if (ret)
++		goto put_tru;
++
++	platform_set_drvdata(pdev, sharc);
++	dev_info(dev, "registered /dev/%s for SHARC core %u\n", name,
++		 sharc->core_id);
++
++	return 0;
++
++put_tru:
++	put_adi_tru(sharc->tru);
++	return ret;
++}
++
++static int sharc_remove(struct platform_device *pdev)
++{
++	struct sharc_device *sharc = platform_get_drvdata(pdev);
++
++	misc_deregister(&sharc->misc_device);
++	put_adi_tru(sharc->tru);
++
++	return 0;
++}
++
++static const struct of_device_id sharc_of_match[] = {
++	{ .compatible = "iris,irma-sharc" },
++	{ }
++};
++MODULE_DEVICE_TABLE(of, sharc_of_match);
++
++static struct platform_driver sharc_driver = {
++	.probe	= sharc_probe,
++	.remove	= sharc_remove,
++	.driver	= {
++		.name = IRMA_SHARC_DRV_NAME,
++		.of_match_table = sharc_of_match,
++	},
++};
++module_platform_driver(sharc_driver);
++
++MODULE_DESCRIPTION("IRMA SHARC mailbox compatibility driver");
++MODULE_AUTHOR("Erik Schumacher <Erik.Schumacher@irisgmbh.de>");
++MODULE_LICENSE("GPL v2");
+-- 
+2.44.4
+

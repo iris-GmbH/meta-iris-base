@@ -1,0 +1,476 @@
+From 28f1e2608eff31774829a3c88acdaad8493b17cc Mon Sep 17 00:00:00 2001
+From: Ian Dannapel <ian.dannapel@iris-sensing.com>
+Date: Fri, 5 Jun 2026 09:19:23 +0200
+Subject: [PATCH 03/29] misc: iris: add DSP DMA-BUF address helper
+
+Add /dev/irma_dsp_addr for Gen6 userspace that passes DMA-BUF backed capture buffers to the SHARC cores.
+The helper pins DMA-BUF file descriptors, validates offsets against the DSP memory window and returns DSP-visible addresses through a small ioctl ABI.
+
+Signed-off-by: Ian Dannapel <ian.dannapel@iris-sensing.com>
+---
+ drivers/misc/iris/Kconfig          |  14 ++
+ drivers/misc/iris/Makefile         |   3 +
+ drivers/misc/iris/irma-dsp-addr.c  | 353 +++++++++++++++++++++++++++++
+ include/uapi/linux/irma-dsp-addr.h |  59 +++++
+ 4 files changed, 429 insertions(+)
+ create mode 100644 drivers/misc/iris/Kconfig
+ create mode 100644 drivers/misc/iris/Makefile
+ create mode 100644 drivers/misc/iris/irma-dsp-addr.c
+ create mode 100644 include/uapi/linux/irma-dsp-addr.h
+
+diff --git a/drivers/misc/iris/Kconfig b/drivers/misc/iris/Kconfig
+new file mode 100644
+index 0000000000000..da14930d3fa83
+--- /dev/null
++++ b/drivers/misc/iris/Kconfig
+@@ -0,0 +1,14 @@
++# SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)-or-later
++
++config IRMA_MISC
++	bool
++
++config IRMA_DSP_ADDR
++	tristate "IRMA DSP DMA-BUF address helper"
++	depends on ARCH_SC57X && OF && DMABUF_HEAPS_IRMA_DSP_CARVEOUT
++	select IRMA_MISC
++	default n
++	help
++	  Exposes /dev/irma_dsp_addr so userspace can keep IRMA DSP carveout
++	  DMA-BUFs alive and translate offsets within those buffers into
++	  DSP-visible physical addresses.
+diff --git a/drivers/misc/iris/Makefile b/drivers/misc/iris/Makefile
+new file mode 100644
+index 0000000000000..5da340ada4bc0
+--- /dev/null
++++ b/drivers/misc/iris/Makefile
+@@ -0,0 +1,3 @@
++# SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)-or-later
++
++obj-$(CONFIG_IRMA_DSP_ADDR)		+= irma-dsp-addr.o
+diff --git a/drivers/misc/iris/irma-dsp-addr.c b/drivers/misc/iris/irma-dsp-addr.c
+new file mode 100644
+index 0000000000000..eb9bd19768e20
+--- /dev/null
++++ b/drivers/misc/iris/irma-dsp-addr.c
+@@ -0,0 +1,353 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * IRMA DSP DMA-BUF address helper.
++ *
++ * Keeps a reference to DMA-BUFs allocated from the Iris Gen6 DSP carveout heap
++ * and returns the corresponding DSP-visible physical address. This driver only 
++ * owns buffer address discovery and lifetime pinning for userspace.
++ */
++
++#include <linux/device.h>
++#include <linux/dma-buf.h>
++#include <linux/err.h>
++#include <linux/errno.h>
++#include <linux/fs.h>
++#include <linux/irma-dsp-carveout-heap.h>
++#include <linux/list.h>
++#include <linux/miscdevice.h>
++#include <linux/module.h>
++#include <linux/mutex.h>
++#include <linux/of.h>
++#include <linux/of_address.h>
++#include <linux/platform_device.h>
++#include <linux/slab.h>
++#include <linux/types.h>
++#include <linux/uaccess.h>
++#include <uapi/linux/irma-dsp-addr.h>
++
++#define IRMA_DSP_ADDR_DRV_NAME		"irma-dsp-addr"
++#define IRMA_DSP_ADDR_MISCDEV_NAME	"irma_dsp_addr"
++
++struct irma_dsp_addr {
++	struct miscdevice miscdev;
++	struct device *dev;
++	struct resource dsp_mem;
++	bool has_dsp_mem;
++};
++
++struct irma_dsp_addr_mapping {
++	struct list_head node;
++	struct dma_buf *dmabuf;
++	u64 dsp_addr;
++	u64 length;
++	u32 id;
++	u32 direction;
++};
++
++struct irma_dsp_addr_file {
++	struct irma_dsp_addr *addr;
++	struct list_head mappings;
++	struct mutex mappings_lock;
++	u32 next_map_id;
++};
++
++static int irma_dsp_addr_direction(u32 direction)
++{
++	switch (direction) {
++	case IRMA_DSP_DMABUF_BIDIRECTIONAL:
++	case IRMA_DSP_DMABUF_TO_DSP:
++	case IRMA_DSP_DMABUF_FROM_DSP:
++		return 0;
++	default:
++		return -EINVAL;
++	}
++}
++
++static bool irma_dsp_addr_in_range(struct irma_dsp_addr *addr, u64 dsp_addr,
++				   u64 length)
++{
++	u64 offset;
++	u64 size;
++	u64 start;
++
++	if (!addr->has_dsp_mem)
++		return true;
++
++	start = addr->dsp_mem.start;
++	size = resource_size(&addr->dsp_mem);
++	if (dsp_addr < start)
++		return false;
++
++	offset = dsp_addr - start;
++	return length <= size && offset <= size - length;
++}
++
++static void irma_dsp_addr_mapping_free(struct irma_dsp_addr_mapping *mapping)
++{
++	if (!mapping)
++		return;
++
++	if (mapping->dmabuf)
++		dma_buf_put(mapping->dmabuf);
++	kfree(mapping);
++}
++
++static struct irma_dsp_addr_mapping *
++irma_dsp_addr_mapping_find(struct irma_dsp_addr_file *ctx, u32 id)
++{
++	struct irma_dsp_addr_mapping *mapping;
++
++	list_for_each_entry(mapping, &ctx->mappings, node)
++		if (mapping->id == id)
++			return mapping;
++
++	return NULL;
++}
++
++static u32 irma_dsp_addr_next_map_id(struct irma_dsp_addr_file *ctx)
++{
++	do {
++		ctx->next_map_id++;
++	} while (!ctx->next_map_id);
++
++	return ctx->next_map_id;
++}
++
++static void irma_dsp_addr_mappings_release(struct irma_dsp_addr_file *ctx)
++{
++	struct irma_dsp_addr_mapping *mapping;
++	struct irma_dsp_addr_mapping *tmp;
++	LIST_HEAD(mappings);
++
++	mutex_lock(&ctx->mappings_lock);
++	list_splice_init(&ctx->mappings, &mappings);
++	mutex_unlock(&ctx->mappings_lock);
++
++	list_for_each_entry_safe(mapping, tmp, &mappings, node) {
++		list_del(&mapping->node);
++		irma_dsp_addr_mapping_free(mapping);
++	}
++}
++
++static int irma_dsp_addr_open(struct inode *inode, struct file *filp)
++{
++	struct miscdevice *miscdev = filp->private_data;
++	struct irma_dsp_addr_file *ctx;
++	struct irma_dsp_addr *addr;
++
++	addr = container_of(miscdev, struct irma_dsp_addr, miscdev);
++	ctx = kzalloc(sizeof(*ctx), GFP_KERNEL);
++	if (!ctx)
++		return -ENOMEM;
++
++	ctx->addr = addr;
++	INIT_LIST_HEAD(&ctx->mappings);
++	mutex_init(&ctx->mappings_lock);
++	filp->private_data = ctx;
++
++	return 0;
++}
++
++static int irma_dsp_addr_release(struct inode *inode, struct file *filp)
++{
++	struct irma_dsp_addr_file *ctx = filp->private_data;
++
++	irma_dsp_addr_mappings_release(ctx);
++	kfree(ctx);
++
++	return 0;
++}
++
++static long irma_dsp_addr_ioctl_map_dmabuf(struct irma_dsp_addr_file *ctx,
++					   void __user *argp)
++{
++	struct irma_dsp_addr_mapping *mapping;
++	struct irma_dsp_dmabuf_map map;
++	struct irma_dsp_addr *addr = ctx->addr;
++	int ret;
++
++	if (copy_from_user(&map, argp, sizeof(map)))
++		return -EFAULT;
++
++	if (map.reserved)
++		return -EINVAL;
++
++	ret = irma_dsp_addr_direction(map.direction);
++	if (ret)
++		return ret;
++
++	mapping = kzalloc(sizeof(*mapping), GFP_KERNEL);
++	if (!mapping)
++		return -ENOMEM;
++
++	mapping->direction = map.direction;
++	mapping->dmabuf = dma_buf_get(map.fd);
++	if (IS_ERR(mapping->dmabuf)) {
++		ret = PTR_ERR(mapping->dmabuf);
++		mapping->dmabuf = NULL;
++		goto err_free;
++	}
++
++	ret = irma_dsp_carveout_dmabuf_get_phys(mapping->dmabuf, map.offset,
++						map.length, &mapping->dsp_addr,
++						&mapping->length);
++	if (ret)
++		goto err_free;
++
++	if (!irma_dsp_addr_in_range(addr, mapping->dsp_addr, mapping->length)) {
++		ret = -EINVAL;
++		goto err_free;
++	}
++
++	mutex_lock(&ctx->mappings_lock);
++	mapping->id = irma_dsp_addr_next_map_id(ctx);
++	list_add_tail(&mapping->node, &ctx->mappings);
++	mutex_unlock(&ctx->mappings_lock);
++
++	map.dsp_addr = mapping->dsp_addr;
++	map.length = mapping->length;
++	map.map_id = mapping->id;
++
++	if (copy_to_user(argp, &map, sizeof(map))) {
++		mutex_lock(&ctx->mappings_lock);
++		list_del(&mapping->node);
++		mutex_unlock(&ctx->mappings_lock);
++		irma_dsp_addr_mapping_free(mapping);
++		return -EFAULT;
++	}
++
++	return 0;
++
++err_free:
++	irma_dsp_addr_mapping_free(mapping);
++	return ret;
++}
++
++static long irma_dsp_addr_ioctl_unmap_dmabuf(struct irma_dsp_addr_file *ctx,
++					     void __user *argp)
++{
++	struct irma_dsp_addr_mapping *mapping;
++	struct irma_dsp_dmabuf_unmap unmap;
++
++	if (copy_from_user(&unmap, argp, sizeof(unmap)))
++		return -EFAULT;
++
++	if (!unmap.map_id || unmap.reserved)
++		return -EINVAL;
++
++	mutex_lock(&ctx->mappings_lock);
++	mapping = irma_dsp_addr_mapping_find(ctx, unmap.map_id);
++	if (!mapping) {
++		mutex_unlock(&ctx->mappings_lock);
++		return -ENOENT;
++	}
++	list_del(&mapping->node);
++	mutex_unlock(&ctx->mappings_lock);
++
++	irma_dsp_addr_mapping_free(mapping);
++
++	return 0;
++}
++
++static long irma_dsp_addr_ioctl(struct file *filp, unsigned int cmd,
++				unsigned long arg)
++{
++	struct irma_dsp_addr_file *ctx = filp->private_data;
++	void __user *argp = (void __user *)arg;
++
++	switch (cmd) {
++	case IRMA_DSP_IOC_MAP_DMABUF:
++		return irma_dsp_addr_ioctl_map_dmabuf(ctx, argp);
++	case IRMA_DSP_IOC_UNMAP_DMABUF:
++		return irma_dsp_addr_ioctl_unmap_dmabuf(ctx, argp);
++	default:
++		return -ENOTTY;
++	}
++}
++
++static const struct file_operations irma_dsp_addr_fops = {
++	.owner		= THIS_MODULE,
++	.open		= irma_dsp_addr_open,
++	.release	= irma_dsp_addr_release,
++	.unlocked_ioctl	= irma_dsp_addr_ioctl,
++	.compat_ioctl	= compat_ptr_ioctl,
++	.llseek		= noop_llseek,
++};
++
++static int irma_dsp_addr_parse_mem(struct irma_dsp_addr *addr)
++{
++	struct device_node *np;
++	int ret;
++
++	np = of_parse_phandle(addr->dev->of_node, "memory-region", 0);
++	if (!np)
++		return 0;
++
++	ret = of_address_to_resource(np, 0, &addr->dsp_mem);
++	of_node_put(np);
++	if (ret)
++		return ret;
++
++	addr->has_dsp_mem = true;
++	return 0;
++}
++
++static int irma_dsp_addr_probe(struct platform_device *pdev)
++{
++	struct device *dev = &pdev->dev;
++	struct irma_dsp_addr *addr;
++	int ret;
++
++	addr = devm_kzalloc(dev, sizeof(*addr), GFP_KERNEL);
++	if (!addr)
++		return -ENOMEM;
++
++	addr->dev = dev;
++	ret = irma_dsp_addr_parse_mem(addr);
++	if (ret)
++		return dev_err_probe(dev, ret,
++				     "failed to read memory-region\n");
++
++	addr->miscdev.minor = MISC_DYNAMIC_MINOR;
++	addr->miscdev.name = IRMA_DSP_ADDR_MISCDEV_NAME;
++	addr->miscdev.fops = &irma_dsp_addr_fops;
++	addr->miscdev.parent = dev;
++
++	ret = misc_register(&addr->miscdev);
++	if (ret)
++		return dev_err_probe(dev, ret,
++				     "failed to register misc device\n");
++
++	platform_set_drvdata(pdev, addr);
++	dev_info(dev, "registered /dev/%s for DSP DMA-BUF addresses\n",
++		 addr->miscdev.name);
++
++	return 0;
++}
++
++static int irma_dsp_addr_remove(struct platform_device *pdev)
++{
++	struct irma_dsp_addr *addr = platform_get_drvdata(pdev);
++
++	misc_deregister(&addr->miscdev);
++	return 0;
++}
++
++static const struct of_device_id irma_dsp_addr_of_match[] = {
++	{ .compatible = "iris,irma-dsp-addr" },
++	{ }
++};
++MODULE_DEVICE_TABLE(of, irma_dsp_addr_of_match);
++
++static struct platform_driver irma_dsp_addr_driver = {
++	.probe = irma_dsp_addr_probe,
++	.remove = irma_dsp_addr_remove,
++	.driver = {
++		.name = IRMA_DSP_ADDR_DRV_NAME,
++		.of_match_table = irma_dsp_addr_of_match,
++	},
++};
++module_platform_driver(irma_dsp_addr_driver);
++
++MODULE_DESCRIPTION("IRMA DSP DMA-BUF address helper");
++MODULE_LICENSE("GPL");
+diff --git a/include/uapi/linux/irma-dsp-addr.h b/include/uapi/linux/irma-dsp-addr.h
+new file mode 100644
+index 0000000000000..32cbb5fa0bad9
+--- /dev/null
++++ b/include/uapi/linux/irma-dsp-addr.h
+@@ -0,0 +1,59 @@
++/* SPDX-License-Identifier: GPL-2.0 WITH Linux-syscall-note */
++/*
++ * IRMA DSP DMA-BUF address userspace API.
++ */
++
++#ifndef _UAPI_LINUX_IRMA_DSP_ADDR_H
++#define _UAPI_LINUX_IRMA_DSP_ADDR_H
++
++#include <linux/ioctl.h>
++#include <linux/types.h>
++
++/*
++ * Direction is from the DSP point of view.
++ *
++ * TO_DSP: userspace/ARM produced data, DSP reads it.
++ * FROM_DSP: DSP writes data, userspace/ARM consumes it.
++ */
++#define IRMA_DSP_DMABUF_BIDIRECTIONAL	0
++#define IRMA_DSP_DMABUF_TO_DSP		1
++#define IRMA_DSP_DMABUF_FROM_DSP	2
++
++/**
++ * struct irma_dsp_dmabuf_map - map a DMA-BUF for DSP access
++ * @fd: DMA-BUF file descriptor to import
++ * @direction: one of IRMA_DSP_DMABUF_*
++ * @offset: byte offset into the DMA-BUF
++ * @length: byte length to expose; 0 means the rest of the DMA-BUF
++ * @dsp_addr: returned DSP-visible address for @offset
++ * @map_id: returned mapping handle for IRMA_DSP_IOC_UNMAP_DMABUF
++ * @reserved: must be zero
++ */
++struct irma_dsp_dmabuf_map {
++	__s32 fd;
++	__u32 direction;
++	__u64 offset;
++	__u64 length;
++	__u64 dsp_addr;
++	__u32 map_id;
++	__u32 reserved;
++};
++
++/**
++ * struct irma_dsp_dmabuf_unmap - release a DSP DMA-BUF mapping
++ * @map_id: mapping handle returned by IRMA_DSP_IOC_MAP_DMABUF
++ * @reserved: must be zero
++ */
++struct irma_dsp_dmabuf_unmap {
++	__u32 map_id;
++	__u32 reserved;
++};
++
++#define IRMA_DSP_IOC_MAGIC	0xb7
++
++#define IRMA_DSP_IOC_MAP_DMABUF \
++	_IOWR(IRMA_DSP_IOC_MAGIC, 0x00, struct irma_dsp_dmabuf_map)
++#define IRMA_DSP_IOC_UNMAP_DMABUF \
++	_IOW(IRMA_DSP_IOC_MAGIC, 0x01, struct irma_dsp_dmabuf_unmap)
++
++#endif /* _UAPI_LINUX_IRMA_DSP_ADDR_H */
+-- 
+2.44.4
+

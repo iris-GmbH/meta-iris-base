@@ -1,0 +1,42 @@
+From af9fd13c5c139269261cd1a807df2a677536e94b Mon Sep 17 00:00:00 2001
+From: Ian Dannapel <ian.dannapel@iris-sensing.com>
+Date: Fri, 5 Jun 2026 09:19:25 +0200
+Subject: [PATCH 13/29] media: platform: add ADI capture menu
+
+Hook the ADI SC5xx capture drivers into the media platform subsystem.
+The parent Kconfig source and Makefile directory entry make the local ADI capture menu selectable.
+
+Signed-off-by: Ian Dannapel <ian.dannapel@iris-sensing.com>
+---
+ drivers/media/platform/Kconfig  | 2 ++
+ drivers/media/platform/Makefile | 1 +
+ 2 files changed, 3 insertions(+)
+
+diff --git a/drivers/media/platform/Kconfig b/drivers/media/platform/Kconfig
+index 80321e03809ac..685761a7b3e48 100644
+--- a/drivers/media/platform/Kconfig
++++ b/drivers/media/platform/Kconfig
+@@ -29,6 +29,8 @@ source "drivers/media/platform/cadence/Kconfig"
+ 
+ source "drivers/media/platform/davinci/Kconfig"
+ 
++source "drivers/media/platform/adi/Kconfig"
++
+ source "drivers/media/platform/omap/Kconfig"
+ 
+ config VIDEO_ASPEED
+diff --git a/drivers/media/platform/Makefile b/drivers/media/platform/Makefile
+index 73ce083c2fc6b..7fe289c38b801 100644
+--- a/drivers/media/platform/Makefile
++++ b/drivers/media/platform/Makefile
+@@ -6,6 +6,7 @@
+ obj-$(CONFIG_VIDEO_ALLEGRO_DVT)		+= allegro-dvt/
+ obj-$(CONFIG_VIDEO_ASPEED)		+= aspeed-video.o
+ obj-$(CONFIG_VIDEO_CADENCE)		+= cadence/
++obj-$(CONFIG_VIDEO_ADI_CAPTURE)		+= adi/
+ obj-$(CONFIG_VIDEO_VIA_CAMERA) += via-camera.o
+ obj-$(CONFIG_VIDEO_CAFE_CCIC) += marvell-ccic/
+ obj-$(CONFIG_VIDEO_MMP_CAMERA) += marvell-ccic/
+-- 
+2.44.4
+

@@ -1,0 +1,44 @@
+From f6030ad4cc92c1b9bc9e3a5254f07fb2dc0893ba Mon Sep 17 00:00:00 2001
+From: Ian Dannapel <ian.dannapel@iris-sensing.com>
+Date: Fri, 5 Jun 2026 09:19:25 +0200
+Subject: [PATCH 15/29] ARM: dts: sc573-gen6: add IRMA DSP heap
+
+Describe the 32 MiB DSP-visible carveout as an IRMA DMA-BUF heap.
+The node names the exported heap "dsp" and keeps Linux system RAM starting after the carveout.
+
+Signed-off-by: Ian Dannapel <ian.dannapel@iris-sensing.com>
+---
+ arch/arm/boot/dts/sc573-gen6.dts | 15 +++++++++++++++
+ 1 file changed, 15 insertions(+)
+
+diff --git a/arch/arm/boot/dts/sc573-gen6.dts b/arch/arm/boot/dts/sc573-gen6.dts
+index 20e6156193dd7..59ec82b94e22c 100644
+--- a/arch/arm/boot/dts/sc573-gen6.dts
++++ b/arch/arm/boot/dts/sc573-gen6.dts
+@@ -22,8 +22,23 @@ aliases {
+ 
+ 	memory@82000000 {
+ 		device_type = "memory";
++		/* Keep in sync with dsp_heap end. */
+ 		reg = <0x82000000 0x06000000>; /* 96MB */
+ 	};
++
++	reserved-memory {
++		#address-cells = <1>;
++		#size-cells = <1>;
++		ranges;
++
++		dsp_heap: dma-heap@80000000 {
++			compatible = "iris,irma-dsp-carveout-heap";
++			/* Ends at 0x82000000, where Linux System RAM starts. */
++			reg = <0x80000000 0x02000000>; /* 32MB */
++			no-map;
++			linux,dma-heap-name = "dsp";
++		};
++	};
+ };
+ 
+ &uart0 {
+-- 
+2.44.4
+

@@ -1,0 +1,2068 @@
+From 5894143febe0c701c4c9e2ab61c2736e87ae385d Mon Sep 17 00:00:00 2001
+From: Ian Dannapel <ian.dannapel@iris-sensing.com>
+Date: Fri, 5 Jun 2026 09:19:24 +0200
+Subject: [PATCH 10/29] media: adi: add SC5xx video capture driver
+
+Add a V4L2 capture bridge for ADI SC5xx PPI/EPPI inputs.
+The driver supports vb2 DMA-contig queues, DMABUF capture, one-shot operation, subdev format negotiation, stream diagnostics and the Gen6 center-out DMA layout.
+
+Signed-off-by: Ian Dannapel <ian.dannapel@iris-sensing.com>
+---
+ drivers/media/platform/adi/Kconfig       |   12 +
+ drivers/media/platform/adi/Makefile      |    1 +
+ drivers/media/platform/adi/adi_capture.c | 1950 ++++++++++++++++++++++
+ include/media/adi/adi_capture.h          |   58 +
+ 4 files changed, 2021 insertions(+)
+ create mode 100644 drivers/media/platform/adi/adi_capture.c
+ create mode 100644 include/media/adi/adi_capture.h
+
+diff --git a/drivers/media/platform/adi/Kconfig b/drivers/media/platform/adi/Kconfig
+index 069bfa992efe5..2a172142b90eb 100644
+--- a/drivers/media/platform/adi/Kconfig
++++ b/drivers/media/platform/adi/Kconfig
+@@ -1,3 +1,15 @@
++config VIDEO_ADI_CAPTURE
++	tristate "ADI SC5XX Video Capture Driver"
++	depends on VIDEO_V4L2 && (ARCH_SC58X || ARCH_SC57X) && I2C
++	depends on HAS_DMA
++	select VIDEOBUF2_DMA_CONTIG
++	help
++	  V4L2 bridge driver for ADI SC5XX video capture devices.
++	  Choose PPI or EPPI as its interface.
++
++	  To compile this driver as a module, choose M here: the
++	  module will be called adi_capture.
++
+ config VIDEO_ADI_PPI
+ 	tristate
+ 	depends on VIDEO_ADI_CAPTURE
+diff --git a/drivers/media/platform/adi/Makefile b/drivers/media/platform/adi/Makefile
+index 0dc809ce39cb7..a30b87e878de9 100644
+--- a/drivers/media/platform/adi/Makefile
++++ b/drivers/media/platform/adi/Makefile
+@@ -1 +1,2 @@
++obj-$(CONFIG_VIDEO_ADI_CAPTURE) += adi_capture.o
+ obj-$(CONFIG_VIDEO_ADI_PPI) += ppi.o
+diff --git a/drivers/media/platform/adi/adi_capture.c b/drivers/media/platform/adi/adi_capture.c
+new file mode 100644
+index 0000000000000..ba73591109e99
+--- /dev/null
++++ b/drivers/media/platform/adi/adi_capture.c
+@@ -0,0 +1,1950 @@
++/*
++ * Analog Devices video capture driver
++ *
++ * Copyright (c) 2011 - 2018 Analog Devices Inc.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ */
++
++#include <linux/delay.h>
++#include <linux/dma-mapping.h>
++#include <linux/err.h>
++#include <linux/errno.h>
++#include <linux/fs.h>
++#include <linux/gpio/consumer.h>
++#include <linux/i2c.h>
++#include <linux/init.h>
++#include <linux/interrupt.h>
++#include <linux/io.h>
++#include <linux/mm.h>
++#include <linux/module.h>
++#include <linux/platform_device.h>
++#include <linux/slab.h>
++#include <linux/time.h>
++#include <linux/types.h>
++#include <linux/of.h>
++#include <linux/of_device.h>
++#include <linux/of_reserved_mem.h>
++
++#include <media/v4l2-common.h>
++#include <media/v4l2-ctrls.h>
++#include <media/v4l2-device.h>
++#include <media/v4l2-ioctl.h>
++#include <media/videobuf2-dma-contig.h>
++#include <media/adi/adi_capture.h>
++#include <media/adi/ppi.h>
++
++#ifdef CONFIG_ARM
++#include "../../../dma/adi-dma.h"
++#elif defined(CONFIG_ARCH_HEADER_IN_MACH)
++#include <mach/dma.h>
++#else
++#include <asm/dma.h>
++#endif
++
++#define CAPTURE_DRV_NAME        "adi_capture"
++#define ADI_CAP_LOG_REPORT	1
++#define ADI_CAP_LOG_DETAIL	2
++#define ADI_CAP_LOG_DMA		3
++
++static unsigned int debug = 1;
++module_param(debug, uint, 0644);
++MODULE_PARM_DESC(debug, "debug level (1=stream reports, 2=format/buffer setup, 3=DMA registers)");
++
++struct adi_cap_format {
++	char *desc;
++	u32 pixelformat;
++	u32 mbus_code;
++	int bpp; /* bits per pixel */
++	int dlen; /* data length for ppi in bits */
++};
++
++struct adi_cap_buffer {
++	struct vb2_v4l2_buffer vb;
++	void *dma_desc;
++	dma_addr_t desc_dma_addr;
++	size_t desc_size;
++	struct list_head list;
++};
++
++struct adi_cap_dma_desc {
++	u32 next_desc_addr;
++	u32 start_addr;
++	u32 cfg;
++	u32 x_count;
++	u32 x_modify;
++} __packed;
++
++struct adi_cap_device {
++	/* capture device instance */
++	struct v4l2_device v4l2_dev;
++	/* v4l2 control handler */
++	struct v4l2_ctrl_handler ctrl_handler;
++	/* device node data */
++	struct video_device video_dev;
++	/* sub device instance */
++	struct v4l2_subdev *sd;
++	/* capture config */
++	struct adi_capture_config *cfg;
++	/* ppi interface */
++	struct ppi_if *ppi;
++	/* current input */
++	unsigned int cur_input;
++	/* current selected standard */
++	v4l2_std_id std;
++	/* current selected dv_timings */
++	struct v4l2_dv_timings dv_timings;
++	/* used to store pixel format */
++	struct v4l2_pix_format fmt;
++	/* bits per pixel*/
++	int bpp;
++	/* data length for ppi in bits */
++	int dlen;
++	/* used to store sensor supported format */
++	struct adi_cap_format *sensor_formats;
++	/* number of sensor formats array */
++	int num_sensor_formats;
++	/* pointing to current video buffer */
++	struct adi_cap_buffer *cur_frm;
++	/* buffer queue used in videobuf2 */
++	struct vb2_queue buffer_queue;
++	/* queue of filled frames */
++	struct list_head dma_queue;
++	/* used in videobuf2 callback */
++	spinlock_t lock;
++	/* used to access capture device */
++	struct mutex mutex;
++	/* prepare to stop */
++	bool stop;
++	/* true after memory-region has been bound to this device */
++	bool reserved_mem_bound;
++	/* vb2 buffer sequence counter */
++	unsigned sequence;
++	/* stream diagnostics */
++	u64 dma_irq_events;
++	u64 captured_frame_events;
++	u64 errored_frame_events;
++	u64 ppi_error_events;
++	u64 dma_queue_empty_events;
++};
++
++static const struct adi_cap_format adi_cap_formats[] = {
++	{
++		.desc        = "12-bit Greyscale",
++		.pixelformat = V4L2_PIX_FMT_Y12,
++		.mbus_code   = MEDIA_BUS_FMT_Y12_1X12,
++		.bpp         = 16,
++		.dlen        = 12,
++	},
++	{
++		.desc        = "YCbCr 4:2:2 Interleaved UYVY",
++		.pixelformat = V4L2_PIX_FMT_UYVY,
++		.mbus_code   = MEDIA_BUS_FMT_UYVY8_2X8,
++		.bpp         = 16,
++		.dlen        = 8,
++	},
++	{
++		.desc        = "YCbCr 4:2:2 Interleaved YUYV",
++		.pixelformat = V4L2_PIX_FMT_YUYV,
++		.mbus_code   = MEDIA_BUS_FMT_YUYV8_2X8,
++		.bpp         = 16,
++		.dlen        = 8,
++	},
++	{
++		.desc        = "YCbCr 4:2:2 Interleaved UYVY",
++		.pixelformat = V4L2_PIX_FMT_UYVY,
++		.mbus_code   = MEDIA_BUS_FMT_UYVY8_1X16,
++		.bpp         = 16,
++		.dlen        = 16,
++	},
++	{
++		.desc        = "RGB 565",
++		.pixelformat = V4L2_PIX_FMT_RGB565,
++		.mbus_code   = MEDIA_BUS_FMT_RGB565_2X8_LE,
++		.bpp         = 16,
++		.dlen        = 8,
++	},
++	{
++		.desc        = "RGB 444",
++		.pixelformat = V4L2_PIX_FMT_RGB444,
++		.mbus_code   = MEDIA_BUS_FMT_RGB444_2X8_PADHI_LE,
++		.bpp         = 16,
++		.dlen        = 8,
++	},
++
++};
++#define adi_cap_MAX_FMTS ARRAY_SIZE(adi_cap_formats)
++
++static irqreturn_t adi_cap_isr(int irq, void *dev_id);
++
++static struct adi_cap_buffer *to_adi_cap_vb(struct vb2_v4l2_buffer *vb)
++{
++	return container_of(vb, struct adi_cap_buffer, vb);
++}
++
++static bool adi_cap_has_dma_layout(struct adi_cap_device *adi_cap_dev)
++{
++	return adi_cap_dev->cfg->dma_layout != ADI_CAP_DMA_LAYOUT_LINEAR;
++}
++
++static int adi_cap_readout_dimensions(struct adi_cap_device *adi_cap_dev,
++				      u32 width, u32 height,
++				      u32 *readout_width,
++				      u32 *readout_height)
++{
++	switch (adi_cap_dev->cfg->readout_layout) {
++	case ADI_CAP_READOUT_LAYOUT_NATIVE:
++		*readout_width = width;
++		*readout_height = height;
++		return 0;
++	case ADI_CAP_READOUT_LAYOUT_DOUBLE_WIDTH_HALF_HEIGHT:
++		if (width > (u32)(~0U / 2) || height % 2)
++			return -EINVAL;
++
++		*readout_width = width * 2;
++		*readout_height = height / 2;
++		return 0;
++	default:
++		return -EINVAL;
++	}
++}
++
++static int adi_cap_logical_dimensions(struct adi_cap_device *adi_cap_dev,
++				      u32 readout_width,
++				      u32 readout_height,
++				      u32 *width, u32 *height)
++{
++	switch (adi_cap_dev->cfg->readout_layout) {
++	case ADI_CAP_READOUT_LAYOUT_NATIVE:
++		*width = readout_width;
++		*height = readout_height;
++		return 0;
++	case ADI_CAP_READOUT_LAYOUT_DOUBLE_WIDTH_HALF_HEIGHT:
++		if (readout_width % 2 || readout_height > (u32)(~0U / 2))
++			return -EINVAL;
++
++		*width = readout_width / 2;
++		*height = readout_height * 2;
++		return 0;
++	default:
++		return -EINVAL;
++	}
++}
++
++static int adi_cap_mbus_to_readout(struct adi_cap_device *adi_cap_dev,
++				   struct v4l2_mbus_framefmt *format)
++{
++	return adi_cap_readout_dimensions(adi_cap_dev, format->width,
++					  format->height, &format->width,
++					  &format->height);
++}
++
++static int adi_cap_mbus_to_logical(struct adi_cap_device *adi_cap_dev,
++				   struct v4l2_mbus_framefmt *format)
++{
++	return adi_cap_logical_dimensions(adi_cap_dev, format->width,
++					  format->height, &format->width,
++					  &format->height);
++}
++
++static u32 adi_cap_desc_dma_config(void)
++{
++	return DMARESTART | DMATOVEN | WNR | WDSIZE_256 | PSIZE_32 |
++	       NDSIZE_4 | DMAFLOW_LIST | DMAEN;
++}
++
++static u32 adi_cap_desc_x_count(u32 logical_line_size)
++{
++	return logical_line_size / 32;
++}
++
++static u32 adi_cap_desc_x_modify(struct adi_cap_device *adi_cap_dev)
++{
++	return 32;
++}
++
++static int adi_cap_center_out_desc_config(struct adi_cap_device *adi_cap_dev,
++					  u32 *logical_line_size,
++					  unsigned int *desc_count)
++{
++	u32 readout_width;
++	u32 readout_height;
++	u32 readout_line_size;
++	int ret;
++
++	ret = adi_cap_readout_dimensions(adi_cap_dev, adi_cap_dev->fmt.width,
++					 adi_cap_dev->fmt.height,
++					 &readout_width, &readout_height);
++	if (ret)
++		return ret;
++
++	if (readout_width % 2) {
++		v4l2_err(&adi_cap_dev->v4l2_dev,
++			 "interleaved-center-out layout requires two logical lines per hardware line\n");
++		return -EINVAL;
++	}
++
++	readout_line_size = readout_width * adi_cap_dev->bpp / 8;
++	*logical_line_size = readout_line_size / 2;
++	if (*logical_line_size % 32) {
++		v4l2_err(&adi_cap_dev->v4l2_dev,
++			 "interleaved-center-out layout requires 32-byte aligned logical lines\n");
++		return -EINVAL;
++	}
++
++	if (readout_height > (u32)(~0U / 2))
++		return -EINVAL;
++
++	*desc_count = readout_height * 2;
++	return 0;
++}
++
++static void adi_cap_log_dma_state(struct adi_cap_device *adi_cap_dev,
++				  const char *tag)
++{
++	struct ppi_if *ppi = adi_cap_dev->ppi;
++	void __iomem *dma_base = ppi->info->dma_base;
++	dma_addr_t next_desc;
++	dma_addr_t curr_desc;
++	dma_addr_t start_addr;
++	dma_addr_t curr_addr;
++
++	if (debug < ADI_CAP_LOG_DMA)
++		return;
++
++	next_desc = get_dma_next_desc_ptr(dma_base);
++	curr_desc = get_dma_curr_desc_ptr(dma_base);
++	start_addr = get_dma_start_addr(dma_base);
++	curr_addr = get_dma_curr_addr(dma_base);
++
++	v4l2_dbg(ADI_CAP_LOG_DMA, debug, &adi_cap_dev->v4l2_dev,
++		 "%s DMA: cfg 0x%08lx stat 0x%08lx next %pad curr_desc %pad start %pad curr_addr %pad xcnt %lu xcur %lu xmod %ld ycnt %lu ycur %lu ymod %ld\n",
++		 tag, get_dma_config(dma_base), get_dma_curr_irqstat(dma_base),
++		 &next_desc, &curr_desc, &start_addr, &curr_addr,
++		 get_dma_x_count(dma_base), get_dma_curr_xcount(dma_base),
++		 get_dma_x_modify(dma_base), get_dma_y_count(dma_base),
++		 get_dma_curr_ycount(dma_base), get_dma_y_modify(dma_base));
++}
++
++/*
++ * EPC660 native readout packs two logical image rows into one PPI line.
++ * adi,readout-layout can keep the public V4L2 format logical while PPI sees
++ * the adjusted hardware frame size, e.g. logical 320x240 as 640x120.
++ *
++ * Each incoming PPI line contains:
++ *   upper-center row, lower-center row
++ *
++ * Then the sensor walks center-out:
++ *   row119,row120, row118,row121, ... for a 240-row logical image.
++ *
++ * The DMA descriptor ring splits each hardware line into two half-line
++ * transfers. Preserve the legacy line sorter orientation by writing the first
++ * half-line into the lower half of the destination image, then the second into
++ * the upper half.
++ */
++static int adi_cap_setup_interleaved_center_out_descs(struct vb2_buffer *vb)
++{
++	struct adi_cap_device *adi_cap_dev = vb2_get_drv_priv(vb->vb2_queue);
++	struct vb2_v4l2_buffer *vbuf = to_vb2_v4l2_buffer(vb);
++	struct adi_cap_buffer *buf = to_adi_cap_vb(vbuf);
++	struct adi_cap_dma_desc *desc;
++	dma_addr_t start_addr;
++	u32 desc_cfg;
++	u32 logical_line_size;
++	u32 half_image_size;
++	u32 next_desc_dma;
++	unsigned int desc_count;
++	unsigned int readout_height;
++	unsigned int i;
++	int ret;
++
++	ret = adi_cap_center_out_desc_config(adi_cap_dev, &logical_line_size,
++					     &desc_count);
++	if (ret)
++		return ret;
++
++	buf->desc_size = desc_count * sizeof(*desc);
++	buf->dma_desc = dma_alloc_coherent(vb->vb2_queue->dev,
++					   buf->desc_size,
++					   &buf->desc_dma_addr, GFP_KERNEL);
++	if (!buf->dma_desc)
++		return -ENOMEM;
++
++	desc = buf->dma_desc;
++	start_addr = vb2_dma_contig_plane_dma_addr(vb, 0);
++	readout_height = desc_count / 2;
++	half_image_size = logical_line_size * readout_height;
++	next_desc_dma = lower_32_bits(buf->desc_dma_addr + sizeof(*desc));
++	desc_cfg = adi_cap_desc_dma_config();
++
++	/* Match the legacy sorter: lower half first, then upper half. */
++	for (i = 0; i < readout_height; i++) {
++		desc->next_desc_addr = next_desc_dma;
++		desc->start_addr = lower_32_bits(start_addr + half_image_size +
++						 i * logical_line_size);
++		desc->cfg = desc_cfg;
++		desc->x_count = adi_cap_desc_x_count(logical_line_size);
++		desc->x_modify = adi_cap_desc_x_modify(adi_cap_dev);
++		desc++;
++		next_desc_dma += sizeof(*desc);
++
++		desc->next_desc_addr = next_desc_dma;
++		desc->start_addr = lower_32_bits(start_addr + half_image_size -
++						 (i + 1) * logical_line_size);
++		desc->cfg = desc_cfg;
++		desc->x_count = adi_cap_desc_x_count(logical_line_size);
++		desc->x_modify = adi_cap_desc_x_modify(adi_cap_dev);
++		desc++;
++		next_desc_dma += sizeof(*desc);
++	}
++
++	desc = buf->dma_desc;
++	desc->cfg |= DESCIDCPY;
++
++	desc = (struct adi_cap_dma_desc *)buf->dma_desc +
++	       desc_count - 1;
++	desc->next_desc_addr = lower_32_bits(buf->desc_dma_addr);
++	desc->cfg |= DI_EN_X;
++
++	desc = buf->dma_desc;
++	v4l2_dbg(ADI_CAP_LOG_DMA, debug, &adi_cap_dev->v4l2_dev,
++		 "dma desc setup: buf %pad desc %pad count %u size %zu logical_line %u xcnt %u xmod %u first[start 0x%08x cfg 0x%08x] second[start 0x%08x cfg 0x%08x] last[start 0x%08x cfg 0x%08x next 0x%08x]\n",
++		 &start_addr, &buf->desc_dma_addr, desc_count, buf->desc_size,
++		 logical_line_size, adi_cap_desc_x_count(logical_line_size),
++		 adi_cap_desc_x_modify(adi_cap_dev), desc[0].start_addr,
++		 desc[0].cfg, desc[1].start_addr, desc[1].cfg,
++		 desc[desc_count - 1].start_addr, desc[desc_count - 1].cfg,
++		 desc[desc_count - 1].next_desc_addr);
++
++	return 0;
++}
++
++static void adi_cap_free_dma_descs(struct vb2_buffer *vb)
++{
++	struct vb2_v4l2_buffer *vbuf = to_vb2_v4l2_buffer(vb);
++	struct adi_cap_buffer *buf = to_adi_cap_vb(vbuf);
++
++	if (!buf->dma_desc)
++		return;
++
++	dma_free_coherent(vb->vb2_queue->dev, buf->desc_size, buf->dma_desc,
++			  buf->desc_dma_addr);
++	buf->dma_desc = NULL;
++	buf->desc_dma_addr = 0;
++	buf->desc_size = 0;
++}
++
++static int adi_cap_setup_dma_descs(struct vb2_buffer *vb)
++{
++	struct adi_cap_device *adi_cap_dev = vb2_get_drv_priv(vb->vb2_queue);
++
++	switch (adi_cap_dev->cfg->dma_layout) {
++	case ADI_CAP_DMA_LAYOUT_LINEAR:
++		return 0;
++	case ADI_CAP_DMA_LAYOUT_INTERLEAVED_CENTER_OUT:
++		return adi_cap_setup_interleaved_center_out_descs(vb);
++	default:
++		return -EINVAL;
++	}
++}
++
++static void adi_cap_update_dma_target(struct adi_cap_device *adi_cap_dev,
++				      struct adi_cap_buffer *buf)
++{
++	struct ppi_if *ppi = adi_cap_dev->ppi;
++	dma_addr_t addr;
++
++	if (adi_cap_has_dma_layout(adi_cap_dev)) {
++		struct adi_cap_dma_desc *desc = buf->dma_desc;
++		u32 logical_line_size;
++		unsigned int desc_count;
++		int ret;
++
++		ret = adi_cap_center_out_desc_config(adi_cap_dev,
++						     &logical_line_size,
++						     &desc_count);
++		if (ret)
++			return;
++
++		v4l2_dbg(ADI_CAP_LOG_DMA, debug, &adi_cap_dev->v4l2_dev,
++			 "dma target desc: desc %pad count %u xcnt %u xmod %u cfg 0x%08x first 0x%08x last 0x%08x\n",
++			 &buf->desc_dma_addr, desc_count,
++			 adi_cap_desc_x_count(logical_line_size),
++			 adi_cap_desc_x_modify(adi_cap_dev),
++			 adi_cap_desc_dma_config(), desc[0].start_addr,
++			 desc[desc_count - 1].start_addr);
++		ppi->ops->update_desc(ppi, buf->desc_dma_addr,
++				      adi_cap_desc_x_count(logical_line_size),
++				      adi_cap_desc_x_modify(adi_cap_dev),
++				      adi_cap_desc_dma_config());
++		adi_cap_log_dma_state(adi_cap_dev, "after update_desc");
++		return;
++	}
++
++	addr = vb2_dma_contig_plane_dma_addr(&buf->vb.vb2_buf, 0);
++	v4l2_dbg(ADI_CAP_LOG_DMA, debug, &adi_cap_dev->v4l2_dev,
++		 "dma target linear: addr %pad\n", &addr);
++	ppi->ops->update_addr(ppi, (unsigned long)addr);
++	adi_cap_log_dma_state(adi_cap_dev, "after update_addr");
++}
++
++static bool adi_cap_take_next_buffer(struct adi_cap_device *adi_cap_dev)
++{
++	if (list_empty(&adi_cap_dev->dma_queue))
++		return false;
++
++	adi_cap_dev->cur_frm = list_first_entry(&adi_cap_dev->dma_queue,
++						struct adi_cap_buffer, list);
++	list_del_init(&adi_cap_dev->cur_frm->list);
++
++	return true;
++}
++
++static void adi_cap_reset_stream_stats(struct adi_cap_device *adi_cap_dev)
++{
++	adi_cap_dev->dma_irq_events = 0;
++	adi_cap_dev->captured_frame_events = 0;
++	adi_cap_dev->errored_frame_events = 0;
++	adi_cap_dev->ppi_error_events = 0;
++	adi_cap_dev->dma_queue_empty_events = 0;
++}
++
++static void adi_cap_log_stream_stats(struct adi_cap_device *adi_cap_dev)
++{
++	v4l2_dbg(ADI_CAP_LOG_REPORT, debug, &adi_cap_dev->v4l2_dev,
++		 "PPI DMA IRQ events: %llu\n", adi_cap_dev->dma_irq_events);
++	v4l2_dbg(ADI_CAP_LOG_REPORT, debug, &adi_cap_dev->v4l2_dev,
++		 "Captured frame events: %llu\n",
++		 adi_cap_dev->captured_frame_events);
++	v4l2_dbg(ADI_CAP_LOG_REPORT, debug, &adi_cap_dev->v4l2_dev,
++		 "Errored frame events: %llu\n",
++		 adi_cap_dev->errored_frame_events);
++	v4l2_dbg(ADI_CAP_LOG_REPORT, debug, &adi_cap_dev->v4l2_dev,
++		 "PPI error events: %llu\n", adi_cap_dev->ppi_error_events);
++	v4l2_dbg(ADI_CAP_LOG_REPORT, debug, &adi_cap_dev->v4l2_dev,
++		 "DMA queue empty events: %llu\n",
++		 adi_cap_dev->dma_queue_empty_events);
++}
++
++static int adi_cap_init_sensor_formats(struct adi_cap_device *adi_cap_dev)
++{
++	struct v4l2_subdev_mbus_code_enum code = {
++		.which = V4L2_SUBDEV_FORMAT_ACTIVE,
++	};
++	struct adi_cap_format *sf;
++	unsigned int num_formats = 0;
++	int i, j;
++	int num = 0;
++
++	while (!v4l2_subdev_call(adi_cap_dev->sd, pad,
++				enum_mbus_code, NULL, &code)) {
++		num_formats++;
++		code.index++;
++	}
++	if (!num_formats)
++		return -ENXIO;
++
++	sf = kcalloc(num_formats, sizeof(*sf), GFP_KERNEL);
++	if (!sf)
++		return -ENOMEM;
++
++	for (i = 0; i < num_formats; i++) {
++		code.index = i;
++		v4l2_subdev_call(adi_cap_dev->sd, pad,
++				enum_mbus_code, NULL, &code);
++		for (j = 0; j < adi_cap_MAX_FMTS; j++)
++			if (code.code == adi_cap_formats[j].mbus_code)
++				break;
++		if (j == adi_cap_MAX_FMTS) {
++			v4l2_dbg(ADI_CAP_LOG_DETAIL, debug,
++				 &adi_cap_dev->v4l2_dev,
++				 "sensor mbus code 0x%08x is not supported by bridge\n",
++				 code.code);
++			continue;
++		}
++		v4l2_dbg(ADI_CAP_LOG_DETAIL, debug, &adi_cap_dev->v4l2_dev,
++			 "sensor format %u: %p4cc mbus 0x%08x bpp %u dlen %u (%s)\n",
++			 num, &adi_cap_formats[j].pixelformat,
++			 adi_cap_formats[j].mbus_code,
++			 adi_cap_formats[j].bpp, adi_cap_formats[j].dlen,
++			 adi_cap_formats[j].desc);
++		sf[num++] = adi_cap_formats[j];
++	}
++	if (num == 0) {
++		/* we don't allow this sensor working with our bridge */
++		kfree(sf);
++		return -EINVAL;
++	}
++	adi_cap_dev->sensor_formats = sf;
++	adi_cap_dev->num_sensor_formats = num;
++	return 0;
++}
++
++static void adi_cap_free_sensor_formats(struct adi_cap_device *adi_cap_dev)
++{
++	adi_cap_dev->num_sensor_formats = 0;
++	kfree(adi_cap_dev->sensor_formats);
++	adi_cap_dev->sensor_formats = NULL;
++}
++
++static const char *adi_cap_memory_name(enum vb2_memory memory)
++{
++	switch (memory) {
++	case VB2_MEMORY_MMAP:
++		return "MMAP";
++	case VB2_MEMORY_USERPTR:
++		return "USERPTR";
++	case VB2_MEMORY_DMABUF:
++		return "DMABUF";
++	default:
++		return "UNKNOWN";
++	}
++}
++
++static int adi_cap_queue_setup(struct vb2_queue *vq,
++				unsigned int *nbuffers, unsigned int *nplanes,
++				unsigned int sizes[], struct device *alloc_devs[])
++{
++	struct adi_cap_device *adi_cap_dev = vb2_get_drv_priv(vq);
++
++	v4l2_dbg(ADI_CAP_LOG_DETAIL, debug, &adi_cap_dev->v4l2_dev,
++		 "queue_setup request: buffers %u planes %u memory %s sizeimage %u\n",
++		 *nbuffers, *nplanes, adi_cap_memory_name(vq->memory),
++		 adi_cap_dev->fmt.sizeimage);
++
++	if (vq->num_buffers + *nbuffers < 2)
++		*nbuffers = 2;
++
++	if (*nplanes) {
++		if (sizes[0] < adi_cap_dev->fmt.sizeimage) {
++			v4l2_err(&adi_cap_dev->v4l2_dev,
++				 "queue_setup rejected: plane size %u < sizeimage %u\n",
++				 sizes[0], adi_cap_dev->fmt.sizeimage);
++			return -EINVAL;
++		}
++
++		return 0;
++	}
++
++	*nplanes = 1;
++	sizes[0] = adi_cap_dev->fmt.sizeimage;
++
++	v4l2_dbg(ADI_CAP_LOG_DETAIL, debug, &adi_cap_dev->v4l2_dev,
++		 "queue_setup result: buffers %u planes %u plane0 %u\n",
++		 *nbuffers, *nplanes, sizes[0]);
++
++	return 0;
++}
++
++static int adi_cap_buffer_prepare(struct vb2_buffer *vb)
++{
++	struct vb2_v4l2_buffer *vbuf = to_vb2_v4l2_buffer(vb);
++	struct adi_cap_device *adi_cap_dev = vb2_get_drv_priv(vb->vb2_queue);
++	unsigned long size = adi_cap_dev->fmt.sizeimage;
++
++	if (vb2_plane_size(vb, 0) < size) {
++		v4l2_err(&adi_cap_dev->v4l2_dev, "buffer too small (%lu < %lu)\n",
++				vb2_plane_size(vb, 0), size);
++		return -EINVAL;
++	}
++	vb2_set_plane_payload(vb, 0, size);
++
++	vbuf->field = adi_cap_dev->fmt.field;
++
++	return 0;
++}
++
++static int adi_cap_buffer_init(struct vb2_buffer *vb)
++{
++	struct vb2_v4l2_buffer *vbuf = to_vb2_v4l2_buffer(vb);
++	struct adi_cap_buffer *buf = to_adi_cap_vb(vbuf);
++
++	INIT_LIST_HEAD(&buf->list);
++	buf->dma_desc = NULL;
++	buf->desc_dma_addr = 0;
++	buf->desc_size = 0;
++
++	return adi_cap_setup_dma_descs(vb);
++}
++
++static void adi_cap_buffer_queue(struct vb2_buffer *vb)
++{
++	struct vb2_v4l2_buffer *vbuf = to_vb2_v4l2_buffer(vb);
++	struct adi_cap_device *adi_cap_dev = vb2_get_drv_priv(vb->vb2_queue);
++	struct adi_cap_buffer *buf = to_adi_cap_vb(vbuf);
++	struct ppi_if *ppi = adi_cap_dev->ppi;
++	unsigned long flags;
++
++	spin_lock_irqsave(&adi_cap_dev->lock, flags);
++	list_add_tail(&buf->list, &adi_cap_dev->dma_queue);
++	if (vb2_start_streaming_called(&adi_cap_dev->buffer_queue) &&
++	    !adi_cap_dev->stop && !adi_cap_dev->cur_frm &&
++	    adi_cap_take_next_buffer(adi_cap_dev)) {
++		adi_cap_update_dma_target(adi_cap_dev, adi_cap_dev->cur_frm);
++		ppi->ops->start(ppi);
++		adi_cap_log_dma_state(adi_cap_dev, "queue restart");
++	}
++	spin_unlock_irqrestore(&adi_cap_dev->lock, flags);
++}
++
++static void adi_cap_buffer_cleanup(struct vb2_buffer *vb)
++{
++	struct vb2_v4l2_buffer *vbuf = to_vb2_v4l2_buffer(vb);
++	struct adi_cap_device *adi_cap_dev = vb2_get_drv_priv(vb->vb2_queue);
++	struct adi_cap_buffer *buf = to_adi_cap_vb(vbuf);
++	unsigned long flags;
++
++	spin_lock_irqsave(&adi_cap_dev->lock, flags);
++	if (!list_empty(&buf->list))
++		list_del_init(&buf->list);
++	spin_unlock_irqrestore(&adi_cap_dev->lock, flags);
++
++	adi_cap_free_dma_descs(vb);
++}
++
++static int adi_cap_start_streaming(struct vb2_queue *vq, unsigned int count)
++{
++	struct adi_cap_device *adi_cap_dev = vb2_get_drv_priv(vq);
++	struct ppi_if *ppi = adi_cap_dev->ppi;
++	struct adi_cap_buffer *buf, *tmp;
++	struct ppi_params params;
++	int ret;
++
++	/* set ppi params */
++	ret = adi_cap_readout_dimensions(adi_cap_dev, adi_cap_dev->fmt.width,
++					 adi_cap_dev->fmt.height,
++					 &params.width, &params.height);
++	if (ret) {
++		v4l2_err(&adi_cap_dev->v4l2_dev,
++			 "invalid readout layout %u for format %ux%u\n",
++			 adi_cap_dev->cfg->readout_layout,
++			 adi_cap_dev->fmt.width, adi_cap_dev->fmt.height);
++		goto err;
++	}
++	params.bpp = adi_cap_dev->bpp;
++	params.dlen = adi_cap_dev->dlen;
++	params.ppi_control = adi_cap_dev->cfg->ppi_control;
++	params.int_mask = adi_cap_dev->cfg->int_mask;
++	if (adi_cap_dev->cfg->inputs[adi_cap_dev->cur_input].capabilities
++			& V4L2_IN_CAP_DV_TIMINGS) {
++		struct v4l2_bt_timings *bt = &adi_cap_dev->dv_timings.bt;
++
++		params.hdelay = bt->hsync + bt->hbackporch;
++		params.vdelay = bt->vsync + bt->vbackporch;
++		params.line = V4L2_DV_BT_FRAME_WIDTH(bt);
++		params.frame = V4L2_DV_BT_FRAME_HEIGHT(bt);
++	} else if (adi_cap_dev->cfg->inputs[adi_cap_dev->cur_input].capabilities
++			& V4L2_IN_CAP_STD) {
++		params.hdelay = 0;
++		params.vdelay = 0;
++		if (adi_cap_dev->std & V4L2_STD_525_60) {
++			params.line = 858;
++			params.frame = 525;
++		} else {
++			params.line = 864;
++			params.frame = 625;
++		}
++	} else {
++		params.hdelay = 0;
++		params.vdelay = 0;
++		params.line = params.width + adi_cap_dev->cfg->blank_pixels;
++		params.frame = params.height;
++	}
++	v4l2_dbg(ADI_CAP_LOG_REPORT, debug, &adi_cap_dev->v4l2_dev,
++		 "start_streaming: dma layout %u readout layout %u fmt %ux%u bpl %u size %u ppi width %u height %u line %u frame %u bpp %u dlen %u queued %u\n",
++		 adi_cap_dev->cfg->dma_layout,
++		 adi_cap_dev->cfg->readout_layout, adi_cap_dev->fmt.width,
++		 adi_cap_dev->fmt.height, adi_cap_dev->fmt.bytesperline,
++		 adi_cap_dev->fmt.sizeimage,
++		 params.width, params.height, params.line, params.frame,
++		 params.bpp, params.dlen, count);
++
++	ret = ppi->ops->set_params(ppi, &params);
++	if (ret < 0) {
++		v4l2_err(&adi_cap_dev->v4l2_dev,
++				"Error in setting ppi params\n");
++		goto err;
++	}
++	adi_cap_log_dma_state(adi_cap_dev, "after set_params");
++
++	/* attach ppi DMA irq handler */
++	ret = ppi->ops->attach_irq(ppi, adi_cap_isr);
++	if (ret < 0) {
++		v4l2_err(&adi_cap_dev->v4l2_dev,
++				"Error in attaching interrupt handler\n");
++		goto err;
++	}
++
++	adi_cap_dev->sequence = 0;
++	adi_cap_reset_stream_stats(adi_cap_dev);
++
++	adi_cap_dev->stop = false;
++
++	/* get the next frame from the dma queue */
++	if (!adi_cap_take_next_buffer(adi_cap_dev)) {
++		ret = -EIO;
++		goto err_detach_irq;
++	}
++	adi_cap_update_dma_target(adi_cap_dev, adi_cap_dev->cur_frm);
++	/* enable ppi */
++	ppi->ops->start(ppi);
++	adi_cap_log_dma_state(adi_cap_dev, "after ppi_start");
++
++	/* enable streamon on the sub device */
++	ret = v4l2_subdev_call(adi_cap_dev->sd, video, s_stream, 1);
++	if (ret && (ret != -ENOIOCTLCMD)) {
++		v4l2_err(&adi_cap_dev->v4l2_dev, "stream on failed in subdev\n");
++		goto err_stop_ppi;
++	}
++
++	return 0;
++
++err_stop_ppi:
++	ppi->ops->stop(ppi);
++err_detach_irq:
++	ppi->ops->detach_irq(ppi);
++	if (adi_cap_dev->cur_frm) {
++		vb2_buffer_done(&adi_cap_dev->cur_frm->vb.vb2_buf,
++				VB2_BUF_STATE_QUEUED);
++		adi_cap_dev->cur_frm = NULL;
++	}
++err:
++	list_for_each_entry_safe(buf, tmp, &adi_cap_dev->dma_queue, list) {
++		list_del_init(&buf->list);
++		vb2_buffer_done(&buf->vb.vb2_buf, VB2_BUF_STATE_QUEUED);
++	}
++
++	return ret;
++}
++
++static void adi_cap_stop_streaming(struct vb2_queue *vq)
++{
++	struct adi_cap_device *adi_cap_dev = vb2_get_drv_priv(vq);
++	struct ppi_if *ppi = adi_cap_dev->ppi;
++	unsigned long flags;
++	int ret;
++
++	spin_lock_irqsave(&adi_cap_dev->lock, flags);
++	adi_cap_dev->stop = true;
++	adi_cap_log_dma_state(adi_cap_dev, "stop before ppi_stop");
++	ppi->ops->stop(ppi);
++	adi_cap_log_dma_state(adi_cap_dev, "stop after ppi_stop");
++	spin_unlock_irqrestore(&adi_cap_dev->lock, flags);
++
++	ppi->ops->detach_irq(ppi);
++	ret = v4l2_subdev_call(adi_cap_dev->sd, video, s_stream, 0);
++	if (ret && (ret != -ENOIOCTLCMD))
++		v4l2_err(&adi_cap_dev->v4l2_dev,
++				"stream off failed in subdev\n");
++
++	/* release all active buffers */
++	if (adi_cap_dev->cur_frm) {
++		vb2_buffer_done(&adi_cap_dev->cur_frm->vb.vb2_buf,
++				VB2_BUF_STATE_ERROR);
++		adi_cap_dev->cur_frm = NULL;
++	}
++
++	while (!list_empty(&adi_cap_dev->dma_queue)) {
++		adi_cap_dev->cur_frm = list_entry(adi_cap_dev->dma_queue.next,
++						struct adi_cap_buffer, list);
++		list_del_init(&adi_cap_dev->cur_frm->list);
++		vb2_buffer_done(&adi_cap_dev->cur_frm->vb.vb2_buf,
++				VB2_BUF_STATE_ERROR);
++	}
++	adi_cap_dev->cur_frm = NULL;
++
++	adi_cap_log_stream_stats(adi_cap_dev);
++}
++
++static const struct vb2_ops adi_cap_video_qops = {
++	.queue_setup            = adi_cap_queue_setup,
++	.buf_init               = adi_cap_buffer_init,
++	.buf_prepare            = adi_cap_buffer_prepare,
++	.buf_cleanup            = adi_cap_buffer_cleanup,
++	.buf_queue              = adi_cap_buffer_queue,
++	.wait_prepare           = vb2_ops_wait_prepare,
++	.wait_finish            = vb2_ops_wait_finish,
++	.start_streaming        = adi_cap_start_streaming,
++	.stop_streaming         = adi_cap_stop_streaming,
++};
++
++static irqreturn_t adi_cap_isr(int irq, void *dev_id)
++{
++	struct ppi_if *ppi = dev_id;
++	struct adi_cap_device *adi_cap_dev = ppi->priv;
++	struct adi_cap_buffer *buf;
++	struct vb2_v4l2_buffer *vbuf;
++	struct vb2_buffer *vb;
++	bool ppi_err;
++
++	spin_lock(&adi_cap_dev->lock);
++
++	adi_cap_dev->dma_irq_events++;
++	ppi_err = atomic_xchg(&ppi->err, 0);
++	if (ppi_err)
++		adi_cap_dev->ppi_error_events++;
++	adi_cap_log_dma_state(adi_cap_dev, "irq entry");
++
++	buf = adi_cap_dev->cur_frm;
++	if (!buf) {
++		adi_cap_dev->dma_queue_empty_events++;
++		goto stop_dma;
++	}
++
++	vbuf = &buf->vb;
++	vb = &vbuf->vb2_buf;
++	vb->timestamp = ktime_get_ns();
++	if (ppi_err) {
++		adi_cap_dev->errored_frame_events++;
++		vb2_buffer_done(vb, VB2_BUF_STATE_ERROR);
++	} else {
++		vbuf->sequence = adi_cap_dev->sequence++;
++		adi_cap_dev->captured_frame_events++;
++		vb2_buffer_done(vb, VB2_BUF_STATE_DONE);
++	}
++
++	adi_cap_dev->cur_frm = NULL;
++	if (!adi_cap_take_next_buffer(adi_cap_dev))
++		adi_cap_dev->dma_queue_empty_events++;
++
++stop_dma:
++	ppi->ops->stop(ppi);
++	adi_cap_log_dma_state(adi_cap_dev, "irq after ppi_stop");
++
++	if (!adi_cap_dev->stop && adi_cap_dev->cur_frm) {
++		adi_cap_update_dma_target(adi_cap_dev, adi_cap_dev->cur_frm);
++		ppi->ops->start(ppi);
++		adi_cap_log_dma_state(adi_cap_dev, "irq after restart");
++	}
++
++	spin_unlock(&adi_cap_dev->lock);
++
++	return IRQ_HANDLED;
++}
++
++static int adi_cap_querystd(struct file *file, void *priv, v4l2_std_id *std)
++{
++	struct adi_cap_device *adi_cap_dev = video_drvdata(file);
++	struct v4l2_input input;
++
++	input = adi_cap_dev->cfg->inputs[adi_cap_dev->cur_input];
++	if (!(input.capabilities & V4L2_IN_CAP_STD))
++		return -ENODATA;
++
++	return v4l2_subdev_call(adi_cap_dev->sd, video, querystd, std);
++}
++
++static int adi_cap_g_std(struct file *file, void *priv, v4l2_std_id *std)
++{
++	struct adi_cap_device *adi_cap_dev = video_drvdata(file);
++	struct v4l2_input input;
++
++	input = adi_cap_dev->cfg->inputs[adi_cap_dev->cur_input];
++	if (!(input.capabilities & V4L2_IN_CAP_STD))
++		return -ENODATA;
++
++	*std = adi_cap_dev->std;
++	return 0;
++}
++
++static int adi_cap_s_std(struct file *file, void *priv, v4l2_std_id std)
++{
++	struct adi_cap_device *adi_cap_dev = video_drvdata(file);
++	struct v4l2_input input;
++	int ret;
++
++	input = adi_cap_dev->cfg->inputs[adi_cap_dev->cur_input];
++	if (!(input.capabilities & V4L2_IN_CAP_STD))
++		return -ENODATA;
++
++	if (vb2_is_busy(&adi_cap_dev->buffer_queue))
++		return -EBUSY;
++
++	ret = v4l2_subdev_call(adi_cap_dev->sd, video, s_std, std);
++	if (ret < 0)
++		return ret;
++
++	adi_cap_dev->std = std;
++	return 0;
++}
++
++static int adi_cap_enum_dv_timings(struct file *file, void *priv,
++				struct v4l2_enum_dv_timings *timings)
++{
++	struct adi_cap_device *adi_cap_dev = video_drvdata(file);
++	struct v4l2_input input;
++
++	input = adi_cap_dev->cfg->inputs[adi_cap_dev->cur_input];
++	if (!(input.capabilities & V4L2_IN_CAP_DV_TIMINGS))
++		return -ENODATA;
++
++	timings->pad = 0;
++
++	return v4l2_subdev_call(adi_cap_dev->sd, pad,
++			enum_dv_timings, timings);
++}
++
++static int adi_cap_query_dv_timings(struct file *file, void *priv,
++				struct v4l2_dv_timings *timings)
++{
++	struct adi_cap_device *adi_cap_dev = video_drvdata(file);
++	struct v4l2_input input;
++
++	input = adi_cap_dev->cfg->inputs[adi_cap_dev->cur_input];
++	if (!(input.capabilities & V4L2_IN_CAP_DV_TIMINGS))
++		return -ENODATA;
++
++	return v4l2_subdev_call(adi_cap_dev->sd, video,
++				query_dv_timings, timings);
++}
++
++static int adi_cap_g_dv_timings(struct file *file, void *priv,
++				struct v4l2_dv_timings *timings)
++{
++	struct adi_cap_device *adi_cap_dev = video_drvdata(file);
++	struct v4l2_input input;
++
++	input = adi_cap_dev->cfg->inputs[adi_cap_dev->cur_input];
++	if (!(input.capabilities & V4L2_IN_CAP_DV_TIMINGS))
++		return -ENODATA;
++
++	*timings = adi_cap_dev->dv_timings;
++	return 0;
++}
++
++static int adi_cap_s_dv_timings(struct file *file, void *priv,
++				struct v4l2_dv_timings *timings)
++{
++	struct adi_cap_device *adi_cap_dev = video_drvdata(file);
++	struct v4l2_input input;
++	int ret;
++
++	input = adi_cap_dev->cfg->inputs[adi_cap_dev->cur_input];
++	if (!(input.capabilities & V4L2_IN_CAP_DV_TIMINGS))
++		return -ENODATA;
++
++	if (vb2_is_busy(&adi_cap_dev->buffer_queue))
++		return -EBUSY;
++
++	ret = v4l2_subdev_call(adi_cap_dev->sd, video, s_dv_timings, timings);
++	if (ret < 0)
++		return ret;
++
++	adi_cap_dev->dv_timings = *timings;
++	return 0;
++}
++
++static int adi_cap_enum_input(struct file *file, void *priv,
++				struct v4l2_input *input)
++{
++	struct adi_cap_device *adi_cap_dev = video_drvdata(file);
++	struct adi_capture_config *config = adi_cap_dev->cfg;
++	int ret;
++	u32 status;
++
++	if (input->index >= config->num_inputs)
++		return -EINVAL;
++
++	*input = config->inputs[input->index];
++	/* get input status */
++	ret = v4l2_subdev_call(adi_cap_dev->sd, video, g_input_status, &status);
++	if (!ret)
++		input->status = status;
++	return 0;
++}
++
++static int adi_cap_g_input(struct file *file, void *priv, unsigned int *index)
++{
++	struct adi_cap_device *adi_cap_dev = video_drvdata(file);
++
++	*index = adi_cap_dev->cur_input;
++	return 0;
++}
++
++static int adi_cap_s_input(struct file *file, void *priv, unsigned int index)
++{
++	struct adi_cap_device *adi_cap_dev = video_drvdata(file);
++	struct adi_capture_config *config = adi_cap_dev->cfg;
++	struct adi_cap_route *route;
++	int ret;
++
++	if (vb2_is_busy(&adi_cap_dev->buffer_queue))
++		return -EBUSY;
++
++	if (index >= config->num_inputs)
++		return -EINVAL;
++
++	route = &config->routes[index];
++	ret = v4l2_subdev_call(adi_cap_dev->sd, video, s_routing,
++				route->input, route->output, 0);
++	if ((ret < 0) && (ret != -ENOIOCTLCMD)) {
++		v4l2_err(&adi_cap_dev->v4l2_dev, "Failed to set input\n");
++		return ret;
++	}
++	adi_cap_dev->cur_input = index;
++	/* if this route has specific config, update ppi control */
++	if (route->ppi_control)
++		config->ppi_control = route->ppi_control;
++	return 0;
++}
++
++static int adi_cap_try_format(struct adi_cap_device *adi_cap,
++				struct v4l2_pix_format *pixfmt,
++				struct adi_cap_format *adi_cap_fmt)
++{
++	struct adi_cap_format *sf = adi_cap->sensor_formats;
++	struct adi_cap_format *fmt = NULL;
++	struct v4l2_subdev_format format = {
++		.which = V4L2_SUBDEV_FORMAT_TRY,
++	};
++	struct v4l2_subdev_state *sd_state;
++	int ret, i;
++
++	v4l2_dbg(ADI_CAP_LOG_DETAIL, debug, &adi_cap->v4l2_dev,
++		 "try_fmt request: %p4cc %ux%u field %u colorspace %u\n",
++		 &pixfmt->pixelformat, pixfmt->width, pixfmt->height,
++		 pixfmt->field, pixfmt->colorspace);
++
++	for (i = 0; i < adi_cap->num_sensor_formats; i++) {
++		fmt = &sf[i];
++		if (pixfmt->pixelformat == fmt->pixelformat)
++			break;
++	}
++	if (i == adi_cap->num_sensor_formats) {
++		fmt = &sf[0];
++		v4l2_dbg(ADI_CAP_LOG_DETAIL, debug, &adi_cap->v4l2_dev,
++			 "try_fmt pixfmt %p4cc is not advertised, falling back to %p4cc\n",
++			 &pixfmt->pixelformat, &fmt->pixelformat);
++	}
++
++	v4l2_fill_mbus_format(&format.format, pixfmt, fmt->mbus_code);
++	ret = adi_cap_mbus_to_readout(adi_cap, &format.format);
++	if (ret) {
++		v4l2_err(&adi_cap->v4l2_dev,
++			 "try_fmt invalid readout layout %u for %ux%u\n",
++			 adi_cap->cfg->readout_layout,
++			 pixfmt->width, pixfmt->height);
++		return ret;
++	}
++	v4l2_dbg(ADI_CAP_LOG_DETAIL, debug, &adi_cap->v4l2_dev,
++		 "try_fmt subdev request: mbus 0x%08x %ux%u\n",
++		 format.format.code, format.format.width,
++		 format.format.height);
++
++	sd_state = v4l2_subdev_alloc_state(adi_cap->sd);
++	if (IS_ERR(sd_state)) {
++		ret = PTR_ERR(sd_state);
++		v4l2_err(&adi_cap->v4l2_dev,
++			 "try_fmt subdev state allocation failed: %d\n", ret);
++		return ret;
++	}
++
++	ret = v4l2_subdev_call(adi_cap->sd, pad, set_fmt, sd_state,
++				&format);
++	if (ret < 0) {
++		v4l2_err(&adi_cap->v4l2_dev,
++			 "try_fmt subdev set_fmt failed: %d\n", ret);
++		goto done;
++	}
++	v4l2_dbg(ADI_CAP_LOG_DETAIL, debug, &adi_cap->v4l2_dev,
++		 "try_fmt subdev adjusted: mbus 0x%08x %ux%u field %u colorspace %u\n",
++		 format.format.code, format.format.width,
++		 format.format.height, format.format.field,
++		 format.format.colorspace);
++	if (adi_cap_fmt) {
++		for (i = 0; i < adi_cap->num_sensor_formats; i++) {
++			fmt = &sf[i];
++			if (format.format.code == fmt->mbus_code)
++				break;
++		}
++		if (i == adi_cap->num_sensor_formats) {
++			v4l2_err(&adi_cap->v4l2_dev,
++				 "try_fmt subdev returned unsupported mbus code 0x%08x\n",
++				 format.format.code);
++			ret = -EINVAL;
++			goto done;
++		}
++		*adi_cap_fmt = *fmt;
++	}
++	ret = adi_cap_mbus_to_logical(adi_cap, &format.format);
++	if (ret) {
++		v4l2_err(&adi_cap->v4l2_dev,
++			 "try_fmt invalid logical layout %u for subdev result %ux%u\n",
++			 adi_cap->cfg->readout_layout,
++			 format.format.width, format.format.height);
++		goto done;
++	}
++	v4l2_fill_pix_format(pixfmt, &format.format);
++	pixfmt->bytesperline = pixfmt->width * fmt->bpp / 8;
++	pixfmt->sizeimage = pixfmt->bytesperline * pixfmt->height;
++	v4l2_dbg(ADI_CAP_LOG_DETAIL, debug, &adi_cap->v4l2_dev,
++		 "try_fmt result: %p4cc %ux%u bytesperline %u sizeimage %u\n",
++		 &pixfmt->pixelformat, pixfmt->width, pixfmt->height,
++		 pixfmt->bytesperline, pixfmt->sizeimage);
++done:
++	v4l2_subdev_free_state(sd_state);
++
++	return ret;
++}
++
++static int adi_cap_enum_fmt_vid_cap(struct file *file, void  *priv,
++					struct v4l2_fmtdesc *fmt)
++{
++	struct adi_cap_device *adi_cap_dev = video_drvdata(file);
++	struct adi_cap_format *sf = adi_cap_dev->sensor_formats;
++
++	if (fmt->index >= adi_cap_dev->num_sensor_formats)
++		return -EINVAL;
++
++	fmt->type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
++	strscpy(fmt->description,
++		sf[fmt->index].desc,
++		sizeof(fmt->description));
++	fmt->pixelformat = sf[fmt->index].pixelformat;
++	return 0;
++}
++
++static int adi_cap_try_fmt_vid_cap(struct file *file, void *priv,
++					struct v4l2_format *fmt)
++{
++	struct adi_cap_device *adi_cap_dev = video_drvdata(file);
++	struct v4l2_pix_format *pixfmt = &fmt->fmt.pix;
++
++	return adi_cap_try_format(adi_cap_dev, pixfmt, NULL);
++}
++
++static int adi_cap_g_fmt_vid_cap(struct file *file, void *priv,
++				struct v4l2_format *fmt)
++{
++	struct adi_cap_device *adi_cap_dev = video_drvdata(file);
++
++	fmt->fmt.pix = adi_cap_dev->fmt;
++	return 0;
++}
++
++static int adi_cap_s_fmt_vid_cap(struct file *file, void *priv,
++				struct v4l2_format *fmt)
++{
++	struct adi_cap_device *adi_cap_dev = video_drvdata(file);
++	struct v4l2_subdev_format format = {
++		.which = V4L2_SUBDEV_FORMAT_ACTIVE,
++	};
++	struct adi_cap_format adi_cap_fmt;
++	struct v4l2_pix_format *pixfmt = &fmt->fmt.pix;
++	int ret;
++
++	v4l2_dbg(ADI_CAP_LOG_DETAIL, debug, &adi_cap_dev->v4l2_dev,
++		 "s_fmt request: %p4cc %ux%u field %u colorspace %u\n",
++		 &pixfmt->pixelformat, pixfmt->width, pixfmt->height,
++		 pixfmt->field, pixfmt->colorspace);
++
++	if (vb2_is_busy(&adi_cap_dev->buffer_queue)) {
++		v4l2_err(&adi_cap_dev->v4l2_dev,
++			 "s_fmt rejected: vb2 queue is busy\n");
++		return -EBUSY;
++	}
++
++	/* see if format works */
++	ret = adi_cap_try_format(adi_cap_dev, pixfmt, &adi_cap_fmt);
++	if (ret < 0) {
++		v4l2_err(&adi_cap_dev->v4l2_dev,
++			 "s_fmt rejected by try_fmt: %d\n", ret);
++		return ret;
++	}
++
++	v4l2_fill_mbus_format(&format.format, pixfmt, adi_cap_fmt.mbus_code);
++	ret = adi_cap_mbus_to_readout(adi_cap_dev, &format.format);
++	if (ret) {
++		v4l2_err(&adi_cap_dev->v4l2_dev,
++			 "s_fmt invalid readout layout %u for %ux%u\n",
++			 adi_cap_dev->cfg->readout_layout,
++			 pixfmt->width, pixfmt->height);
++		return ret;
++	}
++	v4l2_dbg(ADI_CAP_LOG_DETAIL, debug, &adi_cap_dev->v4l2_dev,
++		 "s_fmt subdev active request: mbus 0x%08x %ux%u dlen %u bpp %u\n",
++		 format.format.code, format.format.width,
++		 format.format.height, adi_cap_fmt.dlen, adi_cap_fmt.bpp);
++	ret = v4l2_subdev_call(adi_cap_dev->sd, pad, set_fmt, NULL, &format);
++	if (ret < 0) {
++		v4l2_err(&adi_cap_dev->v4l2_dev,
++			 "s_fmt subdev active set_fmt failed: %d\n", ret);
++		return ret;
++	}
++	ret = adi_cap_mbus_to_logical(adi_cap_dev, &format.format);
++	if (ret) {
++		v4l2_err(&adi_cap_dev->v4l2_dev,
++			 "s_fmt invalid logical layout %u for subdev result %ux%u\n",
++			 adi_cap_dev->cfg->readout_layout,
++			 format.format.width, format.format.height);
++		return ret;
++	}
++	v4l2_fill_pix_format(pixfmt, &format.format);
++	pixfmt->bytesperline = pixfmt->width * adi_cap_fmt.bpp / 8;
++	pixfmt->sizeimage = pixfmt->bytesperline * pixfmt->height;
++	adi_cap_dev->fmt = *pixfmt;
++	adi_cap_dev->bpp = adi_cap_fmt.bpp;
++	adi_cap_dev->dlen = adi_cap_fmt.dlen;
++	v4l2_dbg(ADI_CAP_LOG_DETAIL, debug, &adi_cap_dev->v4l2_dev,
++		 "s_fmt applied: %p4cc %ux%u bytesperline %u sizeimage %u dlen %u bpp %u\n",
++		 &adi_cap_dev->fmt.pixelformat, adi_cap_dev->fmt.width,
++		 adi_cap_dev->fmt.height, adi_cap_dev->fmt.bytesperline,
++		 adi_cap_dev->fmt.sizeimage, adi_cap_dev->dlen,
++		 adi_cap_dev->bpp);
++	return 0;
++}
++
++static int adi_cap_querycap(struct file *file, void  *priv,
++				struct v4l2_capability *cap)
++{
++	struct adi_cap_device *adi_cap_dev = video_drvdata(file);
++
++	cap->device_caps = V4L2_CAP_VIDEO_CAPTURE | V4L2_CAP_STREAMING;
++	cap->capabilities = cap->device_caps | V4L2_CAP_DEVICE_CAPS;
++	strscpy(cap->driver, CAPTURE_DRV_NAME, sizeof(cap->driver));
++	strscpy(cap->bus_info, "ADI SC5XX Platform", sizeof(cap->bus_info));
++	strscpy(cap->card, adi_cap_dev->cfg->card_name, sizeof(cap->card));
++	return 0;
++}
++
++static int adi_cap_reqbufs(struct file *file, void *priv,
++			   struct v4l2_requestbuffers *reqbufs)
++{
++	struct adi_cap_device *adi_cap_dev = video_drvdata(file);
++	int ret;
++
++	v4l2_dbg(ADI_CAP_LOG_DETAIL, debug, &adi_cap_dev->v4l2_dev,
++		 "reqbufs request: count %u type %u memory %u io_modes 0x%x\n",
++		 reqbufs->count, reqbufs->type, reqbufs->memory,
++		 adi_cap_dev->buffer_queue.io_modes);
++
++	ret = vb2_ioctl_reqbufs(file, priv, reqbufs);
++	if (ret) {
++		v4l2_err(&adi_cap_dev->v4l2_dev,
++			 "reqbufs failed: %d count %u memory %u\n",
++			 ret, reqbufs->count, reqbufs->memory);
++		return ret;
++	}
++
++	v4l2_dbg(ADI_CAP_LOG_DETAIL, debug, &adi_cap_dev->v4l2_dev,
++		 "reqbufs result: count %u capabilities 0x%x\n",
++		 reqbufs->count, reqbufs->capabilities);
++
++	return 0;
++}
++
++static int adi_cap_g_parm(struct file *file, void *fh,
++				struct v4l2_streamparm *a)
++{
++	struct adi_cap_device *adi_cap_dev = video_drvdata(file);
++
++	return v4l2_g_parm_cap(video_devdata(file), adi_cap_dev->sd, a);
++}
++
++static int adi_cap_s_parm(struct file *file, void *fh,
++				struct v4l2_streamparm *a)
++{
++	struct adi_cap_device *adi_cap_dev = video_drvdata(file);
++
++	return v4l2_s_parm_cap(video_devdata(file), adi_cap_dev->sd, a);
++}
++
++static int adi_cap_log_status(struct file *file, void *priv)
++{
++	struct adi_cap_device *adi_cap_dev = video_drvdata(file);
++	/* status for sub devices */
++	v4l2_device_call_all(&adi_cap_dev->v4l2_dev, 0, core, log_status);
++	return 0;
++}
++
++static const struct v4l2_ioctl_ops adi_cap_ioctl_ops = {
++	.vidioc_querycap         = adi_cap_querycap,
++	.vidioc_g_fmt_vid_cap    = adi_cap_g_fmt_vid_cap,
++	.vidioc_enum_fmt_vid_cap = adi_cap_enum_fmt_vid_cap,
++	.vidioc_s_fmt_vid_cap    = adi_cap_s_fmt_vid_cap,
++	.vidioc_try_fmt_vid_cap  = adi_cap_try_fmt_vid_cap,
++	.vidioc_enum_input       = adi_cap_enum_input,
++	.vidioc_g_input          = adi_cap_g_input,
++	.vidioc_s_input          = adi_cap_s_input,
++	.vidioc_querystd         = adi_cap_querystd,
++	.vidioc_s_std            = adi_cap_s_std,
++	.vidioc_g_std            = adi_cap_g_std,
++	.vidioc_s_dv_timings     = adi_cap_s_dv_timings,
++	.vidioc_g_dv_timings     = adi_cap_g_dv_timings,
++	.vidioc_query_dv_timings = adi_cap_query_dv_timings,
++	.vidioc_enum_dv_timings  = adi_cap_enum_dv_timings,
++	.vidioc_reqbufs          = adi_cap_reqbufs,
++	.vidioc_create_bufs      = vb2_ioctl_create_bufs,
++	.vidioc_querybuf         = vb2_ioctl_querybuf,
++	.vidioc_qbuf             = vb2_ioctl_qbuf,
++	.vidioc_dqbuf            = vb2_ioctl_dqbuf,
++	.vidioc_expbuf           = vb2_ioctl_expbuf,
++	.vidioc_streamon         = vb2_ioctl_streamon,
++	.vidioc_streamoff        = vb2_ioctl_streamoff,
++	.vidioc_g_parm           = adi_cap_g_parm,
++	.vidioc_s_parm           = adi_cap_s_parm,
++	.vidioc_log_status       = adi_cap_log_status,
++};
++
++static const struct v4l2_file_operations adi_cap_fops = {
++	.owner = THIS_MODULE,
++	.open = v4l2_fh_open,
++	.release = vb2_fop_release,
++	.unlocked_ioctl = video_ioctl2,
++	.mmap = vb2_fop_mmap,
++#ifndef CONFIG_MMU
++	.get_unmapped_area = vb2_fop_get_unmapped_area,
++#endif
++	.poll = vb2_fop_poll
++};
++
++#ifdef CONFIG_OF
++static int get_int_prop(struct device_node *dn, const char *s)
++{
++	int ret;
++	u32 val;
++
++	ret = of_property_read_u32(dn, s, &val);
++	if (ret)
++		return 0;
++	return val;
++}
++
++static int adi_cap_parse_dma_layout(struct device *dev,
++				    struct device_node *node,
++				    enum adi_cap_dma_layout *layout)
++{
++	const char *layout_name;
++	int ret;
++
++	*layout = ADI_CAP_DMA_LAYOUT_LINEAR;
++
++	ret = of_property_read_string(node, "adi,dma-layout", &layout_name);
++	if (ret == -EINVAL)
++		return 0;
++	if (ret)
++		return ret;
++
++	if (!strcmp(layout_name, "linear")) {
++		*layout = ADI_CAP_DMA_LAYOUT_LINEAR;
++		return 0;
++	}
++	if (!strcmp(layout_name, "interleaved-center-out")) {
++		*layout = ADI_CAP_DMA_LAYOUT_INTERLEAVED_CENTER_OUT;
++		return 0;
++	}
++
++	dev_err(dev, "unsupported adi,dma-layout: %s\n", layout_name);
++	return -EINVAL;
++}
++
++static int adi_cap_parse_readout_layout(struct device *dev,
++					struct device_node *node,
++					enum adi_cap_readout_layout *layout)
++{
++	const char *layout_name;
++	int ret;
++
++	*layout = ADI_CAP_READOUT_LAYOUT_NATIVE;
++
++	ret = of_property_read_string(node, "adi,readout-layout",
++				      &layout_name);
++	if (ret == -EINVAL)
++		return 0;
++	if (ret)
++		return ret;
++
++	if (!strcmp(layout_name, "native")) {
++		*layout = ADI_CAP_READOUT_LAYOUT_NATIVE;
++		return 0;
++	}
++	if (!strcmp(layout_name, "double-width-half-height") ||
++	    !strcmp(layout_name, "2x-width-half-height")) {
++		*layout = ADI_CAP_READOUT_LAYOUT_DOUBLE_WIDTH_HALF_HEIGHT;
++		return 0;
++	}
++
++	dev_err(dev, "unsupported adi,readout-layout: %s\n", layout_name);
++	return -EINVAL;
++}
++
++static void adi_cap_of_node_put(void *data)
++{
++	of_node_put(data);
++}
++
++static const struct of_device_id adi_cap_match[] = {
++	{ .compatible = "adi,cap", },
++	{},
++};
++MODULE_DEVICE_TABLE(of, adi_cap_match);
++
++static struct adi_capture_config *adi_get_config(struct platform_device *pdev)
++{
++	struct adi_capture_config *config;
++	struct device_node *node = pdev->dev.of_node;
++	struct ppi_info *info;
++	const char *string;
++	struct v4l2_input *input;
++	struct adi_cap_route *route;
++	struct resource *res;
++	u32 val;
++	u32 spu;
++
++	config = (struct adi_capture_config *)pdev->dev.platform_data;
++	if (!config)
++		config = devm_kzalloc(&pdev->dev, sizeof(*config), GFP_KERNEL);
++	if (!config)
++		return NULL;
++
++	/*Initialize ppi info struct*/
++	info = devm_kzalloc(&pdev->dev, sizeof(*info), GFP_KERNEL);
++	if (!info) {
++		dev_err(&pdev->dev, "failed to alloc ppi info\n");
++		return NULL;
++	}
++	info->type = (enum ppi_type)get_int_prop(node, "type");
++	info->dma_ch = get_int_prop(node, "dma-channel");
++	info->irq_err = platform_get_irq(pdev, 0);
++	info->spu = -1;
++	if (!of_property_read_u32(node, "spu_securep_id", &spu))
++		info->spu = spu;
++	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
++	info->base = devm_ioremap_resource(&pdev->dev, res);
++	if (!(info->base)) {
++		dev_err(&pdev->dev, "failed to get mem resource");
++		return NULL;
++	}
++
++	config->i2c_adapter_id = get_int_prop(node, "i2c_bus_id");
++	if (of_property_read_string(node, "card-name", &string))
++		string = dev_name(&pdev->dev);
++	config->card_name = (char *)string;
++	config->ppi_info = info;
++
++	if (adi_cap_parse_dma_layout(&pdev->dev, node, &config->dma_layout))
++		return NULL;
++	if (adi_cap_parse_readout_layout(&pdev->dev, node,
++					 &config->readout_layout))
++		return NULL;
++
++	if (!of_property_read_u32(node, "adi,ppi-control", &val))
++		config->ppi_control = val;
++	if (!of_property_read_u32(node, "adi,int-mask", &val))
++		config->int_mask = val;
++	if (!of_property_read_u32(node, "adi,blank-pixels", &val))
++		config->blank_pixels = val;
++
++	input = devm_kzalloc(&pdev->dev, sizeof(*input), GFP_KERNEL);
++	if (!input)
++		return NULL;
++	route = devm_kzalloc(&pdev->dev, sizeof(*route), GFP_KERNEL);
++	if (!route)
++		return NULL;
++
++	input->index = 0;
++	input->type = V4L2_INPUT_TYPE_CAMERA;
++	input->std = V4L2_STD_UNKNOWN;
++	if (of_property_read_string(node, "adi,input-name", &string))
++		string = config->card_name;
++	strscpy(input->name, string, sizeof(input->name));
++
++	route->input = get_int_prop(node, "adi,route-input");
++	route->output = get_int_prop(node, "adi,route-output");
++	if (!of_property_read_u32(node, "adi,route-ppi-control", &val))
++		route->ppi_control = val;
++
++	config->inputs = input;
++	config->num_inputs = 1;
++	config->routes = route;
++
++	config->subdev_node = of_parse_phandle(node, "adi,subdev", 0);
++	if (config->subdev_node) {
++		if (devm_add_action_or_reset(&pdev->dev, adi_cap_of_node_put,
++					     config->subdev_node))
++			return NULL;
++	} else if (!of_property_read_string(node, "adi,subdev-name", &string)) {
++		strscpy(config->board_info.type, string,
++			sizeof(config->board_info.type));
++		if (of_property_read_u32(node, "adi,subdev-address", &val)) {
++			dev_err(&pdev->dev, "missing adi,subdev-address\n");
++			return NULL;
++		}
++		config->board_info.addr = val;
++		config->board_info.platform_data =
++			devm_gpiod_get_optional(&pdev->dev, "nrst",
++						GPIOD_OUT_HIGH);
++		if (IS_ERR(config->board_info.platform_data)) {
++			dev_err(&pdev->dev, "failed to get legacy nrst gpio\n");
++			return NULL;
++		}
++	} else {
++		dev_err(&pdev->dev,
++			"missing adi,subdev phandle or legacy subdev properties\n");
++		return NULL;
++	}
++
++	return config;
++}
++#endif
++
++static int adi_cap_register_subdev(struct platform_device *pdev,
++				   struct adi_cap_device *adi_cap_dev)
++{
++	struct adi_capture_config *config = adi_cap_dev->cfg;
++	struct i2c_adapter *i2c_adap;
++
++#ifdef CONFIG_OF
++	if (config->subdev_node) {
++		struct i2c_client *client;
++		struct v4l2_subdev *sd;
++		int ret;
++
++		client = of_find_i2c_device_by_node(config->subdev_node);
++		if (!client)
++			return -EPROBE_DEFER;
++
++		sd = i2c_get_clientdata(client);
++		if (!sd) {
++			put_device(&client->dev);
++			return -EPROBE_DEFER;
++		}
++
++		ret = v4l2_device_register_subdev(&adi_cap_dev->v4l2_dev, sd);
++		put_device(&client->dev);
++		if (ret)
++			return ret;
++
++		adi_cap_dev->sd = sd;
++		return 0;
++	}
++#endif
++
++	i2c_adap = i2c_get_adapter(config->i2c_adapter_id);
++	if (!i2c_adap) {
++		v4l2_err(&adi_cap_dev->v4l2_dev,
++				"Unable to find i2c adapter\n");
++		return -ENODEV;
++	}
++
++	adi_cap_dev->sd = v4l2_i2c_new_subdev_board(&adi_cap_dev->v4l2_dev,
++						 i2c_adap,
++						 &config->board_info,
++						 NULL);
++	i2c_put_adapter(i2c_adap);
++	if (!adi_cap_dev->sd) {
++		v4l2_err(&adi_cap_dev->v4l2_dev,
++				"Unable to register sub device\n");
++		return -ENODEV;
++	}
++
++	return 0;
++}
++
++static void adi_cap_unregister_subdev(struct adi_cap_device *adi_cap_dev)
++{
++#ifdef CONFIG_OF
++	if (adi_cap_dev->cfg->subdev_node && adi_cap_dev->sd) {
++		v4l2_device_unregister_subdev(adi_cap_dev->sd);
++		adi_cap_dev->sd = NULL;
++	}
++#endif
++}
++
++static void adi_cap_release_reserved_mem(struct platform_device *pdev,
++					 struct adi_cap_device *adi_cap_dev)
++{
++	if (!adi_cap_dev->reserved_mem_bound)
++		return;
++
++	of_reserved_mem_device_release(&pdev->dev);
++	adi_cap_dev->reserved_mem_bound = false;
++}
++
++static int adi_cap_init_reserved_mem(struct platform_device *pdev,
++				     struct adi_cap_device *adi_cap_dev)
++{
++	struct device *dev = &pdev->dev;
++	struct device_node *mem_np;
++	struct reserved_mem *rmem;
++	phys_addr_t end;
++	int ret;
++
++	if (!dev->of_node)
++		return 0;
++
++	ret = dma_coerce_mask_and_coherent(dev, DMA_BIT_MASK(32));
++	if (ret)
++		return dev_err_probe(dev, ret,
++				     "failed to set 32-bit DMA mask\n");
++
++	mem_np = of_parse_phandle(dev->of_node, "memory-region", 0);
++	if (!mem_np) {
++		dev_info(dev,
++			 "no reserved capture DMA pool; MMAP buffers use default DMA allocator\n");
++		return 0;
++	}
++
++	rmem = of_reserved_mem_lookup(mem_np);
++	of_node_put(mem_np);
++	if (!rmem)
++		return dev_err_probe(dev, -EINVAL,
++				     "failed to look up reserved memory-region\n");
++
++	if (!rmem->size)
++		return dev_err_probe(dev, -EINVAL,
++				     "reserved memory-region is empty\n");
++
++	if (rmem->base > DMA_BIT_MASK(32) ||
++	    rmem->size - 1 > DMA_BIT_MASK(32) - rmem->base)
++		return dev_err_probe(dev, -EOVERFLOW,
++				     "reserved memory-region is outside 32-bit DMA range\n");
++
++	ret = of_reserved_mem_device_init(dev);
++	if (ret)
++		return dev_err_probe(dev, ret,
++				     "failed to bind reserved memory-region\n");
++
++	adi_cap_dev->reserved_mem_bound = true;
++	end = rmem->base + rmem->size - 1;
++	dev_info(dev, "using reserved capture DMA pool %s at %pa-%pa\n",
++		 rmem->name, &rmem->base, &end);
++
++	return 0;
++}
++
++static int adi_cap_probe(struct platform_device *pdev)
++{
++	struct adi_cap_device *adi_cap_dev;
++	struct video_device *vfd;
++	struct adi_capture_config *config = NULL;
++	struct vb2_queue *q;
++	struct adi_cap_route *route;
++	struct device *dev = &pdev->dev;
++	int ret;
++
++#ifdef CONFIG_OF
++	if (!of_match_device(adi_cap_match, &pdev->dev)) {
++		dev_err(dev, "failed to matching of_match node\n");
++		return -ENODEV;
++	}
++
++	if (dev->of_node)
++		config = adi_get_config(pdev);
++#else
++	config = pdev->dev.platform_data;
++	if (!config || !config->num_inputs) {
++		v4l2_err(pdev->dev.driver, "Unable to get board config\n");
++		return -ENODEV;
++	}
++#endif
++	if (!config || !config->num_inputs) {
++		dev_err(dev, "Unable to get capture config\n");
++		return -ENODEV;
++	}
++
++	adi_cap_dev = kzalloc(sizeof(*adi_cap_dev), GFP_KERNEL);
++	if (!adi_cap_dev)
++		return -ENOMEM;
++
++	adi_cap_dev->cfg = config;
++
++	ret = adi_cap_init_reserved_mem(pdev, adi_cap_dev);
++	if (ret)
++		goto err_free_dev;
++
++	adi_cap_dev->ppi = ppi_create_instance(pdev, config->ppi_info);
++	if (IS_ERR(adi_cap_dev->ppi)) {
++		ret = PTR_ERR(adi_cap_dev->ppi);
++		v4l2_err(pdev->dev.driver, "Unable to create ppi: %d\n", ret);
++		goto err_release_reserved_mem;
++	}
++	adi_cap_dev->ppi->priv = adi_cap_dev;
++
++	vfd = &adi_cap_dev->video_dev;
++	/* initialize field of video device */
++	vfd->release            = video_device_release_empty;
++	vfd->fops               = &adi_cap_fops;
++	vfd->ioctl_ops          = &adi_cap_ioctl_ops;
++	vfd->tvnorms            = 0;
++	vfd->v4l2_dev           = &adi_cap_dev->v4l2_dev;
++	vfd->device_caps        = V4L2_CAP_VIDEO_CAPTURE | V4L2_CAP_STREAMING;
++	vfd->vfl_dir            = VFL_DIR_RX;
++	strscpy(vfd->name, CAPTURE_DRV_NAME, sizeof(vfd->name));
++
++	ret = v4l2_device_register(&pdev->dev, &adi_cap_dev->v4l2_dev);
++	if (ret) {
++		v4l2_err(pdev->dev.driver,
++				"Unable to register v4l2 device\n");
++		goto err_free_ppi;
++	}
++	platform_set_drvdata(pdev, &adi_cap_dev->v4l2_dev);
++	v4l2_info(&adi_cap_dev->v4l2_dev, "v4l2 device registered\n");
++
++	adi_cap_dev->v4l2_dev.ctrl_handler = &adi_cap_dev->ctrl_handler;
++	ret = v4l2_ctrl_handler_init(&adi_cap_dev->ctrl_handler, 0);
++	if (ret) {
++		v4l2_err(&adi_cap_dev->v4l2_dev,
++				"Unable to init control handler\n");
++		goto err_unreg_v4l2;
++	}
++
++	spin_lock_init(&adi_cap_dev->lock);
++	mutex_init(&adi_cap_dev->mutex);
++	/* initialize queue */
++	q = &adi_cap_dev->buffer_queue;
++	q->type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
++	q->io_modes = VB2_DMABUF | VB2_MMAP;
++	q->drv_priv = adi_cap_dev;
++	q->buf_struct_size = sizeof(struct adi_cap_buffer);
++	q->ops = &adi_cap_video_qops;
++	q->mem_ops = &vb2_dma_contig_memops;
++	q->dma_attrs = DMA_ATTR_WRITE_COMBINE;
++	q->dma_dir = DMA_FROM_DEVICE;
++	q->timestamp_flags = V4L2_BUF_FLAG_TIMESTAMP_MONOTONIC;
++	q->lock = &adi_cap_dev->mutex;
++	q->min_buffers_needed = 1;
++	q->dev = &pdev->dev;
++
++	ret = vb2_queue_init(q);
++	if (ret)
++		goto err_free_handler;
++
++	/* init video dma queues */
++	INIT_LIST_HEAD(&adi_cap_dev->dma_queue);
++
++	vfd->lock = &adi_cap_dev->mutex;
++	vfd->queue = q;
++
++	/* register video device */
++	ret = video_register_device(&adi_cap_dev->video_dev, VFL_TYPE_VIDEO, -1);
++	if (ret) {
++		v4l2_err(&adi_cap_dev->v4l2_dev,
++				"Unable to register video device\n");
++		goto err_free_handler;
++	}
++	video_set_drvdata(&adi_cap_dev->video_dev, adi_cap_dev);
++	v4l2_info(&adi_cap_dev->v4l2_dev, "video device registered as: %s\n",
++			video_device_node_name(vfd));
++
++	/* load up the subdevice */
++	ret = adi_cap_register_subdev(pdev, adi_cap_dev);
++	if (!ret) {
++		int i;
++
++		/* update tvnorms from the sub devices */
++		for (i = 0; i < config->num_inputs; i++)
++			vfd->tvnorms |= config->inputs[i].std;
++	} else {
++		goto err_unreg_vdev;
++	}
++
++	v4l2_info(&adi_cap_dev->v4l2_dev, "v4l2 sub device registered: %s\n",
++		  adi_cap_dev->sd->name);
++	ret = v4l2_device_register_subdev_nodes(&adi_cap_dev->v4l2_dev);
++	if (ret) {
++		v4l2_err(&adi_cap_dev->v4l2_dev,
++				"subdev nodes cannot be registered\n");
++		goto err_unreg_vdev;
++	}
++
++	/*
++	 * explicitly set input, otherwise some boards
++	 * may not work at the state as we expected
++	 */
++	route = &config->routes[0];
++	ret = v4l2_subdev_call(adi_cap_dev->sd, video, s_routing,
++				route->input, route->output, 0);
++	if ((ret < 0) && (ret != -ENOIOCTLCMD)) {
++		v4l2_err(&adi_cap_dev->v4l2_dev, "Failed to set input\n");
++		goto err_unreg_vdev;
++	}
++	adi_cap_dev->cur_input = 0;
++	/* if this route has specific config, update ppi control */
++	if (route->ppi_control)
++		config->ppi_control = route->ppi_control;
++
++	/* now we can probe the default state */
++	if (config->inputs[0].capabilities & V4L2_IN_CAP_STD) {
++		v4l2_std_id std;
++		ret = v4l2_subdev_call(adi_cap_dev->sd, video, g_std, &std);
++		if (ret) {
++			v4l2_err(&adi_cap_dev->v4l2_dev,
++					"Unable to get std\n");
++			goto err_unreg_vdev;
++		}
++		adi_cap_dev->std = std;
++	}
++	if (config->inputs[0].capabilities & V4L2_IN_CAP_DV_TIMINGS) {
++		struct v4l2_dv_timings dv_timings;
++		ret = v4l2_subdev_call(adi_cap_dev->sd, video,
++				g_dv_timings, &dv_timings);
++		if (ret) {
++			v4l2_err(&adi_cap_dev->v4l2_dev,
++					"Unable to get dv timings\n");
++			goto err_unreg_vdev;
++		}
++		adi_cap_dev->dv_timings = dv_timings;
++	}
++	ret = adi_cap_init_sensor_formats(adi_cap_dev);
++	if (ret) {
++		v4l2_err(&adi_cap_dev->v4l2_dev,
++				"Unable to create sensor formats table\n");
++		goto err_unreg_vdev;
++	}
++	return 0;
++err_unreg_vdev:
++	adi_cap_unregister_subdev(adi_cap_dev);
++	video_unregister_device(&adi_cap_dev->video_dev);
++err_free_handler:
++	v4l2_ctrl_handler_free(&adi_cap_dev->ctrl_handler);
++err_unreg_v4l2:
++	v4l2_device_unregister(&adi_cap_dev->v4l2_dev);
++err_free_ppi:
++	ppi_delete_instance(adi_cap_dev->ppi);
++err_release_reserved_mem:
++	adi_cap_release_reserved_mem(pdev, adi_cap_dev);
++err_free_dev:
++	kfree(adi_cap_dev);
++	return ret;
++}
++
++static int adi_cap_remove(struct platform_device *pdev)
++{
++	struct v4l2_device *v4l2_dev = platform_get_drvdata(pdev);
++	struct adi_cap_device *adi_cap_dev = container_of(v4l2_dev,
++						struct adi_cap_device, v4l2_dev);
++
++	adi_cap_free_sensor_formats(adi_cap_dev);
++	adi_cap_unregister_subdev(adi_cap_dev);
++	video_unregister_device(&adi_cap_dev->video_dev);
++	v4l2_ctrl_handler_free(&adi_cap_dev->ctrl_handler);
++	v4l2_device_unregister(v4l2_dev);
++	ppi_delete_instance(adi_cap_dev->ppi);
++	adi_cap_release_reserved_mem(pdev, adi_cap_dev);
++	kfree(adi_cap_dev);
++	return 0;
++}
++
++static struct platform_driver adi_cap_driver = {
++	.driver = {
++		.name  = CAPTURE_DRV_NAME,
++#ifdef CONFIG_OF
++		.of_match_table = adi_cap_match,
++#endif
++	},
++	.probe = adi_cap_probe,
++	.remove = adi_cap_remove,
++};
++module_platform_driver(adi_cap_driver);
++
++MODULE_DESCRIPTION("Analog Devices SC5XX video capture driver");
++MODULE_AUTHOR("Scott Jiang <Scott.Jiang.Linux@gmail.com>");
++MODULE_LICENSE("GPL v2");
+diff --git a/include/media/adi/adi_capture.h b/include/media/adi/adi_capture.h
+new file mode 100644
+index 0000000000000..eed1bf5244378
+--- /dev/null
++++ b/include/media/adi/adi_capture.h
+@@ -0,0 +1,58 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef _ADI_CAPTURE_H_
++#define _ADI_CAPTURE_H_
++
++#include <linux/i2c.h>
++
++struct v4l2_input;
++struct ppi_info;
++struct device_node;
++
++struct adi_cap_route {
++	u32 input;
++	u32 output;
++	u32 ppi_control;
++};
++
++enum adi_cap_dma_layout {
++	ADI_CAP_DMA_LAYOUT_LINEAR,
++	/* PPI lines contain upper/lower logical rows emitted center-out. */
++	ADI_CAP_DMA_LAYOUT_INTERLEAVED_CENTER_OUT,
++};
++
++enum adi_cap_readout_layout {
++	ADI_CAP_READOUT_LAYOUT_NATIVE,
++	/* PPI sees two logical rows as one double-width line. */
++	ADI_CAP_READOUT_LAYOUT_DOUBLE_WIDTH_HALF_HEIGHT,
++};
++
++struct adi_capture_config {
++	/* card name */
++	char *card_name;
++	/* inputs available at the sub device */
++	struct v4l2_input *inputs;
++	/* number of inputs supported */
++	int num_inputs;
++	/* routing information for each input */
++	struct adi_cap_route *routes;
++	/* i2c bus adapter no */
++	int i2c_adapter_id;
++	/* i2c subdevice board info */
++	struct i2c_board_info board_info;
++	/* native DT subdevice node */
++	struct device_node *subdev_node;
++	/* ppi board info */
++	const struct ppi_info *ppi_info;
++	/* ppi control */
++	unsigned long ppi_control;
++	/* ppi interrupt mask */
++	u32 int_mask;
++	/* horizontal blanking pixels */
++	int blank_pixels;
++	/* DMA write layout */
++	enum adi_cap_dma_layout dma_layout;
++	/* Sensor/PPI readout layout */
++	enum adi_cap_readout_layout readout_layout;
++};
++
++#endif
+-- 
+2.44.4
+
