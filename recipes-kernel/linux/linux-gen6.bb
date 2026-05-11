@@ -33,9 +33,9 @@
 inherit kernel
 require recipes-kernel/linux/linux-yocto.inc
 
-BRANCH = "develop"
+BRANCH = "master"
 LINUX_VERSION ?= "4.14.239"
-SRCREV="effa86613e771f365062b6c1107f9a956ee94f86"
+SRCREV="4771faa0e4c82d4c208fc59e66464d402cc7917e"
 
 SRC_URI = "git://github.com/iris-GmbH/linux-gen6.git;protocol=https;bareclone=1;branch=${BRANCH};depth=1"
 
