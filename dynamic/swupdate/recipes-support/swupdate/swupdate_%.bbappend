@@ -16,9 +16,6 @@ SRC_URI:append := " \
 	file://Findswupdate.cmake \
 	file://0001-Apply-iris-Coporate-Design-to-webinterface.patch \
 	file://0002-mongoose_multipart-Allow-raw-binary-uploads.patch \
-	file://0003-mongoose-Integer-Underflow-in-Multipart-Upload-Parse.patch \
-	file://0004-mongoose-Update-to-version-7.21.patch \
-	file://0005-mongoose-Use-GPL-2.0-only.patch \
 "
 
 SYSTEMD_SRC_URI = " \
