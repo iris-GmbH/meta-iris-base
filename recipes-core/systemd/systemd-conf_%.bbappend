@@ -17,3 +17,6 @@ FILES:${PN}:append = " \
     ${sysconfdir}/systemd/journald.conf.d/ \
     ${sysconfdir}/systemd/resolved.conf.d/ \
 "
+
+# remove 80-wired.network config which enables DHCP per default
+PACKAGECONFIG:remove = "dhcp-ethernet"
