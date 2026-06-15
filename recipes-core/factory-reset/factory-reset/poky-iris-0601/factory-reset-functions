@@ -106,6 +106,7 @@ reset_userdata() {
     rm -f /etc/counter/config.yaml*
     rm -rf /etc/counter/irma6webserver
     rm -rf /etc/counter/dropbear
+    rm -f /mnt/iris/timestamp
 
     # Delete custom services
     rm -rf /mnt/iris/services/*
