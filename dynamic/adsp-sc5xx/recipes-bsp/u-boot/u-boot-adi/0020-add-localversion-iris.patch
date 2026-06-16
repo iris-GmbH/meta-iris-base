@@ -4,6 +4,7 @@ Date: Tue, 23 Feb 2021 17:13:16 +0100
 Subject: [PATCH 20/20] add localversion-iris
 
 Signed-off-by: Jasper Orschulko <jasper@fancydomain.eu>
+Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
 ---
  localversion-iris | 1 +
  1 file changed, 1 insertion(+)
@@ -15,7 +16,7 @@ index 00000000..7fd7513c
 --- /dev/null
 +++ b/localversion-iris
 @@ -0,0 +1 @@
-+-gen6-1.1.5
++-gen6-1.2.0
 -- 
 2.26.3
 
