@@ -19,8 +19,8 @@ index 7bcbdb93eac0..cff02509abb6 100644
  			reusable;
 -			alloc-ranges = <0 0x80000000 0 0x40000000>;
 -			size = <0 0x10000000>;
-+			alloc-ranges = <0 0x80000000 0 0x16000000>;
-+			size = <0 0x6000000>;
++			alloc-ranges = <0 0x80000000 0 0x4000000>;
++			size = <0 0x1000000>;
  			linux,cma-default;
  		};
  
@@ -28,34 +28,34 @@ index 7bcbdb93eac0..cff02509abb6 100644
  			compatible = "shared-dma-pool";
  			reusable;
 -			reg = <0x0 0xC0000000 0x0 0x10000000>;
-+			reg = <0x0 0x90000000 0x0 0x4000000>;
++			reg = <0x0 0x84200000 0x0 0x400000>;
  		};
  
 -		vdev0vring0: vdev0vring0@a4000000 {
 -			reg = <0 0xa4000000 0 0x8000>;
-+		vdev0vring0: vdev0vring0@9f000000 {
-+			reg = <0 0x9f000000 0 0x8000>;
++		vdev0vring0: vdev0vring0@84000000 {
++			reg = <0 0x84000000 0 0x8000>;
  			no-map;
  		};
  
 -		vdev0vring1: vdev0vring1@a4008000 {
 -			reg = <0 0xa4008000 0 0x8000>;
-+		vdev0vring1: vdev0vring1@9f008000 {
-+			reg = <0 0x9f008000 0 0x8000>;
++		vdev0vring1: vdev0vring1@84008000 {
++			reg = <0 0x84008000 0 0x8000>;
  			no-map;
  		};
  
 -		vdev1vring0: vdev1vring0@a4010000 {
 -			reg = <0 0xa4010000 0 0x8000>;
-+		vdev1vring0: vdev1vring0@9f010000 {
-+			reg = <0 0x9f010000 0 0x8000>;
++		vdev1vring0: vdev1vring0@84010000 {
++			reg = <0 0x84010000 0 0x8000>;
  			no-map;
  		};
  
 -		vdev1vring1: vdev1vring1@a4018000 {
 -			reg = <0 0xa4018000 0 0x8000>;
-+		vdev1vring1: vdev1vring1@9f018000 {
-+			reg = <0 0x9f018000 0 0x8000>;
++		vdev1vring1: vdev1vring1@84018000 {
++			reg = <0 0x84018000 0 0x8000>;
  			no-map;
  		};
  
@@ -64,10 +64,10 @@ index 7bcbdb93eac0..cff02509abb6 100644
  		};
  
 -		vdevbuffer: vdevbuffer@a4020000 {
-+		vdevbuffer: vdevbuffer@9f020000 {
++		vdevbuffer: vdevbuffer@84020000 {
  			compatible = "shared-dma-pool";
 -			reg = <0 0xa4020000 0 0x100000>;
-+			reg = <0 0x9f020000 0 0x100000>;
++			reg = <0 0x84020000 0 0x100000>;
  			no-map;
  		};
  
