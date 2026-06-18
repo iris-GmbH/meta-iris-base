@@ -13,7 +13,7 @@ DEFAULTTUNE="cortexa5thf-neon"
 IMAGE_FSTYPES += "tar.bz2 jffs2"
 EXTRA_IMAGECMD:jffs2 = "--little-endian --pad=0x0 --pagesize=0x1000 --eraseblock=0x10000 --squash"
 
-SERIAL_CONSOLE = "115200 ttySC0"
+SERIAL_CONSOLES = "115200;ttySC0"
 
 PREFERRED_PROVIDER_virtual/kernel ?= "linux-gen6"
 PREFERRED_PROVIDER_virtual/bootloader = "u-boot-adi"
