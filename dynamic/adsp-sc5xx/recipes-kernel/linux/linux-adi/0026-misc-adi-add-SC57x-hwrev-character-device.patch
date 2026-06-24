@@ -1,0 +1,194 @@
+From b6931aa611da501e875a2394991437a4c3d851b4 Mon Sep 17 00:00:00 2001
+From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+Date: Tue, 16 Jun 2026 08:56:13 +0200
+Subject: [PATCH 26/29] misc: adi: add SC57x hwrev character device
+
+Add a small miscdevice driver for the SC57x hardware revision pins.
+The driver configures DAI0 pins 1 through 4 as inputs with pull-ups and exposes
+their masked pin status value as a 32-bit read through /dev/hwrev.
+
+Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+---
+ drivers/misc/iris/Kconfig       |   8 ++
+ drivers/misc/iris/Makefile      |   1 +
+ drivers/misc/iris/sc57x-hwrev.c | 143 ++++++++++++++++++++++++++++++++
+ 3 files changed, 152 insertions(+)
+ create mode 100644 drivers/misc/iris/sc57x-hwrev.c
+
+diff --git a/drivers/misc/iris/Kconfig b/drivers/misc/iris/Kconfig
+index f1ee158bec547..83963ee8d49d2 100644
+--- a/drivers/misc/iris/Kconfig
++++ b/drivers/misc/iris/Kconfig
+@@ -52,3 +52,11 @@ config ADI_SC57X_TMU_CHAR
+ 	help
+ 	  Exposes the SC57x Thermal Monitoring Unit through /dev/tmu. A read
+ 	  returns the signed 16-bit raw temperature register value.
++
++config ADI_SC57X_HWREV_CHAR
++	tristate "SC57x hardware revision character device"
++	depends on (ARCH_SC57X || COMPILE_TEST) && HAS_IOMEM
++	default n
++	help
++	  Exposes the SC57x DAI0 hardware revision pins through /dev/hwrev. A
++	  read returns the masked 32-bit DAI0 pin status value.
+diff --git a/drivers/misc/iris/Makefile b/drivers/misc/iris/Makefile
+index 9f3b89db5324e..bc3d6aad176f5 100644
+--- a/drivers/misc/iris/Makefile
++++ b/drivers/misc/iris/Makefile
+@@ -5,3 +5,4 @@ obj-$(CONFIG_IRMA_CACHE_FLUSH)		+= irma-cache-flush.o
+ obj-$(CONFIG_IRMA_CORECTRL)		+= irma-corectrl.o
+ obj-$(CONFIG_IRMA_SHARC)		+= irma-sharc.o
+ obj-$(CONFIG_ADI_SC57X_TMU_CHAR)	+= sc57x-tmu.o
++obj-$(CONFIG_ADI_SC57X_HWREV_CHAR)	+= sc57x-hwrev.o
+diff --git a/drivers/misc/iris/sc57x-hwrev.c b/drivers/misc/iris/sc57x-hwrev.c
+new file mode 100644
+index 0000000000000..b0ce08fda105e
+--- /dev/null
++++ b/drivers/misc/iris/sc57x-hwrev.c
+@@ -0,0 +1,143 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * Simple SC57x hardware revision character device.
++ */
++
++#include <linux/bitops.h>
++#include <linux/errno.h>
++#include <linux/fs.h>
++#include <linux/io.h>
++#include <linux/miscdevice.h>
++#include <linux/module.h>
++#include <linux/types.h>
++#include <linux/uaccess.h>
++
++#define SC57X_HWREV_DRV_NAME	"sc57x-hwrev"
++#define SC57X_HWREV_DEV_NAME	"hwrev"
++#define SC57X_HWREV_VERSION	"1.0.0"
++
++#define SC57X_PADS0_DAI0_PUE	0x31004498
++#define SC57X_PADS0_DAI0_PUD	0x310044d8
++
++#define SC57X_DAI0_BASE		0x310c9000
++#define SC57X_DAI0_SIZE		0x300
++#define SC57X_DAI0_PBEN0	0x1e0
++#define SC57X_DAI0_PIN_STAT	0x2e4
++
++#define SC57X_HWREV_MASK	GENMASK(3, 0)
++#define SC57X_DAI0_PBEN0_INPUT_MASK	GENMASK(23, 0)
++
++static void __iomem *sc57x_hwrev_dai0_base;
++
++static int sc57x_hwrev_init_pads(void)
++{
++	void __iomem *pue;
++	void __iomem *pud;
++	u32 val;
++
++	pue = ioremap(SC57X_PADS0_DAI0_PUE, sizeof(u32));
++	if (!pue)
++		return -ENOMEM;
++
++	pud = ioremap(SC57X_PADS0_DAI0_PUD, sizeof(u32));
++	if (!pud) {
++		iounmap(pue);
++		return -ENOMEM;
++	}
++
++	writel(readl(pue) | SC57X_HWREV_MASK, pue);
++	val = readl(pud);
++	writel(val & ~SC57X_HWREV_MASK, pud);
++
++	iounmap(pud);
++	iounmap(pue);
++
++	return 0;
++}
++
++static void sc57x_hwrev_init_dai0_pins(void)
++{
++	u32 val;
++
++	val = readl(sc57x_hwrev_dai0_base + SC57X_DAI0_PBEN0);
++	writel(val & ~SC57X_DAI0_PBEN0_INPUT_MASK,
++	       sc57x_hwrev_dai0_base + SC57X_DAI0_PBEN0);
++}
++
++static int sc57x_hwrev_open(struct inode *inode, struct file *file)
++{
++	return nonseekable_open(inode, file);
++}
++
++static ssize_t sc57x_hwrev_read(struct file *file, char __user *buf,
++				size_t count, loff_t *ppos)
++{
++	u32 hwrev;
++
++	if (count != sizeof(hwrev))
++		return -EINVAL;
++
++	hwrev = readl(sc57x_hwrev_dai0_base + SC57X_DAI0_PIN_STAT) &
++		SC57X_HWREV_MASK;
++
++	if (copy_to_user(buf, &hwrev, sizeof(hwrev)))
++		return -EFAULT;
++
++	return sizeof(hwrev);
++}
++
++static const struct file_operations sc57x_hwrev_fops = {
++	.owner	= THIS_MODULE,
++	.open	= sc57x_hwrev_open,
++	.read	= sc57x_hwrev_read,
++	.llseek	= no_llseek,
++};
++
++static struct miscdevice sc57x_hwrev_miscdev = {
++	.minor	= MISC_DYNAMIC_MINOR,
++	.name	= SC57X_HWREV_DEV_NAME,
++	.fops	= &sc57x_hwrev_fops,
++};
++
++static int __init sc57x_hwrev_init(void)
++{
++	int ret;
++
++	sc57x_hwrev_dai0_base = ioremap(SC57X_DAI0_BASE, SC57X_DAI0_SIZE);
++	if (!sc57x_hwrev_dai0_base)
++		return -ENOMEM;
++
++	ret = sc57x_hwrev_init_pads();
++	if (ret)
++		goto err_unmap_dai0;
++
++	sc57x_hwrev_init_dai0_pins();
++
++	ret = misc_register(&sc57x_hwrev_miscdev);
++	if (ret)
++		goto err_unmap_dai0;
++
++	pr_info("%s: version %s registered as /dev/%s\n",
++		SC57X_HWREV_DRV_NAME, SC57X_HWREV_VERSION,
++		SC57X_HWREV_DEV_NAME);
++
++	return 0;
++
++err_unmap_dai0:
++	iounmap(sc57x_hwrev_dai0_base);
++	return ret;
++}
++
++static void __exit sc57x_hwrev_exit(void)
++{
++	misc_deregister(&sc57x_hwrev_miscdev);
++	iounmap(sc57x_hwrev_dai0_base);
++}
++
++module_init(sc57x_hwrev_init);
++module_exit(sc57x_hwrev_exit);
++
++MODULE_DESCRIPTION("Simple SC57x hardware revision character device");
++MODULE_AUTHOR("Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>");
++MODULE_LICENSE("GPL v2");
++MODULE_VERSION(SC57X_HWREV_VERSION);
+-- 
+2.44.4
+

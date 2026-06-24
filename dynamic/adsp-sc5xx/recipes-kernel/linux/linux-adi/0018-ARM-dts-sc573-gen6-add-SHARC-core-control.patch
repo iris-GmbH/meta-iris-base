@@ -1,0 +1,32 @@
+From a004761add8315479854678eff4c4cb7e31faa9a Mon Sep 17 00:00:00 2001
+From: Ian Dannapel <ian.dannapel@iris-sensing.com>
+Date: Fri, 5 Jun 2026 09:19:26 +0200
+Subject: [PATCH 18/29] ARM: dts: sc573-gen6: add SHARC core control
+
+Add the IRMA core control node with an ADI RCU phandle.
+This enables the legacy /dev/corectrl path to program SHARC start vectors and start or stop the cores.
+
+Signed-off-by: Ian Dannapel <ian.dannapel@iris-sensing.com>
+---
+ arch/arm/boot/dts/sc573-gen6.dts | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/arch/arm/boot/dts/sc573-gen6.dts b/arch/arm/boot/dts/sc573-gen6.dts
+index b6616acd636c6..986a545fd2871 100644
+--- a/arch/arm/boot/dts/sc573-gen6.dts
++++ b/arch/arm/boot/dts/sc573-gen6.dts
+@@ -46,6 +46,11 @@ dsp-addr {
+ 	};
+ 
+ 	scb {
++		corectrl {
++			compatible = "iris,irma-corectrl";
++			adi,rcu = <&rcu>;
++		};
++
+ 		cache_flush {
+ 			compatible = "iris,irma-cache-flush";
+ 		};
+-- 
+2.44.4
+

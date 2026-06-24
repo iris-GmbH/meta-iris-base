@@ -1,0 +1,508 @@
+From deeaf52c7192d36ad5edbd4c3a6467d4777380de Mon Sep 17 00:00:00 2001
+From: Ian Dannapel <ian.dannapel@iris-sensing.com>
+Date: Fri, 5 Jun 2026 09:19:22 +0200
+Subject: [PATCH 02/29] dma-buf: heaps: add IRMA DSP carveout heap
+
+Add a DMA-BUF heap backed by IRMA DSP reserved memory.
+The heap exports /dev/dma_heap/ buffers for V4L2 DMABUF capture and provides a helper to translate heap offsets into DSP-visible physical addresses.
+
+Signed-off-by: Ian Dannapel <ian.dannapel@iris-sensing.com>
+---
+ drivers/dma-buf/heaps/Kconfig                 |   9 +
+ drivers/dma-buf/heaps/Makefile                |   1 +
+ .../dma-buf/heaps/irma-dsp-carveout-heap.c    | 436 ++++++++++++++++++
+ include/linux/irma-dsp-carveout-heap.h        |  13 +
+ 4 files changed, 459 insertions(+)
+ create mode 100644 drivers/dma-buf/heaps/irma-dsp-carveout-heap.c
+ create mode 100644 include/linux/irma-dsp-carveout-heap.h
+
+diff --git a/drivers/dma-buf/heaps/Kconfig b/drivers/dma-buf/heaps/Kconfig
+index a5eef06c42264..49d5de9ad65cf 100644
+--- a/drivers/dma-buf/heaps/Kconfig
++++ b/drivers/dma-buf/heaps/Kconfig
+@@ -12,3 +12,12 @@ config DMABUF_HEAPS_CMA
+ 	  Choose this option to enable dma-buf CMA heap. This heap is backed
+ 	  by the Contiguous Memory Allocator (CMA). If your system has these
+ 	  regions, you should say Y here.
++
++config DMABUF_HEAPS_IRMA_DSP_CARVEOUT
++	bool "IRMA DSP carveout DMA-BUF heap"
++	depends on DMABUF_HEAPS && OF_RESERVED_MEM && MMU && ARCH_SC57X
++	select GENERIC_ALLOCATOR
++	help
++	  Export IRMA DSP reserved capture memory as a DMA-BUF heap.
++	  Userspace can allocate buffers from /dev/dma_heap/ and pass the
++	  resulting file descriptors to V4L2 using V4L2_MEMORY_DMABUF.
+diff --git a/drivers/dma-buf/heaps/Makefile b/drivers/dma-buf/heaps/Makefile
+index 974467791032f..5ccf4f9036c93 100644
+--- a/drivers/dma-buf/heaps/Makefile
++++ b/drivers/dma-buf/heaps/Makefile
+@@ -1,3 +1,4 @@
+ # SPDX-License-Identifier: GPL-2.0
+ obj-$(CONFIG_DMABUF_HEAPS_SYSTEM)	+= system_heap.o
+ obj-$(CONFIG_DMABUF_HEAPS_CMA)		+= cma_heap.o
++obj-$(CONFIG_DMABUF_HEAPS_IRMA_DSP_CARVEOUT)	+= irma-dsp-carveout-heap.o
+diff --git a/drivers/dma-buf/heaps/irma-dsp-carveout-heap.c b/drivers/dma-buf/heaps/irma-dsp-carveout-heap.c
+new file mode 100644
+index 0000000000000..046d7ee615d7a
+--- /dev/null
++++ b/drivers/dma-buf/heaps/irma-dsp-carveout-heap.c
+@@ -0,0 +1,436 @@
++// SPDX-License-Identifier: GPL-2.0
++/*
++ * IRMA DSP reserved-memory DMA-BUF heap exporter.
++ *
++ * The IRMA DSP-visible capture memory sits outside Linux System RAM.  This
++ * heap exports that fixed carveout as DMA-BUFs so V4L2 can import them through
++ * V4L2_MEMORY_DMABUF without binding the capture device to a shared-dma-pool.
++ */
++
++#include <linux/dma-buf.h>
++#include <linux/dma-heap.h>
++#include <linux/dma-mapping.h>
++#include <linux/err.h>
++#include <linux/genalloc.h>
++#include <linux/io.h>
++#include <linux/irma-dsp-carveout-heap.h>
++#include <linux/limits.h>
++#include <linux/mm.h>
++#include <linux/module.h>
++#include <linux/of.h>
++#include <linux/of_fdt.h>
++#include <linux/of_reserved_mem.h>
++#include <linux/scatterlist.h>
++#include <linux/sizes.h>
++#include <linux/slab.h>
++
++#define IRMA_DSP_CARVEOUT_HEAP_COMPAT	"iris,irma-dsp-carveout-heap"
++#define IRMA_DSP_CARVEOUT_MAX_HEAPS	4
++
++struct irma_dsp_carveout_heap {
++	struct dma_heap *heap;
++	struct gen_pool *pool;
++	const char *name;
++	phys_addr_t base;
++	size_t size;
++};
++
++struct irma_dsp_carveout_buffer {
++	struct irma_dsp_carveout_heap *heap;
++	phys_addr_t phys;
++	size_t len;
++	struct mutex lock;
++	unsigned int vmap_cnt;
++	void *vaddr;
++};
++
++static struct reserved_mem *irma_dsp_carveout_rmems[IRMA_DSP_CARVEOUT_MAX_HEAPS];
++static unsigned int irma_dsp_carveout_rmem_count;
++
++static int irma_dsp_carveout_zero(phys_addr_t phys, size_t len)
++{
++	void *vaddr;
++
++	vaddr = memremap(phys, len, MEMREMAP_WC);
++	if (!vaddr)
++		return -ENOMEM;
++
++	memset(vaddr, 0, len);
++	wmb();
++	memunmap(vaddr);
++
++	return 0;
++}
++
++static struct sg_table *
++irma_dsp_carveout_map_dma_buf(struct dma_buf_attachment *attachment,
++			      enum dma_data_direction direction)
++{
++	struct irma_dsp_carveout_buffer *buffer = attachment->dmabuf->priv;
++	struct sg_table *table;
++	dma_addr_t dma_addr;
++	int ret;
++
++	table = kzalloc(sizeof(*table), GFP_KERNEL);
++	if (!table)
++		return ERR_PTR(-ENOMEM);
++
++	ret = sg_alloc_table(table, 1, GFP_KERNEL);
++	if (ret)
++		goto free_table;
++
++	dma_addr = dma_map_resource(attachment->dev, buffer->phys, buffer->len,
++				    direction, 0);
++	if (dma_mapping_error(attachment->dev, dma_addr)) {
++		ret = -ENOMEM;
++		goto free_sg;
++	}
++
++	/*
++	 * This carveout is not backed by struct pages. Export a resource-backed
++	 * SGL whose consumers must use the DMA address from map_dma_buf().
++	 */
++	table->sgl->length = buffer->len;
++	sg_dma_address(table->sgl) = dma_addr;
++	sg_dma_len(table->sgl) = buffer->len;
++
++	return table;
++
++free_sg:
++	sg_free_table(table);
++free_table:
++	kfree(table);
++
++	return ERR_PTR(ret);
++}
++
++static void irma_dsp_carveout_unmap_dma_buf(struct dma_buf_attachment *attachment,
++					    struct sg_table *table,
++					    enum dma_data_direction direction)
++{
++	struct scatterlist *sg = table->sgl;
++
++	dma_unmap_resource(attachment->dev, sg_dma_address(sg),
++			   sg_dma_len(sg), direction, 0);
++	sg_free_table(table);
++	kfree(table);
++}
++
++static int irma_dsp_carveout_mmap(struct dma_buf *dmabuf,
++				  struct vm_area_struct *vma)
++{
++	struct irma_dsp_carveout_buffer *buffer = dmabuf->priv;
++	unsigned long size = vma->vm_end - vma->vm_start;
++	phys_addr_t offset = (phys_addr_t)vma->vm_pgoff << PAGE_SHIFT;
++	phys_addr_t phys;
++
++	if ((vma->vm_flags & (VM_SHARED | VM_MAYSHARE)) == 0)
++		return -EINVAL;
++
++	if (offset > buffer->len || size > buffer->len - offset)
++		return -EINVAL;
++
++	/*
++	 * Cached mapping for CPU/userspace performance
++	 * Explicit flush/invalidate when ownership moves between CPU and DSP done with irma-cache-flush.c
++	 */
++	phys = buffer->phys + offset;
++	vma->vm_flags |= VM_DONTEXPAND | VM_DONTDUMP;
++
++	return remap_pfn_range(vma, vma->vm_start, phys >> PAGE_SHIFT, size,
++			       vma->vm_page_prot);
++}
++
++static int irma_dsp_carveout_vmap(struct dma_buf *dmabuf,
++				  struct dma_buf_map *map)
++{
++	struct irma_dsp_carveout_buffer *buffer = dmabuf->priv;
++	void *vaddr;
++	int ret = 0;
++
++	mutex_lock(&buffer->lock);
++	if (buffer->vmap_cnt) {
++		buffer->vmap_cnt++;
++		dma_buf_map_set_vaddr(map, buffer->vaddr);
++		goto out;
++	}
++
++	vaddr = memremap(buffer->phys, buffer->len, MEMREMAP_WC);
++	if (!vaddr) {
++		ret = -ENOMEM;
++		goto out;
++	}
++
++	buffer->vaddr = vaddr;
++	buffer->vmap_cnt = 1;
++	dma_buf_map_set_vaddr(map, buffer->vaddr);
++out:
++	mutex_unlock(&buffer->lock);
++
++	return ret;
++}
++
++static void irma_dsp_carveout_vunmap(struct dma_buf *dmabuf,
++				     struct dma_buf_map *map)
++{
++	struct irma_dsp_carveout_buffer *buffer = dmabuf->priv;
++
++	mutex_lock(&buffer->lock);
++	if (WARN_ON(!buffer->vmap_cnt))
++		goto out;
++
++	if (!--buffer->vmap_cnt) {
++		memunmap(buffer->vaddr);
++		buffer->vaddr = NULL;
++	}
++out:
++	mutex_unlock(&buffer->lock);
++
++	dma_buf_map_clear(map);
++}
++
++static int irma_dsp_carveout_cpu_access(struct dma_buf *dmabuf,
++					enum dma_data_direction direction)
++{
++	return 0;
++}
++
++static void irma_dsp_carveout_release(struct dma_buf *dmabuf)
++{
++	struct irma_dsp_carveout_buffer *buffer = dmabuf->priv;
++	struct irma_dsp_carveout_heap *heap = buffer->heap;
++
++	if (buffer->vmap_cnt) {
++		WARN(1, "%s: buffer still mapped in the kernel\n", __func__);
++		memunmap(buffer->vaddr);
++		buffer->vaddr = NULL;
++	}
++
++	gen_pool_free(heap->pool, buffer->phys, buffer->len);
++	kfree(buffer);
++}
++
++static const struct dma_buf_ops irma_dsp_carveout_buf_ops = {
++	.map_dma_buf = irma_dsp_carveout_map_dma_buf,
++	.unmap_dma_buf = irma_dsp_carveout_unmap_dma_buf,
++	.begin_cpu_access = irma_dsp_carveout_cpu_access,
++	.end_cpu_access = irma_dsp_carveout_cpu_access,
++	.mmap = irma_dsp_carveout_mmap,
++	.vmap = irma_dsp_carveout_vmap,
++	.vunmap = irma_dsp_carveout_vunmap,
++	.release = irma_dsp_carveout_release,
++};
++
++int irma_dsp_carveout_dmabuf_get_phys(struct dma_buf *dmabuf, u64 offset,
++				       u64 length, u64 *phys,
++				       u64 *mapped_length)
++{
++	struct irma_dsp_carveout_buffer *buffer;
++
++	if (!dmabuf || !phys || !mapped_length)
++		return -EINVAL;
++
++	if (dmabuf->ops != &irma_dsp_carveout_buf_ops)
++		return -EINVAL;
++
++	if (offset > dmabuf->size)
++		return -EINVAL;
++
++	if (!length)
++		length = dmabuf->size - offset;
++	else if (length > dmabuf->size - offset)
++		return -EINVAL;
++
++	if (!length)
++		return -EINVAL;
++
++	buffer = dmabuf->priv;
++	if (offset > U64_MAX - buffer->phys)
++		return -EOVERFLOW;
++
++	*phys = buffer->phys + offset;
++	*mapped_length = length;
++
++	return 0;
++}
++EXPORT_SYMBOL_GPL(irma_dsp_carveout_dmabuf_get_phys);
++
++static struct dma_buf *irma_dsp_carveout_allocate(struct dma_heap *heap,
++						  unsigned long len,
++						  unsigned long fd_flags,
++						  unsigned long heap_flags)
++{
++	struct irma_dsp_carveout_heap *carveout = dma_heap_get_drvdata(heap);
++	struct irma_dsp_carveout_buffer *buffer;
++	DEFINE_DMA_BUF_EXPORT_INFO(exp_info);
++	struct dma_buf *dmabuf;
++	unsigned long phys;
++	int ret;
++
++	buffer = kzalloc(sizeof(*buffer), GFP_KERNEL);
++	if (!buffer)
++		return ERR_PTR(-ENOMEM);
++
++	phys = gen_pool_alloc(carveout->pool, len);
++	if (!phys) {
++		ret = -ENOMEM;
++		goto free_buffer;
++	}
++
++	ret = irma_dsp_carveout_zero(phys, len);
++	if (ret)
++		goto free_pool;
++
++	mutex_init(&buffer->lock);
++	buffer->heap = carveout;
++	buffer->phys = phys;
++	buffer->len = len;
++
++	exp_info.exp_name = dma_heap_get_name(heap);
++	exp_info.ops = &irma_dsp_carveout_buf_ops;
++	exp_info.size = buffer->len;
++	exp_info.flags = fd_flags;
++	exp_info.priv = buffer;
++
++	dmabuf = dma_buf_export(&exp_info);
++	if (IS_ERR(dmabuf)) {
++		ret = PTR_ERR(dmabuf);
++		goto free_pool;
++	}
++
++	return dmabuf;
++
++free_pool:
++	gen_pool_free(carveout->pool, phys, len);
++free_buffer:
++	kfree(buffer);
++
++	return ERR_PTR(ret);
++}
++
++static const struct dma_heap_ops irma_dsp_carveout_heap_ops = {
++	.allocate = irma_dsp_carveout_allocate,
++};
++
++static const char *irma_dsp_carveout_heap_name(struct reserved_mem *rmem)
++{
++	struct device_node *np;
++	const char *name = NULL;
++
++	for_each_compatible_node(np, NULL, IRMA_DSP_CARVEOUT_HEAP_COMPAT) {
++		if (of_reserved_mem_lookup(np) != rmem)
++			continue;
++
++		if (of_property_read_string(np, "linux,dma-heap-name", &name))
++			name = rmem->name;
++		of_node_put(np);
++		break;
++	}
++
++	if (!name)
++		name = rmem->name;
++
++	return kstrdup(name, GFP_KERNEL);
++}
++
++static int irma_dsp_carveout_add_heap(struct reserved_mem *rmem)
++{
++	struct irma_dsp_carveout_heap *carveout;
++	struct dma_heap_export_info exp_info;
++	int ret;
++
++	carveout = kzalloc(sizeof(*carveout), GFP_KERNEL);
++	if (!carveout)
++		return -ENOMEM;
++
++	carveout->name = irma_dsp_carveout_heap_name(rmem);
++	if (!carveout->name) {
++		ret = -ENOMEM;
++		goto free_carveout;
++	}
++
++	carveout->pool = gen_pool_create(PAGE_SHIFT, -1);
++	if (!carveout->pool) {
++		ret = -ENOMEM;
++		goto free_name;
++	}
++
++	ret = gen_pool_add(carveout->pool, rmem->base, rmem->size, -1);
++	if (ret)
++		goto destroy_pool;
++
++	carveout->base = rmem->base;
++	carveout->size = rmem->size;
++
++	exp_info.name = carveout->name;
++	exp_info.ops = &irma_dsp_carveout_heap_ops;
++	exp_info.priv = carveout;
++
++	carveout->heap = dma_heap_add(&exp_info);
++	if (IS_ERR(carveout->heap)) {
++		ret = PTR_ERR(carveout->heap);
++		goto destroy_pool;
++	}
++
++	pr_info("IRMA DSP carveout heap %s at %pa, size %zu MiB\n",
++		carveout->name, &carveout->base, carveout->size / SZ_1M);
++
++	return 0;
++
++destroy_pool:
++	gen_pool_destroy(carveout->pool);
++free_name:
++	kfree(carveout->name);
++free_carveout:
++	kfree(carveout);
++
++	return ret;
++}
++
++static int __init irma_dsp_carveout_heap_init(void)
++{
++	unsigned int i;
++	int ret;
++
++	for (i = 0; i < irma_dsp_carveout_rmem_count; i++) {
++		ret = irma_dsp_carveout_add_heap(irma_dsp_carveout_rmems[i]);
++		if (ret)
++			return ret;
++	}
++
++	return 0;
++}
++module_init(irma_dsp_carveout_heap_init);
++
++static int __init irma_dsp_carveout_rmem_setup(struct reserved_mem *rmem)
++{
++	unsigned long node = rmem->fdt_node;
++
++	if (of_get_flat_dt_prop(node, "reusable", NULL))
++		return -EINVAL;
++
++	if (!of_get_flat_dt_prop(node, "no-map", NULL)) {
++		pr_err("IRMA DSP carveout heap %s requires no-map\n",
++		       rmem->name);
++		return -EINVAL;
++	}
++
++	if (!PAGE_ALIGNED(rmem->base) || !PAGE_ALIGNED(rmem->size)) {
++		pr_err("IRMA DSP carveout heap %s is not page aligned\n",
++		       rmem->name);
++		return -EINVAL;
++	}
++
++	if (irma_dsp_carveout_rmem_count == IRMA_DSP_CARVEOUT_MAX_HEAPS)
++		return -ENOSPC;
++
++	irma_dsp_carveout_rmems[irma_dsp_carveout_rmem_count++] = rmem;
++
++	return 0;
++}
++RESERVEDMEM_OF_DECLARE(irma_dsp_carveout_heap,
++		       IRMA_DSP_CARVEOUT_HEAP_COMPAT,
++		       irma_dsp_carveout_rmem_setup);
++
++MODULE_DESCRIPTION("IRMA DSP reserved-memory DMA-BUF heap");
++MODULE_LICENSE("GPL");
+diff --git a/include/linux/irma-dsp-carveout-heap.h b/include/linux/irma-dsp-carveout-heap.h
+new file mode 100644
+index 0000000000000..00fa4be4c807d
+--- /dev/null
++++ b/include/linux/irma-dsp-carveout-heap.h
+@@ -0,0 +1,13 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef _LINUX_IRMA_DSP_CARVEOUT_HEAP_H
++#define _LINUX_IRMA_DSP_CARVEOUT_HEAP_H
++
++#include <linux/types.h>
++
++struct dma_buf;
++
++int irma_dsp_carveout_dmabuf_get_phys(struct dma_buf *dmabuf, u64 offset,
++				       u64 length, u64 *phys,
++				       u64 *mapped_length);
++
++#endif /* _LINUX_IRMA_DSP_CARVEOUT_HEAP_H */
+-- 
+2.44.4
+

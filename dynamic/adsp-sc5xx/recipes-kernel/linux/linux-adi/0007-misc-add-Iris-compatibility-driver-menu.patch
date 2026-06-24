@@ -1,0 +1,38 @@
+From 73fe82b9dd45bca5354f88101afa13d846e8d37f Mon Sep 17 00:00:00 2001
+From: Ian Dannapel <ian.dannapel@iris-sensing.com>
+Date: Fri, 5 Jun 2026 09:19:24 +0200
+Subject: [PATCH 07/29] misc: add Iris compatibility driver menu
+
+Hook the Iris Gen6 compatibility drivers into the misc subsystem.
+The parent Kconfig and Makefile entries keep the per-driver patches local to drivers/misc/iris/.
+
+Signed-off-by: Ian Dannapel <ian.dannapel@iris-sensing.com>
+---
+ drivers/misc/Kconfig  | 1 +
+ drivers/misc/Makefile | 1 +
+ 2 files changed, 2 insertions(+)
+
+diff --git a/drivers/misc/Kconfig b/drivers/misc/Kconfig
+index bb84e345f2e4f..19c1d8af2a01c 100644
+--- a/drivers/misc/Kconfig
++++ b/drivers/misc/Kconfig
+@@ -482,6 +482,7 @@ source "drivers/misc/genwqe/Kconfig"
+ source "drivers/misc/echo/Kconfig"
+ source "drivers/misc/cxl/Kconfig"
+ source "drivers/misc/adi/Kconfig"
++source "drivers/misc/iris/Kconfig"
+ source "drivers/misc/ocxl/Kconfig"
+ source "drivers/misc/bcm-vk/Kconfig"
+ source "drivers/misc/cardreader/Kconfig"
+diff --git a/drivers/misc/Makefile b/drivers/misc/Makefile
+index 3a6fcae7cb267..77dd8356702e1 100644
+--- a/drivers/misc/Makefile
++++ b/drivers/misc/Makefile
+@@ -61,3 +61,4 @@ obj-$(CONFIG_HISI_HIKEY_USB)	+= hisi_hikey_usb.o
+ obj-$(CONFIG_HI6421V600_IRQ)	+= hi6421v600-irq.o
+ obj-$(CONFIG_ADI_SRAM_MMAP)	+= adi/
+ obj-$(CONFIG_ADI_SRAM_MMAP_V7) += adi/
++obj-$(CONFIG_IRMA_MISC) += iris/
+-- 
+2.44.4
+

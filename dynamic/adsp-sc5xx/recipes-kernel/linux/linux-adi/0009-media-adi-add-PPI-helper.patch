@@ -1,0 +1,760 @@
+From 89e7e84be614b12246c343660cca37f9670653b2 Mon Sep 17 00:00:00 2001
+From: Ian Dannapel <ian.dannapel@iris-sensing.com>
+Date: Fri, 5 Jun 2026 09:19:24 +0200
+Subject: [PATCH 09/29] media: adi: add PPI helper
+
+Add the ADI PPI/EPPI helper used by the SC5xx capture bridge.
+It resolves DMA channels from device tree, configures PPI transfer geometry, handles pinctrl mode selection and exports create/delete helpers to the capture driver.
+
+Signed-off-by: Ian Dannapel <ian.dannapel@iris-sensing.com>
+---
+ drivers/media/platform/adi/Kconfig  |   4 +
+ drivers/media/platform/adi/Makefile |   1 +
+ drivers/media/platform/adi/ppi.c    | 510 ++++++++++++++++++++++++++++
+ include/media/adi/adi_ppi_regs.h    |  71 ++++
+ include/media/adi/ppi.h             | 119 +++++++
+ 5 files changed, 705 insertions(+)
+ create mode 100644 drivers/media/platform/adi/Kconfig
+ create mode 100644 drivers/media/platform/adi/Makefile
+ create mode 100644 drivers/media/platform/adi/ppi.c
+ create mode 100644 include/media/adi/adi_ppi_regs.h
+ create mode 100644 include/media/adi/ppi.h
+
+diff --git a/drivers/media/platform/adi/Kconfig b/drivers/media/platform/adi/Kconfig
+new file mode 100644
+index 0000000000000..069bfa992efe5
+--- /dev/null
++++ b/drivers/media/platform/adi/Kconfig
+@@ -0,0 +1,4 @@
++config VIDEO_ADI_PPI
++	tristate
++	depends on VIDEO_ADI_CAPTURE
++	default VIDEO_ADI_CAPTURE
+diff --git a/drivers/media/platform/adi/Makefile b/drivers/media/platform/adi/Makefile
+new file mode 100644
+index 0000000000000..0dc809ce39cb7
+--- /dev/null
++++ b/drivers/media/platform/adi/Makefile
+@@ -0,0 +1 @@
++obj-$(CONFIG_VIDEO_ADI_PPI) += ppi.o
+diff --git a/drivers/media/platform/adi/ppi.c b/drivers/media/platform/adi/ppi.c
+new file mode 100644
+index 0000000000000..bf851e051a78d
+--- /dev/null
++++ b/drivers/media/platform/adi/ppi.c
+@@ -0,0 +1,510 @@
++/*
++ * ppi.c Analog Devices Parallel Peripheral Interface driver
++ *
++ * Copyright (c) 2011 - 2018 Analog Devices Inc.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ */
++
++#include <linux/module.h>
++#include <linux/err.h>
++#include <linux/of.h>
++#include <linux/of_address.h>
++#include <linux/of_irq.h>
++#include <linux/pinctrl/consumer.h>
++#include <linux/slab.h>
++#include <linux/platform_device.h>
++#include <linux/io.h>
++
++#ifdef CONFIG_ARM
++#include "../../../dma/adi-dma.h"
++#elif defined(CONFIG_ARCH_HEADER_IN_MACH)
++#include <mach/portmux.h>
++#include <mach/dma.h>
++#else
++#include <asm/bfin_ppi.h>
++#include <asm/blackfin.h>
++#include <asm/dma.h>
++#include <asm/portmux.h>
++#endif
++
++#include <asm/cacheflush.h>
++#include <linux/soc/adi/cpu.h>
++#include <media/adi/ppi.h>
++
++static int ppi_attach_irq(struct ppi_if *ppi, irq_handler_t handler);
++static void ppi_detach_irq(struct ppi_if *ppi);
++static int ppi_start(struct ppi_if *ppi);
++static int ppi_stop(struct ppi_if *ppi);
++static int ppi_set_params(struct ppi_if *ppi, struct ppi_params *params);
++static void ppi_update_addr(struct ppi_if *ppi, unsigned long addr);
++static void ppi_update_desc(struct ppi_if *ppi, dma_addr_t desc_addr,
++			    u32 x_count, u32 x_modify, u32 dma_config);
++
++static const struct ppi_ops ppi_ops = {
++	.attach_irq = ppi_attach_irq,
++	.detach_irq = ppi_detach_irq,
++	.start = ppi_start,
++	.stop = ppi_stop,
++	.set_params = ppi_set_params,
++	.update_addr = ppi_update_addr,
++	.update_desc = ppi_update_desc,
++};
++
++static irqreturn_t ppi_irq_err(int irq, void *dev_id)
++{
++	struct ppi_if *ppi = dev_id;
++	const struct ppi_info *info = ppi->info;
++
++	switch (info->type) {
++	case PPI_TYPE_PPI:
++	{
++		struct adi_ppi_regs *reg = info->base;
++		unsigned short status;
++
++		/* register on bf561 is cleared when read
++		 * others are W1C
++		 */
++		status = readw(&reg->status);
++		if (status & 0x3000)
++			atomic_set(&ppi->err, 1);
++		writew(0xff00, &reg->status);
++		break;
++	}
++	case PPI_TYPE_EPPI:
++	{
++		struct adi_eppi_regs *reg = info->base;
++		unsigned short status;
++
++		status = readw(&reg->status);
++		if (status & 0x2)
++			atomic_set(&ppi->err, 1);
++		writew(0xffff, &reg->status);
++		break;
++	}
++	case PPI_TYPE_EPPI3:
++	{
++		struct adi_eppi3_regs *reg = info->base;
++		unsigned long stat;
++
++		stat = readl(&reg->stat);
++		if (stat & 0x2)
++			atomic_set(&ppi->err, 1);
++		writel(0xc0ff, &reg->stat);
++		break;
++	}
++	default:
++		break;
++	}
++
++	return IRQ_HANDLED;
++}
++
++static int ppi_attach_irq(struct ppi_if *ppi, irq_handler_t handler)
++{
++	const struct ppi_info *info = ppi->info;
++	int ret;
++
++	ret = request_irq(info->dma_irq, handler, 0, "PPI DMA", ppi);
++	if (ret) {
++		pr_err("Unable to allocate IRQ for PPI DMA\n");
++		return ret;
++	}
++
++	if (ppi->err_int) {
++		ret = request_irq(info->irq_err, ppi_irq_err, 0, "PPI ERROR", ppi);
++		if (ret) {
++			pr_err("Unable to allocate IRQ for PPI\n");
++			free_irq(info->dma_irq, ppi);
++		}
++	}
++	return ret;
++}
++
++static void ppi_detach_irq(struct ppi_if *ppi)
++{
++	const struct ppi_info *info = ppi->info;
++
++	if (ppi->err_int)
++		free_irq(info->irq_err, ppi);
++	free_irq(info->dma_irq, ppi);
++}
++
++static int ppi_start(struct ppi_if *ppi)
++{
++	const struct ppi_info *info = ppi->info;
++
++	set_dma_config(info->dma_base, ppi->dma_config | DMAEN);
++
++	/* enable PPI */
++	ppi->ppi_control |= PORT_EN;
++	switch (info->type) {
++	case PPI_TYPE_PPI:
++	{
++		struct adi_ppi_regs *reg = info->base;
++		writew(ppi->ppi_control, &reg->control);
++		break;
++	}
++	case PPI_TYPE_EPPI:
++	{
++		struct adi_eppi_regs *reg = info->base;
++		writel(ppi->ppi_control, &reg->control);
++		break;
++	}
++	case PPI_TYPE_EPPI3:
++	{
++		struct adi_eppi3_regs *reg = info->base;
++		writel(ppi->ppi_control, &reg->ctl);
++		break;
++	}
++
++	default:
++		return -EINVAL;
++	}
++
++	return 0;
++}
++
++static int ppi_stop(struct ppi_if *ppi)
++{
++	const struct ppi_info *info = ppi->info;
++
++	/* disable PPI */
++	ppi->ppi_control &= ~PORT_EN;
++	switch (info->type) {
++	case PPI_TYPE_PPI:
++	{
++		struct adi_ppi_regs *reg = info->base;
++		writew(ppi->ppi_control, &reg->control);
++		break;
++	}
++	case PPI_TYPE_EPPI:
++	{
++		struct adi_eppi_regs *reg = info->base;
++		writel(ppi->ppi_control, &reg->control);
++		break;
++	}
++	case PPI_TYPE_EPPI3:
++	{
++		struct adi_eppi3_regs *reg = info->base;
++		writel(ppi->ppi_control, &reg->ctl);
++		break;
++	}
++
++	default:
++		return -EINVAL;
++	}
++
++	/* disable DMA */
++	clear_dma_irqstat(info->dma_base);
++	set_dma_config(info->dma_base, ppi->dma_config & ~DMAEN);
++
++	return 0;
++}
++
++static int ppi_set_params(struct ppi_if *ppi, struct ppi_params *params)
++{
++	const struct ppi_info *info = ppi->info;
++	unsigned int wd_size = 0;
++	unsigned int wd_shift = 0;
++	int dma32 = 0;
++	u32 dma_config;
++	int bytes_per_line;
++	int hcount, hdelay, samples_per_line;
++
++#ifdef CONFIG_PINCTRL
++	static const char * const pin_state[] = {"8bit", "16bit", "24bit"};
++	struct pinctrl_state *pstate;
++	int ret;
++#endif
++
++	if (params->dlen > 24 || params->dlen <= 0)
++		return -EINVAL;
++
++#ifdef CONFIG_PINCTRL
++	pstate = pinctrl_lookup_state(ppi->pctrl,
++				      pin_state[(params->dlen + 7) / 8 - 1]);
++	if (IS_ERR(pstate))
++		return PTR_ERR(pstate);
++
++	ret = pinctrl_select_state(ppi->pctrl, pstate);
++	if (ret)
++		return ret;
++#endif
++	bytes_per_line = params->width * params->bpp / 8;
++	/* convert parameters unit from pixels to samples */
++	hcount = params->width * (params->bpp / params->dlen);
++	hdelay = params->hdelay * (params->bpp / params->dlen);
++	samples_per_line = params->line * (params->bpp / params->dlen);
++	if (params->int_mask == 0xFFFFFFFF)
++		ppi->err_int = false;
++	else
++		ppi->err_int = true;
++
++	dma_config = DMAFLOW_STOP | DMARESTART | DMA2D | DI_EN_Y;
++	ppi->ppi_control = params->ppi_control & ~PORT_EN;
++	if (!(ppi->ppi_control & PORT_DIR))
++		dma_config |= WNR;
++	switch (info->type) {
++	case PPI_TYPE_PPI:
++	{
++		struct adi_ppi_regs *reg = info->base;
++
++		if (params->ppi_control & DMA32) {
++			dma32 = 1;
++			wd_size = 2;
++			wd_shift = 2;
++		}
++
++		writew(ppi->ppi_control, &reg->control);
++		writew(samples_per_line - 1, &reg->count);
++		writew(params->frame, &reg->frame);
++		break;
++	}
++	case PPI_TYPE_EPPI:
++	{
++		struct adi_eppi_regs *reg = info->base;
++
++		if ((params->ppi_control & PACK_EN)
++			|| (params->ppi_control & 0x38000) > DLEN_16) {
++			dma32 = 1;
++			wd_size = 2;
++			wd_shift = 2;
++		}
++
++		writel(ppi->ppi_control, &reg->control);
++		writew(samples_per_line, &reg->line);
++		writew(params->frame, &reg->frame);
++		writew(hdelay, &reg->hdelay);
++		writew(params->vdelay, &reg->vdelay);
++		writew(hcount, &reg->hcount);
++		writew(params->height, &reg->vcount);
++		break;
++	}
++	case PPI_TYPE_EPPI3:
++	{
++		struct adi_eppi3_regs *reg = info->base;
++
++		if ((params->ppi_control & PACK_EN)
++			|| (params->ppi_control & 0x70000) > DLEN_16) {
++			dma32 = 1;
++			wd_size = 5;
++			wd_shift = 8;
++
++			while (wd_size &&
++			       (bytes_per_line % (1U << wd_size)) != 0)
++				--wd_size;
++		}
++
++		writel(ppi->ppi_control, &reg->ctl);
++		writel(samples_per_line, &reg->line);
++		writel(params->frame, &reg->frame);
++		writel(hdelay, &reg->hdly);
++		writel(params->vdelay, &reg->vdly);
++		writel(hcount, &reg->hcnt);
++		writel(params->height, &reg->vcnt);
++		if (params->int_mask)
++			writel(params->int_mask & 0xFF, &reg->imsk);
++		if (ppi->ppi_control & PORT_DIR) {
++			if (ppi->ppi_control & BLANKGEN) {
++				u32 blank_sample;
++
++				blank_sample = samples_per_line - hcount - 8;
++				writel(blank_sample, &reg->fs1_wlhb);
++				writel(hcount, &reg->fs1_paspl);
++				writel(params->blank_lines, &reg->fs2_wlvb);
++				writel(params->active_lines, &reg->fs2_palpf);
++			} else {
++				u32 hsync_width, vsync_width, vsync_period;
++
++				hsync_width = params->hsync
++						* params->bpp / params->dlen;
++				vsync_width = params->vsync * samples_per_line;
++				vsync_period = samples_per_line * params->frame;
++				writel(hsync_width, &reg->fs1_wlhb);
++				writel(samples_per_line, &reg->fs1_paspl);
++				writel(vsync_width, &reg->fs2_wlvb);
++				writel(vsync_period, &reg->fs2_palpf);
++			}
++		}
++		break;
++	}
++	default:
++		return -EINVAL;
++	}
++
++	if (dma32) {
++		dma_config |= (wd_size << wd_shift) | PSIZE_32;
++		set_dma_x_count(info->dma_base, bytes_per_line >> wd_size);
++		set_dma_x_modify(info->dma_base, 1 << wd_size);
++		set_dma_y_modify(info->dma_base, 1 << wd_size);
++	} else {
++		dma_config |= WDSIZE_16 | PSIZE_16;
++		set_dma_x_count(info->dma_base, bytes_per_line >> 1);
++		set_dma_x_modify(info->dma_base, 2);
++		set_dma_y_modify(info->dma_base, 2);
++	}
++	set_dma_y_count(info->dma_base, params->height);
++	clear_dma_irqstat(info->dma_base);
++	ppi->dma_config = dma_config;
++	set_dma_config(info->dma_base, dma_config);
++
++	return 0;
++}
++
++static void ppi_update_addr(struct ppi_if *ppi, unsigned long addr)
++{
++	set_dma_start_addr(ppi->info->dma_base, addr);
++}
++
++static void ppi_update_desc(struct ppi_if *ppi, dma_addr_t desc_addr,
++			    u32 x_count, u32 x_modify, u32 dma_config)
++{
++	const struct ppi_info *info = ppi->info;
++
++	set_dma_next_desc_addr(info->dma_base, desc_addr);
++	set_dma_x_count(info->dma_base, x_count);
++	set_dma_x_modify(info->dma_base, x_modify);
++	clear_dma_irqstat(info->dma_base);
++	ppi->dma_config = dma_config;
++	set_dma_config(info->dma_base, dma_config & ~DMAEN);
++}
++
++static int ppi_dma_init(struct platform_device *pdev, struct ppi_info *info)
++{
++	struct device_node *dma_ctrl = NULL;
++	struct device_node *chan = NULL;
++	struct resource res;
++	u32 offset;
++	u32 id;
++	u32 spu;
++	int ret;
++
++	info->dma_spu = -1;
++
++	for_each_compatible_node(dma_ctrl, NULL, "adi,dma-controller") {
++		for_each_child_of_node(dma_ctrl, chan) {
++			if (of_property_read_u32(chan, "adi,id", &id) || id != info->dma_ch)
++				continue;
++
++			ret = of_address_to_resource(dma_ctrl, 0, &res);
++			if (ret)
++				goto out_put_nodes;
++
++			ret = of_property_read_u32(chan, "adi,src-offset", &offset);
++			if (ret)
++				goto out_put_nodes;
++
++			info->dma_base = devm_ioremap(&pdev->dev, res.start + offset, 0x80);
++			if (!info->dma_base) {
++				ret = -ENOMEM;
++				goto out_put_nodes;
++			}
++
++			ret = of_irq_get_byname(chan, "complete");
++			if (ret <= 0) {
++				ret = ret ?: -EINVAL;
++				goto out_put_nodes;
++			}
++			info->dma_irq = ret;
++
++			ret = of_irq_get_byname(chan, "error");
++			if (ret <= 0) {
++				ret = ret ?: -EINVAL;
++				goto out_put_nodes;
++			}
++			info->dma_err_irq = ret;
++
++			if (!of_property_read_u32(chan, "spu_securep_id", &spu))
++				info->dma_spu = spu;
++			ret = 0;
++			goto out_put_nodes;
++		}
++	}
++
++	return -ENOENT;
++
++out_put_nodes:
++	of_node_put(chan);
++	of_node_put(dma_ctrl);
++	return ret;
++}
++
++struct ppi_if *ppi_create_instance(struct platform_device *pdev,
++			const struct ppi_info *info)
++{
++	struct ppi_if *ppi;
++	struct ppi_info *mutable_info;
++	int ret;
++
++	if (!info)
++		return ERR_PTR(-EINVAL);
++
++#ifndef CONFIG_PINCTRL
++	if (!info->pin_req)
++		return ERR_PTR(-EINVAL);
++#endif
++	mutable_info = devm_kmemdup(&pdev->dev, info, sizeof(*info), GFP_KERNEL);
++	if (!mutable_info)
++		return ERR_PTR(-ENOMEM);
++
++	ret = ppi_dma_init(pdev, mutable_info);
++	if (ret) {
++		dev_err(&pdev->dev, "failed to resolve dma channel %d\n",
++			mutable_info->dma_ch);
++		return ERR_PTR(ret);
++	}
++
++	ppi = kzalloc(sizeof(*ppi), GFP_KERNEL);
++	if (!ppi)
++		return ERR_PTR(-ENOMEM);
++
++	ppi->ops = &ppi_ops;
++	ppi->info = mutable_info;
++	ppi->dev = &pdev->dev;
++
++#ifdef CONFIG_PINCTRL
++	ppi->pctrl = devm_pinctrl_get(ppi->dev);
++	if (IS_ERR(ppi->pctrl)) {
++		ret = PTR_ERR(ppi->pctrl);
++		dev_err(&pdev->dev, "failed to get pinctrl: %d\n", ret);
++		kfree(ppi);
++		return ERR_PTR(ret);
++	}
++#endif
++
++#if defined(CONFIG_ARCH_SC59X) || defined(CONFIG_ARCH_SC58X) || defined(CONFIG_ARCH_SC57X)
++	if (mutable_info->spu >= 0)
++		set_spu_securep_msec(mutable_info->spu, true);
++	if (mutable_info->dma_spu >= 0)
++		set_spu_securep_msec(mutable_info->dma_spu, true);
++#endif
++	atomic_set(&ppi->err, 0);
++
++	dev_dbg(ppi->dev, "ppi probe success\n");
++	return ppi;
++}
++EXPORT_SYMBOL(ppi_create_instance);
++
++void ppi_delete_instance(struct ppi_if *ppi)
++{
++#if defined(CONFIG_ARCH_SC59X) || defined(CONFIG_ARCH_SC58X) || defined(CONFIG_ARCH_SC57X)
++	if (ppi->info->dma_spu >= 0)
++		set_spu_securep_msec(ppi->info->dma_spu, false);
++	if (ppi->info->spu >= 0)
++		set_spu_securep_msec(ppi->info->spu, false);
++#endif
++	kfree(ppi);
++}
++EXPORT_SYMBOL(ppi_delete_instance);
++
++MODULE_DESCRIPTION("Analog Devices PPI driver");
++MODULE_AUTHOR("Scott Jiang <Scott.Jiang.Linux@gmail.com>");
++MODULE_LICENSE("GPL v2");
+diff --git a/include/media/adi/adi_ppi_regs.h b/include/media/adi/adi_ppi_regs.h
+new file mode 100644
+index 0000000000000..74fb63af41272
+--- /dev/null
++++ b/include/media/adi/adi_ppi_regs.h
+@@ -0,0 +1,71 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef _ADI_PPI_REGS_H_
++#define _ADI_PPI_REGS_H_
++
++#include <linux/types.h>
++
++#define __ADI(m) u16 m; u16 __pad_##m
++
++struct adi_ppi_regs {
++	__ADI(control);
++	__ADI(status);
++	__ADI(count);
++	__ADI(delay);
++	__ADI(frame);
++};
++
++struct adi_eppi_regs {
++	__ADI(status);
++	__ADI(hcount);
++	__ADI(hdelay);
++	__ADI(vcount);
++	__ADI(vdelay);
++	__ADI(frame);
++	__ADI(line);
++	__ADI(clkdiv);
++	u32 control;
++	u32 fs1w_hbl;
++	u32 fs1p_avpl;
++	u32 fs2w_lvb;
++	u32 fs2p_lavf;
++	u32 clip;
++};
++
++struct adi_eppi3_regs {
++	u32 stat;
++	u32 hcnt;
++	u32 hdly;
++	u32 vcnt;
++	u32 vdly;
++	u32 frame;
++	u32 line;
++	u32 clkdiv;
++	u32 ctl;
++	u32 fs1_wlhb;
++	u32 fs1_paspl;
++	u32 fs2_wlvb;
++	u32 fs2_palpf;
++	u32 imsk;
++	u32 padding;
++	u32 oddclip;
++	u32 evenclip;
++	u32 fs1_dly;
++	u32 fs2_dly;
++	u32 ctl2;
++};
++
++#define EPPI_CTL_EN                     0x00000001
++#define EPPI_CTL_DIR                    0x00000002
++#define EPPI_CTL_ENTIRE656              0x00000004
++#define EPPI_CTL_NON656                 0x0000000C
++#define EPPI_CTL_SYNC2                  0x00000020
++#define EPPI_CTL_BLANKGEN               0x00000100
++#define EPPI_CTL_SIGNEXT                0x00000800
++#define EPPI_CTL_POLC0                  0x00000000
++#define EPPI_CTL_FS1LO_FS2LO            0x0000C000
++#define EPPI_CTL_PACKEN                 0x00400000
++#define EPPI_CTL_DLEN08                 0x00000000
++#define EPPI_CTL_DLEN12                 0x00020000
++#define EPPI_CTL_DLEN16                 0x00040000
++
++#endif
+diff --git a/include/media/adi/ppi.h b/include/media/adi/ppi.h
+new file mode 100644
+index 0000000000000..dddb2c6700b4c
+--- /dev/null
++++ b/include/media/adi/ppi.h
+@@ -0,0 +1,119 @@
++/*
++ * Analog Devices PPI header file
++ *
++ * Copyright (c) 2011 - 2018 Analog Devices Inc.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ */
++
++#ifndef _PPI_H_
++#define _PPI_H_
++
++#include <linux/atomic.h>
++#include <linux/interrupt.h>
++#if defined(CONFIG_ARM)
++#include <media/adi/adi_ppi_regs.h>
++#elif defined(CONFIG_BLACKFIN)
++#include <asm/blackfin.h>
++#include <asm/bfin_ppi.h>
++#endif
++
++/* EPPI */
++#ifdef EPPI_EN
++#define PORT_EN EPPI_EN
++#define PORT_DIR EPPI_DIR
++#define DMA32 0
++#define PACK_EN PACKEN
++#endif
++
++/* EPPI3 */
++#ifdef EPPI_CTL_EN
++#define PORT_EN EPPI_CTL_EN
++#define PORT_DIR EPPI_CTL_DIR
++#define PACK_EN EPPI_CTL_PACKEN
++#define BLANKGEN EPPI_CTL_BLANKGEN
++#define DMA32 0
++#define DLEN_8 EPPI_CTL_DLEN08
++#define DLEN_16 EPPI_CTL_DLEN16
++#endif
++
++#ifndef BLANKGEN
++#define BLANKGEN 0
++#endif
++
++struct ppi_if;
++struct pinctrl;
++
++struct ppi_params {
++	u32 width;              /* width in pixels */
++	u32 height;             /* height in lines */
++	u32 hdelay;             /* delay after the HSYNC in pixels */
++	u32 vdelay;             /* delay after the VSYNC in lines */
++	u32 line;               /* total pixels per line */
++	u32 frame;              /* total lines per frame */
++	u32 hsync;              /* HSYNC length in pixels */
++	u32 vsync;              /* VSYNC length in lines */
++	u32 active_lines;       /* active lines per field */
++	u32 blank_lines;        /* vertical blanking lines */
++	int bpp;                /* bits per pixel */
++	int dlen;               /* data length for ppi in bits */
++	u32 ppi_control;        /* ppi configuration */
++	u32 int_mask;           /* interrupt mask */
++};
++
++struct ppi_ops {
++	int (*attach_irq)(struct ppi_if *ppi, irq_handler_t handler);
++	void (*detach_irq)(struct ppi_if *ppi);
++	int (*start)(struct ppi_if *ppi);
++	int (*stop)(struct ppi_if *ppi);
++	int (*set_params)(struct ppi_if *ppi, struct ppi_params *params);
++	void (*update_addr)(struct ppi_if *ppi, unsigned long addr);
++	void (*update_desc)(struct ppi_if *ppi, dma_addr_t desc_addr,
++			    u32 x_count, u32 x_modify, u32 dma_config);
++};
++
++enum ppi_type {
++	PPI_TYPE_PPI,
++	PPI_TYPE_EPPI,
++	PPI_TYPE_EPPI3,
++};
++
++struct ppi_info {
++	enum ppi_type type;
++	int dma_ch;
++	int dma_irq;
++	int dma_err_irq;
++	int irq_err;
++	void __iomem *base;
++	void __iomem *dma_base;
++	const unsigned short *pin_req;
++	int spu;
++	int dma_spu;
++};
++
++/* ppi interface */
++struct ppi_if {
++	struct device *dev;
++	unsigned long ppi_control;
++	const struct ppi_ops *ops;
++	const struct ppi_info *info;
++#ifdef CONFIG_PINCTRL
++	struct pinctrl *pctrl;
++#endif
++	u32 dma_config;
++	bool err_int; /* if we need request error interrupt */
++	atomic_t err; /* if ppi has fifo error */
++	void *priv;
++};
++
++struct ppi_if *ppi_create_instance(struct platform_device *pdev,
++			const struct ppi_info *info);
++void ppi_delete_instance(struct ppi_if *ppi);
++#endif
+-- 
+2.44.4
+

@@ -1,0 +1,198 @@
+From 626460d8685720eaf8e95255dbe77281aa4b9215 Mon Sep 17 00:00:00 2001
+From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+Date: Fri, 29 May 2026 12:27:48 +0000
+Subject: [PATCH 25/29] misc: adi: add SC57x TMU character device
+
+Add a small miscdevice driver for the SC57x Thermal Monitoring Unit.
+
+The driver exposes /dev/tmu and returns the raw signed 16-bit temperature
+register value on read. Enable it in the SC573 Gen6 defconfig.
+
+Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+---
+ drivers/misc/adi/Kconfig      |   1 -
+ drivers/misc/iris/Kconfig     |   8 ++
+ drivers/misc/iris/Makefile    |   1 +
+ drivers/misc/iris/sc57x-tmu.c | 136 ++++++++++++++++++++++++++++++++++
+ 4 files changed, 145 insertions(+), 1 deletion(-)
+ create mode 100644 drivers/misc/iris/sc57x-tmu.c
+
+diff --git a/drivers/misc/adi/Kconfig b/drivers/misc/adi/Kconfig
+index e4b44ebdd7b63..fdede5c9e11da 100644
+--- a/drivers/misc/adi/Kconfig
++++ b/drivers/misc/adi/Kconfig
+@@ -20,4 +20,3 @@ config ADI_SRAM_CONTROLLER
+ 	default n
+ 	help
+ 	  Exports total/used/avail information for sc5xx onchip SRAM.
+-
+diff --git a/drivers/misc/iris/Kconfig b/drivers/misc/iris/Kconfig
+index bf43dab07fade..f1ee158bec547 100644
+--- a/drivers/misc/iris/Kconfig
++++ b/drivers/misc/iris/Kconfig
+@@ -44,3 +44,11 @@ config IRMA_SHARC
+ 	  Exposes the legacy /dev/left_sharc and /dev/right_sharc mailbox ABI
+ 	  used by Iris Gen6 userspace to exchange small command blocks with the
+ 	  SHARC cores and wake them through ADI TRU software triggers.
++
++config ADI_SC57X_TMU_CHAR
++	tristate "SC57x TMU character device"
++	depends on (ARCH_SC57X || COMPILE_TEST) && HAS_IOMEM
++	default n
++	help
++	  Exposes the SC57x Thermal Monitoring Unit through /dev/tmu. A read
++	  returns the signed 16-bit raw temperature register value.
+diff --git a/drivers/misc/iris/Makefile b/drivers/misc/iris/Makefile
+index 3e1a793427b8b..9f3b89db5324e 100644
+--- a/drivers/misc/iris/Makefile
++++ b/drivers/misc/iris/Makefile
+@@ -4,3 +4,4 @@ obj-$(CONFIG_IRMA_DSP_ADDR)		+= irma-dsp-addr.o
+ obj-$(CONFIG_IRMA_CACHE_FLUSH)		+= irma-cache-flush.o
+ obj-$(CONFIG_IRMA_CORECTRL)		+= irma-corectrl.o
+ obj-$(CONFIG_IRMA_SHARC)		+= irma-sharc.o
++obj-$(CONFIG_ADI_SC57X_TMU_CHAR)	+= sc57x-tmu.o
+diff --git a/drivers/misc/iris/sc57x-tmu.c b/drivers/misc/iris/sc57x-tmu.c
+new file mode 100644
+index 0000000000000..98d6e6318a26e
+--- /dev/null
++++ b/drivers/misc/iris/sc57x-tmu.c
+@@ -0,0 +1,136 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * Simple SC57x Thermal Monitoring Unit character device.
++ */
++
++#include <linux/bitops.h>
++#include <linux/errno.h>
++#include <linux/fs.h>
++#include <linux/io.h>
++#include <linux/miscdevice.h>
++#include <linux/module.h>
++#include <linux/mutex.h>
++#include <linux/types.h>
++#include <linux/uaccess.h>
++
++#define SC57X_TMU_DRV_NAME	"sc57x-tmu"
++#define SC57X_TMU_DEV_NAME	"tmu"
++#define SC57X_TMU_VERSION	"1.0.0"
++
++#define SC57X_TMU_BASE		0x31016800
++#define SC57X_TMU_SIZE		0x100
++
++#define SC57X_TMU_CTL		0x00
++#define SC57X_TMU_TEMP		0x04
++#define SC57X_TMU_AVG		0x08
++#define SC57X_TMU_GAIN		0x24
++#define SC57X_TMU_OFFSET	0x2c
++
++#define SC57X_TMU_CTL_TMEN	BIT(3)
++#define SC57X_TMU_CTL_TMPU	BIT(0)
++#define SC57X_TMU_AVG_ENABLE	BIT(0)
++
++static void __iomem *sc57x_tmu_base;
++static DEFINE_MUTEX(sc57x_tmu_lock);
++
++static void sc57x_tmu_enable(void)
++{
++	writel(0, sc57x_tmu_base + SC57X_TMU_GAIN);
++	writel(0, sc57x_tmu_base + SC57X_TMU_OFFSET);
++	writel(SC57X_TMU_AVG_ENABLE, sc57x_tmu_base + SC57X_TMU_AVG);
++	writel(SC57X_TMU_CTL_TMPU | SC57X_TMU_CTL_TMEN,
++	       sc57x_tmu_base + SC57X_TMU_CTL);
++}
++
++static void sc57x_tmu_disable(void)
++{
++	writel(0, sc57x_tmu_base + SC57X_TMU_CTL);
++}
++
++static int sc57x_tmu_open(struct inode *inode, struct file *file)
++{
++	mutex_lock(&sc57x_tmu_lock);
++	sc57x_tmu_enable();
++	mutex_unlock(&sc57x_tmu_lock);
++
++	return nonseekable_open(inode, file);
++}
++
++static int sc57x_tmu_release(struct inode *inode, struct file *file)
++{
++	mutex_lock(&sc57x_tmu_lock);
++	sc57x_tmu_disable();
++	mutex_unlock(&sc57x_tmu_lock);
++
++	return 0;
++}
++
++static ssize_t sc57x_tmu_read(struct file *file, char __user *buf,
++			      size_t count, loff_t *ppos)
++{
++	s16 temp;
++
++	if (count != sizeof(temp))
++		return -EINVAL;
++
++	mutex_lock(&sc57x_tmu_lock);
++	temp = (s16)(readl(sc57x_tmu_base + SC57X_TMU_TEMP) & 0xffff);
++	mutex_unlock(&sc57x_tmu_lock);
++
++	if (copy_to_user(buf, &temp, sizeof(temp)))
++		return -EFAULT;
++
++	return sizeof(temp);
++}
++
++static const struct file_operations sc57x_tmu_fops = {
++	.owner		= THIS_MODULE,
++	.open		= sc57x_tmu_open,
++	.release	= sc57x_tmu_release,
++	.read		= sc57x_tmu_read,
++	.llseek		= no_llseek,
++};
++
++static struct miscdevice sc57x_tmu_miscdev = {
++	.minor	= MISC_DYNAMIC_MINOR,
++	.name	= SC57X_TMU_DEV_NAME,
++	.fops	= &sc57x_tmu_fops,
++};
++
++static int __init sc57x_tmu_init(void)
++{
++	int ret;
++
++	sc57x_tmu_base = ioremap(SC57X_TMU_BASE, SC57X_TMU_SIZE);
++	if (!sc57x_tmu_base)
++		return -ENOMEM;
++
++	ret = misc_register(&sc57x_tmu_miscdev);
++	if (ret) {
++		iounmap(sc57x_tmu_base);
++		return ret;
++	}
++
++	pr_info("%s: version %s registered as /dev/%s\n",
++		SC57X_TMU_DRV_NAME, SC57X_TMU_VERSION, SC57X_TMU_DEV_NAME);
++
++	return 0;
++}
++
++static void __exit sc57x_tmu_exit(void)
++{
++	mutex_lock(&sc57x_tmu_lock);
++	sc57x_tmu_disable();
++	mutex_unlock(&sc57x_tmu_lock);
++
++	misc_deregister(&sc57x_tmu_miscdev);
++	iounmap(sc57x_tmu_base);
++}
++
++module_init(sc57x_tmu_init);
++module_exit(sc57x_tmu_exit);
++
++MODULE_DESCRIPTION("Simple SC57x TMU character device");
++MODULE_AUTHOR("Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>");
++MODULE_LICENSE("GPL v2");
++MODULE_VERSION(SC57X_TMU_VERSION);
+-- 
+2.44.4
+

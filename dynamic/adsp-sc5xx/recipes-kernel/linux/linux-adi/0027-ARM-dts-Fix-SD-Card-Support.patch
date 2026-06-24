@@ -1,0 +1,32 @@
+From 7fdf74cdfbbbc6b42ff8b28c5039061056186605 Mon Sep 17 00:00:00 2001
+From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+Date: Thu, 18 Jun 2026 10:39:28 +0000
+Subject: [PATCH 27/29] ARM: dts: Fix SD-Card Support
+
+Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+---
+ arch/arm/boot/dts/sc573-gen6.dts | 7 +------
+ 1 file changed, 1 insertion(+), 6 deletions(-)
+
+diff --git a/arch/arm/boot/dts/sc573-gen6.dts b/arch/arm/boot/dts/sc573-gen6.dts
+index 4c1e1c3dde7a7..484118b1bc734 100644
+--- a/arch/arm/boot/dts/sc573-gen6.dts
++++ b/arch/arm/boot/dts/sc573-gen6.dts
+@@ -294,13 +294,8 @@ pins {
+ 				 <ADI_ADSP_PINMUX('E', 13, ADI_ADSP_PINFUNC_ALT0)>,
+ 				 <ADI_ADSP_PINMUX('E', 14, ADI_ADSP_PINFUNC_ALT0)>,
+ 				 <ADI_ADSP_PINMUX('E', 15, ADI_ADSP_PINFUNC_ALT0)>,
+-				 <ADI_ADSP_PINMUX('F', 0, ADI_ADSP_PINFUNC_ALT0)>,
+-				 <ADI_ADSP_PINMUX('F', 1, ADI_ADSP_PINFUNC_ALT0)>,
+-				 <ADI_ADSP_PINMUX('F', 2, ADI_ADSP_PINFUNC_ALT0)>,
+-				 <ADI_ADSP_PINMUX('F', 3, ADI_ADSP_PINFUNC_ALT0)>,
+ 				 <ADI_ADSP_PINMUX('F', 4, ADI_ADSP_PINFUNC_ALT0)>,
+-				 <ADI_ADSP_PINMUX('F', 7, ADI_ADSP_PINFUNC_ALT2)>,
+-				 <ADI_ADSP_PINMUX('C', 12, ADI_ADSP_PINFUNC_ALT1)>;
++				 <ADI_ADSP_PINMUX('F', 7, ADI_ADSP_PINFUNC_ALT2)>;
+ 		};
+ 	};
+ 
+-- 
+2.44.4
+

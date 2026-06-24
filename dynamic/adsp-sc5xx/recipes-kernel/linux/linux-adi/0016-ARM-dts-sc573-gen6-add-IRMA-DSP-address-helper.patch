@@ -1,0 +1,32 @@
+From e1ae7ffdfaf4b35f418ffd08262ece89cd298692 Mon Sep 17 00:00:00 2001
+From: Ian Dannapel <ian.dannapel@iris-sensing.com>
+Date: Fri, 5 Jun 2026 09:19:25 +0200
+Subject: [PATCH 16/29] ARM: dts: sc573-gen6: add IRMA DSP address helper
+
+Add the IRMA DSP address helper node and bind it to the DSP heap memory region.
+This lets userspace map DMA-BUF offsets to the physical addresses consumed by SHARC firmware.
+
+Signed-off-by: Ian Dannapel <ian.dannapel@iris-sensing.com>
+---
+ arch/arm/boot/dts/sc573-gen6.dts | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/arch/arm/boot/dts/sc573-gen6.dts b/arch/arm/boot/dts/sc573-gen6.dts
+index 59ec82b94e22c..f2f7b55475d5a 100644
+--- a/arch/arm/boot/dts/sc573-gen6.dts
++++ b/arch/arm/boot/dts/sc573-gen6.dts
+@@ -39,6 +39,11 @@ dsp_heap: dma-heap@80000000 {
+ 			linux,dma-heap-name = "dsp";
+ 		};
+ 	};
++
++	dsp-addr {
++		compatible = "iris,irma-dsp-addr";
++		memory-region = <&dsp_heap>;
++	};
+ };
+ 
+ &uart0 {
+-- 
+2.44.4
+

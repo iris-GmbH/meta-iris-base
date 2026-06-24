@@ -29,7 +29,7 @@
 #define MBEDTLS_ECP_DP_SECP384R1_ENABLED
 
 /* ---------- PSA Crypto Support ---------- */
-#define PSA_WANT_ECC_SECP_R1_384  
+#define PSA_WANT_ECC_SECP_R1_384 1
 
 /* ---------- ASN.1 and Encoding ---------- */
 #define MBEDTLS_ASN1_PARSE_C
@@ -49,7 +49,5 @@
 /* ---------- X.509 Support ---------- */
 #define MBEDTLS_X509_CRT_PARSE_C
 #define MBEDTLS_X509_USE_C
-
-#include "mbedtls/check_config.h"
 
 #endif /* MBEDTLS_CONFIG_H */

@@ -1,0 +1,85 @@
+From e46989c2a03dbf1b8f9dc0144dfb4092af9a1f55 Mon Sep 17 00:00:00 2001
+From: Ian Dannapel <ian.dannapel@iris-sensing.com>
+Date: Fri, 5 Jun 2026 09:19:26 +0200
+Subject: [PATCH 19/29] ARM: dts: sc573-gen6: add SHARC mailboxes
+
+Describe the left and right SHARC mailbox SRAM windows and TRU routes.
+The nodes provide the core ids, wakeup trigger ids and ARM-facing interrupts used by the mailbox compatibility driver.
+
+Signed-off-by: Ian Dannapel <ian.dannapel@iris-sensing.com>
+---
+ arch/arm/boot/dts/sc573-gen6.dts | 44 ++++++++++++++++++++++++++++++++
+ 1 file changed, 44 insertions(+)
+
+diff --git a/arch/arm/boot/dts/sc573-gen6.dts b/arch/arm/boot/dts/sc573-gen6.dts
+index 986a545fd2871..baa8c3c13e673 100644
+--- a/arch/arm/boot/dts/sc573-gen6.dts
++++ b/arch/arm/boot/dts/sc573-gen6.dts
+@@ -31,6 +31,8 @@ reserved-memory {
+ 		#size-cells = <1>;
+ 		ranges;
+ 
++		/delete-node/ sram_B1_unused@20000800;
++
+ 		dsp_heap: dma-heap@80000000 {
+ 			compatible = "iris,irma-dsp-carveout-heap";
+ 			/* Ends at 0x82000000, where Linux System RAM starts. */
+@@ -46,6 +48,26 @@ dsp-addr {
+ 	};
+ 
+ 	scb {
++		left_sharc: left_sharc@20000000 {
++			compatible = "iris,irma-sharc";
++			reg = <0x20000000 0x0800>;
++			coreid = <1>;
++			adi,tru = <&tru>;
++			adi,tru-master-id = <69>;
++			interrupt-parent = <&gic>;
++			interrupts = <0 203 1>;
++		};
++
++		right_sharc: right_sharc@20000800 {
++			compatible = "iris,irma-sharc";
++			reg = <0x20000800 0x0800>;
++			coreid = <2>;
++			adi,tru = <&tru>;
++			adi,tru-master-id = <70>;
++			interrupt-parent = <&gic>;
++			interrupts = <0 204 1>;
++		};
++
+ 		corectrl {
+ 			compatible = "iris,irma-corectrl";
+ 			adi,rcu = <&rcu>;
+@@ -57,6 +79,28 @@ cache_flush {
+ 	};
+ };
+ 
++&tru {
++	left_sharc_to_arm: channel@0 {
++		adi,tru-master-id = <67>;
++		adi,tru-slave-id = <68>;
++	};
++
++	right_sharc_to_arm: channel@1 {
++		adi,tru-master-id = <68>;
++		adi,tru-slave-id = <69>;
++	};
++
++	arm_to_left_sharc: channel@2 {
++		adi,tru-master-id = <69>;
++		adi,tru-slave-id = <72>;
++	};
++
++	arm_to_right_sharc: channel@3 {
++		adi,tru-master-id = <70>;
++		adi,tru-slave-id = <76>;
++	};
++};
++
+ &uart0 {
+ 	pinctrl-names = "default";
+ 	pinctrl-0 = <&uart0_default>;
+-- 
+2.44.4
+

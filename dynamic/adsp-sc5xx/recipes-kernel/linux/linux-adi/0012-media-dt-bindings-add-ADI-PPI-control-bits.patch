@@ -1,0 +1,42 @@
+From ae6972339325e0d323c2def9c3199bf43f3d30f3 Mon Sep 17 00:00:00 2001
+From: Ian Dannapel <ian.dannapel@iris-sensing.com>
+Date: Fri, 5 Jun 2026 09:19:25 +0200
+Subject: [PATCH 12/29] media: dt-bindings: add ADI PPI control bits
+
+Add named EPPI control bit definitions for ADI media device trees.
+Board DTS files can describe the required PPI control register setup without embedding raw magic values.
+
+Signed-off-by: Ian Dannapel <ian.dannapel@iris-sensing.com>
+---
+ include/dt-bindings/media/adi-ppi.h | 19 +++++++++++++++++++
+ 1 file changed, 19 insertions(+)
+ create mode 100644 include/dt-bindings/media/adi-ppi.h
+
+diff --git a/include/dt-bindings/media/adi-ppi.h b/include/dt-bindings/media/adi-ppi.h
+new file mode 100644
+index 0000000000000..d74d954cf7331
+--- /dev/null
++++ b/include/dt-bindings/media/adi-ppi.h
+@@ -0,0 +1,19 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef _DT_BINDINGS_MEDIA_ADI_PPI_H
++#define _DT_BINDINGS_MEDIA_ADI_PPI_H
++
++#define ADI_EPPI_CTL_EN			0x00000001 /* Enable EPPI port */
++#define ADI_EPPI_CTL_DIR		0x00000002 /* Transmit direction */
++#define ADI_EPPI_CTL_ENTIRE656		0x00000004 /* Full ITU-R 656 stream */
++#define ADI_EPPI_CTL_NON656		0x0000000c /* General-purpose mode */
++#define ADI_EPPI_CTL_SYNC2		0x00000020 /* Use two external syncs */
++#define ADI_EPPI_CTL_BLANKGEN		0x00000100 /* Generate blanking */
++#define ADI_EPPI_CTL_SIGNEXT		0x00000800 /* Sign-extend samples */
++#define ADI_EPPI_CTL_POLC0		0x00000000 /* Sample on falling DCLK */
++#define ADI_EPPI_CTL_FS1LO_FS2LO	0x0000c000 /* FS1 and FS2 active low */
++#define ADI_EPPI_CTL_PACKEN		0x00400000 /* Pack samples into 32-bit DMA words */
++#define ADI_EPPI_CTL_DLEN08		0x00000000 /* 8-bit data length */
++#define ADI_EPPI_CTL_DLEN12		0x00020000 /* 12-bit data length */
++#define ADI_EPPI_CTL_DLEN16		0x00040000 /* 16-bit data length */
++
++#endif
+-- 
+2.44.4
+

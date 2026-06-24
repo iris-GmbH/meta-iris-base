@@ -1,0 +1,31 @@
+From 8ef8d55976e0fa3ff2905feb256c82c220de2ca5 Mon Sep 17 00:00:00 2001
+From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+Date: Fri, 29 May 2026 12:40:44 +0200
+Subject: [PATCH 22/29] ARM: dts: sc573-gen6: enable I2C2
+
+Enable the I2C2 controller on the SC573 Gen6 board so devices connected to
+that bus are available.
+
+Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+---
+ arch/arm/boot/dts/sc573-gen6.dts | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/arch/arm/boot/dts/sc573-gen6.dts b/arch/arm/boot/dts/sc573-gen6.dts
+index 7d1ac43509973..4c1e1c3dde7a7 100644
+--- a/arch/arm/boot/dts/sc573-gen6.dts
++++ b/arch/arm/boot/dts/sc573-gen6.dts
+@@ -140,6 +140,10 @@ epc660: camera@22 {
+ 	};
+ };
+ 
++&i2c2 {
++	status = "okay";
++};
++
+ &spi_cluster {
+ 	eppi0_ch0: channel@28 {
+ 		adi,id = <28>;
+-- 
+2.44.4
+

@@ -1,0 +1,63 @@
+From ba768fc76f305bb56ae1ae4bbb7c8d5963bde2a7 Mon Sep 17 00:00:00 2001
+From: Ian Dannapel <ian.dannapel@iris-sensing.com>
+Date: Fri, 5 Jun 2026 09:19:24 +0200
+Subject: [PATCH 08/29] dma: adi: expose helpers for media capture
+
+Add the DMA control bits and accessors needed by the ADI PPI media path.
+The capture driver reads the programmed transfer geometry while the PPI helper manages descriptor and trigger-overrun setup directly.
+
+Signed-off-by: Ian Dannapel <ian.dannapel@iris-sensing.com>
+---
+ drivers/dma/adi-dma.h | 22 ++++++++++++++++++++++
+ 1 file changed, 22 insertions(+)
+
+diff --git a/drivers/dma/adi-dma.h b/drivers/dma/adi-dma.h
+index 28cc38fc1eeba..e21806ae37bd8 100644
+--- a/drivers/dma/adi-dma.h
++++ b/drivers/dma/adi-dma.h
+@@ -38,6 +38,7 @@
+ #define WDSIZE_256		0x00000500	/* Transfer Word Size = 32 */
+ 
+ #define DMA2D			0x04000000	/* DMA Mode (2D/1D*) */
++#define DMATOVEN		0x01000000	/* DMA Trigger Overrun Error Enable */
+ #define DMARESTART		0x00000004	/* DMA Buffer Clear SYNC */
+ 
+ #define DI_EN_X			0x00100000	/* Data Interrupt Enable in X count */
+@@ -71,6 +72,7 @@
+ #define DMAFLOW			0x000007000	/* Flow Control */
+ #define DMAFLOW_STOP		0x000000000	/* Stop Mode */
+ #define DMAFLOW_AUTO		0x000001000	/* Autobuffer Mode */
++#define DESCIDCPY		0x02000000	/* Descriptor ID Copy Control */
+ 
+ /* DMA_IRQ_STATUS Masks */
+ #define DMA_DONE		0x1	/* DMA Completion Interrupt Status */
+@@ -135,6 +137,26 @@ static inline void set_dma_curr_addr(void __iomem *ioaddr, dma_addr_t addr)
+ 	writel(lower_32_bits(addr), ioaddr + ADI_DMA_ADDR_CUR);
+ }
+ 
++static inline dma_addr_t get_dma_start_addr(void __iomem *ioaddr)
++{
++	return readl(ioaddr + ADI_DMA_ADDRSTART);
++}
++static inline unsigned long get_dma_x_count(void __iomem *ioaddr)
++{
++	return readl(ioaddr + ADI_DMA_XCNT);
++}
++static inline long get_dma_x_modify(void __iomem *ioaddr)
++{
++	return (s32)readl(ioaddr + ADI_DMA_XMOD);
++}
++static inline unsigned long get_dma_y_count(void __iomem *ioaddr)
++{
++	return readl(ioaddr + ADI_DMA_YCNT);
++}
++static inline long get_dma_y_modify(void __iomem *ioaddr)
++{
++	return (s32)readl(ioaddr + ADI_DMA_YMOD);
++}
+ static inline unsigned long get_dma_curr_irqstat(void __iomem *ioaddr)
+ {
+ 	return readl(ioaddr + ADI_DMA_STAT);
+-- 
+2.44.4
+

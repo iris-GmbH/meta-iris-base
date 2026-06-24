@@ -1,0 +1,25 @@
+From ca71e45bded9ea0d90d4382fca1a39a63c97a1e1 Mon Sep 17 00:00:00 2001
+From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+Date: Tue, 5 May 2026 15:13:26 +0200
+Subject: [PATCH 01/29] kbuild: fix shared modfile quoting for single builds
+
+---
+ scripts/Makefile.lib | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/scripts/Makefile.lib b/scripts/Makefile.lib
+index 0a8a4689c3ebb..716dfaabb5788 100644
+--- a/scripts/Makefile.lib
++++ b/scripts/Makefile.lib
+@@ -114,7 +114,7 @@ modname-multi = $(sort $(foreach m,$(multi-obj-ym),\
+ __modname = $(if $(modname-multi),$(modname-multi),$(basetarget))
+ 
+ modname = $(subst $(space),:,$(__modname))
+-modfile = $(addprefix $(obj)/,$(__modname))
++modfile = $(subst $(space),:,$(addprefix $(obj)/,$(__modname)))
+ 
+ # target with $(obj)/ and its suffix stripped
+ target-stem = $(basename $(patsubst $(obj)/%,%,$@))
+-- 
+2.44.4
+
