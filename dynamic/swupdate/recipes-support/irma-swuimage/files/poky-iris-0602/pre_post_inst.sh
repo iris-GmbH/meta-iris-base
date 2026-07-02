@@ -70,6 +70,9 @@ add_hwkey_to_keyring() {
 		exit 1
 	fi
 
+	# make user-session keyring reachable from current session keyring
+	keyctl link @us @s 2>/dev/null || true
+
 	rm -f /tmp/volumeKey
 }
 
