@@ -1,8 +1,9 @@
 RDEPENDS:${PN}:remove   = " \
     python3 \
     python3-numpy \
-    ${RDEPENDS_OPENCL} \
 "
+
+RDEPENDS_OPENCL = ""
 
 PACKAGECONFIG:remove = "python-example"
 
