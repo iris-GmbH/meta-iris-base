@@ -71,7 +71,6 @@ IRMA_EXTRA_PACKAGES:poky-iris-0601 = " \
 "
 
 IMAGE_INSTALL:append = " ${IRMA_BASE_PACKAGES} ${IRMA_EXTRA_PACKAGES}"
-IMAGE_INSTALL:remove = " tensorflow-lite-ethosu-delegate-python python3 python3-core python3-numpy"
 
 # Include swupdate in image if swupdate is part of the update procedure
 IMAGE_INSTALL:append = " ${@bb.utils.contains('UPDATE_PROCEDURE', 'swupdate', 'swupdate swupdate-www', '', d)}"
