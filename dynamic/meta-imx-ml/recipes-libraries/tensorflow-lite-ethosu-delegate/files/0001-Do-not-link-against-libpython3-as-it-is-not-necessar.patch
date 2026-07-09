@@ -1,0 +1,25 @@
+From 844aa7d7beee9cd42d827303ce96868df9f1ccb2 Mon Sep 17 00:00:00 2001
+From: Erik Schumacher <erik.schumacher@iris-sensing.com>
+Date: Thu, 9 Jul 2026 15:46:09 +0200
+Subject: [PATCH] Do not link against libpython3 as it is not necessary
+
+Upstream-Status: Inappropriate [custom dependencies]
+---
+ CMakeLists.txt | 1 -
+ 1 file changed, 1 deletion(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index d357557..8ae7d31 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -30,7 +30,6 @@ list(APPEND ETHOSU_DELEGATES_SRCS
+ find_package (Python COMPONENTS Interpreter Development)
+ get_filename_component(PYTHON_LIB_NAME ${Python_LIBRARIES} NAME)
+ include_directories(${Python_INCLUDE_DIRS})
+-list(APPEND ETHOSU_DELEGATE_DEPENDENCIES ${Python_LIBRARIES})
+ 
+ add_library(ethosu_delegate SHARED ${ETHOSU_DELEGATES_SRCS})
+ target_link_libraries(ethosu_delegate ${ETHOSU_DELEGATE_DEPENDENCIES})
+-- 
+2.55.0
+
