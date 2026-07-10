@@ -1,0 +1,157 @@
+From ab4e0d846cb83d0cf44058b36f359b0fe0fb7e80 Mon Sep 17 00:00:00 2001
+From: Ian Dannapel <ian.dannapel@iris-sensing.com>
+Date: Tue, 7 Jul 2026 08:14:49 +0000
+Subject: [PATCH] adi_capture.c: Fix resolution negotiation with subdev
+
+double-width-half-height layout now passes logical resolution to
+subdev (320x240) instead of the internal readout (640x120)
+
+Signed-off-by: Ian Dannapel <ian.dannapel@iris-sensing.com>
+---
+ drivers/media/platform/adi/adi_capture.c | 76 ++++++------------------
+ 1 file changed, 18 insertions(+), 58 deletions(-)
+
+diff --git a/drivers/media/platform/adi/adi_capture.c b/drivers/media/platform/adi/adi_capture.c
+index ba73591109e9..95ba3aa1ae92 100644
+--- a/drivers/media/platform/adi/adi_capture.c
++++ b/drivers/media/platform/adi/adi_capture.c
+@@ -216,44 +216,6 @@ static int adi_cap_readout_dimensions(struct adi_cap_device *adi_cap_dev,
+ 	}
+ }
+ 
+-static int adi_cap_logical_dimensions(struct adi_cap_device *adi_cap_dev,
+-				      u32 readout_width,
+-				      u32 readout_height,
+-				      u32 *width, u32 *height)
+-{
+-	switch (adi_cap_dev->cfg->readout_layout) {
+-	case ADI_CAP_READOUT_LAYOUT_NATIVE:
+-		*width = readout_width;
+-		*height = readout_height;
+-		return 0;
+-	case ADI_CAP_READOUT_LAYOUT_DOUBLE_WIDTH_HALF_HEIGHT:
+-		if (readout_width % 2 || readout_height > (u32)(~0U / 2))
+-			return -EINVAL;
+-
+-		*width = readout_width / 2;
+-		*height = readout_height * 2;
+-		return 0;
+-	default:
+-		return -EINVAL;
+-	}
+-}
+-
+-static int adi_cap_mbus_to_readout(struct adi_cap_device *adi_cap_dev,
+-				   struct v4l2_mbus_framefmt *format)
+-{
+-	return adi_cap_readout_dimensions(adi_cap_dev, format->width,
+-					  format->height, &format->width,
+-					  &format->height);
+-}
+-
+-static int adi_cap_mbus_to_logical(struct adi_cap_device *adi_cap_dev,
+-				   struct v4l2_mbus_framefmt *format)
+-{
+-	return adi_cap_logical_dimensions(adi_cap_dev, format->width,
+-					  format->height, &format->width,
+-					  &format->height);
+-}
+-
+ static u32 adi_cap_desc_dma_config(void)
+ {
+ 	return DMARESTART | DMATOVEN | WNR | WDSIZE_256 | PSIZE_32 |
+@@ -1105,6 +1067,8 @@ static int adi_cap_try_format(struct adi_cap_device *adi_cap,
+ 		.which = V4L2_SUBDEV_FORMAT_TRY,
+ 	};
+ 	struct v4l2_subdev_state *sd_state;
++	u32 readout_width;
++	u32 readout_height;
+ 	int ret, i;
+ 
+ 	v4l2_dbg(ADI_CAP_LOG_DETAIL, debug, &adi_cap->v4l2_dev,
+@@ -1125,14 +1089,6 @@ static int adi_cap_try_format(struct adi_cap_device *adi_cap,
+ 	}
+ 
+ 	v4l2_fill_mbus_format(&format.format, pixfmt, fmt->mbus_code);
+-	ret = adi_cap_mbus_to_readout(adi_cap, &format.format);
+-	if (ret) {
+-		v4l2_err(&adi_cap->v4l2_dev,
+-			 "try_fmt invalid readout layout %u for %ux%u\n",
+-			 adi_cap->cfg->readout_layout,
+-			 pixfmt->width, pixfmt->height);
+-		return ret;
+-	}
+ 	v4l2_dbg(ADI_CAP_LOG_DETAIL, debug, &adi_cap->v4l2_dev,
+ 		 "try_fmt subdev request: mbus 0x%08x %ux%u\n",
+ 		 format.format.code, format.format.width,
+@@ -1173,14 +1129,19 @@ static int adi_cap_try_format(struct adi_cap_device *adi_cap,
+ 		}
+ 		*adi_cap_fmt = *fmt;
+ 	}
+-	ret = adi_cap_mbus_to_logical(adi_cap, &format.format);
++	ret = adi_cap_readout_dimensions(adi_cap, format.format.width,
++					 format.format.height,
++					 &readout_width, &readout_height);
+ 	if (ret) {
+ 		v4l2_err(&adi_cap->v4l2_dev,
+-			 "try_fmt invalid logical layout %u for subdev result %ux%u\n",
++			 "try_fmt invalid readout layout %u for subdev result %ux%u\n",
+ 			 adi_cap->cfg->readout_layout,
+ 			 format.format.width, format.format.height);
+ 		goto done;
+ 	}
++	v4l2_dbg(ADI_CAP_LOG_DETAIL, debug, &adi_cap->v4l2_dev,
++		 "try_fmt internal readout: %ux%u\n",
++		 readout_width, readout_height);
+ 	v4l2_fill_pix_format(pixfmt, &format.format);
+ 	pixfmt->bytesperline = pixfmt->width * fmt->bpp / 8;
+ 	pixfmt->sizeimage = pixfmt->bytesperline * pixfmt->height;
+@@ -1238,6 +1199,8 @@ static int adi_cap_s_fmt_vid_cap(struct file *file, void *priv,
+ 	};
+ 	struct adi_cap_format adi_cap_fmt;
+ 	struct v4l2_pix_format *pixfmt = &fmt->fmt.pix;
++	u32 readout_width;
++	u32 readout_height;
+ 	int ret;
+ 
+ 	v4l2_dbg(ADI_CAP_LOG_DETAIL, debug, &adi_cap_dev->v4l2_dev,
+@@ -1260,14 +1223,6 @@ static int adi_cap_s_fmt_vid_cap(struct file *file, void *priv,
+ 	}
+ 
+ 	v4l2_fill_mbus_format(&format.format, pixfmt, adi_cap_fmt.mbus_code);
+-	ret = adi_cap_mbus_to_readout(adi_cap_dev, &format.format);
+-	if (ret) {
+-		v4l2_err(&adi_cap_dev->v4l2_dev,
+-			 "s_fmt invalid readout layout %u for %ux%u\n",
+-			 adi_cap_dev->cfg->readout_layout,
+-			 pixfmt->width, pixfmt->height);
+-		return ret;
+-	}
+ 	v4l2_dbg(ADI_CAP_LOG_DETAIL, debug, &adi_cap_dev->v4l2_dev,
+ 		 "s_fmt subdev active request: mbus 0x%08x %ux%u dlen %u bpp %u\n",
+ 		 format.format.code, format.format.width,
+@@ -1278,14 +1233,19 @@ static int adi_cap_s_fmt_vid_cap(struct file *file, void *priv,
+ 			 "s_fmt subdev active set_fmt failed: %d\n", ret);
+ 		return ret;
+ 	}
+-	ret = adi_cap_mbus_to_logical(adi_cap_dev, &format.format);
++	ret = adi_cap_readout_dimensions(adi_cap_dev, format.format.width,
++					 format.format.height,
++					 &readout_width, &readout_height);
+ 	if (ret) {
+ 		v4l2_err(&adi_cap_dev->v4l2_dev,
+-			 "s_fmt invalid logical layout %u for subdev result %ux%u\n",
++			 "s_fmt invalid readout layout %u for subdev result %ux%u\n",
+ 			 adi_cap_dev->cfg->readout_layout,
+ 			 format.format.width, format.format.height);
+ 		return ret;
+ 	}
++	v4l2_dbg(ADI_CAP_LOG_DETAIL, debug, &adi_cap_dev->v4l2_dev,
++		 "s_fmt internal readout: %ux%u\n",
++		 readout_width, readout_height);
+ 	v4l2_fill_pix_format(pixfmt, &format.format);
+ 	pixfmt->bytesperline = pixfmt->width * adi_cap_fmt.bpp / 8;
+ 	pixfmt->sizeimage = pixfmt->bytesperline * pixfmt->height;
+-- 
+2.43.0
+

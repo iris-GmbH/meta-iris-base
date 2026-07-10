@@ -34,6 +34,7 @@ SRC_URI:append = " \
     file://0027-ARM-dts-Fix-SD-Card-Support.patch \
     file://0028-spi-adi-spi3-Fix-DMA-cleanup-from-error-IRQ.patch \
     file://0029-ARM-configs-add-SC573-Gen6-base-defconfig.patch \
+    file://0030-adi_capture.c-Fix-resolution-negotiation-with-subdev.patch \
 "
 
 SRC_URI:remove = " \
