@@ -34,3 +34,8 @@ do_install() {
     install -d ${D}${includedir}/tsl/platform
     cp ${S}/third_party/xla/third_party/tsl/tsl/platform/ctstring_internal.h ${D}${includedir}/tsl/platform
 }
+
+# Activates the Delegate-Provider-Infrastruktur in the TFLite-Tools
+EXTRA_OECMAKE:append = " \
+    -DTFLITE_BUILD_TOOLS_WITH_DELEGATES=ON \
+"
