@@ -27,6 +27,91 @@ move_special_devices() {
     ${MOUNT} --move /run ${ROOT_MNT}/run
 }
 
+mount_device_data() {
+    DEVICE_DATA_MNT="${ROOT_MNT}/mnt/devicedata"
+    DEVICE_DATA_DEV="/dev/mapper/matrixlvm-devicedata"
+
+    if [ ! -d "${DEVICE_DATA_MNT}" ]; then
+        echo "ERROR: Missing mountpoint: ${DEVICE_DATA_MNT}"
+        return 1
+    fi
+
+    if [ ! -e "${DEVICE_DATA_DEV}" ]; then
+        echo "ERROR: Devicedata volume is not present: ${DEVICE_DATA_DEV}"
+        return 1
+    fi
+
+    echo "Mount devicedata: ${DEVICE_DATA_DEV} -> ${DEVICE_DATA_MNT}"
+    if ! ${MOUNT} -t ext4 "${DEVICE_DATA_DEV}" "${DEVICE_DATA_MNT}"; then
+        echo "ERROR: Failed to mount devicedata: ${DEVICE_DATA_DEV}"
+        return 1
+    fi
+}
+
+mount_device_data_backup() {
+    DEVICE_DATA_MNT="${ROOT_MNT}/mnt/devicedata"
+    DEVICE_DATA_BACKUP_MNT="/tmp/devicedata-backup"
+
+    if [ ! -d "${DEVICE_DATA_MNT}" ]; then
+        echo "ERROR: Missing mountpoint: ${DEVICE_DATA_MNT}"
+        return 1
+    fi
+
+    mkdir -p "${DEVICE_DATA_BACKUP_MNT}"
+    for DEVICE_DATA_BACKUP_DEV in /dev/mmcblk[0-9]boot1; do
+        [ -b "${DEVICE_DATA_BACKUP_DEV}" ] || continue
+
+        DEVICE_DATA_BACKUP_SIZE=2M
+        if ! DETECTED_BACKUP_SIZE=$(blockdev --getsize64 "${DEVICE_DATA_BACKUP_DEV}") ||
+           [ -z "${DETECTED_BACKUP_SIZE}" ]; then
+            echo "WARNING: Failed to determine backup size; using ${DEVICE_DATA_BACKUP_SIZE}"
+        else
+            DEVICE_DATA_BACKUP_SIZE="${DETECTED_BACKUP_SIZE}"
+        fi
+
+        if ! ${MOUNT} -t ext4 -o ro "${DEVICE_DATA_BACKUP_DEV}" "${DEVICE_DATA_BACKUP_MNT}" 2>/dev/null; then
+            continue
+        fi
+
+        if [ ! -d "${DEVICE_DATA_BACKUP_MNT}/nvm" ] ||
+           [ -z "$(ls -A "${DEVICE_DATA_BACKUP_MNT}/nvm" 2>/dev/null)" ]; then
+            ${UMOUNT} "${DEVICE_DATA_BACKUP_MNT}"
+            continue
+        fi
+
+        echo "Restore devicedata fallback from ${DEVICE_DATA_BACKUP_DEV}"
+        if ! ${MOUNT} -t tmpfs -o "size=${DEVICE_DATA_BACKUP_SIZE},mode=0755" devicedata-fallback "${DEVICE_DATA_MNT}"; then
+            echo "ERROR: Failed to mount devicedata fallback"
+            ${UMOUNT} "${DEVICE_DATA_BACKUP_MNT}"
+            return 1
+        fi
+
+        if ! cp -r "${DEVICE_DATA_BACKUP_MNT}/nvm" "${DEVICE_DATA_MNT}/"; then
+            echo "ERROR: Failed to copy devicedata backup"
+            ${UMOUNT} "${DEVICE_DATA_MNT}"
+            ${UMOUNT} "${DEVICE_DATA_BACKUP_MNT}"
+            return 1
+        fi
+
+        if ! ${UMOUNT} "${DEVICE_DATA_BACKUP_MNT}"; then
+            echo "ERROR: Failed to unmount devicedata backup"
+            ${UMOUNT} "${DEVICE_DATA_MNT}"
+            return 1
+        fi
+
+        if ! ${MOUNT} -o remount,ro "${DEVICE_DATA_MNT}"; then
+            echo "ERROR: Failed to make devicedata fallback read-only"
+            ${UMOUNT} "${DEVICE_DATA_MNT}"
+            return 1
+        fi
+
+        return 0
+    done
+
+    echo "ERROR: No usable devicedata backup found"
+    return 1
+}
+
 mount_runtime_volumes() {
     USERDATA_MNT="${ROOT_MNT}/mnt/iris"
     DATASTORE_MNT="${ROOT_MNT}/mnt/datastore"
@@ -49,8 +134,7 @@ mount_runtime_volumes() {
         return 1
     fi
 
-    echo "Mount devicedata: /dev/mapper/matrixlvm-devicedata -> ${DEVICE_DATA_MNT}"
-    if ! ${MOUNT} -t ext4 "/dev/mapper/matrixlvm-devicedata" "${DEVICE_DATA_MNT}"; then
+    if ! mount_device_data; then
         ${UMOUNT} "${DATASTORE_MNT}"
         ${UMOUNT} "${USERDATA_MNT}"
         return 1
@@ -175,7 +259,13 @@ echo "Crypt device : ${DECRYPT_ROOT_DEV}"
 echo "Verity device: ${VERITY_DEV}"
 
 if [ -n "${NFSPATH}" ]; then
-    ${MOUNT} -t nfs "${NFSPATH}" ${ROOT_MNT}
+    if ! ${MOUNT} -t nfs "${NFSPATH}" "${ROOT_MNT}"; then
+        echo "ERROR: Failed to mount NFS root: ${NFSPATH}"
+        exit 1
+    fi
+    if ! mount_device_data && ! mount_device_data_backup; then
+        echo "ERROR: Continuing NFS boot without devicedata"
+    fi
     echo "Switching root to Network File System"
 else
     ${MOUNT} -t ext4 -o ro /dev/mapper/matrixlvm-keystore /mnt/keystore
