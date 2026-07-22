@@ -1,0 +1,115 @@
+From 18eedcf661cc0e048b95c225a8d49ac79a8b01a5 Mon Sep 17 00:00:00 2001
+From: OpenAI <noreply@openai.com>
+Date: Wed, 22 Jul 2026 14:28:42 +0000
+Subject: [PATCH] ethosu: remove embedded Python ModelConverter
+
+---
+ ethosu_delegate_utils.cc | 56 ----------------------------------------
+ ethosu_delegate_utils.h  | 17 ------------
+ 2 files changed, 73 deletions(-)
+
+diff --git a/ethosu_delegate_utils.cc b/ethosu_delegate_utils.cc
+index e715a17..2ef9ca5 100644
+--- a/ethosu_delegate_utils.cc
++++ b/ethosu_delegate_utils.cc
+@@ -607,62 +607,6 @@ size_t GetTensorDataSize(std::unique_ptr<tflite::TensorT> &tensor) {
+   return size;
+ }
+ 
+-ModelConverter::ModelConverter() {
+-#define XSTR(x) #x
+-#define STR(x) XSTR(x)
+-    needInitialization = !Py_IsInitialized();
+-    if (needInitialization) {
+-        Py_Initialize();
+-        if (dlopen(STR(PYTHON_LIB), RTLD_LAZY | RTLD_GLOBAL) == nullptr)
+-            throw "Failed to load python library";
+-    }
+-    pyModule = PyImport_ImportModule("ethosu.vela.vela");
+-    if (pyModule == nullptr)
+-        throw "Failed to import vela python package";
+-    pyCvtFunc = PyObject_GetAttrString(pyModule, "convert_bytes");
+-    if (pyCvtFunc == nullptr)
+-        throw "Failed to import vela python package";
+-}
+-
+-ModelConverter *ModelConverter::GetSingleton() {
+-    static ModelConverter singleton;
+-    return &singleton;
+-}
+-
+-std::unique_ptr<ModelT> ModelConverter::convert(TfLiteContext* context,
+-                    const TfLiteDelegateParams* params) {
+-    auto model = PrepareModel(context, params);
+-
+-    return std::move(convert(model.get()));
+-}
+-
+-std::unique_ptr<ModelT> ModelConverter::convert(ModelT* model) {
+-    flatbuffers::FlatBufferBuilder fbb;
+-    flatbuffers::Offset<tflite::Model> root = tflite::Model::Pack(fbb, model);
+-    tflite::FinishModelBuffer(fbb, root);
+-    uint32_t size = fbb.GetSize();
+-    uint8_t *buff = fbb.GetBufferPointer();
+-
+-    auto pyArgs = PyTuple_New(1);
+-    PyObject *pyMemory = PyMemoryView_FromMemory((char*)buff, size, PyBUF_READ);
+-    PyTuple_SetItem(pyArgs, 0, pyMemory);
+-    PyObject *pyValue = PyObject_CallObject(pyCvtFunc, pyArgs);
+-
+-    Py_buffer *pyBuf = PyMemoryView_GET_BUFFER(pyValue);
+-    model = tflite::GetModel(pyBuf->buf)->UnPack();
+-    Py_DECREF(pyArgs);
+-    Py_DECREF(pyMemory);
+-    Py_DECREF(pyBuf);
+-    Py_DECREF(pyValue);
+-
+-    return std::move(std::unique_ptr<ModelT>(model));
+-}
+-
+-ModelConverter::~ModelConverter() {
+-    if (needInitialization) {
+-        Py_Finalize();
+-    }
+-}
+ 
+ }  // namespace ethosu
+ }  // namespace tflite
+diff --git a/ethosu_delegate_utils.h b/ethosu_delegate_utils.h
+index 67cdb6f..41870f8 100644
+--- a/ethosu_delegate_utils.h
++++ b/ethosu_delegate_utils.h
+@@ -8,7 +8,6 @@
+ #ifndef TENSORFLOW_LITE_DELEGATES_ETHOSU_DELEGATE_UTILS_H_
+ #define TENSORFLOW_LITE_DELEGATES_ETHOSU_DELEGATE_UTILS_H_
+ 
+-#include <Python.h>
+ #include "flatbuffers/flexbuffers.h"
+ 
+ #include "tensorflow/lite/context_util.h"
+@@ -20,22 +19,6 @@
+ namespace tflite {
+ namespace ethosu {
+ 
+-class ModelConverter {
+-public:
+-    ~ModelConverter();
+-    static ModelConverter *GetSingleton();
+-
+-    std::unique_ptr<ModelT> convert(TfLiteContext* context,
+-                    const TfLiteDelegateParams* params);
+-    std::unique_ptr<ModelT> convert(ModelT* model);
+-private:
+-    ModelConverter();
+-
+-    bool needInitialization;
+-    PyObject *pyModule;
+-    PyObject *pyCvtFunc;
+-};
+-
+ std::unique_ptr<ModelT> PrepareModel(TfLiteContext* context,
+                                      const TfLiteDelegateParams* params);
+ std::unique_ptr<tflite::ModelT> readTFLiteModel(const std::string &filename);
+-- 
+2.47.3
+
