@@ -7,6 +7,19 @@ RDEPENDS_OPENCL = ""
 
 PACKAGECONFIG:remove = "python-example"
 
+do_compile:append() {
+    ${CXX} ${CPPFLAGS} ${CXXFLAGS} \
+        -fPIC \
+        -I${S} \
+        -c \
+        ${S}/tensorflow/lite/tools/delegates/external_delegate_provider.cc \
+        -o ${B}/external_delegate_provider.o
+
+    ${AR} rcs \
+        ${B}/libtflite_external_delegate_provider.a \
+        ${B}/external_delegate_provider.o
+}
+
 do_install() {
     # install libraries
     install -d ${D}${libdir}
@@ -33,9 +46,17 @@ do_install() {
     # install ctstring_internal.h from tsl
     install -d ${D}${includedir}/tsl/platform
     cp ${S}/third_party/xla/third_party/tsl/tsl/platform/ctstring_internal.h ${D}${includedir}/tsl/platform
+
+    install -m 0644 \
+        ${B}/libtflite_external_delegate_provider.a \
+        ${D}${libdir}/
 }
 
 # Activates the Delegate-Provider-Infrastruktur in the TFLite-Tools
 EXTRA_OECMAKE:append = " \
     -DTFLITE_BUILD_TOOLS_WITH_DELEGATES=ON \
+"
+
+FILES:${PN}-staticdev:append = " \
+    ${libdir}/libtflite_external_delegate_provider.a \
 "

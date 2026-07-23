@@ -35,6 +35,9 @@ ADDITIONAL_IRIS_TOOLCHAIN_TARGET_TASK = "protobuf-staticdev swupdate"
 # manually include blasfeo for R1 since it is statically linked
 ADDITIONAL_IRIS_TOOLCHAIN_TARGET_TASK:poky-iris-0601 = "blasfeo-staticdev"
 
+# manually include delegate_providers for matrix-Up ethos-u NPU use
+ADDITIONAL_IRIS_TOOLCHAIN_TARGET_TASK:poky-iris-0501 = " tensorflow-lite-staticdev"
+
 TOOLCHAIN_TARGET_TASK:append = " ${IRIS_TOOLCHAIN_TARGET_TASK} ${ADDITIONAL_IRIS_TOOLCHAIN_TARGET_TASK}"
 
 PV = "${DISTRO_VERSION}"
