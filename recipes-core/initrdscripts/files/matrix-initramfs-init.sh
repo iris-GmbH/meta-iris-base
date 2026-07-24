@@ -99,12 +99,6 @@ mount_device_data_backup() {
             return 1
         fi
 
-        if ! ${MOUNT} -o remount,ro "${DEVICE_DATA_MNT}"; then
-            echo "ERROR: Failed to make devicedata fallback read-only"
-            ${UMOUNT} "${DEVICE_DATA_MNT}"
-            return 1
-        fi
-
         return 0
     done
 
