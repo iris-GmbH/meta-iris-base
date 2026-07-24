@@ -1,0 +1,151 @@
+From 935dfe057ab1b89f721a985f0b035f4d3cbc74bb Mon Sep 17 00:00:00 2001
+From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+Date: Fri, 8 May 2026 13:08:39 +0000
+Subject: [PATCH 23/29] mtd: spi-nor: mask 4-4-4 on adi-spi3 and log read
+ selection
+
+ADI SPI3 does not handle 4-4-4 SPI NOR read/page program modes
+correctly, even though 1-4-4 works as expected. Detect flashes behind
+the adi-spi3 controller and clear the 4-4-4 read/program capabilities
+from the shared capability mask before selecting the active protocol.
+
+Also add informational logging for the selected read capability and
+protocol to make it easier to verify which read mode the SPI NOR core
+picks at runtime while debugging controller/flash combinations.
+
+Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+---
+ drivers/mtd/spi-nor/core.c | 93 ++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 93 insertions(+)
+
+diff --git a/drivers/mtd/spi-nor/core.c b/drivers/mtd/spi-nor/core.c
+index 84e75b28d2886..0d12b8674cce7 100644
+--- a/drivers/mtd/spi-nor/core.c
++++ b/drivers/mtd/spi-nor/core.c
+@@ -24,6 +24,80 @@
+ 
+ #include "core.h"
+ 
++static const char *spi_nor_read_hwcaps_name(u32 hwcaps)
++{
++	switch (hwcaps) {
++	case SNOR_HWCAPS_READ:
++		return "READ";
++	case SNOR_HWCAPS_READ_FAST:
++		return "READ_FAST";
++	case SNOR_HWCAPS_READ_1_1_2:
++		return "READ_1_1_2";
++	case SNOR_HWCAPS_READ_1_1_4:
++		return "READ_1_1_4";
++	case SNOR_HWCAPS_READ_1_1_8:
++		return "READ_1_1_8";
++	case SNOR_HWCAPS_READ_1_2_2:
++		return "READ_1_2_2";
++	case SNOR_HWCAPS_READ_1_4_4:
++		return "READ_1_4_4";
++	case SNOR_HWCAPS_READ_1_8_8:
++		return "READ_1_8_8";
++	case SNOR_HWCAPS_READ_2_2_2:
++		return "READ_2_2_2";
++	case SNOR_HWCAPS_READ_4_4_4:
++		return "READ_4_4_4";
++	case SNOR_HWCAPS_READ_8_8_8:
++		return "READ_8_8_8";
++	case SNOR_HWCAPS_READ_8_8_8_DTR:
++		return "READ_8_8_8_DTR";
++	default:
++		return "READ_UNKNOWN";
++	}
++}
++
++static const char *spi_nor_proto_name(enum spi_nor_protocol proto)
++{
++	switch (proto) {
++	case SNOR_PROTO_1_1_1:
++		return "1-1-1";
++	case SNOR_PROTO_1_1_2:
++		return "1-1-2";
++	case SNOR_PROTO_1_1_4:
++		return "1-1-4";
++	case SNOR_PROTO_1_1_8:
++		return "1-1-8";
++	case SNOR_PROTO_1_2_2:
++		return "1-2-2";
++	case SNOR_PROTO_1_4_4:
++		return "1-4-4";
++	case SNOR_PROTO_1_8_8:
++		return "1-8-8";
++	case SNOR_PROTO_2_2_2:
++		return "2-2-2";
++	case SNOR_PROTO_4_4_4:
++		return "4-4-4";
++	case SNOR_PROTO_8_8_8:
++		return "8-8-8";
++	case SNOR_PROTO_8_8_8_DTR:
++		return "8-8-8-DTR";
++	default:
++		return "proto-unknown";
++	}
++}
++
++static bool spi_nor_is_on_adi_spi3(struct spi_nor *nor)
++{
++	struct device *dev;
++
++	for (dev = nor->dev; dev; dev = dev->parent) {
++		if (dev->driver && !strcmp(dev->driver->name, "adi-spi3"))
++			return true;
++	}
++
++	return false;
++}
++
+ /* Define max times to check status register before we give up. */
+ 
+ /*
+@@ -2296,6 +2370,7 @@ static int spi_nor_select_read(struct spi_nor *nor,
+ {
+ 	int cmd, best_match = fls(shared_hwcaps & SNOR_HWCAPS_READ_MASK) - 1;
+ 	const struct spi_nor_read_command *read;
++	u32 selected_hwcaps;
+ 
+ 	if (best_match < 0)
+ 		return -EINVAL;
+@@ -2304,9 +2379,15 @@ static int spi_nor_select_read(struct spi_nor *nor,
+ 	if (cmd < 0)
+ 		return -EINVAL;
+ 
++	selected_hwcaps = BIT(best_match);
+ 	read = &nor->params->reads[cmd];
+ 	nor->read_opcode = read->opcode;
+ 	nor->read_proto = read->proto;
++	dev_info(nor->dev,
++		 "selected read: %s opcode=0x%02x proto=%s wait=%u mode=%u shared=0x%08lx\n",
++		 spi_nor_read_hwcaps_name(selected_hwcaps), nor->read_opcode,
++		 spi_nor_proto_name(nor->read_proto), read->num_wait_states,
++		 read->num_mode_clocks, shared_hwcaps & SNOR_HWCAPS_READ_MASK);
+ 
+ 	/*
+ 	 * In the SPI NOR framework, we don't need to make the difference
+@@ -2476,6 +2557,18 @@ static int spi_nor_default_setup(struct spi_nor *nor,
+ 		}
+ 	}
+ 
++	/*
++	 * ADI SPI3: 1-4-4 works, but 4-4-4 must not be selected for reads or page program.
++	 */
++	if (spi_nor_is_on_adi_spi3(nor)) {
++		ignored_mask = SNOR_HWCAPS_READ_4_4_4 | SNOR_HWCAPS_PP_4_4_4;
++		if (shared_mask & ignored_mask) {
++			dev_info(nor->dev,
++				 "disabling 4-4-4 protocols on controller adi-spi3\n");
++			shared_mask &= ~ignored_mask;
++		}
++	}
++
+ 	/* Select the (Fast) Read command. */
+ 	err = spi_nor_select_read(nor, shared_mask);
+ 	if (err) {
+-- 
+2.44.4
+

@@ -13,19 +13,15 @@ DEFAULTTUNE="cortexa5thf-neon"
 IMAGE_FSTYPES += "tar.bz2 jffs2"
 EXTRA_IMAGECMD:jffs2 = "--little-endian --pad=0x0 --pagesize=0x1000 --eraseblock=0x10000 --squash"
 
-SERIAL_CONSOLE = "115200 ttySC0"
+SERIAL_CONSOLES = "115200;ttySC0"
 
-PREFERRED_PROVIDER_virtual/kernel ?= "linux-gen6"
+PREFERRED_PROVIDER_virtual/kernel ?= "linux-adi"
 PREFERRED_PROVIDER_virtual/bootloader = "u-boot-adi"
 PREFERRED_PROVIDER_u-boot = "u-boot-adi"
 
-KERNEL_IMAGETYPE = "uImage-gzip"
-KERNEL_IMAGE_SYMLINK = "uImage"
+KERNEL_IMAGETYPE = "uImage"
 KERNEL_DEVICETREE ?= "sc573-gen6.dtb"
-KERNEL_DEVICETREE_SYMLINK = "sc57x-gen6.dtb"
 KERNEL_EXTRA_ARGS += "LOADADDR=${UBOOT_ENTRYPOINT}"
-
-OLDEST_KERNEL = "4.14"
 
 UBOOT_SUFFIX = "ldr"
 UBOOT_MACHINE ?= "sc573-gen6_defconfig"

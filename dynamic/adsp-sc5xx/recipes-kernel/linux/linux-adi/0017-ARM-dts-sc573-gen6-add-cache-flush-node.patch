@@ -1,0 +1,33 @@
+From 12934e7ce120cf9b8b518582cc41fd6b7a0dc0a7 Mon Sep 17 00:00:00 2001
+From: Ian Dannapel <ian.dannapel@iris-sensing.com>
+Date: Fri, 5 Jun 2026 09:19:26 +0200
+Subject: [PATCH 17/29] ARM: dts: sc573-gen6: add cache flush node
+
+Add the cache flush compatibility node used by legacy Gen6 userspace.
+The node instantiates /dev/cache_flush for ARM cache maintenance requests.
+
+Signed-off-by: Ian Dannapel <ian.dannapel@iris-sensing.com>
+---
+ arch/arm/boot/dts/sc573-gen6.dts | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/arch/arm/boot/dts/sc573-gen6.dts b/arch/arm/boot/dts/sc573-gen6.dts
+index f2f7b55475d5a..b6616acd636c6 100644
+--- a/arch/arm/boot/dts/sc573-gen6.dts
++++ b/arch/arm/boot/dts/sc573-gen6.dts
+@@ -44,6 +44,12 @@ dsp-addr {
+ 		compatible = "iris,irma-dsp-addr";
+ 		memory-region = <&dsp_heap>;
+ 	};
++
++	scb {
++		cache_flush {
++			compatible = "iris,irma-cache-flush";
++		};
++	};
+ };
+ 
+ &uart0 {
+-- 
+2.44.4
+

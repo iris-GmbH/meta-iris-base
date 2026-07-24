@@ -6,10 +6,12 @@ LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/MIT;md5=0835ade698e0bcf8506ecda
 FILESEXTRAPATHS:prepend := "${THISDIR}/${PN}:"
 
 SRC_URI = " \
-    file://power-on-selftest.sh \
     file://power-on-selftest.service \
     file://power-on-selftest.init \
 "
+
+SRC_URI:append:poky-iris-0501 = " file://power-on-selftest.sh"
+SRC_URI:append:poky-iris-0602 = " file://power-on-selftest.sh"
 
 FILES:${PN} += " \
     ${datadir}/iris/power-on-selftest.sh \

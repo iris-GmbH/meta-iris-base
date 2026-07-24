@@ -1,0 +1,195 @@
+From 0f6775c26395402f7730cdedfc8e6bafead5f6ae Mon Sep 17 00:00:00 2001
+From: Ian Dannapel <ian.dannapel@iris-sensing.com>
+Date: Fri, 5 Jun 2026 09:19:25 +0200
+Subject: [PATCH 14/29] ARM: dts: add SC573 Gen6 base board
+
+Add the base device tree for the Iris Gen6 board built around ADI SC573.
+The board description covers the console UART, QSPI flash layout, eMMC, Ethernet, memory window and the pinctrl groups needed by those base peripherals.
+
+Signed-off-by: Ian Dannapel <ian.dannapel@iris-sensing.com>
+---
+ arch/arm/boot/dts/Makefile       |   3 +-
+ arch/arm/boot/dts/sc573-gen6.dts | 159 +++++++++++++++++++++++++++++++
+ 2 files changed, 161 insertions(+), 1 deletion(-)
+ create mode 100644 arch/arm/boot/dts/sc573-gen6.dts
+
+diff --git a/arch/arm/boot/dts/Makefile b/arch/arm/boot/dts/Makefile
+index 96fb10f18b4c5..ed57ab1d3aea4 100644
+--- a/arch/arm/boot/dts/Makefile
++++ b/arch/arm/boot/dts/Makefile
+@@ -1508,4 +1508,5 @@ dtb-$(CONFIG_ARCH_SC58X) += \
+ 	sc589-ezkit.dtb \
+ 	sc584-ezkit.dtb
+ dtb-$(CONFIG_ARCH_SC57X) += \
+-	sc573-ezkit.dtb
+\ No newline at end of file
++	sc573-ezkit.dtb \
++	sc573-gen6.dtb
+diff --git a/arch/arm/boot/dts/sc573-gen6.dts b/arch/arm/boot/dts/sc573-gen6.dts
+new file mode 100644
+index 0000000000000..20e6156193dd7
+--- /dev/null
++++ b/arch/arm/boot/dts/sc573-gen6.dts
+@@ -0,0 +1,159 @@
++/*
++ * Device tree for ADI sc573 Gen6 board
++ *
++ * Copyright 2014 Analog Devices Inc.
++ *
++ * Licensed under the GPL-2 or later.
++ */
++
++/dts-v1/;
++
++#include <dt-bindings/gpio/gpio.h>
++#include <dt-bindings/pinctrl/adi-adsp.h>
++#include "sc57x.dtsi"
++
++/ {
++	model = "ADI sc573 Gen6";
++	compatible = "adi,sc573-gen6", "adi,sc57x";
++
++	aliases {
++		serial0 = &uart0;
++	};
++
++	memory@82000000 {
++		device_type = "memory";
++		reg = <0x82000000 0x06000000>; /* 96MB */
++	};
++};
++
++&uart0 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&uart0_default>;
++	status = "okay";
++};
++
++&spi2 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&spi2_quad>;
++	cs-gpios = <&gpb 15 GPIO_ACTIVE_LOW>;
++	status = "okay";
++
++	flash: is25lp256d@0 {
++		#address-cells = <1>;
++		#size-cells = <1>;
++		compatible = "issi,is25lp256d", "jedec,spi-nor";
++		reg = <0>;
++		spi-max-frequency = <50000000>;
++		spi-cpol;
++		spi-cpha;
++		spi-tx-bus-width = <4>;
++		spi-rx-bus-width = <4>;
++
++		partition@0 {
++			label = "uboot (spi)";
++			reg = <0x0000000 0x080000>;
++		};
++
++		partition@1 {
++			label = "data";
++			reg = <0x0080000 0x100000>;
++		};
++
++		partition@2 {
++			label = "kernel 1. (spi)";
++			reg = <0x0180000 0x270000>;
++		};
++
++		partition@3 {
++			label = "device tree 1. (spi)";
++			reg = <0x03f0000 0x010000>;
++		};
++
++		partition@4 {
++			label = "root file system 1. (spi)";
++			reg = <0x0400000 0x0cc0000>;
++		};
++
++		partition@5 {
++			label = "kernel 2. (spi)";
++			reg = <0x10c0000 0x270000>;
++		};
++
++		partition@6 {
++			label = "device tree 2. (spi)";
++			reg = <0x1330000 0x010000>;
++		};
++
++		partition@7 {
++			label = "root file system 2. (spi)";
++			reg = <0x1340000 0x0cc0000>;
++		};
++	};
++};
++
++&mmc0 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&mmc0_default>;
++	spu_securep_id = <41>;
++	bus-width = <4>;
++	non-removable;
++	no-1-8-v;
++	status = "okay";
++};
++
++&emac0 {
++	phy-mode = "rmii";
++	snps,phy-addr = <1>;
++	pinctrl-names = "default";
++	pinctrl-0 = <&eth0_default>;
++	status = "okay";
++};
++
++&pinctrl0 {
++	uart0_default: uart0_default_pins {
++		pins {
++			pinmux = <ADI_ADSP_PINMUX('F', 8, ADI_ADSP_PINFUNC_ALT0)>,
++				 <ADI_ADSP_PINMUX('F', 9, ADI_ADSP_PINFUNC_ALT0)>;
++		};
++	};
++
++	spi2_quad: spi2_quad_pins {
++		pins {
++			pinmux = <ADI_ADSP_PINMUX('B', 14, ADI_ADSP_PINFUNC_ALT0)>,
++				 <ADI_ADSP_PINMUX('B', 10, ADI_ADSP_PINFUNC_ALT0)>,
++				 <ADI_ADSP_PINMUX('B', 11, ADI_ADSP_PINFUNC_ALT0)>,
++				 <ADI_ADSP_PINMUX('B', 12, ADI_ADSP_PINFUNC_ALT0)>,
++				 <ADI_ADSP_PINMUX('B', 13, ADI_ADSP_PINFUNC_ALT0)>;
++		};
++	};
++
++	mmc0_default: mmc0_default_pins {
++		pins {
++			pinmux = <ADI_ADSP_PINMUX('E', 12, ADI_ADSP_PINFUNC_ALT0)>,
++				 <ADI_ADSP_PINMUX('E', 13, ADI_ADSP_PINFUNC_ALT0)>,
++				 <ADI_ADSP_PINMUX('E', 14, ADI_ADSP_PINFUNC_ALT0)>,
++				 <ADI_ADSP_PINMUX('E', 15, ADI_ADSP_PINFUNC_ALT0)>,
++				 <ADI_ADSP_PINMUX('F', 0, ADI_ADSP_PINFUNC_ALT0)>,
++				 <ADI_ADSP_PINMUX('F', 1, ADI_ADSP_PINFUNC_ALT0)>,
++				 <ADI_ADSP_PINMUX('F', 2, ADI_ADSP_PINFUNC_ALT0)>,
++				 <ADI_ADSP_PINMUX('F', 3, ADI_ADSP_PINFUNC_ALT0)>,
++				 <ADI_ADSP_PINMUX('F', 4, ADI_ADSP_PINFUNC_ALT0)>,
++				 <ADI_ADSP_PINMUX('F', 7, ADI_ADSP_PINFUNC_ALT2)>,
++				 <ADI_ADSP_PINMUX('C', 12, ADI_ADSP_PINFUNC_ALT1)>;
++		};
++	};
++
++	eth0_default: eth0_default_pins {
++		pins {
++			pinmux = <ADI_ADSP_PINMUX('B', 7, ADI_ADSP_PINFUNC_ALT0)>,
++				 <ADI_ADSP_PINMUX('B', 8, ADI_ADSP_PINFUNC_ALT0)>,
++				 <ADI_ADSP_PINMUX('A', 11, ADI_ADSP_PINFUNC_ALT0)>,
++				 <ADI_ADSP_PINMUX('A', 10, ADI_ADSP_PINFUNC_ALT0)>,
++				 <ADI_ADSP_PINMUX('A', 13, ADI_ADSP_PINFUNC_ALT0)>,
++				 <ADI_ADSP_PINMUX('A', 12, ADI_ADSP_PINFUNC_ALT0)>,
++				 <ADI_ADSP_PINMUX('B', 0, ADI_ADSP_PINFUNC_ALT0)>,
++				 <ADI_ADSP_PINMUX('B', 2, ADI_ADSP_PINFUNC_ALT0)>,
++				 <ADI_ADSP_PINMUX('B', 9, ADI_ADSP_PINFUNC_ALT0)>;
++		};
++	};
++};
+-- 
+2.44.4
+

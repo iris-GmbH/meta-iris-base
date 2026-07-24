@@ -1,0 +1,214 @@
+From ed3908388ca0935be8f582a073f84e017a3292ae Mon Sep 17 00:00:00 2001
+From: Ian Dannapel <ian.dannapel@iris-sensing.com>
+Date: Fri, 5 Jun 2026 09:19:23 +0200
+Subject: [PATCH 04/29] misc: iris: add cache flush compatibility driver
+
+Add the legacy /dev/cache_flush ABI used by Iris Gen6 CacheControl userspace.
+The driver implements ioctl command 0 for ARM-side clean/invalidate plus outer-cache flush; invalidate-only remains unsupported to match the legacy behavior.
+
+Signed-off-by: Ian Dannapel <ian.dannapel@iris-sensing.com>
+---
+ drivers/misc/iris/Kconfig            |  12 ++
+ drivers/misc/iris/Makefile           |   1 +
+ drivers/misc/iris/irma-cache-flush.c | 160 +++++++++++++++++++++++++++
+ 3 files changed, 173 insertions(+)
+ create mode 100644 drivers/misc/iris/irma-cache-flush.c
+
+diff --git a/drivers/misc/iris/Kconfig b/drivers/misc/iris/Kconfig
+index da14930d3fa83..0ae94aef478f1 100644
+--- a/drivers/misc/iris/Kconfig
++++ b/drivers/misc/iris/Kconfig
+@@ -12,3 +12,15 @@ config IRMA_DSP_ADDR
+ 	  Exposes /dev/irma_dsp_addr so userspace can keep IRMA DSP carveout
+ 	  DMA-BUFs alive and translate offsets within those buffers into
+ 	  DSP-visible physical addresses.
++
++config IRMA_CACHE_FLUSH
++	tristate "IRMA legacy cache flush compatibility driver"
++	depends on ARCH_SC57X && OF && MMU
++	select IRMA_MISC
++	default n
++	help
++	  Exposes the legacy /dev/cache_flush device used by Iris Gen6
++	  CacheControl userspace.  ioctl command 0 performs the old ARM-side
++	  clean/invalidate plus outer-cache flush for a userspace virtual range
++	  and matching physical range.  Invalidate-only is intentionally not
++	  implemented, matching the old probed behavior.
+diff --git a/drivers/misc/iris/Makefile b/drivers/misc/iris/Makefile
+index 5da340ada4bc0..31ca038049584 100644
+--- a/drivers/misc/iris/Makefile
++++ b/drivers/misc/iris/Makefile
+@@ -1,3 +1,4 @@
+ # SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)-or-later
+ 
+ obj-$(CONFIG_IRMA_DSP_ADDR)		+= irma-dsp-addr.o
++obj-$(CONFIG_IRMA_CACHE_FLUSH)		+= irma-cache-flush.o
+diff --git a/drivers/misc/iris/irma-cache-flush.c b/drivers/misc/iris/irma-cache-flush.c
+new file mode 100644
+index 0000000000000..af07d3defd795
+--- /dev/null
++++ b/drivers/misc/iris/irma-cache-flush.c
+@@ -0,0 +1,160 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * IRMA legacy cache flush compatibility driver.
++ *
++ * Exposes /dev/cache_flush for the old CacheControl userspace wrapper.  The
++ * legacy ABI uses ioctl command 0 with struct irma_cache_flush_info and only
++ * supports the flush/clean path selected by the device-tree compatible string.
++ */
++
++#include <linux/errno.h>
++#include <linux/fs.h>
++#include <linux/ioctl.h>
++#include <linux/miscdevice.h>
++#include <linux/mm.h>
++#include <linux/module.h>
++#include <linux/of.h>
++#include <linux/of_device.h>
++#include <linux/overflow.h>
++#include <linux/platform_device.h>
++#include <linux/types.h>
++#include <linux/uaccess.h>
++#include <asm/cacheflush.h>
++#include <asm/outercache.h>
++
++#define IRMA_CACHE_FLUSH_DRV_NAME	"irma-cache-flush"
++#define IRMA_CACHE_FLUSH_IOCTL		0
++
++enum irma_cache_flush_operation {
++	IRMA_CACHE_FLUSH_OP_INVALIDATE = 0,
++	IRMA_CACHE_FLUSH_OP_FLUSH = 1,
++};
++
++struct irma_cache_flush_info {
++	unsigned long virt_ptr;
++	unsigned long phys_ptr;
++	unsigned long size;
++};
++
++struct irma_cache_flush {
++	struct miscdevice miscdev;
++	enum irma_cache_flush_operation op;
++};
++
++static int irma_cache_flush_open(struct inode *inode, struct file *file)
++{
++	struct miscdevice *miscdev = file->private_data;
++	struct irma_cache_flush *cache;
++
++	cache = container_of(miscdev, struct irma_cache_flush, miscdev);
++	file->private_data = cache;
++
++	return 0;
++}
++
++static long irma_cache_flush_ioctl(struct file *file, unsigned int cmd,
++				   unsigned long arg)
++{
++	struct irma_cache_flush *cache = file->private_data;
++	struct irma_cache_flush_info info;
++	unsigned long end;
++
++	if (cmd != IRMA_CACHE_FLUSH_IOCTL)
++		return -ENOTTY;
++
++	if (cache->op != IRMA_CACHE_FLUSH_OP_FLUSH)
++		return -EINVAL;
++
++	if (copy_from_user(&info, (void __user *)arg, sizeof(info)))
++		return -EFAULT;
++
++	if (!info.size)
++		return 0;
++
++	if (check_add_overflow(info.phys_ptr, info.size, &end))
++		return -EINVAL;
++
++	__cpuc_flush_dcache_area((void *)info.virt_ptr, info.size);
++	outer_flush_range(info.phys_ptr, end);
++
++	return 0;
++}
++
++static const struct file_operations irma_cache_flush_fops = {
++	.owner		= THIS_MODULE,
++	.open		= irma_cache_flush_open,
++	.unlocked_ioctl	= irma_cache_flush_ioctl,
++};
++
++static const struct of_device_id irma_cache_flush_of_match[] = {
++	{
++		.compatible = "iris,irma-cache-invalidate",
++		.data = (void *)IRMA_CACHE_FLUSH_OP_INVALIDATE,
++	},
++	{
++		.compatible = "iris,irma-cache-flush",
++		.data = (void *)IRMA_CACHE_FLUSH_OP_FLUSH,
++	},
++	{ }
++};
++MODULE_DEVICE_TABLE(of, irma_cache_flush_of_match);
++
++static int irma_cache_flush_probe(struct platform_device *pdev)
++{
++	const struct of_device_id *match;
++	struct irma_cache_flush *cache;
++	struct device *dev = &pdev->dev;
++	enum irma_cache_flush_operation op;
++	int ret;
++
++	match = of_match_device(irma_cache_flush_of_match, dev);
++	if (!match)
++		return -ENODEV;
++
++	op = (enum irma_cache_flush_operation)(unsigned long)match->data;
++	if (op == IRMA_CACHE_FLUSH_OP_INVALIDATE)
++		return dev_err_probe(dev, -EINVAL,
++				     "invalidate operation is not implemented\n");
++
++	cache = devm_kzalloc(dev, sizeof(*cache), GFP_KERNEL);
++	if (!cache)
++		return -ENOMEM;
++
++	cache->op = op;
++	cache->miscdev.minor = MISC_DYNAMIC_MINOR;
++	cache->miscdev.name = dev->of_node->name;
++	cache->miscdev.fops = &irma_cache_flush_fops;
++	cache->miscdev.parent = dev;
++
++	ret = misc_register(&cache->miscdev);
++	if (ret)
++		return dev_err_probe(dev, ret,
++				     "failed to register misc device\n");
++
++	platform_set_drvdata(pdev, cache);
++
++	return 0;
++}
++
++static int irma_cache_flush_remove(struct platform_device *pdev)
++{
++	struct irma_cache_flush *cache = platform_get_drvdata(pdev);
++
++	misc_deregister(&cache->miscdev);
++
++	return 0;
++}
++
++static struct platform_driver irma_cache_flush_driver = {
++	.driver = {
++		.name = IRMA_CACHE_FLUSH_DRV_NAME,
++		.of_match_table = irma_cache_flush_of_match,
++	},
++	.probe = irma_cache_flush_probe,
++	.remove = irma_cache_flush_remove,
++};
++module_platform_driver(irma_cache_flush_driver);
++
++MODULE_DESCRIPTION("IRMA legacy /dev/cache_flush compatibility driver");
++MODULE_AUTHOR("Erik Schumacher <Erik.Schumacher@irisgmbh.de>");
++MODULE_LICENSE("GPL");
+-- 
+2.44.4
+

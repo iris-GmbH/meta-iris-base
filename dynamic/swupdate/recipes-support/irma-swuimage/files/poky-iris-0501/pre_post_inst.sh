@@ -110,6 +110,9 @@ unlock_device() {
 		keyctl add trusted kmk "load $(cat /mnt/keystore/kmk.blob)" @us
 	fi
 
+	# make user-session keyring reachable from current session keyring
+	keyctl link @us @s 2>/dev/null || true
+
 	# Remove the volume from previous failed run
 	if [ -b "$DECRYPT_ROOT_DEV" ]; then
 		lock_device

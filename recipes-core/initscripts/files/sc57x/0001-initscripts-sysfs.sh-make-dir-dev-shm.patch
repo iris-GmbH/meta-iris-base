@@ -3,6 +3,8 @@ From: Ian Dannapel <ian.dannapel@iris-sensing.com>
 Date: Fri, 25 Jul 2025 09:39:34 +0200
 Subject: [PATCH] initscripts/sysfs.sh: make dir /dev/shm
 
+Upstream-Status: Inappropriate
+
 Signed-off-by: Ian Dannapel <ian.dannapel@iris-sensing.com>
 ---
  sysfs.sh | 2 ++

@@ -1,0 +1,182 @@
+From 836fbe0cd3c5a9f27f17e426fc07085306e0b5e6 Mon Sep 17 00:00:00 2001
+From: Ian Dannapel <ian.dannapel@iris-sensing.com>
+Date: Fri, 5 Jun 2026 09:19:26 +0200
+Subject: [PATCH 20/29] ARM: dts: sc573-gen6: add EPC660 capture path
+
+Wire up the EPC660 sensor and ADI capture bridge on EPPI0.
+The board data sets the PPI control bits, center-out DMA layout, reset GPIO, PPI pinctrl modes and disables SPI1 because it conflicts with the 16-bit capture pins.
+
+Signed-off-by: Ian Dannapel <ian.dannapel@iris-sensing.com>
+---
+ arch/arm/boot/dts/sc573-gen6.dts | 123 +++++++++++++++++++++++++++++++
+ 1 file changed, 123 insertions(+)
+
+diff --git a/arch/arm/boot/dts/sc573-gen6.dts b/arch/arm/boot/dts/sc573-gen6.dts
+index baa8c3c13e673..0935acba277f1 100644
+--- a/arch/arm/boot/dts/sc573-gen6.dts
++++ b/arch/arm/boot/dts/sc573-gen6.dts
+@@ -9,6 +9,7 @@
+ /dts-v1/;
+ 
+ #include <dt-bindings/gpio/gpio.h>
++#include <dt-bindings/media/adi-ppi.h>
+ #include <dt-bindings/pinctrl/adi-adsp.h>
+ #include "sc57x.dtsi"
+ 
+@@ -76,6 +77,34 @@ corectrl {
+ 		cache_flush {
+ 			compatible = "iris,irma-cache-flush";
+ 		};
++
++		video_decoder_epc660: cap@3102d000 {
++			compatible = "adi,cap";
++			card-name = "epc660";
++			adi,input-name = "epc660";
++			adi,subdev = <&epc660>;
++			/* EPC660 emits two logical rows per HSYNC. */
++			adi,readout-layout = "double-width-half-height";
++			/* Reorder native center-out line stream while DMA writes. */
++			adi,dma-layout = "interleaved-center-out";
++			adi,ppi-control = <(ADI_EPPI_CTL_DLEN12 |
++					     ADI_EPPI_CTL_NON656 |
++					     ADI_EPPI_CTL_SYNC2 |
++					     ADI_EPPI_CTL_FS1LO_FS2LO |
++					     ADI_EPPI_CTL_POLC0 |
++					     ADI_EPPI_CTL_PACKEN |
++					     ADI_EPPI_CTL_SIGNEXT)>;
++			adi,int-mask = <0xfc>;
++			type = <2>;
++			dma-channel = <28>;
++			interrupts = <GIC_SPI 83 IRQ_TYPE_LEVEL_HIGH>;
++			reg = <0x3102d000 0x0fff>;
++			spu_securep_id = <95>;
++			pinctrl-names = "8bit", "16bit";
++			pinctrl-0 = <&ppi0_8b>;
++			pinctrl-1 = <&ppi0_16b>;
++			status = "okay";
++		};
+ 	};
+ };
+ 
+@@ -101,12 +130,56 @@ arm_to_right_sharc: channel@3 {
+ 	};
+ };
+ 
++&i2c0 {
++	status = "okay";
++
++	epc660: camera@22 {
++		compatible = "espros,epc660";
++		reg = <0x22>;
++		nrst-gpios = <&gpb 4 GPIO_ACTIVE_HIGH>;
++	};
++};
++
++&spi_cluster {
++	eppi0_ch0: channel@28 {
++		adi,id = <28>;
++		interrupts = <GIC_SPI 81 IRQ_TYPE_LEVEL_HIGH>,
++			     <GIC_SPI 180 IRQ_TYPE_LEVEL_HIGH>;
++		interrupt-names = "complete", "error";
++		adi,src-offset = <0x300>;
++		spu_securep_id = <66>;
++
++		/*
++		 * adi_capture programs EPPI0 DMA registers directly and owns this
++		 * interrupt itself. Do not let the generic ADI DMA engine request it.
++		 */
++		adi,skip-interrupts = <1>;
++	};
++};
++
+ &uart0 {
+ 	pinctrl-names = "default";
+ 	pinctrl-0 = <&uart0_default>;
+ 	status = "okay";
+ };
+ 
++&spi1 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&spi1_default>;
++	cs-gpios = <&gpc 10 GPIO_ACTIVE_LOW>;
++	/*
++	 * PPI0 16-bit capture also needs pC8. Keep SPI1 disabled on this
++	 * board variant so the EPC660 capture path can select ppi0_16b.
++	 */
++	status = "disabled";
++
++	spidev@0 {
++		compatible = "rohm,dh2228fv";
++		reg = <0>;
++		spi-max-frequency = <1000000>;
++	};
++};
++
+ &spi2 {
+ 	pinctrl-names = "default";
+ 	pinctrl-0 = <&spi2_quad>;
+@@ -192,6 +265,14 @@ pins {
+ 		};
+ 	};
+ 
++	spi1_default: spi1_default_pins {
++		pins {
++			pinmux = <ADI_ADSP_PINMUX('C', 8, ADI_ADSP_PINFUNC_ALT0)>,
++				 <ADI_ADSP_PINMUX('C', 9, ADI_ADSP_PINFUNC_ALT1)>,
++				 <ADI_ADSP_PINMUX('C', 10, ADI_ADSP_PINFUNC_ALT1)>;
++		};
++	};
++
+ 	spi2_quad: spi2_quad_pins {
+ 		pins {
+ 			pinmux = <ADI_ADSP_PINMUX('B', 14, ADI_ADSP_PINFUNC_ALT0)>,
+@@ -231,4 +312,46 @@ pins {
+ 				 <ADI_ADSP_PINMUX('B', 9, ADI_ADSP_PINFUNC_ALT0)>;
+ 		};
+ 	};
++
++	ppi0_8b: ppi0_8b_pins {
++		pins {
++			pinmux = <ADI_ADSP_PINMUX('D', 10, ADI_ADSP_PINFUNC_ALT1)>,
++				 <ADI_ADSP_PINMUX('D', 11, ADI_ADSP_PINFUNC_ALT1)>,
++				 <ADI_ADSP_PINMUX('D', 12, ADI_ADSP_PINFUNC_ALT1)>,
++				 <ADI_ADSP_PINMUX('D', 13, ADI_ADSP_PINFUNC_ALT1)>,
++				 <ADI_ADSP_PINMUX('D', 14, ADI_ADSP_PINFUNC_ALT1)>,
++				 <ADI_ADSP_PINMUX('D', 15, ADI_ADSP_PINFUNC_ALT1)>,
++				 <ADI_ADSP_PINMUX('C', 5, ADI_ADSP_PINFUNC_ALT1)>,
++				 <ADI_ADSP_PINMUX('D', 9, ADI_ADSP_PINFUNC_ALT1)>,
++				 <ADI_ADSP_PINMUX('C', 11, ADI_ADSP_PINFUNC_ALT1)>,
++				 <ADI_ADSP_PINMUX('C', 14, ADI_ADSP_PINFUNC_ALT1)>,
++				 <ADI_ADSP_PINMUX('C', 15, ADI_ADSP_PINFUNC_ALT1)>,
++				 <ADI_ADSP_PINMUX('C', 6, ADI_ADSP_PINFUNC_ALT2)>;
++		};
++	};
++
++	ppi0_16b: ppi0_16b_pins {
++		pins {
++			pinmux = <ADI_ADSP_PINMUX('D', 10, ADI_ADSP_PINFUNC_ALT1)>,
++				 <ADI_ADSP_PINMUX('D', 11, ADI_ADSP_PINFUNC_ALT1)>,
++				 <ADI_ADSP_PINMUX('D', 12, ADI_ADSP_PINFUNC_ALT1)>,
++				 <ADI_ADSP_PINMUX('D', 13, ADI_ADSP_PINFUNC_ALT1)>,
++				 <ADI_ADSP_PINMUX('D', 14, ADI_ADSP_PINFUNC_ALT1)>,
++				 <ADI_ADSP_PINMUX('D', 15, ADI_ADSP_PINFUNC_ALT1)>,
++				 <ADI_ADSP_PINMUX('C', 5, ADI_ADSP_PINFUNC_ALT1)>,
++				 <ADI_ADSP_PINMUX('D', 9, ADI_ADSP_PINFUNC_ALT1)>,
++				 <ADI_ADSP_PINMUX('C', 1, ADI_ADSP_PINFUNC_ALT1)>,
++				 <ADI_ADSP_PINMUX('C', 2, ADI_ADSP_PINFUNC_ALT1)>,
++				 <ADI_ADSP_PINMUX('C', 3, ADI_ADSP_PINFUNC_ALT1)>,
++				 <ADI_ADSP_PINMUX('C', 4, ADI_ADSP_PINFUNC_ALT1)>,
++				 <ADI_ADSP_PINMUX('E', 0, ADI_ADSP_PINFUNC_ALT1)>,
++				 <ADI_ADSP_PINMUX('C', 7, ADI_ADSP_PINFUNC_ALT1)>,
++				 <ADI_ADSP_PINMUX('C', 8, ADI_ADSP_PINFUNC_ALT1)>,
++				 <ADI_ADSP_PINMUX('E', 1, ADI_ADSP_PINFUNC_ALT1)>,
++				 <ADI_ADSP_PINMUX('C', 11, ADI_ADSP_PINFUNC_ALT1)>,
++				 <ADI_ADSP_PINMUX('C', 14, ADI_ADSP_PINFUNC_ALT1)>,
++				 <ADI_ADSP_PINMUX('C', 15, ADI_ADSP_PINFUNC_ALT1)>,
++				 <ADI_ADSP_PINMUX('C', 6, ADI_ADSP_PINFUNC_ALT2)>;
++		};
++	};
+ };
+-- 
+2.44.4
+

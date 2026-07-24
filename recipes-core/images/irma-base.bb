@@ -44,6 +44,7 @@ IRMA_BASE_PACKAGES = " \
     iris-ca-certificates \
     factory-reset \
     set-hostname \
+    save-rtc \
 "
 
 IRMA_EXTRA_PACKAGES = " \
@@ -55,7 +56,6 @@ IRMA_EXTRA_PACKAGES = " \
     udev-extraconf-iris \
     switch-log-location \
     set-mount-permissions \
-    save-rtc \
 "
 IRMA_EXTRA_PACKAGES:append = "${@bb.utils.contains('DISTRO_FEATURES', 'systemd', ' remount-nfs-root', '', d)}"
 

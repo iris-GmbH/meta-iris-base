@@ -1,0 +1,41 @@
+From 61a71ed7b839e5b633158d87cc56422399871294 Mon Sep 17 00:00:00 2001
+From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+Date: Thu, 18 Jun 2026 13:28:06 +0200
+Subject: [PATCH 28/29] spi: adi-spi3: Fix DMA cleanup from error IRQ
+
+The SPI error IRQ handler currently calls adi_spi_dma_terminate(), which uses
+dmaengine_terminate_sync(). This is not valid from IRQ context because the sync
+variant may sleep while waiting for DMA completion callbacks to drain.
+
+Use dmaengine_terminate_async() in the IRQ handler instead and report the
+current SPI transfer as failed so the SPI core does not wait for the transfer
+timeout after a controller error.
+
+Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+---
+ drivers/spi/spi-adi-v3.c | 9 ++++++++-
+ 1 file changed, 8 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/spi/spi-adi-v3.c b/drivers/spi/spi-adi-v3.c
+index efc6be2eebd73..7b3f36c8f5398 100644
+--- a/drivers/spi/spi-adi-v3.c
++++ b/drivers/spi/spi-adi-v3.c
+@@ -709,7 +709,14 @@ static irqreturn_t spi_irq_err(int irq, void *dev_id)
+ 	iowrite32(0, &drv_data->regs->tx_control);
+ 	iowrite32(0, &drv_data->regs->rx_control);
+ 	adi_spi_disable(drv_data);
+-	adi_spi_dma_terminate(drv_data);
++
++	dmaengine_terminate_async(drv_data->master->dma_tx);
++	dmaengine_terminate_async(drv_data->master->dma_rx);
++
++	if (drv_data->master->cur_msg) {
++		drv_data->master->cur_msg->status = -EIO;
++		spi_finalize_current_transfer(drv_data->master);
++	}
+ 
+ 	return IRQ_HANDLED;
+ }
+-- 
+2.44.4
+
