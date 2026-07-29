@@ -1,5 +1,6 @@
 FILESEXTRAPATHS:prepend := "${THISDIR}/files:"
 
+# self build ethosu firmware for reduced X mb RAM
 SRC_URI:append:imx93-matrixup = " file://ethosu_firmware"
 
 do_install:imx93-matrixup () {

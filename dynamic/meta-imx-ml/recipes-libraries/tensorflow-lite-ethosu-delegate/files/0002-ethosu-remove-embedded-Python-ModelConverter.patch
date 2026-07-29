@@ -1,8 +1,9 @@
 From 18eedcf661cc0e048b95c225a8d49ac79a8b01a5 Mon Sep 17 00:00:00 2001
-From: OpenAI <noreply@openai.com>
+From: Sven Foerster <sven.foerster@iris-sensing.com>
 Date: Wed, 22 Jul 2026 14:28:42 +0000
 Subject: [PATCH] ethosu: remove embedded Python ModelConverter
 
+Upstream-Status: Inappropriate [custom dependencies]
 ---
  ethosu_delegate_utils.cc | 56 ----------------------------------------
  ethosu_delegate_utils.h  | 17 ------------

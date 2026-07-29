@@ -1,8 +1,9 @@
 From 00328874ec7c5fc6c00f9562ed440356d6d6d68f Mon Sep 17 00:00:00 2001
-From: OpenAI <noreply@openai.com>
+From: Sven Foerster <sven.foerster@iris-sensing.com>
 Date: Wed, 22 Jul 2026 14:28:41 +0000
 Subject: [PATCH] ethosu: keep only offline Vela execution path
 
+Upstream-Status: Inappropriate [custom dependencies]
 ---
  ethosu_delegate.cc | 242 +++++++++------------------------------------
  1 file changed, 44 insertions(+), 198 deletions(-)
