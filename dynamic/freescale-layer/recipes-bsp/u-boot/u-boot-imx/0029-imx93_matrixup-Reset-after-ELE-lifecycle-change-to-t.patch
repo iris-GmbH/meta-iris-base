@@ -1,0 +1,28 @@
+From c35c5baa8d69abd5c002c8603d2c989ef5a62182 Mon Sep 17 00:00:00 2001
+From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+Date: Tue, 4 Aug 2026 10:12:06 +0200
+Subject: [PATCH] imx93_matrixup: Reset after ELE lifecycle change to take
+ effect
+
+Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+---
+ board/freescale/imx93_matrixup/imx93_matrixup.c | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/board/freescale/imx93_matrixup/imx93_matrixup.c b/board/freescale/imx93_matrixup/imx93_matrixup.c
+index d550cd30806..77dcd241160 100644
+--- a/board/freescale/imx93_matrixup/imx93_matrixup.c
++++ b/board/freescale/imx93_matrixup/imx93_matrixup.c
+@@ -342,6 +342,9 @@ void board_autogenerate_bootcmd (void)
+ 			}
+ 			env_set_ulong("lock_device", 0);
+ 			env_save();
++
++			// The ELE lifecycle change only takes effect after reset.
++			do_reset(NULL, 0, 0, NULL);
+ 		}
+ 
+ 		if (!lock_requested) {
+-- 
+2.55.0
+

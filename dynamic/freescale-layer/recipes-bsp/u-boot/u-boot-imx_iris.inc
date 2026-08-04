@@ -37,6 +37,7 @@ SRC_URI:append = "\
 	file://0026-imx93-matrixup-Support-KSZ8081-ethernet-PHY.patch \
 	file://0027-Remove-warning-Bad-device-specification.patch \
 	file://0028-imx93_matrixup-Add-DHCP-option-43-for-NFS-boot-switc.patch \
+	file://0029-imx93_matrixup-Reset-after-ELE-lifecycle-change-to-t.patch \
 "
 
 SRC_URI:append:poky-iris-deploy = "\
