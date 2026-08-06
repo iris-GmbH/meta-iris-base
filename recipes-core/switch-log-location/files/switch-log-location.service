@@ -1,7 +1,7 @@
 [Unit]
 Description=Setup log location (persistent or volatile)
 DefaultDependencies=no
-Before=systemd-journald.service
+Before=systemd-journal-flush.service
 After=local-fs.target
 
 [Service]

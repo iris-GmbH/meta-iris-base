@@ -5,10 +5,20 @@ PATH=/sbin:/bin:/usr/sbin:/usr/bin
 ROOT_MNT="/mnt"
 MOUNT="/bin/mount"
 UMOUNT="/bin/umount"
+vg=matrixlvm
 
 if [ -z "${INIT}" ];then
     INIT=/sbin/init
 fi
+
+# Determine eMMC device e.g. mmcblk0
+device="mmcblk0"
+for i in 0 1 2; do
+    if [ -b "/dev/mmcblk${i}" ]; then
+        device="mmcblk${i}"
+        break
+    fi
+done
 
 mount_pseudo_fs() {
     echo "Mount pseudo fs's"
@@ -58,7 +68,7 @@ mount_device_data_backup() {
     fi
 
     mkdir -p "${DEVICE_DATA_BACKUP_MNT}"
-    for DEVICE_DATA_BACKUP_DEV in /dev/mmcblk[0-9]boot1; do
+    for DEVICE_DATA_BACKUP_DEV in /dev/${device}boot1; do
         [ -b "${DEVICE_DATA_BACKUP_DEV}" ] || continue
 
         DEVICE_DATA_BACKUP_SIZE=2M
@@ -175,6 +185,109 @@ parse_cmdline() {
     DECRYPT_DATASTORE_NAME="decrypted-matrixlvm-datastore"
 }
 
+pvsn_wipe() {
+    sector_size=512 # 512 bytes
+    partition_offset=$(cat "/sys/class/block/${device}p5/start")
+    erase_size_bytes=$(cat "/sys/class/block/${device}/device/erase_size")
+    pe_start_bytes=$(pvs --no-heading --no-suffix -o pe_start --unit B | xargs | sed 's/\.00$//') # first physical extent offset in bytes
+    pe_start=$((pe_start_bytes / sector_size))
+    erase_size=$((erase_size_bytes / sector_size))
+    pv_size=$(pvs --no-heading --no-suffix -o pv_size --unit B | xargs) # physical volume size in bytes
+    pe_count=$(pvs --no-heading -o pv_pe_count | xargs) # physical extent count
+    pe_size=$((pv_size / pe_count)) # physical extent size in bytes (should be 4 MiB)
+    lv_start_pe=$(pvs --no-headings -o seg_pe_ranges --select "lv_name = $1" | sed -e 's/.*:\(.*\)-.*/\1/') # start of logical volume in physical extents
+    lv_size_pe=$(pvs --no-headings -o seg_size_pe --select "lv_name = $1" | xargs) # size of logical volume in physical extents
+
+    # convert bytes to mmc sectors (512B per sector)
+    start=$((lv_start_pe * pe_size / sector_size + partition_offset + pe_start))
+    end=$(((lv_start_pe + lv_size_pe) * pe_size / sector_size + partition_offset + pe_start - 1))
+
+    if [ $((erase_size_bytes % sector_size)) -ne 0 ] || [ $((start % erase_size)) -ne 0 ] || [ $(((end + 1) % erase_size)) -ne 0 ]; then
+        echo "Refusing secure erase for $1: range ${start}-${end} is not aligned to erase_size ${erase_size_bytes} bytes"
+        exit 1
+    fi
+
+    mmc erase secure-erase "$start" "$end" "/dev/${device}"
+}
+
+# provisioning flash procedure
+pvsn_flash() {
+    echo "Initramfs provisioning flash routine started..."
+
+    # Mount keystore
+    KEYSTORE_DEV="/dev/mapper/$vg-keystore"
+    KEYSTORE="/mnt/keystore"
+    ${MOUNT} ${KEYSTORE_DEV} ${KEYSTORE}
+
+    # Generate trusted key and add them to the keyring
+    key_id=$(keyctl add trusted kmk "new 32" @us) || echo "Error: Failed to create trusted key kmk"
+    keyctl link @us @s || echo "Error: Failed to link user keyring to session keyring"
+    keyctl pipe "$key_id" > "${KEYSTORE}/kmk.blob" || echo "Error: Failed to cache trusted key blob in keystore"
+    [ -s "${KEYSTORE}/kmk.blob" ] || echo "Error: Cached trusted key blob is empty"
+    ${UMOUNT} ${KEYSTORE}
+
+    # Setup encrypted volumes
+    dmsetup create "decrypted-$vg-rootfs_a"   --table "0 $(blockdev --getsz "/dev/mapper/$vg-rootfs_a")   crypt aes-cbc-essiv:sha256 :32:trusted:kmk 0 /dev/mapper/$vg-rootfs_a   0 1 sector_size:4096"
+    dmsetup create "decrypted-$vg-rootfs_b"   --table "0 $(blockdev --getsz "/dev/mapper/$vg-rootfs_b")   crypt aes-cbc-essiv:sha256 :32:trusted:kmk 0 /dev/mapper/$vg-rootfs_b   0 1 sector_size:4096"
+    dmsetup create "decrypted-$vg-userdata_a" --table "0 $(blockdev --getsz "/dev/mapper/$vg-userdata_a") crypt aes-cbc-essiv:sha256 :32:trusted:kmk 0 /dev/mapper/$vg-userdata_a 0 1 sector_size:4096"
+    dmsetup create "decrypted-$vg-userdata_b" --table "0 $(blockdev --getsz "/dev/mapper/$vg-userdata_b") crypt aes-cbc-essiv:sha256 :32:trusted:kmk 0 /dev/mapper/$vg-userdata_b 0 1 sector_size:4096"
+    dmsetup create "decrypted-$vg-datastore"  --table "0 $(blockdev --getsz "/dev/mapper/$vg-datastore")  crypt aes-cbc-essiv:sha256 :32:trusted:kmk 0 /dev/mapper/$vg-datastore  0 1 sector_size:4096"
+    vgmknodes
+
+    # Copy rootfs
+    dd if="/dev/mapper/$vg-pvsn_rootfs" of="/dev/mapper/decrypted-$vg-rootfs_a"
+    dd if="/dev/mapper/$vg-rootfs_a" of="/dev/mapper/$vg-rootfs_b"
+    sync
+
+    # Mount and copy userdata A/B
+    MOUNTP_USERDATA_A="/mnt/userdata_a"
+    MOUNTP_USERDATA_B="/mnt/userdata_b"
+    MOUNTP_USERDATA_PVSN="/mnt/pvsn_userdata"
+    mkfs.ext4 "/dev/mapper/decrypted-$vg-userdata_a"
+    mkfs.ext4 "/dev/mapper/decrypted-$vg-userdata_b"
+    mkfs.ext4 "/dev/mapper/decrypted-$vg-datastore"
+    mkdir -p $MOUNTP_USERDATA_PVSN
+    mkdir -p $MOUNTP_USERDATA_A
+    mkdir -p $MOUNTP_USERDATA_B
+
+    mount -t ext4 "/dev/mapper/$vg-pvsn_userdata" $MOUNTP_USERDATA_PVSN
+    mount -t ext4 "/dev/mapper/decrypted-$vg-userdata_a" $MOUNTP_USERDATA_A
+    mount -t ext4 "/dev/mapper/decrypted-$vg-userdata_b" $MOUNTP_USERDATA_B
+
+    cp -R $MOUNTP_USERDATA_PVSN/* $MOUNTP_USERDATA_A
+    cp -R $MOUNTP_USERDATA_A/* $MOUNTP_USERDATA_B
+    sync
+    umount $MOUNTP_USERDATA_PVSN
+    rm -rf $MOUNTP_USERDATA_PVSN
+
+    # Secure erase logical volumes
+    pvsn_wipe pvsn_rootfs
+    pvsn_wipe pvsn_userdata
+    sync
+
+    # Remove provisioning volumes
+    lvchange -an "/dev/mapper/$vg-pvsn_rootfs"
+    lvchange -an "/dev/mapper/$vg-pvsn_userdata"
+    lvremove --force --yes --verbose "/dev/mapper/$vg-pvsn_rootfs"
+    lvremove --force --yes --verbose "/dev/mapper/$vg-pvsn_userdata"
+    vgchange -a y
+    vgmknodes
+
+    # Close decrypted devices
+    ${UMOUNT} $MOUNTP_USERDATA_A
+    ${UMOUNT} $MOUNTP_USERDATA_B
+    rm -rf $MOUNTP_USERDATA_A $MOUNTP_USERDATA_B
+
+    dmsetup remove "/dev/mapper/decrypted-$vg-rootfs_a"
+    dmsetup remove "/dev/mapper/decrypted-$vg-rootfs_b"
+    dmsetup remove "/dev/mapper/decrypted-$vg-userdata_a"
+    dmsetup remove "/dev/mapper/decrypted-$vg-userdata_b"
+    dmsetup remove "/dev/mapper/decrypted-$vg-datastore"
+
+    # Ensure key chain is clean
+    keyctl unlink "$key_id" @us 2>/dev/null || keyctl revoke "$key_id" 2>/dev/null || true
+}
+
 # sync_userdata_from_to
 # try to sync config from SRC to DST
 # $1: SRC_SUFFIX a/b
@@ -262,6 +375,11 @@ if [ -n "${NFSPATH}" ]; then
     fi
     echo "Switching root to Network File System"
 else
+    echo "Provisioning check..."
+    if [ -e "/dev/mapper/matrixlvm-pvsn_rootfs" ]; then
+        pvsn_flash
+    fi
+
     ${MOUNT} -t ext4 -o ro /dev/mapper/matrixlvm-keystore /mnt/keystore
     if ! /usr/bin/openssl dgst -sha256 -verify /etc/iris/signing/roothash-public-key.pem -signature "${ROOT_HASH_SIGNATURE}" "${ROOT_HASH}" ; then
         echo "ERROR: Root hash signature invalid"
