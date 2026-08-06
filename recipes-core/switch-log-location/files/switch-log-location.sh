@@ -3,6 +3,9 @@ set -eu
 
 SWITCH_LOG_LOCATION=/mnt/iris/irma6webserver/use_persistent_log_location
 USER_DATA_LOG_DIR=/mnt/datastore/log
+LOG_MOUNTPOINT=/var/volatile/log
+
+mkdir -p "$LOG_MOUNTPOINT"
 
 if [ -f "$SWITCH_LOG_LOCATION" ]; then
     mkdir -p "$USER_DATA_LOG_DIR"
