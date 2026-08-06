@@ -1,8 +1,9 @@
 [Unit]
 Description=Setup log location (persistent or volatile)
 DefaultDependencies=no
-Before=systemd-journald.service
-After=local-fs.target
+Before=systemd-journal-flush.service
+Requires=var-volatile.mount mnt-datastore.mount mnt-iris.mount
+After=var-volatile.mount mnt-datastore.mount mnt-iris.mount
 
 [Service]
 Type=oneshot
