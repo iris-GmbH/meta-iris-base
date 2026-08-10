@@ -1,0 +1,33 @@
+From 896416272016fe308da344b7baf0ab724e049ad5 Mon Sep 17 00:00:00 2001
+From: Ian Dannapel <ian.dannapel@iris-sensing.com>
+Date: Thu, 12 Sep 2024 14:54:11 +0200
+Subject: [PATCH 2/2] Use IRMA WPA supplicant preparation helper
+
+Keep validation and runtime configuration generation shared between the
+ifupdown and systemd startup paths.
+
+Upstream-Status: Inappropriate [IRMA-specific runtime configuration]
+---
+ wpa-supplicant.sh | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/wpa-supplicant.sh b/wpa-supplicant.sh
+index 75df8d709e..7e60167e93 100644
+--- a/wpa-supplicant.sh
++++ b/wpa-supplicant.sh
+@@ -9,9 +9,11 @@ WPA_SUP_OPTIONS="-B -P $WPA_SUP_PIDFILE -i $IFACE -s"
+ 
+ VERBOSITY=0
+ 
++WPA_RW_CONF="/mnt/iris/wpa_supplicant/wpa_supplicant.conf"
++WPA_PREPARE_BIN="/usr/libexec/irma-wpa-supplicant-prepare"
+ 
+-if [ -s "$IF_WPA_CONF" ]; then
+-	WPA_SUP_CONF="-c $IF_WPA_CONF"
++if [ -n "$IF_WPA_CONF" ] && "$WPA_PREPARE_BIN" "$IF_WPA_CONF"; then
++	WPA_SUP_CONF="-c $WPA_RW_CONF"
+ else
+ 	exit 0
+ fi
+-- 
+2.34.1

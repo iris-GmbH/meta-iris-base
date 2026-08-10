@@ -1,0 +1,16 @@
+[Unit]
+Description=IRMA wired WPA supplicant
+Requires=sys-subsystem-net-devices-eth0.device
+After=network-pre.target sys-subsystem-net-devices-eth0.device
+Wants=network-pre.target
+Before=network.target irma-network-config.service
+
+[Service]
+Type=simple
+ExecCondition=/usr/libexec/irma-wpa-supplicant-prepare
+ExecStart=/usr/sbin/wpa_supplicant -s -i eth0 -D wired -c /mnt/iris/wpa_supplicant/wpa_supplicant.conf
+Restart=on-failure
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target
