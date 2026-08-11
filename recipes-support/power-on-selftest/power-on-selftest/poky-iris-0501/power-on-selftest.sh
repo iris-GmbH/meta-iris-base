@@ -148,9 +148,10 @@ check_alt_fw_update() {
 	result=$(rsync_alternative_userdata && echo "successful" || echo "failed")
 	log "Alternative config update $result"
 
-	update_security_report
 	# clear lock file
 	rm -f "$LOCK_FILE"
+
+	update_security_report
 }
 
 reset_uboot_envs() {
