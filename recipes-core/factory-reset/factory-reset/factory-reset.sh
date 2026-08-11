@@ -51,6 +51,13 @@ done
 
 case "$carrier" in
     1) echo "Link is up: Skip eth0 short check" ;;
-    0) echo "Link is down: Perform eth0 short check"; short_detected && factory_reset || exit 1 ;;
+    0)
+        echo "Link is down: Perform eth0 short check"
+        if short_detected; then
+            factory_reset || exit 1
+        else
+            echo "No eth0 short detected: Skip factory reset"
+        fi
+        ;;
     *) echo "WARN: Carrier status unknown"; exit 1 ;;
 esac
