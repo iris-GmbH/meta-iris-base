@@ -63,7 +63,7 @@ IRMA_EXTRA_PACKAGES = " \
 IRMA_EXTRA_PACKAGES:append = "${@bb.utils.contains('DISTRO_FEATURES', 'systemd', ' remount-nfs-root', '', d)}"
 
 # IRMA Matrix only packages
-IRMA_EXTRA_PACKAGES:append:poky-iris-0501 = " \
+IRMA_EXTRA_PACKAGES:append:poky-iris-0501:mx93-nxp-bsp = " \
     ethos-u-driver-stack \
     tensorflow-lite-ethosu-delegate \
     ethos-u-firmware \
