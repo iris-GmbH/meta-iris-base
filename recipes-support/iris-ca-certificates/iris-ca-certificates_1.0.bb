@@ -22,9 +22,18 @@ install_swupdate_crt() {
     install -m 0644 ${SWUPDATE_CA_CERT} ${D}${sysconfdir}/iris/ca-certificates/swupdate-ca.crt
 }
 
+install_service_identity_ca_crt() {
+    install -d ${D}${sysconfdir}/iris/ca-certificates
+    if [ ! -e "${SERVICE_IDENTITY_CA_CERT}" ]; then
+        bbfatal "Error: SERVICE_IDENTITY_CA_CERT: ${SERVICE_IDENTITY_CA_CERT} does not exist!"
+    fi
+    install -m 0644 ${SERVICE_IDENTITY_CA_CERT} ${D}${sysconfdir}/iris/ca-certificates/iris-service-ca.crt
+}
+
 do_install() {
     install_swupdate_crt
     install_download_crt
+    install_service_identity_ca_crt
 }
 
 do_install:poky-iris-0601() {
