@@ -35,6 +35,9 @@ ADDITIONAL_IRIS_TOOLCHAIN_TARGET_TASK = "protobuf-staticdev swupdate"
 # manually include blasfeo for R1 since it is statically linked
 ADDITIONAL_IRIS_TOOLCHAIN_TARGET_TASK:poky-iris-0601 = "blasfeo-staticdev"
 
+# manually include delegate_providers for matrix-Up ethos-u NPU use
+ADDITIONAL_IRIS_TOOLCHAIN_TARGET_TASK:poky-iris-0501 = " tensorflow-lite-staticdev"
+
 TOOLCHAIN_TARGET_TASK:append = " ${IRIS_TOOLCHAIN_TARGET_TASK} ${ADDITIONAL_IRIS_TOOLCHAIN_TARGET_TASK}"
 
 PV = "${DISTRO_VERSION}"
@@ -58,6 +61,13 @@ IRMA_EXTRA_PACKAGES = " \
     set-mount-permissions \
 "
 IRMA_EXTRA_PACKAGES:append = "${@bb.utils.contains('DISTRO_FEATURES', 'systemd', ' remount-nfs-root', '', d)}"
+
+# IRMA Matrix only packages
+IRMA_EXTRA_PACKAGES:append:poky-iris-0501:mx93-nxp-bsp = " \
+    ethos-u-driver-stack \
+    tensorflow-lite-ethosu-delegate \
+    ethos-u-firmware \
+"
 
 # install no extra packages on R1
 IRMA_EXTRA_PACKAGES:poky-iris-0601 = " \

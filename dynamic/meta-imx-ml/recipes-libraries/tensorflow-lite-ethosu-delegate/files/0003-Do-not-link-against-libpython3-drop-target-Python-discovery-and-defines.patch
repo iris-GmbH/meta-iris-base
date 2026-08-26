@@ -1,0 +1,46 @@
+From 1b233bc2e818e9ca4b473eec4facb99056023b90 Mon Sep 17 00:00:00 2001
+From: Sven Foerster <sven.foerster@iris-sensing.com>
+Date: Wed, 22 Jul 2026 14:28:42 +0000
+Subject: [PATCH] cmake: do not link against libpython3 and drop target Python discovery and defines
+
+Upstream-Status: Inappropriate [custom dependencies]
+---
+ CMakeLists.txt | 1 -
+ 1 file changed, 1 deletion(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index d357557..8ae7d31 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -30,7 +30,6 @@ list(APPEND ETHOSU_DELEGATES_SRCS
+ find_package (Python COMPONENTS Interpreter Development)
+ get_filename_component(PYTHON_LIB_NAME ${Python_LIBRARIES} NAME)
+ include_directories(${Python_INCLUDE_DIRS})
+-list(APPEND ETHOSU_DELEGATE_DEPENDENCIES ${Python_LIBRARIES})
+ 
+ add_library(ethosu_delegate SHARED ${ETHOSU_DELEGATES_SRCS})
+ target_link_libraries(ethosu_delegate ${ETHOSU_DELEGATE_DEPENDENCIES})
+-- 
+2.55.0
+---
+ CMakeLists.txt | 5 -----
+ 1 file changed, 5 deletions(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 8ae7d31..fa87aaa 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -27,10 +27,5 @@ list(APPEND ETHOSU_DELEGATES_SRCS
+   ${CMAKE_CURRENT_SOURCE_DIR}/ethosu_supported_ops.cc
+ )
+ 
+-find_package (Python COMPONENTS Interpreter Development)
+-get_filename_component(PYTHON_LIB_NAME ${Python_LIBRARIES} NAME)
+-include_directories(${Python_INCLUDE_DIRS})
+-
+ add_library(ethosu_delegate SHARED ${ETHOSU_DELEGATES_SRCS})
+ target_link_libraries(ethosu_delegate ${ETHOSU_DELEGATE_DEPENDENCIES})
+-target_compile_options(ethosu_delegate PUBLIC "-DPYTHON_LIB=${PYTHON_LIB_NAME}")
+-- 
+2.47.3
+

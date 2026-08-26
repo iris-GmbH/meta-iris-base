@@ -1,0 +1,305 @@
+From 00328874ec7c5fc6c00f9562ed440356d6d6d68f Mon Sep 17 00:00:00 2001
+From: Sven Foerster <sven.foerster@iris-sensing.com>
+Date: Wed, 22 Jul 2026 14:28:41 +0000
+Subject: [PATCH] ethosu: keep only offline Vela execution path
+
+Upstream-Status: Inappropriate [custom dependencies]
+---
+ ethosu_delegate.cc | 242 +++++++++------------------------------------
+ 1 file changed, 44 insertions(+), 198 deletions(-)
+
+diff --git a/ethosu_delegate.cc b/ethosu_delegate.cc
+index 7136f2c..811d8ee 100644
+--- a/ethosu_delegate.cc
++++ b/ethosu_delegate.cc
+@@ -24,7 +24,6 @@ limitations under the License.
+ 
+ #include "ethosu_delegate.h"
+ #include "simple_delegate.h"
+-#include "ethosu_delegate_utils.h"
+ 
+ #include "tensorflow/lite/context_util.h"
+ #include "tensorflow/lite/builtin_ops.h"
+@@ -58,106 +57,47 @@ class EthosuDelegateKernel : public SimpleDelegateKernelInterface {
+     const char* meta_ptr = nullptr;
+     ethosu_context = reinterpret_cast<TfLiteEthosuContext*>(data);
+ 
+-    //Check if vela compiled model
+-    int vela_node = 0;
+-    for (int i = 0; i < params->nodes_to_replace->size; i ++) {
+-        TfLiteNode* node;
+-        TfLiteRegistration* reg;
+-        auto node_idx = params->nodes_to_replace->data[i];
+-        context->GetNodeAndRegistration(context, node_idx, &node, &reg);
+-        if (reg->builtin_code == kTfLiteBuiltinCustom &&
+-            strcmp(reg->custom_name, ETHOSU_CUSTOM_NAME) == 0) {
+-            vela_node ++;
+-        }
++    // Offline-only delegate: every delegated node must already be a
++    // Vela-generated "ethos-u" custom operator.
++    operations.resize(params->nodes_to_replace->size);
++    for (int i = 0; i < params->nodes_to_replace->size; i++) {
++        TfLiteNode* node = nullptr;
++        TfLiteRegistration* reg = nullptr;
++        const int node_idx = params->nodes_to_replace->data[i];
++        TF_LITE_ENSURE_OK(context, context->GetNodeAndRegistration(
++                                   context, node_idx, &node, &reg));
++        TF_LITE_ENSURE(context, reg != nullptr);
++        TF_LITE_ENSURE_EQ(context, reg->builtin_code, kTfLiteBuiltinCustom);
++        TF_LITE_ENSURE(context, reg->custom_name != nullptr);
++        TF_LITE_ENSURE(context,
++                       strcmp(reg->custom_name, ETHOSU_CUSTOM_NAME) == 0);
++
++        tflite::TfLiteIntArrayView inputs(node->inputs);
++        tflite::TfLiteIntArrayView outputs(node->outputs);
++        auto& op = operations[i];
++        copy(inputs.begin(), inputs.end(), back_inserter(op.inputs));
++        copy(outputs.begin(), outputs.end(), back_inserter(op.outputs));
+     }
+-    if (vela_node == 0) {
+-        //Online model compile
+-        try {
+-	    string cache_file = options.cache_file_path + "/" + to_string(params->nodes_to_replace->data[0]);
+-            if (options.cache_file_path != "" &&
+-                access(cache_file.c_str(), F_OK) == 0) {
+-                //Cache file exist, read model from cache file.
+-                TFLITE_LOG(TFLITE_LOG_INFO, "Ethosu delegate: Read model from cache file %s",
+-                                   options.cache_file_path.c_str());
+-                model = readTFLiteModel(cache_file);
+-            } else {
+-                auto model_converter = ModelConverter::GetSingleton();
+-                model = model_converter->convert(context, params);
+-                if (options.cache_file_path != "") {
+-                    // Write to cache file
+-                    TFLITE_LOG(TFLITE_LOG_INFO, "Ethosu delegate: Write model to cache file %s",
+-                                       options.cache_file_path.c_str());
+-                    writeTFLiteModel(model.get(), cache_file);
+-                }
+-            }
+-        } catch (const char* msg) {
+-            TF_LITE_KERNEL_LOG(context, "Failed to build model, %s\n", msg);
+-            return kTfLiteDelegateError;
+-        }
+-        TF_LITE_ENSURE_EQ(context, model->subgraphs.size(), 1);
+-        TF_LITE_ENSURE_EQ(context, model->subgraphs[0]->operators.size(), 1);
+-        operations.resize(model->subgraphs[0]->operators.size());
+-
+-        // Get the address offsets for each tensor from metadata
+-        for (auto &metadata : model->metadata) {
+-            if (metadata->name == OFFLINE_MEM_ALLOC_METADATA) {
+-                auto &metadata_buffer = model->buffers[metadata->buffer];
+-                meta_ptr = (const char*)metadata_buffer->data.data();
+-                break;
+-            }
+-        }
+-        TF_LITE_ENSURE(context, meta_ptr != nullptr);
+-        address_offsets = METADATA_TO_OFFSET(meta_ptr);
+-
+-        size_t arena_size = 0, flash_size = 0;
+-        for (int i = 0; i < METADATA_SIZE(meta_ptr); i ++){
+-            auto tensor_size = GetTensorDataSize(model->subgraphs[0]->tensors[i]);
+-            if (address_offsets[i] >= 0 && address_offsets[i] + tensor_size > arena_size)
+-                arena_size = address_offsets[i] + tensor_size;
+-        }
+-        arena_offset = ethosu_context->arena_size;
+-        ethosu_context->arena_size = arena_offset + ALIGN_SIZE(arena_size);
+-
+-        auto flash_idx = model->subgraphs[0]->operators[0]->inputs[FLASH_TENSOR_INDEX];
+-        auto &flash_tensor = model->subgraphs[0]->tensors[flash_idx];
+-        flash_size = model->buffers[flash_tensor->buffer]->data.size();
+-        flash_offset = ethosu_context->flash_size;
+-        ethosu_context->flash_size = flash_offset + ALIGN_SIZE(flash_size);
+-    } else if (vela_node == params->nodes_to_replace->size) {
+-        //Offline model compile
+-        operations.resize(params->nodes_to_replace->size);
+-        for (int i = 0; i < params->nodes_to_replace->size; i++) {
+-            TfLiteNode* node;
+-            TfLiteRegistration* reg;
+-            int node_idx = params->nodes_to_replace->data[i];
+-            context->GetNodeAndRegistration(context, node_idx, &node, &reg);
+-            tflite::TfLiteIntArrayView inputs(node->inputs);
+-            tflite::TfLiteIntArrayView outputs(node->outputs);
+-
+-            auto& op = operations[i];
+-            copy(inputs.begin(), inputs.end(), back_inserter(op.inputs));
+-            copy(outputs.begin(), outputs.end(), back_inserter(op.outputs));
+-        }
+ 
+-        //Get arena offset for each tensor from meta data
+-        size_t bytes;
+-        TF_LITE_ENSURE_OK(context, context->GetModelMetadata(context,
+-                          OFFLINE_MEM_ALLOC_METADATA, &meta_ptr, &bytes));
+-        address_offsets = METADATA_TO_OFFSET(meta_ptr);
+-
+-        size_t arena_size = 0;
+-        for (int i = 0; i < METADATA_SIZE(meta_ptr); i ++){
+-            auto tensor = &context->tensors[i];
+-            if (address_offsets[i] >= 0 && address_offsets[i] + tensor->bytes > arena_size)
+-                arena_size = address_offsets[i] + tensor->bytes;
++    // Get arena offset for each tensor from Vela metadata.
++    size_t bytes = 0;
++    TF_LITE_ENSURE_OK(context, context->GetModelMetadata(
++                               context, OFFLINE_MEM_ALLOC_METADATA,
++                               &meta_ptr, &bytes));
++    TF_LITE_ENSURE(context, meta_ptr != nullptr);
++    address_offsets = METADATA_TO_OFFSET(meta_ptr);
++
++    size_t arena_size = 0;
++    for (int i = 0; i < METADATA_SIZE(meta_ptr); i++) {
++        auto tensor = &context->tensors[i];
++        if (address_offsets[i] >= 0 &&
++            address_offsets[i] + tensor->bytes > arena_size) {
++            arena_size = address_offsets[i] + tensor->bytes;
+         }
+-        ethosu_context->arena_size = ALIGN_SIZE(arena_size);
+-        flash_offset = 0;
+-        arena_offset = 0;
+-    } else {
+-        TF_LITE_KERNEL_LOG(context, "Unsupported vela compiled model.\n");
+-        return kTfLiteDelegateError;
+     }
++    ethosu_context->arena_size = ALIGN_SIZE(arena_size);
++    flash_offset = 0;
++    arena_offset = 0;
+ 
+     for (int i = 0; i < ETHOSU_PMU_EVENT_MAX; i ++) {
+         if (options.pmu_counter_config[i] != 0)
+@@ -168,13 +108,7 @@ class EthosuDelegateKernel : public SimpleDelegateKernelInterface {
+   }
+ 
+   TfLiteStatus Prepare(TfLiteContext* context, TfLiteNode* node) override {
+-    if(model == nullptr) {
+-        //Offline model compile
+-        TF_LITE_ENSURE_OK(context, PrepareOfflineCompiledModel(context, node));
+-    } else {
+-        //Online model compile
+-        TF_LITE_ENSURE_OK(context, PrepareOnlineCompiledModel(context, node));
+-    }
++    TF_LITE_ENSURE_OK(context, PrepareOfflineCompiledModel(context, node));
+ 
+     for (auto& op : operations) {
+         vector<shared_ptr<EthosU::Buffer>> ifm {ethosu_context->arena_buffer};
+@@ -262,91 +196,6 @@ class EthosuDelegateKernel : public SimpleDelegateKernelInterface {
+     return kTfLiteOk;
+   }
+ 
+-  TfLiteStatus PrepareOnlineCompiledModel(TfLiteContext* context, TfLiteNode* node){
+-    // Map the ethosu tensor index to tflite tensor index.
+-    auto FindTfliteTensorIndex = [&](std::string name) -> int32_t {
+-      for (int i = 0; i < context->tensors_size; i ++){
+-         if (context->tensors[i].name && context->tensors[i].name == name)
+-           return i;
+-      }
+-      return -1;
+-    };
+-
+-    // Preare the buffers for ethosu device
+-    try {
+-      Subgraph* this_subgraph = reinterpret_cast<Subgraph*>(context->impl_);
+-      if (ethosu_context->arena_buffer == nullptr) {
+-          ethosu_context->arena_buffer = make_shared<EthosU::Buffer>(*ethosu_context->device,
+-			 ethosu_context->arena_size);
+-      }
+-      if (ethosu_context->flash_buffer == nullptr && ethosu_context->flash_size != 0) {
+-          ethosu_context->flash_buffer = make_shared<EthosU::Buffer>(*ethosu_context->device,
+-			 ethosu_context->flash_size);
+-      }
+-
+-      size_t arena_data_size = 0;
+-      auto &ethosu_tensors = model->subgraphs[0]->tensors;
+-      for (int i = 0; i < model->subgraphs[0]->operators.size(); i ++){
+-        auto &op = operations[i];
+-        auto &ethosu_op = model->subgraphs[0]->operators[i];
+-        op.memory_layout.input_count = ethosu_op->inputs.size() - 4;
+-        op.memory_layout.output_count = ethosu_op->outputs.size();
+-
+-        // Get command stream data size and create buffer
+-        auto cms_idx = ethosu_op->inputs[CMS_TENSOR_INDEX];
+-        auto &cms_tensor = ethosu_tensors[cms_idx];
+-        auto &cms_buffer = model->buffers[cms_tensor->buffer];
+-        size_t cms_data_size = cms_buffer->data.size();
+-        op.ethosu_net_buffer = make_shared<EthosU::Buffer>(*ethosu_context->device, cms_data_size);
+-        memcpy(op.ethosu_net_buffer->data(), cms_buffer->data.data(), cms_data_size);
+-        op.ethosu_network = make_shared<EthosU::Network>(*ethosu_context->device, op.ethosu_net_buffer);
+-
+-        // Get flash tensor data size
+-        auto flash_idx = ethosu_op->inputs[FLASH_TENSOR_INDEX];
+-        auto &flash_tensor = ethosu_tensors[flash_idx];
+-        auto &flash_buffer = model->buffers[flash_tensor->buffer];
+-        auto flash_data_size = flash_buffer->data.size();
+-        op.need_flash = (flash_data_size != 0);
+-        if (flash_data_size != 0) {
+-            memcpy(ethosu_context->flash_buffer->data() + flash_offset, flash_buffer->data.data(), flash_data_size);
+-        }
+-
+-        // Get addresses of outputs data
+-        for (int i = 0; i < ethosu_op->outputs.size(); ++i) {
+-            auto ethosu_idx = ethosu_op->outputs[i];
+-            auto &tensor = model->subgraphs[0]->tensors[ethosu_idx];
+-            op.memory_layout.output_offset[i] = address_offsets[ethosu_idx] + arena_offset;
+-            op.memory_layout.output_size[i] = GetTensorDataSize(tensor);
+-
+-            auto tflite_idx = FindTfliteTensorIndex(tensor->name);
+-            TF_LITE_ENSURE(context, tflite_idx != -1);
+-            TfLiteCustomAllocation allocation({ethosu_context->arena_buffer->data() + op.memory_layout.output_offset[i],
+-			    op.memory_layout.output_size[i]});
+-            this_subgraph->SetCustomAllocationForTensor(tflite_idx, allocation,
+-			    kTfLiteCustomAllocationFlagsSkipAlignCheck);
+-        }
+-        // Get addresses to inputs data
+-        for (int i = 0; i < ethosu_op->inputs.size() - INPUT_TENSOR_INDEX; ++i) {
+-            auto ethosu_idx = ethosu_op->inputs[i + INPUT_TENSOR_INDEX];
+-            auto &tensor = model->subgraphs[0]->tensors[ethosu_idx];
+-            op.memory_layout.input_offset[i] = address_offsets[ethosu_idx] + arena_offset;
+-            op.memory_layout.input_size[i] = GetTensorDataSize(tensor);
+-
+-            auto tflite_idx = FindTfliteTensorIndex(tensor->name);
+-            TF_LITE_ENSURE(context, tflite_idx != -1);
+-            TfLiteCustomAllocation allocation({ethosu_context->arena_buffer->data() + op.memory_layout.input_offset[i],
+-			    op.memory_layout.input_size[i]});
+-            this_subgraph->SetCustomAllocationForTensor(tflite_idx, allocation,
+-			    kTfLiteCustomAllocationFlagsSkipAlignCheck);
+-        }
+-      }
+-    } catch (exception &e) {
+-        TF_LITE_KERNEL_LOG(context, "Failed to alloc ethos_u buffer.\n");
+-        return kTfLiteDelegateError;
+-    }
+-
+-    return kTfLiteOk;
+-  }
+ 
+   TfLiteStatus Eval(TfLiteContext* context, TfLiteNode* node) override {
+     try {
+@@ -407,9 +256,6 @@ class EthosuDelegateKernel : public SimpleDelegateKernelInterface {
+     vector<int> outputs;
+   };
+ 
+-  //for none vela model
+-  std::unique_ptr<ModelT> model;
+-
+   vector<OperationDataType> operations;
+   const int32_t *address_offsets;
+   uint32_t flash_offset;
+@@ -424,12 +270,12 @@ class EthosuDelegate : public SimpleDelegateInterface {
+   explicit EthosuDelegate(const EthosuDelegateOptions& options)
+       : options_(options) {}
+   bool IsNodeSupportedByDelegate(const TfLiteRegistration* registration,
+-                                 const TfLiteNode* node,
+-                                 TfLiteContext* context) const override {
+-    if (registration->builtin_code == kTfLiteBuiltinCustom &&
+-        strcmp(registration->custom_name, ETHOSU_CUSTOM_NAME) == 0)
+-      return true;
+-    return IsNodeSupportedByEthosU(context, node, registration->builtin_code);
++                                 const TfLiteNode*,
++                                 TfLiteContext*) const override {
++    return registration != nullptr &&
++           registration->builtin_code == kTfLiteBuiltinCustom &&
++           registration->custom_name != nullptr &&
++           strcmp(registration->custom_name, ETHOSU_CUSTOM_NAME) == 0;
+   }
+ 
+   TfLiteStatus Initialize(TfLiteContext* context) override {
+-- 
+2.47.3
+
