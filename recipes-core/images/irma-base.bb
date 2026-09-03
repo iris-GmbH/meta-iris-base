@@ -36,7 +36,7 @@ ADDITIONAL_IRIS_TOOLCHAIN_TARGET_TASK = "protobuf-staticdev swupdate"
 ADDITIONAL_IRIS_TOOLCHAIN_TARGET_TASK:poky-iris-0601 = "blasfeo-staticdev"
 
 # manually include delegate_providers for matrix-Up ethos-u NPU use
-ADDITIONAL_IRIS_TOOLCHAIN_TARGET_TASK:poky-iris-0501 = " tensorflow-lite-staticdev"
+ADDITIONAL_IRIS_TOOLCHAIN_TARGET_TASK:append:poky-iris-0501 = " tensorflow-lite-staticdev"
 
 TOOLCHAIN_TARGET_TASK:append = " ${IRIS_TOOLCHAIN_TARGET_TASK} ${ADDITIONAL_IRIS_TOOLCHAIN_TARGET_TASK}"
 
