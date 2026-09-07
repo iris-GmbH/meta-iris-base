@@ -165,6 +165,13 @@ reset_userdata() {
     sync
 }
 
+start_dhcp_client() {
+    # Start DHCP client after reset, regardless of the previous IP configuration.
+    if [ ! -f /var/run/udhcpc.eth0.pid ]; then
+        udhcpc -R -b -p /var/run/udhcpc.eth0.pid -i eth0
+    fi
+}
+
 factory_reset() {
     echo "Factory reset!"
 
@@ -191,4 +198,6 @@ factory_reset() {
 
     # reset persistent data
     rm -rf /mnt/datastore/*
+
+    start_dhcp_client
 }
