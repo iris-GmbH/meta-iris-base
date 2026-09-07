@@ -176,6 +176,13 @@ reset_datastore() {
     rm -rf /mnt/datastore/*
 }
 
+start_dhcp_client() {
+    # Start DHCP client after reset, regardless of the previous IP configuration.
+    if [ ! -f /var/run/udhcpc.eth0.pid ]; then
+        udhcpc -R -b -p /var/run/udhcpc.eth0.pid -i eth0
+    fi
+}
+
 factory_reset() {
     echo "Factory reset!"
     # flag helper for irma-monitoring to determine boot complete
@@ -184,4 +191,5 @@ factory_reset() {
     reset_systemtime
     reset_userdata
     reset_datastore
+    start_dhcp_client
 }
