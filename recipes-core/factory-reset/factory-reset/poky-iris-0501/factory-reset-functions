@@ -167,6 +167,9 @@ reset_userdata() {
 
         # Delete lazy flag
         rm -f "$dir/$LAZY_RESET_FLAG"
+
+        # Delete custom service ca
+        rm -rf "$dir"/service-ca
     done
     umount_alternative_userdata
     sync
