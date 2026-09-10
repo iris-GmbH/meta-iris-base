@@ -162,6 +162,10 @@ reset_userdata() {
 
     # Delete lazy flag
     rm -f "$USERDATA_DIR/$LAZY_RESET_FLAG"
+
+    # Delete custom service ca
+    rm -rf "$USERDATA_DIR"/service-ca
+
     sync
 }
 
