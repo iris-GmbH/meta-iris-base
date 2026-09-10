@@ -1,0 +1,30 @@
+From ee80ce2f75ee371834ea10d65544b91656bf0754 Mon Sep 17 00:00:00 2001
+From: Erik Schumacher <erik.schumacher@iris-sensing.com>
+Date: Thu, 10 Sep 2026 09:26:48 +0200
+Subject: [PATCH] Remove cmake variables for bin and lib directories
+
+---
+ CMakeLists.txt | 7 -------
+ 1 file changed, 7 deletions(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 5d977b7..ebd0f49 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -82,13 +82,6 @@ option(BUILD_OBJECT_LIBS "Build jsoncpp_lib as a object library." ON)
+ # Adhere to GNU filesystem layout conventions
+ include(GNUInstallDirs)
+ 
+-if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
+-    set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib" CACHE PATH "Archive output dir.")
+-    set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib" CACHE PATH "Library output dir.")
+-    set(CMAKE_PDB_OUTPUT_DIRECTORY     "${CMAKE_BINARY_DIR}/bin" CACHE PATH "PDB (MSVC debug symbol)output dir.")
+-    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin" CACHE PATH "Executable/dll output dir.")
+-endif()
+-
+ include(CheckFunctionExists)
+ check_function_exists(memset_s HAVE_MEMSET_S)
+ if(HAVE_MEMSET_S)
+-- 
+2.55.0
+
