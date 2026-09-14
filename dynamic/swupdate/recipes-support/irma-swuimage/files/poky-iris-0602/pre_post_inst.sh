@@ -246,14 +246,6 @@ create_webserver_symlinks() {
 		echo "Create default chrony symlink"
 		ln -sf /mnt/iris/identity /mnt/iris/nts || exit 1
 	fi
-	# if "disable_https" parameter has version 1.0, we must overwrite default_server with https
-	if [ -f "/mnt/iris/counter/config_customer.json" ]; then
-		is_old_version=$(jq '.sets.IRMA6_Customer.parameters["pa.communication.disable_https"]["version"] == "1.0"' "/mnt/iris/counter/config_customer.json")
-		if [ "$is_old_version" = "true" ]; then
-			# remove link here, the following lines will recreate link
-			rm "/mnt/iris/nginx/sites-enabled/default_server"
-		fi
-	fi
 	if [ ! -L "/mnt/iris/nginx/sites-enabled/default_server" ]; then
 		echo "Create default webserver server conf symlink"
 		mkdir -p /mnt/iris/nginx/sites-enabled || exit 1
