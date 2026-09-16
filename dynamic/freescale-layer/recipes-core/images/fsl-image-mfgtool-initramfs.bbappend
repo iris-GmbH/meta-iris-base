@@ -15,7 +15,7 @@ CORE_IMAGE_BASE_INSTALL:append:mx8mp-nxp-bsp = " \
    keyctl-caam \
 "
 
-# irma-matrix specific packages
+# IRMA Matrix Up specific packages
 CORE_IMAGE_BASE_INSTALL:append:mx93-nxp-bsp = " \
     tar \
     zstd \
