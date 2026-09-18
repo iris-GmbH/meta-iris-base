@@ -27,6 +27,9 @@ install_service_identity_ca_crt() {
     if [ ! -e "${SERVICE_IDENTITY_CA_CERT}" ]; then
         bbfatal "Error: SERVICE_IDENTITY_CA_CERT: ${SERVICE_IDENTITY_CA_CERT} does not exist!"
     fi
+    if ! echo "${SERVICE_IDENTITY_CA_CERT_SHA256}  ${SERVICE_IDENTITY_CA_CERT}" | sha256sum --check --status; then
+        bbfatal "Error: SERVICE_IDENTITY_CA_CERT: ${SERVICE_IDENTITY_CA_CERT} checksum mismatch!"
+    fi
     install -m 0644 ${SERVICE_IDENTITY_CA_CERT} ${D}${sysconfdir}/iris/ca-certificates/iris-service-ca.crt
 }
 
