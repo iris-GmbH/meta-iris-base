@@ -1,4 +1,4 @@
-From 07ae44a5728e7bbac990f02bb017203f58b64dd3 Mon Sep 17 00:00:00 2001
+From d5b084bc964e3fc2aba2688e66f41a0a5c877eac Mon Sep 17 00:00:00 2001
 From: Ian Dannapel <ian.dannapel@iris-sensing.com>
 Date: Wed, 16 Oct 2024 15:30:24 +0000
 Subject: [PATCH] trion-mipi: Add fpga bridge driver
@@ -12,7 +12,7 @@ Signed-off-by: Ian Dannapel <ian.dannapel@iris-sensing.com>
  create mode 100644 drivers/media/i2c/trion-mipi.c
 
 diff --git a/drivers/media/i2c/Kconfig b/drivers/media/i2c/Kconfig
-index 206fccddeac7..26cbce1678c4 100644
+index 474495f24f9e1..87da492933aa3 100644
 --- a/drivers/media/i2c/Kconfig
 +++ b/drivers/media/i2c/Kconfig
 @@ -1241,6 +1241,22 @@ config VIDEO_TC358746
@@ -39,7 +39,7 @@ index 206fccddeac7..26cbce1678c4 100644
  	tristate "Texas Instruments TVP514x video decoder"
  	depends on VIDEO_DEV && I2C
 diff --git a/drivers/media/i2c/Makefile b/drivers/media/i2c/Makefile
-index 5a2fda724b50..94d379301d27 100644
+index e58902ddbc8f5..621fa3ee53dcd 100644
 --- a/drivers/media/i2c/Makefile
 +++ b/drivers/media/i2c/Makefile
 @@ -130,6 +130,7 @@ obj-$(CONFIG_VIDEO_ST_MIPID02) += st-mipid02.o
@@ -52,7 +52,7 @@ index 5a2fda724b50..94d379301d27 100644
  obj-$(CONFIG_VIDEO_TDA9840) += tda9840.o
 diff --git a/drivers/media/i2c/trion-mipi.c b/drivers/media/i2c/trion-mipi.c
 new file mode 100644
-index 000000000000..8818eee584e0
+index 0000000000000..8818eee584e0f
 --- /dev/null
 +++ b/drivers/media/i2c/trion-mipi.c
 @@ -0,0 +1,617 @@
@@ -674,5 +674,5 @@ index 000000000000..8818eee584e0
 +MODULE_AUTHOR("Ian Dannapel <Ian.Dannapel@iris-sensing.com>");
 +MODULE_LICENSE("GPL");
 -- 
-2.44.1
+2.55.0
 

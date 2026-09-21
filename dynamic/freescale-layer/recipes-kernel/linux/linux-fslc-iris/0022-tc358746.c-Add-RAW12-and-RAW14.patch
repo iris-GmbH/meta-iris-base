@@ -1,4 +1,4 @@
-From 2211bcca44ce5cb2ea64c0eea3b9747ad4136396 Mon Sep 17 00:00:00 2001
+From ef59ef98a0985eceebbb91642d038db5baa380ca Mon Sep 17 00:00:00 2001
 From: Erik Schumacher <erik.schumacher@iris-sensing.com>
 Date: Mon, 24 Jun 2024 15:12:24 +0000
 Subject: [PATCH] tc358746.c: Add RAW12 and RAW14
@@ -10,7 +10,7 @@ Signed-off-by: Ian Dannapel <ian.dannapel@iris-sensing.com>
  1 file changed, 12 insertions(+)
 
 diff --git a/drivers/media/i2c/tc358746.c b/drivers/media/i2c/tc358746.c
-index 92d46b08b583..839e933d5f8a 100644
+index 746e75cee4bcd..f81f730abaabb 100644
 --- a/drivers/media/i2c/tc358746.c
 +++ b/drivers/media/i2c/tc358746.c
 @@ -230,6 +230,18 @@ static const struct tc358746_format tc358746_formats[] = {
@@ -33,5 +33,5 @@ index 92d46b08b583..839e933d5f8a 100644
  };
  
 -- 
-2.47.0
+2.55.0
 

@@ -1,4 +1,4 @@
-From 49187dd538908fef000519769ec00361a601cbdc Mon Sep 17 00:00:00 2001
+From f0330b00773d07c5b8c20b9c0292ea7333aa71c7 Mon Sep 17 00:00:00 2001
 From: Erik Schumacher <erik.schumacher@iris-sensing.com>
 Date: Thu, 13 Feb 2025 16:45:34 +0100
 Subject: [PATCH] imx93-matrixup.dts: Configure memory ranges for 512 MB of
@@ -10,7 +10,7 @@ Signed-off-by: Erik Schumacher <erik.schumacher@iris-sensing.com>
  1 file changed, 15 insertions(+), 15 deletions(-)
 
 diff --git a/arch/arm64/boot/dts/freescale/imx93-matrixup.dts b/arch/arm64/boot/dts/freescale/imx93-matrixup.dts
-index 7bcbdb93eac0..cff02509abb6 100644
+index d1fb056231b52..3cc5c498896f2 100644
 --- a/arch/arm64/boot/dts/freescale/imx93-matrixup.dts
 +++ b/arch/arm64/boot/dts/freescale/imx93-matrixup.dts
 @@ -28,34 +28,34 @@ reserved-memory {
@@ -80,5 +80,5 @@ index 7bcbdb93eac0..cff02509abb6 100644
  		};
  	};
 -- 
-2.48.1
+2.55.0
 

@@ -1,4 +1,4 @@
-From 8c36a7a1e00811f70cd6c3b4ff8a6626d97d11c6 Mon Sep 17 00:00:00 2001
+From 91cd2e768bb4084ed1bcd83d447c52c98c29f72e Mon Sep 17 00:00:00 2001
 From: Erik Schumacher <erik.schumacher@iris-sensing.com>
 Date: Thu, 24 Oct 2024 13:36:25 +0200
 Subject: [PATCH] net: phy: dp83822: Configure RMII mode on DP83825 devices
@@ -19,7 +19,7 @@ Signed-off-by: Erik Schumacher <erik.schumacher@iris-sensing.com>
  1 file changed, 18 insertions(+), 13 deletions(-)
 
 diff --git a/drivers/net/phy/dp83822.c b/drivers/net/phy/dp83822.c
-index 3ab64e04a01c..cf8b6d0bfaa9 100644
+index 3ab64e04a01c9..cf8b6d0bfaa98 100644
 --- a/drivers/net/phy/dp83822.c
 +++ b/drivers/net/phy/dp83822.c
 @@ -506,7 +506,7 @@ static int dp83822_config_init(struct phy_device *phydev)
@@ -110,5 +110,5 @@ index 3ab64e04a01c..cf8b6d0bfaa9 100644
  module_phy_driver(dp83822_driver);
  
 -- 
-2.47.0
+2.55.0
 

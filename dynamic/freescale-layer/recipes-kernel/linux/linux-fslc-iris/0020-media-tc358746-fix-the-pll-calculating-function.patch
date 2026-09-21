@@ -1,4 +1,4 @@
-From e264b5be00a77b3a7fcda27dc4532eec0eeb083f Mon Sep 17 00:00:00 2001
+From 5509ddfcfc23da859db3be12d5c358c4deaaa6fc Mon Sep 17 00:00:00 2001
 From: "Duc-Long, Le" <duclong.linux@gmail.com>
 Date: Sat, 14 Oct 2023 20:19:46 -0400
 Subject: [PATCH] media: tc358746: fix the pll calculating function
@@ -17,10 +17,10 @@ Signed-off-by: Hans Verkuil <hverkuil-cisco@xs4all.nl>
  1 file changed, 2 insertions(+), 2 deletions(-)
 
 diff --git a/drivers/media/i2c/tc358746.c b/drivers/media/i2c/tc358746.c
-index 566f5eaddd57..4f54773886cc 100644
+index b12a6bd42102e..f2b1ebc2e5563 100644
 --- a/drivers/media/i2c/tc358746.c
 +++ b/drivers/media/i2c/tc358746.c
-@@ -839,14 +839,14 @@ static unsigned long tc358746_find_pll_settings(struct tc358746 *tc358746,
+@@ -834,14 +834,14 @@ static unsigned long tc358746_find_pll_settings(struct tc358746 *tc358746,
  		if (fin < 4 * HZ_PER_MHZ || fin > 40 * HZ_PER_MHZ)
  			continue;
  
@@ -38,5 +38,5 @@ index 566f5eaddd57..4f54773886cc 100644
  		delta = abs(fout - tmp);
  		if (delta < min_delta) {
 -- 
-2.47.0
+2.55.0
 

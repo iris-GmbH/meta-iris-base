@@ -1,4 +1,4 @@
-From dd80ee614b52cffc7dc8fcf5c901d2811041cf0d Mon Sep 17 00:00:00 2001
+From 2139a41272038f9cb6679f6d58f59e72c59b6c71 Mon Sep 17 00:00:00 2001
 From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
 Date: Thu, 14 Aug 2025 09:57:01 +0000
 Subject: [PATCH] nvmem: imx-ocotp-fsb-s400: Add property
@@ -15,10 +15,10 @@ Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
  2 files changed, 6 insertions(+), 1 deletion(-)
 
 diff --git a/arch/arm64/boot/dts/freescale/imx93-matrixup.dts b/arch/arm64/boot/dts/freescale/imx93-matrixup.dts
-index 38b1bdcfba9b9..f44fff75fe1a9 100644
+index 44bc63b87fd73..d1fb056231b52 100644
 --- a/arch/arm64/boot/dts/freescale/imx93-matrixup.dts
 +++ b/arch/arm64/boot/dts/freescale/imx93-matrixup.dts
-@@ -360,6 +360,11 @@ cap_device {
+@@ -366,6 +366,11 @@ cap_device {
  	};
  };
  
@@ -31,10 +31,10 @@ index 38b1bdcfba9b9..f44fff75fe1a9 100644
  	#address-cells = <1>;
  	#size-cells = <0>;
 diff --git a/drivers/nvmem/imx-ocotp-fsb-s400.c b/drivers/nvmem/imx-ocotp-fsb-s400.c
-index 87e47df9b187d..bdcd5303fb885 100644
+index 558331eca8f3a..87859770ce993 100644
 --- a/drivers/nvmem/imx-ocotp-fsb-s400.c
 +++ b/drivers/nvmem/imx-ocotp-fsb-s400.c
-@@ -380,7 +380,7 @@ static int imx_fsb_s400_fuse_probe(struct platform_device *pdev)
+@@ -375,7 +375,7 @@ static int imx_fsb_s400_fuse_probe(struct platform_device *pdev)
  			return -ENOMEM;
  
  		v = readl_relaxed(reg + FUSE_ACC_DIS);
@@ -44,5 +44,5 @@ index 87e47df9b187d..bdcd5303fb885 100644
  		else
  			fuse->fsb_read_dis = false;
 -- 
-2.44.4
+2.55.0
 

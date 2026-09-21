@@ -1,4 +1,4 @@
-From 0a96c08bf35e8da9be25a26f0d188ddbd53ce30b Mon Sep 17 00:00:00 2001
+From 460ca898debb77a633d10d385e9cfb6638023772 Mon Sep 17 00:00:00 2001
 From: Erik Schumacher <erik.schumacher@iris-sensing.com>
 Date: Wed, 10 Apr 2024 11:10:18 +0200
 Subject: [PATCH] media/i2c: Add marec-fpga camera driver
@@ -14,7 +14,7 @@ Signed-off-by: Erik Schumacher <erik.schumacher@iris-sensing.com>
  create mode 100644 drivers/media/i2c/marec-fpga.c
 
 diff --git a/drivers/media/i2c/Kconfig b/drivers/media/i2c/Kconfig
-index 1e8141876073..4334fa1e98c1 100644
+index f7e0400f5d3e6..cd5640e82aa3b 100644
 --- a/drivers/media/i2c/Kconfig
 +++ b/drivers/media/i2c/Kconfig
 @@ -612,6 +612,13 @@ config VIDEO_OX03C10_DRV
@@ -32,7 +32,7 @@ index 1e8141876073..4334fa1e98c1 100644
  	tristate "IMI RDACM20 camera support"
  	select VIDEO_MAX9271_LIB
 diff --git a/drivers/media/i2c/Makefile b/drivers/media/i2c/Makefile
-index 04d29000427f..a303d1450093 100644
+index 04d29000427f3..a303d14500939 100644
 --- a/drivers/media/i2c/Makefile
 +++ b/drivers/media/i2c/Makefile
 @@ -124,6 +124,7 @@ obj-$(CONFIG_VIDEO_SAA717X) += saa717x.o
@@ -45,7 +45,7 @@ index 04d29000427f..a303d1450093 100644
  obj-$(CONFIG_VIDEO_TC358743) += tc358743.o
 diff --git a/drivers/media/i2c/marec-fpga.c b/drivers/media/i2c/marec-fpga.c
 new file mode 100644
-index 000000000000..4ffc39fe22ea
+index 0000000000000..4ffc39fe22ea4
 --- /dev/null
 +++ b/drivers/media/i2c/marec-fpga.c
 @@ -0,0 +1,396 @@
@@ -446,5 +446,5 @@ index 000000000000..4ffc39fe22ea
 +MODULE_AUTHOR("Erik Schumacher <Erik.Schumacher@iris-sensing.com>");
 +MODULE_LICENSE("GPL");
 -- 
-2.47.0
+2.55.0
 

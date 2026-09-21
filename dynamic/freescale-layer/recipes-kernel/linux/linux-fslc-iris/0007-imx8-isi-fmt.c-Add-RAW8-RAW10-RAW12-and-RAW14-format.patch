@@ -1,4 +1,4 @@
-From 8c337c6e8b5f9d57f494b94fdb78005840054a5a Mon Sep 17 00:00:00 2001
+From edbd401a4438fa292feee778217dfbed4ce6ce11 Mon Sep 17 00:00:00 2001
 From: Ian Dannapel <ian.dannapel@iris-sensing.com>
 Date: Wed, 18 Sep 2024 12:57:49 +0000
 Subject: [PATCH] imx8-isi-fmt.c: Add RAW8, RAW10, RAW12 and RAW14 formats
@@ -10,10 +10,10 @@ Signed-off-by: Ian Dannapel <ian.dannapel@iris-sensing.com>
  1 file changed, 34 insertions(+)
 
 diff --git a/drivers/staging/media/imx/imx8-isi-fmt.c b/drivers/staging/media/imx/imx8-isi-fmt.c
-index db11c809a3d3..54c399274cc6 100644
+index adbc4f9c871d0..2bac91086e481 100644
 --- a/drivers/staging/media/imx/imx8-isi-fmt.c
 +++ b/drivers/staging/media/imx/imx8-isi-fmt.c
-@@ -97,6 +97,40 @@ struct mxc_isi_fmt mxc_isi_out_formats[] = {
+@@ -277,6 +277,40 @@ struct mxc_isi_fmt mxc_isi_out_formats[] = {
  		.colplanes	= 1,
  		.align		= 2,
  		.mbus_code	= MEDIA_BUS_FMT_RGB888_1X24,
@@ -55,5 +55,5 @@ index db11c809a3d3..54c399274cc6 100644
  };
  
 -- 
-2.47.0
+2.55.0
 

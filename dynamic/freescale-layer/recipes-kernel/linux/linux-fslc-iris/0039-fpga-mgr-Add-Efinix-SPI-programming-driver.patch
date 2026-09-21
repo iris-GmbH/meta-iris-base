@@ -1,7 +1,7 @@
-From c05d55cb5e7219904cbb223d06b4265c94ee1bba Mon Sep 17 00:00:00 2001
+From a54ecfb0e00e4d9acfeb2185af6b97e9ea06a494 Mon Sep 17 00:00:00 2001
 From: Ian Dannapel <iansdannapel@gmail.com>
 Date: Thu, 20 Jun 2024 15:43:17 +0200
-Subject: [PATCH v7 3/3] fpga-mgr: Add Efinix SPI programming driver
+Subject: [PATCH] fpga-mgr: Add Efinix SPI programming driver
 
 Add a new driver for loading binary firmware to configuration
 RAM using "SPI passive mode" on Efinix FPGAs.
@@ -22,10 +22,10 @@ Signed-off-by: Ian Dannapel <iansdannapel@gmail.com>
  create mode 100644 drivers/fpga/efinix-spi.c
 
 diff --git a/drivers/fpga/Kconfig b/drivers/fpga/Kconfig
-index 37b35f58f0df..748fc210c135 100644
+index 2f689ac4ba3a3..4726127e9c385 100644
 --- a/drivers/fpga/Kconfig
 +++ b/drivers/fpga/Kconfig
-@@ -288,6 +288,13 @@ config FPGA_MGR_LATTICE_SYSCONFIG_SPI
+@@ -276,6 +276,13 @@ config FPGA_MGR_LATTICE_SYSCONFIG_SPI
  	  FPGA manager driver support for Lattice FPGAs programming over slave
  	  SPI sysCONFIG interface.
  
@@ -40,10 +40,10 @@ index 37b35f58f0df..748fc210c135 100644
  
  endif # FPGA
 diff --git a/drivers/fpga/Makefile b/drivers/fpga/Makefile
-index aeb89bb13517..6f5798b27e0d 100644
+index 352a2612623e0..f05cf3973fba7 100644
 --- a/drivers/fpga/Makefile
 +++ b/drivers/fpga/Makefile
-@@ -26,6 +26,7 @@ obj-$(CONFIG_FPGA_MGR_LATTICE_SYSCONFIG)	+= lattice-sysconfig.o
+@@ -24,6 +24,7 @@ obj-$(CONFIG_FPGA_MGR_LATTICE_SYSCONFIG)	+= lattice-sysconfig.o
  obj-$(CONFIG_FPGA_MGR_LATTICE_SYSCONFIG_SPI)	+= lattice-sysconfig-spi.o
  obj-$(CONFIG_ALTERA_PR_IP_CORE)		+= altera-pr-ip-core.o
  obj-$(CONFIG_ALTERA_PR_IP_CORE_PLAT)	+= altera-pr-ip-core-plat.o
@@ -53,7 +53,7 @@ index aeb89bb13517..6f5798b27e0d 100644
  obj-$(CONFIG_FPGA_M10_BMC_SEC_UPDATE)	+= intel-m10-bmc-sec-update.o
 diff --git a/drivers/fpga/efinix-spi.c b/drivers/fpga/efinix-spi.c
 new file mode 100644
-index 000000000000..ed9a41232a32
+index 0000000000000..ed9a41232a32a
 --- /dev/null
 +++ b/drivers/fpga/efinix-spi.c
 @@ -0,0 +1,260 @@
@@ -318,5 +318,5 @@ index 000000000000..ed9a41232a32
 +MODULE_AUTHOR("Ian Dannapel <iansdannapel@gmail.com>");
 +MODULE_DESCRIPTION("Efinix FPGA SPI Programming Driver");
 -- 
-2.44.4
+2.55.0
 

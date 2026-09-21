@@ -1,4 +1,4 @@
-From a41d891d22a883a65760a621fb70215add94460a Mon Sep 17 00:00:00 2001
+From 935bb4adab7fe632e1cc713678164b308e41683a Mon Sep 17 00:00:00 2001
 From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
 Date: Thu, 14 Aug 2025 15:18:37 +0200
 Subject: [PATCH] ele: Avoid special threatment for fuse_id==1
@@ -9,36 +9,44 @@ for the imx93. This fix is needed because of
 
 Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
 ---
- drivers/firmware/imx/ele_base_msg.c | 9 ---------
- 1 file changed, 9 deletions(-)
+ drivers/firmware/imx/ele_base_msg.c | 17 +----------------
+ 1 file changed, 1 insertion(+), 16 deletions(-)
 
 diff --git a/drivers/firmware/imx/ele_base_msg.c b/drivers/firmware/imx/ele_base_msg.c
-index 0cb8f9f497eb8..ebee6dd0b5b09 100644
+index b336e2cf20e7c..66607eb01ec49 100644
 --- a/drivers/firmware/imx/ele_base_msg.c
 +++ b/drivers/firmware/imx/ele_base_msg.c
-@@ -559,9 +559,6 @@ int read_common_fuse(struct se_if_priv *priv,
- 		goto exit;
+@@ -573,11 +573,6 @@ int read_common_fuse(struct se_if_priv *priv,
+ 			rx_msg_sz = ELE_READ_FUSE_RSP_MSG_SZ;
  	}
  
--	if (fuse_id == OTP_UNIQ_ID)
+-	/* OTP_UNIQ_ID is only used on i.MX8ULP platform */
+-	if (fuse_id == OTP_UNIQ_ID && soc_id == SOC_ID_OF_IMX8ULP) {
 -		rx_msg_sz = ELE_READ_FUSE_OTP_UNQ_ID_RSP_MSG_SZ;
+-	}
 -
  	rx_msg = kzalloc(rx_msg_sz, GFP_KERNEL);
  	if (!rx_msg) {
  		ret = -ENOMEM;
-@@ -595,12 +592,6 @@ int read_common_fuse(struct se_if_priv *priv,
+@@ -610,17 +605,7 @@ int read_common_fuse(struct se_if_priv *priv,
+ 	if (ret)
  		goto exit;
  
- 	switch (fuse_id) {
+-	switch (fuse_id) {
 -	case OTP_UNIQ_ID:
 -		value[0] = rx_msg->data[1];
 -		value[1] = rx_msg->data[2];
 -		value[2] = rx_msg->data[3];
 -		value[3] = rx_msg->data[4];
 -		break;
- 	default:
- 		value[0] = rx_msg->data[1];
- 		break;
+-	default:
+-		value[0] = rx_msg->data[1];
+-		break;
+-	}
++	value[0] = rx_msg->data[1];
+ 
+ exit:
+ 	return ret;
 -- 
-2.50.1
+2.55.0
 

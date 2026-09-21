@@ -1,4 +1,4 @@
-From 245178d8031b0fcdc394c604504cd480736cd600 Mon Sep 17 00:00:00 2001
+From fef3dfd831ac0e8c29bc382f2febf67da7742df6 Mon Sep 17 00:00:00 2001
 From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
 Date: Thu, 14 Aug 2025 13:53:03 +0200
 Subject: [PATCH] firmware: imx: ele: Fix fuse write for payload 0x0
@@ -53,5 +53,5 @@ index 0fcc8b012fea6..d15d723c4cfba 100644
  #define MAX_NVM_MSG_LEN			(256)
  #define MESSAGING_VERSION_2		0x2
 -- 
-2.44.4
+2.55.0
 

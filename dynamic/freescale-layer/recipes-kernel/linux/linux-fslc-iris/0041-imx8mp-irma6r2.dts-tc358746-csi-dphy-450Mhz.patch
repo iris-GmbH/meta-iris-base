@@ -1,4 +1,4 @@
-From 0a832bc750cacd8104afd04ad07457cd272abffb Mon Sep 17 00:00:00 2001
+From 2f9361024c02f8aca62e8428993f68cd6a7fd272 Mon Sep 17 00:00:00 2001
 From: Ian Dannapel <ian.dannapel@iris-sensing.com>
 Date: Wed, 16 Oct 2024 15:40:41 +0000
 Subject: [PATCH] imx8mp-irma6r2.dts: tc358746: csi-dphy: 450Mhz
@@ -9,7 +9,7 @@ Signed-off-by: Ian Dannapel <ian.dannapel@iris-sensing.com>
  1 file changed, 9 insertions(+), 9 deletions(-)
 
 diff --git a/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts b/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
-index 58584030b0ee..e22111131aa7 100644
+index 58584030b0ee5..e22111131aa7d 100644
 --- a/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
 +++ b/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
 @@ -47,9 +47,9 @@ reg_usdhc2_vmmc: regulator-usdhc2 {
@@ -72,5 +72,5 @@ index 58584030b0ee..e22111131aa7 100644
  	};
  };
 -- 
-2.44.1
+2.55.0
 

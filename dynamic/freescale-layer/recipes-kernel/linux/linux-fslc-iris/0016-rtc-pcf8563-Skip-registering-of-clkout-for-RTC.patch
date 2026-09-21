@@ -1,4 +1,4 @@
-From 83f894868dd02e530641aabb1464c431d08aea50 Mon Sep 17 00:00:00 2001
+From 02209f55431ea1c73eafc3dc388146d2f87f9b0c Mon Sep 17 00:00:00 2001
 From: Erik Schumacher <erik.schumacher@iris-sensing.com>
 Date: Thu, 26 Jan 2023 15:04:08 +0100
 Subject: [PATCH] rtc-pcf8563: Skip registering of clkout for RTC
@@ -18,7 +18,7 @@ Signed-off-by: Jasper Orschulko <jasper@fancydomain.eu>
  2 files changed, 21 insertions(+), 1 deletion(-)
 
 diff --git a/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts b/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
-index 8b4918bfddbf..fd4577587358 100644
+index 8b4918bfddbf5..fd45775873580 100644
 --- a/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
 +++ b/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
 @@ -375,6 +375,7 @@ rtc: rtc@51 {
@@ -30,7 +30,7 @@ index 8b4918bfddbf..fd4577587358 100644
  };
  
 diff --git a/drivers/rtc/rtc-pcf8563.c b/drivers/rtc/rtc-pcf8563.c
-index ea82b89d8929..216cd5ea67c8 100644
+index 61be91c25cf18..f0ae73126247e 100644
 --- a/drivers/rtc/rtc-pcf8563.c
 +++ b/drivers/rtc/rtc-pcf8563.c
 @@ -514,6 +514,7 @@ static int pcf8563_probe(struct i2c_client *client)
@@ -71,5 +71,5 @@ index ea82b89d8929..216cd5ea67c8 100644
  }
  
 -- 
-2.47.0
+2.55.0
 

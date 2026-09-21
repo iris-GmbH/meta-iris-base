@@ -1,4 +1,4 @@
-From f4ad2794e46b7ba43062faaca3a41821bcb93227 Mon Sep 17 00:00:00 2001
+From 8a4911d537bc9d03b87fb9c24cab212856960f35 Mon Sep 17 00:00:00 2001
 From: Erik Schumacher <erik.schumacher@iris-sensing.com>
 Date: Tue, 25 Jun 2024 13:38:08 +0000
 Subject: [PATCH] tc358746.c: Implement hsync/vsync polarity config
@@ -11,7 +11,7 @@ Signed-off-by: Erik Schumacher <erik.schumacher@iris-sensing.com>
  1 file changed, 28 insertions(+), 2 deletions(-)
 
 diff --git a/drivers/media/i2c/tc358746.c b/drivers/media/i2c/tc358746.c
-index 93604fd5d872..ee6747a3ee92 100644
+index 799ef6ab2666d..ba988cf1cc4db 100644
 --- a/drivers/media/i2c/tc358746.c
 +++ b/drivers/media/i2c/tc358746.c
 @@ -40,6 +40,8 @@
@@ -48,7 +48,7 @@ index 93604fd5d872..ee6747a3ee92 100644
  	if (err)
  		goto out;
  
-@@ -1497,6 +1505,8 @@ static int tc358746_async_register(struct tc358746 *tc358746)
+@@ -1492,6 +1500,8 @@ static int tc358746_async_register(struct tc358746 *tc358746)
  	};
  	struct v4l2_async_connection *asd;
  	struct fwnode_handle *ep;
@@ -57,7 +57,7 @@ index 93604fd5d872..ee6747a3ee92 100644
  	int err;
  
  	ep = fwnode_graph_get_endpoint_by_id(dev_fwnode(tc358746->sd.dev),
-@@ -1510,6 +1520,22 @@ static int tc358746_async_register(struct tc358746 *tc358746)
+@@ -1505,6 +1515,22 @@ static int tc358746_async_register(struct tc358746 *tc358746)
  		return err;
  	}
  
@@ -81,5 +81,5 @@ index 93604fd5d872..ee6747a3ee92 100644
  	asd = v4l2_async_nf_add_fwnode_remote(&tc358746->notifier, ep,
  					      struct v4l2_async_connection);
 -- 
-2.47.0
+2.55.0
 

@@ -1,4 +1,4 @@
-From d67d6a681da3eb9c25b9c441a02f03529bdfcfaf Mon Sep 17 00:00:00 2001
+From 05457d8849fed603ca960719f403b342027610e6 Mon Sep 17 00:00:00 2001
 From: Erik Schumacher <erik.schumacher@iris-sensing.com>
 Date: Fri, 26 Apr 2024 06:58:25 +0000
 Subject: [PATCH] fpga/xilinx-spi: Make DONE gpio optional
@@ -24,7 +24,7 @@ Signed-off-by: Erik Schumacher <erik.schumacher@iris-sensing.com>
  2 files changed, 43 insertions(+), 13 deletions(-)
 
 diff --git a/Documentation/devicetree/bindings/fpga/xlnx,fpga-slave-serial.yaml b/Documentation/devicetree/bindings/fpga/xlnx,fpga-slave-serial.yaml
-index 614d86ad825f..915de1dd2fbe 100644
+index 614d86ad825f3..915de1dd2fbeb 100644
 --- a/Documentation/devicetree/bindings/fpga/xlnx,fpga-slave-serial.yaml
 +++ b/Documentation/devicetree/bindings/fpga/xlnx,fpga-slave-serial.yaml
 @@ -43,7 +43,14 @@ properties:
@@ -52,7 +52,7 @@ index 614d86ad825f..915de1dd2fbe 100644
  
  additionalProperties: false
 diff --git a/drivers/fpga/xilinx-spi.c b/drivers/fpga/xilinx-spi.c
-index e1a227e7ff2a..4738b50f5935 100644
+index e1a227e7ff2ae..4738b50f59351 100644
 --- a/drivers/fpga/xilinx-spi.c
 +++ b/drivers/fpga/xilinx-spi.c
 @@ -25,6 +25,7 @@ struct xilinx_spi_conf {
@@ -161,5 +161,5 @@ index e1a227e7ff2a..4738b50f5935 100644
  				     "Xilinx Slave Serial FPGA Manager",
  				     &xilinx_spi_ops, conf);
 -- 
-2.47.0
+2.55.0
 
