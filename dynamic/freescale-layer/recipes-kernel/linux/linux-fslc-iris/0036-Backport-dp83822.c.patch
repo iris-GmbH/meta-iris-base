@@ -1,4 +1,4 @@
-From 70f4a6d97e48bd8a1c42210f92882f545d2d0306 Mon Sep 17 00:00:00 2001
+From 876d0baa572c506fc47936eeb282e4184cbc65fe Mon Sep 17 00:00:00 2001
 From: Catalin Popescu <catalin.popescu@leica-geosystems.com>
 Date: Tue, 13 Feb 2024 09:07:05 +0100
 Subject: [PATCH] Backport dp83822.c
@@ -381,5 +381,5 @@ index 507726a08f82d..3ab64e04a01c9 100644
  	DP8382X_PHY_DRIVER(DP83825CM_PHY_ID, "TI DP83825M"),
  	DP8382X_PHY_DRIVER(DP83825CS_PHY_ID, "TI DP83825CS"),
 -- 
-2.47.1
+2.55.0
 

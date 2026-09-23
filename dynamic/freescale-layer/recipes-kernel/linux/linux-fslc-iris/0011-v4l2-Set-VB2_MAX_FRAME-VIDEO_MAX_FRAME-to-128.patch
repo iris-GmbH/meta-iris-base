@@ -1,4 +1,4 @@
-From 863126bf0ad2bd10881862baade6df49ee9befd1 Mon Sep 17 00:00:00 2001
+From 668e17ec86ab77f310e3699c4b287691158fd1d0 Mon Sep 17 00:00:00 2001
 From: Jan Hannig <jan.hannig@iris-sensing.com>
 Date: Fri, 29 Sep 2023 15:03:30 +0200
 Subject: [PATCH] v4l2: Set VB2_MAX_FRAME/VIDEO_MAX_FRAME to 128
@@ -16,7 +16,7 @@ Signed-off-by: Jasper Orschulko <jasper@fancydomain.eu>
  2 files changed, 2 insertions(+), 2 deletions(-)
 
 diff --git a/include/media/videobuf2-core.h b/include/media/videobuf2-core.h
-index 4b6a9d2ea372..404fbe9cb8aa 100644
+index 4b6a9d2ea3727..404fbe9cb8aaa 100644
 --- a/include/media/videobuf2-core.h
 +++ b/include/media/videobuf2-core.h
 @@ -20,7 +20,7 @@
@@ -29,7 +29,7 @@ index 4b6a9d2ea372..404fbe9cb8aa 100644
  
  /**
 diff --git a/include/uapi/linux/videodev2.h b/include/uapi/linux/videodev2.h
-index 0c4867c44291..a8f8aeedea9c 100644
+index 1736505a75f92..544016f662c2e 100644
 --- a/include/uapi/linux/videodev2.h
 +++ b/include/uapi/linux/videodev2.h
 @@ -70,7 +70,7 @@
@@ -42,5 +42,5 @@ index 0c4867c44291..a8f8aeedea9c 100644
  
  /*
 -- 
-2.47.0
+2.55.0
 

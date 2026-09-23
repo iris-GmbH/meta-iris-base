@@ -1,4 +1,4 @@
-From a7d802fe1a8a32d675b3ad3472cb930443d11c88 Mon Sep 17 00:00:00 2001
+From f96ef9df9af798fb465cd0c16a9e38a0526b9142 Mon Sep 17 00:00:00 2001
 From: Erik Schumacher <erik.schumacher@iris-sensing.com>
 Date: Mon, 21 Jul 2025 14:05:30 +0200
 Subject: [PATCH] net/phy/micrel: Configure broadcast disable via devicetree
@@ -14,7 +14,7 @@ Signed-off-by: Erik Schumacher <erik.schumacher@iris-sensing.com>
  2 files changed, 22 insertions(+), 1 deletion(-)
 
 diff --git a/Documentation/devicetree/bindings/net/micrel.txt b/Documentation/devicetree/bindings/net/micrel.txt
-index a407dd1b4614..fbb276860f71 100644
+index a407dd1b46145..fbb276860f715 100644
 --- a/Documentation/devicetree/bindings/net/micrel.txt
 +++ b/Documentation/devicetree/bindings/net/micrel.txt
 @@ -55,3 +55,15 @@ Optional properties:
@@ -34,10 +34,10 @@ index a407dd1b4614..fbb276860f71 100644
 +	With this option, the broadcast address stays enabled. The PHY will
 +	continue to reply on the broadcast address.
 diff --git a/drivers/net/phy/micrel.c b/drivers/net/phy/micrel.c
-index 9a0432145645..e425498b3506 100644
+index 6a114883ed8c5..035182bb49a84 100644
 --- a/drivers/net/phy/micrel.c
 +++ b/drivers/net/phy/micrel.c
-@@ -585,6 +585,14 @@ static int kszphy_config_reset(struct phy_device *phydev)
+@@ -587,6 +587,14 @@ static int kszphy_config_reset(struct phy_device *phydev)
  	return 0;
  }
  
@@ -52,7 +52,7 @@ index 9a0432145645..e425498b3506 100644
  static int kszphy_config_init(struct phy_device *phydev)
  {
  	struct kszphy_priv *priv = phydev->priv;
-@@ -595,7 +603,8 @@ static int kszphy_config_init(struct phy_device *phydev)
+@@ -597,7 +605,8 @@ static int kszphy_config_init(struct phy_device *phydev)
  
  	type = priv->type;
  
@@ -63,5 +63,5 @@ index 9a0432145645..e425498b3506 100644
  
  	if (type && type->has_nand_tree_disable)
 -- 
-2.50.1
+2.55.0
 

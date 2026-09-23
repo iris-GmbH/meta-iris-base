@@ -1,4 +1,4 @@
-From c9f99da494f33909e05af1c15427073e38e81db5 Mon Sep 17 00:00:00 2001
+From adf115f39be17484f5ff4f726070b430c6df6f1f Mon Sep 17 00:00:00 2001
 From: Erik Schumacher <erik.schumacher@iris-sensing.com>
 Date: Tue, 19 Mar 2024 16:48:51 +0000
 Subject: [PATCH] i2c-imx: Introduce optional busy polling for xfer
@@ -20,7 +20,7 @@ Signed-off-by: Jasper Orschulko <jasper@fancydomain.eu>
  2 files changed, 30 insertions(+), 2 deletions(-)
 
 diff --git a/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts b/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
-index fd4577587358..58584030b0ee 100644
+index fd45775873580..58584030b0ee5 100644
 --- a/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
 +++ b/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
 @@ -179,6 +179,7 @@ &i2c2 {
@@ -32,7 +32,7 @@ index fd4577587358..58584030b0ee 100644
  
  	epc660_mipi: epc660_mipi@22 {
 diff --git a/drivers/i2c/busses/i2c-imx.c b/drivers/i2c/busses/i2c-imx.c
-index 1d248ec1a9e7..5864f3a72015 100644
+index 4b13c78f462fd..684830cb16203 100644
 --- a/drivers/i2c/busses/i2c-imx.c
 +++ b/drivers/i2c/busses/i2c-imx.c
 @@ -287,6 +287,8 @@ struct imx_i2c_struct {
@@ -44,7 +44,7 @@ index 1d248ec1a9e7..5864f3a72015 100644
  };
  
  static const struct imx_i2c_hwdata imx1_i2c_hwdata = {
-@@ -404,6 +406,17 @@ static inline unsigned char imx_i2c_read_reg(struct imx_i2c_struct *i2c_imx,
+@@ -405,6 +407,17 @@ static inline unsigned char imx_i2c_read_reg(struct imx_i2c_struct *i2c_imx,
  	return readb(i2c_imx->base + (reg << i2c_imx->hwdata->regshift));
  }
  
@@ -62,7 +62,7 @@ index 1d248ec1a9e7..5864f3a72015 100644
  static void i2c_imx_clear_irq(struct imx_i2c_struct *i2c_imx, unsigned int bits)
  {
  	unsigned int temp;
-@@ -590,7 +603,7 @@ static int i2c_imx_bus_busy(struct imx_i2c_struct *i2c_imx, int for_busy, bool a
+@@ -591,7 +604,7 @@ static int i2c_imx_bus_busy(struct imx_i2c_struct *i2c_imx, int for_busy, bool a
  			return -ETIMEDOUT;
  		}
  		if (atomic)
@@ -71,7 +71,7 @@ index 1d248ec1a9e7..5864f3a72015 100644
  		else
  			schedule();
  	}
-@@ -1324,9 +1337,15 @@ static int i2c_imx_xfer_common(struct i2c_adapter *adapter,
+@@ -1325,9 +1338,15 @@ static int i2c_imx_xfer_common(struct i2c_adapter *adapter,
  {
  	unsigned int i, temp;
  	int result;
@@ -88,7 +88,7 @@ index 1d248ec1a9e7..5864f3a72015 100644
  	/* Start I2C transfer */
  	result = i2c_imx_start(i2c_imx, atomic);
  	if (result) {
-@@ -1403,6 +1422,11 @@ static int i2c_imx_xfer_common(struct i2c_adapter *adapter,
+@@ -1404,6 +1423,11 @@ static int i2c_imx_xfer_common(struct i2c_adapter *adapter,
  	if (i2c_imx->slave)
  		i2c_imx_slave_init(i2c_imx);
  
@@ -100,7 +100,7 @@ index 1d248ec1a9e7..5864f3a72015 100644
  	return (result < 0) ? result : num;
  }
  
-@@ -1759,6 +1783,9 @@ static int i2c_imx_probe(struct platform_device *pdev)
+@@ -1760,6 +1784,9 @@ static int i2c_imx_probe(struct platform_device *pdev)
  		goto clk_notifier_unregister;
  	}
  
@@ -111,5 +111,5 @@ index 1d248ec1a9e7..5864f3a72015 100644
  	 * This limit caused by an i.MX7D hardware issue(e7805 in Errata).
  	 * If there is no limit, when the bitrate set up to 400KHz, it will
 -- 
-2.47.0
+2.55.0
 

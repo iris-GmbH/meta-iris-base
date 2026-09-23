@@ -1,4 +1,4 @@
-From 88ce476b273d210c939aafc028830d49e366ec82 Mon Sep 17 00:00:00 2001
+From 4be8203a2a69613f9f61fe88c013fa2b8e9d0305 Mon Sep 17 00:00:00 2001
 From: Erik Schumacher <erik.schumacher@iris-sensing.com>
 Date: Tue, 14 Mar 2023 09:56:44 +0100
 Subject: [PATCH] lm75.c: Defer probe if i2c communication fails with EAGAIN
@@ -14,7 +14,7 @@ Signed-off-by: Jasper Orschulko <jasper@fancydomain.eu>
  1 file changed, 2 insertions(+)
 
 diff --git a/drivers/hwmon/lm75.c b/drivers/hwmon/lm75.c
-index 5b2ea05c951e..e10ac02f889e 100644
+index 5b2ea05c951e3..e10ac02f889e3 100644
 --- a/drivers/hwmon/lm75.c
 +++ b/drivers/hwmon/lm75.c
 @@ -626,6 +626,8 @@ static int lm75_probe(struct i2c_client *client)
@@ -27,5 +27,5 @@ index 5b2ea05c951e..e10ac02f889e 100644
  	}
  	data->orig_conf = status;
 -- 
-2.47.0
+2.55.0
 

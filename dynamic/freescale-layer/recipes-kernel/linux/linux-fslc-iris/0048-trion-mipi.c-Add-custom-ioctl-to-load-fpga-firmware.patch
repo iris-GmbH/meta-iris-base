@@ -1,4 +1,4 @@
-From 8ba8c9ceebbda118394ac41a0ff0c68f6d357d3c Mon Sep 17 00:00:00 2001
+From 97cdc6ce61d2f814c6ba951957a867e02130aad9 Mon Sep 17 00:00:00 2001
 From: Ian Dannapel <ian.dannapel@iris-sensing.com>
 Date: Tue, 17 Dec 2024 11:51:54 +0000
 Subject: [PATCH] trion-mipi.c: Add custom ioctl to load fpga firmware
@@ -9,7 +9,7 @@ Signed-off-by: Erik Schumacher <erik.schumacher@iris-sensing.com>
  1 file changed, 15 insertions(+), 5 deletions(-)
 
 diff --git a/drivers/media/i2c/trion-mipi.c b/drivers/media/i2c/trion-mipi.c
-index 8818eee584e0..4e149b201aa4 100644
+index 8818eee584e0f..4e149b201aa4a 100644
 --- a/drivers/media/i2c/trion-mipi.c
 +++ b/drivers/media/i2c/trion-mipi.c
 @@ -30,6 +30,8 @@
@@ -66,5 +66,5 @@ index 8818eee584e0..4e149b201aa4 100644
  
  module_i2c_driver(trion_mipi_i2c_driver);
 -- 
-2.43.0
+2.55.0
 

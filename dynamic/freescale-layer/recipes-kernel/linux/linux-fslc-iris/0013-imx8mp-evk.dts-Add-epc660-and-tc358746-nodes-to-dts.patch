@@ -1,4 +1,4 @@
-From 3a47b479f73c236c4fc928f7961a1103c0ea9a65 Mon Sep 17 00:00:00 2001
+From 01c31fc586c245b2728afebd288573d463a1c16f Mon Sep 17 00:00:00 2001
 From: Ian Dannapel <ian.dannapel@iris-sensing.com>
 Date: Fri, 13 May 2022 15:27:16 +0200
 Subject: [PATCH] imx8mp-evk.dts: Add epc660 and tc358746 nodes to dts
@@ -14,7 +14,7 @@ node being present in the -evk devicetree
  2 files changed, 70 insertions(+), 27 deletions(-)
 
 diff --git a/arch/arm64/boot/dts/freescale/Makefile b/arch/arm64/boot/dts/freescale/Makefile
-index b2729f9a2f1a..96166fd652fc 100644
+index 64478ccc68b8f..7d7d644fd1dff 100644
 --- a/arch/arm64/boot/dts/freescale/Makefile
 +++ b/arch/arm64/boot/dts/freescale/Makefile
 @@ -128,7 +128,7 @@ dtb-$(CONFIG_ARCH_MXC) += imx8mp-evk.dtb imx8mp-evk-rm67191.dtb imx8mp-evk-it626
@@ -26,7 +26,7 @@ index b2729f9a2f1a..96166fd652fc 100644
  			  imx8mp-evk-dual-os08a20.dtb \
  			  imx8mp-evk-iqaudio-dacplus.dtb imx8mp-evk-iqaudio-dacpro.dtb imx8mp-evk-hifiberry-dacplus.dtb \
  			  imx8mp-evk-hifiberry-dac2.dtb imx8mp-evk-hifiberry-dacplusadc.dtb \
-@@ -157,7 +157,6 @@ imx8mp-evk-revb4-basler-ov2775-dtbs := imx8mp-evk-basler-ov2775.dtb imx8mp-evk-r
+@@ -158,7 +158,6 @@ imx8mp-evk-revb4-basler-ov2775-dtbs := imx8mp-evk-basler-ov2775.dtb imx8mp-evk-r
  imx8mp-evk-revb4-dual-basler-dtbs := imx8mp-evk-dual-basler.dtb imx8mp-evk-revb4.dtbo
  imx8mp-evk-revb4-dual-ov2775-dtbs := imx8mp-evk-dual-ov2775.dtb imx8mp-evk-revb4.dtbo
  imx8mp-evk-revb4-spdif-lb-dtbs := imx8mp-evk-spdif-lb.dtb imx8mp-evk-revb4.dtbo
@@ -35,7 +35,7 @@ index b2729f9a2f1a..96166fd652fc 100644
  imx8mp-evk-revb4-dual-os08a20-dtbs := imx8mp-evk-dual-os08a20.dtb imx8mp-evk-revb4.dtbo
  imx8mp-evk-revb4-iqaudio-dacplus-dtbs := imx8mp-evk-iqaudio-dacplus.dtb imx8mp-evk-revb4.dtbo
 diff --git a/arch/arm64/boot/dts/freescale/imx8mp-evk.dts b/arch/arm64/boot/dts/freescale/imx8mp-evk.dts
-index 695d76afdfaf..65de733ee5c1 100644
+index 64803bac7cee3..070e34606bccf 100644
 --- a/arch/arm64/boot/dts/freescale/imx8mp-evk.dts
 +++ b/arch/arm64/boot/dts/freescale/imx8mp-evk.dts
 @@ -221,6 +221,13 @@ usb3_data_ss: endpoint {
@@ -189,5 +189,5 @@ index 695d76afdfaf..65de733ee5c1 100644
  	};
  };
 -- 
-2.47.0
+2.55.0
 

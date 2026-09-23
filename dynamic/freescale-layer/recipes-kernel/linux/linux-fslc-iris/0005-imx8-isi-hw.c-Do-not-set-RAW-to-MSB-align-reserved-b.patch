@@ -1,4 +1,4 @@
-From b376fbe6c8dda2e634606554a3915d0ab484951f Mon Sep 17 00:00:00 2001
+From b437d2f4cbcee8094998d70465fef7e58ca3e83e Mon Sep 17 00:00:00 2001
 From: Ian Dannapel <ian.dannapel@iris-sensing.com>
 Date: Wed, 18 Sep 2024 12:44:27 +0000
 Subject: [PATCH] imx8-isi-hw.c: Do not set RAW to MSB align & reserved bits
@@ -9,7 +9,7 @@ Signed-off-by: Erik Schumacher <erik.schumacher@iris-sensing.com>
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/drivers/staging/media/imx/imx8-isi-hw.c b/drivers/staging/media/imx/imx8-isi-hw.c
-index f3b2b98798be..29aab0911702 100644
+index f3b2b98798be2..29aab09117023 100644
 --- a/drivers/staging/media/imx/imx8-isi-hw.c
 +++ b/drivers/staging/media/imx/imx8-isi-hw.c
 @@ -673,7 +673,7 @@ void mxc_isi_channel_enable_loc(struct mxc_isi_dev *mxc_isi, bool m2m_enabled)
@@ -22,5 +22,5 @@ index f3b2b98798be..29aab0911702 100644
  	if (m2m_enabled) {
  		val &= ~(CHNL_CTRL_SRC_TYPE_MASK | CHNL_CTRL_SRC_INPUT_MASK);
 -- 
-2.47.0
+2.55.0
 

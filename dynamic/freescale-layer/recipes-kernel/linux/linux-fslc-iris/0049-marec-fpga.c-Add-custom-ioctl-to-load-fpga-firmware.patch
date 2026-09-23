@@ -1,4 +1,4 @@
-From 7a2ab9c55ca7141071c51048be8f2b016f71f43f Mon Sep 17 00:00:00 2001
+From 38787061e2714878fd557bdd898d61decf518612 Mon Sep 17 00:00:00 2001
 From: Erik Schumacher <erik.schumacher@iris-sensing.com>
 Date: Wed, 8 Jan 2025 14:09:24 +0000
 Subject: [PATCH] marec-fpga.c: Add custom ioctl to load fpga firmware
@@ -9,7 +9,7 @@ Signed-off-by: Erik Schumacher <erik.schumacher@iris-sensing.com>
  1 file changed, 45 insertions(+), 25 deletions(-)
 
 diff --git a/drivers/media/i2c/marec-fpga.c b/drivers/media/i2c/marec-fpga.c
-index 4ffc39fe22ea..d4f192e000e3 100644
+index 4ffc39fe22ea4..d4f192e000e3c 100644
 --- a/drivers/media/i2c/marec-fpga.c
 +++ b/drivers/media/i2c/marec-fpga.c
 @@ -18,6 +18,8 @@
@@ -144,5 +144,5 @@ index 4ffc39fe22ea..d4f192e000e3 100644
  }
  
 -- 
-2.44.1
+2.55.0
 
