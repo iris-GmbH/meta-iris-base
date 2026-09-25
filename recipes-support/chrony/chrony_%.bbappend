@@ -6,13 +6,11 @@ FILESEXTRAPATHS:prepend := "${THISDIR}/${PN}:"
 SRC_URI += " \
     file://setup-chrony.sh \
     file://iris-config.conf \
-    file://chronyd-umask.conf \
 "
 
 FILES:${PN} += " \
     ${bindir}/setup-chrony.sh \
     ${systemd_unitdir}/system/chronyd.service.d/iris-config.conf \
-    ${systemd_unitdir}/system/chronyd.service.d/umask.conf \
 "
 
 DEPENDS += " \
@@ -33,7 +31,4 @@ do_install:append() {
     # Create drop-in directory
     install -d ${D}${systemd_unitdir}/system/chronyd.service.d
     install -m 0644 ${WORKDIR}/iris-config.conf ${D}${systemd_unitdir}/system/chronyd.service.d/
- 
-    # Install the drop-in that allows chronyd to create group-writable runtime sockets.
-    install -m 0644 ${WORKDIR}/chronyd-umask.conf ${D}${systemd_unitdir}/system/chronyd.service.d/umask.conf
 }
