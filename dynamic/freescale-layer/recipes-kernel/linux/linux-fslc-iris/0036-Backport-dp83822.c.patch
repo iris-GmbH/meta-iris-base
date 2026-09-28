@@ -1,4 +1,4 @@
-From 876d0baa572c506fc47936eeb282e4184cbc65fe Mon Sep 17 00:00:00 2001
+From da5850a9d7880a46376d17689215b4cc6a20a300 Mon Sep 17 00:00:00 2001
 From: Catalin Popescu <catalin.popescu@leica-geosystems.com>
 Date: Tue, 13 Feb 2024 09:07:05 +0100
 Subject: [PATCH] Backport dp83822.c
@@ -18,7 +18,7 @@ Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
  1 file changed, 206 insertions(+), 20 deletions(-)
 
 diff --git a/drivers/net/phy/dp83822.c b/drivers/net/phy/dp83822.c
-index 507726a08f82d..3ab64e04a01c9 100644
+index 507726a08f82..3ab64e04a01c 100644
 --- a/drivers/net/phy/dp83822.c
 +++ b/drivers/net/phy/dp83822.c
 @@ -12,6 +12,7 @@

@@ -1,4 +1,4 @@
-From 8a4911d537bc9d03b87fb9c24cab212856960f35 Mon Sep 17 00:00:00 2001
+From 3890cae79f5f72ded0a2d51bbf4d4de6d7b2df7f Mon Sep 17 00:00:00 2001
 From: Erik Schumacher <erik.schumacher@iris-sensing.com>
 Date: Tue, 25 Jun 2024 13:38:08 +0000
 Subject: [PATCH] tc358746.c: Implement hsync/vsync polarity config
@@ -11,7 +11,7 @@ Signed-off-by: Erik Schumacher <erik.schumacher@iris-sensing.com>
  1 file changed, 28 insertions(+), 2 deletions(-)
 
 diff --git a/drivers/media/i2c/tc358746.c b/drivers/media/i2c/tc358746.c
-index 799ef6ab2666d..ba988cf1cc4db 100644
+index 799ef6ab2666..ba988cf1cc4d 100644
 --- a/drivers/media/i2c/tc358746.c
 +++ b/drivers/media/i2c/tc358746.c
 @@ -40,6 +40,8 @@

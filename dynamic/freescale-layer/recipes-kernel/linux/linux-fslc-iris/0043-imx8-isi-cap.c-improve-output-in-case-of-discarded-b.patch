@@ -1,4 +1,4 @@
-From f5abfe4ecb597a728ec7a8e4bec8835fe8b5e70c Mon Sep 17 00:00:00 2001
+From f752191b8a972410f0fc9c7145c0327da8ed851f Mon Sep 17 00:00:00 2001
 From: Ian Dannapel <ian.dannapel@iris-sensing.com>
 Date: Thu, 21 Nov 2024 17:39:04 +0100
 Subject: [PATCH] imx8-isi-cap.c: improve output in case of discarded buffers
@@ -9,7 +9,7 @@ Signed-off-by: Ian Dannapel <ian.dannapel@iris-sensing.com>
  1 file changed, 4 insertions(+), 1 deletion(-)
 
 diff --git a/drivers/staging/media/imx/imx8-isi-cap.c b/drivers/staging/media/imx/imx8-isi-cap.c
-index 4c271ecb2b0bb..387a2b6dbb219 100644
+index 4c271ecb2b0b..387a2b6dbb21 100644
 --- a/drivers/staging/media/imx/imx8-isi-cap.c
 +++ b/drivers/staging/media/imx/imx8-isi-cap.c
 @@ -222,11 +222,13 @@ void mxc_isi_cap_frame_write_done(struct mxc_isi_dev *mxc_isi)

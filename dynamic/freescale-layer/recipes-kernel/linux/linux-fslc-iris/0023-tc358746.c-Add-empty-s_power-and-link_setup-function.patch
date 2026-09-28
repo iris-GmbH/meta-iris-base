@@ -1,4 +1,4 @@
-From c5da58bd3b8417df4e7bf9028f9f5b04d9d14b1d Mon Sep 17 00:00:00 2001
+From e19b0d51141a34a7b9f30670f90a05cd75290214 Mon Sep 17 00:00:00 2001
 From: Erik Schumacher <erik.schumacher@iris-sensing.com>
 Date: Mon, 24 Jun 2024 15:12:55 +0000
 Subject: [PATCH] tc358746.c: Add empty s_power and link_setup functions
@@ -9,7 +9,7 @@ Signed-off-by: Erik Schumacher <erik.schumacher@iris-sensing.com>
  1 file changed, 14 insertions(+)
 
 diff --git a/drivers/media/i2c/tc358746.c b/drivers/media/i2c/tc358746.c
-index f81f730abaabb..799ef6ab2666d 100644
+index f81f730abaab..799ef6ab2666 100644
 --- a/drivers/media/i2c/tc358746.c
 +++ b/drivers/media/i2c/tc358746.c
 @@ -1001,6 +1001,13 @@ tc358746_link_validate(struct v4l2_subdev *sd, struct media_link *link,

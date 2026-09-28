@@ -1,4 +1,4 @@
-From fef3dfd831ac0e8c29bc382f2febf67da7742df6 Mon Sep 17 00:00:00 2001
+From 8ffec9e5f75fd316c8944c45a07af2f18f240735 Mon Sep 17 00:00:00 2001
 From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
 Date: Thu, 14 Aug 2025 13:53:03 +0200
 Subject: [PATCH] firmware: imx: ele: Fix fuse write for payload 0x0
@@ -18,7 +18,7 @@ Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
  2 files changed, 4 insertions(+), 2 deletions(-)
 
 diff --git a/drivers/firmware/imx/ele_common.c b/drivers/firmware/imx/ele_common.c
-index d75dde04a4097..d1606d5a4babf 100644
+index d75dde04a409..d1606d5a4bab 100644
 --- a/drivers/firmware/imx/ele_common.c
 +++ b/drivers/firmware/imx/ele_common.c
 @@ -268,7 +268,7 @@ int se_val_rsp_hdr_n_status(struct se_if_priv *priv,
@@ -41,7 +41,7 @@ index d75dde04a4097..d1606d5a4babf 100644
  			header->command, status);
  		return -EPERM;
 diff --git a/drivers/firmware/imx/se_ctrl.h b/drivers/firmware/imx/se_ctrl.h
-index 0fcc8b012fea6..d15d723c4cfba 100644
+index 0fcc8b012fea..d15d723c4cfb 100644
 --- a/drivers/firmware/imx/se_ctrl.h
 +++ b/drivers/firmware/imx/se_ctrl.h
 @@ -16,6 +16,7 @@

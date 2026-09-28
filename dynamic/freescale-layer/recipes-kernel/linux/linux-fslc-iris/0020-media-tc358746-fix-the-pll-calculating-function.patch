@@ -1,4 +1,4 @@
-From 5509ddfcfc23da859db3be12d5c358c4deaaa6fc Mon Sep 17 00:00:00 2001
+From 7612ed9ad433c205b6c89d441fd9c4469933a0dd Mon Sep 17 00:00:00 2001
 From: "Duc-Long, Le" <duclong.linux@gmail.com>
 Date: Sat, 14 Oct 2023 20:19:46 -0400
 Subject: [PATCH] media: tc358746: fix the pll calculating function
@@ -17,7 +17,7 @@ Signed-off-by: Hans Verkuil <hverkuil-cisco@xs4all.nl>
  1 file changed, 2 insertions(+), 2 deletions(-)
 
 diff --git a/drivers/media/i2c/tc358746.c b/drivers/media/i2c/tc358746.c
-index b12a6bd42102e..f2b1ebc2e5563 100644
+index b12a6bd42102..f2b1ebc2e556 100644
 --- a/drivers/media/i2c/tc358746.c
 +++ b/drivers/media/i2c/tc358746.c
 @@ -834,14 +834,14 @@ static unsigned long tc358746_find_pll_settings(struct tc358746 *tc358746,

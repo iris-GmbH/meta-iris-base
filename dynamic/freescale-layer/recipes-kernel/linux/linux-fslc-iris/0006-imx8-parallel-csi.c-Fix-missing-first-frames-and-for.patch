@@ -1,4 +1,4 @@
-From 54728286f2c5877b99e9072f0070b778d1e60060 Mon Sep 17 00:00:00 2001
+From 88f7437960a9d205c6f7134fafafd11fa3f4ecf6 Mon Sep 17 00:00:00 2001
 From: Ian Dannapel <ian.dannapel@iris-sensing.com>
 Date: Wed, 18 Sep 2024 12:52:48 +0000
 Subject: [PATCH] imx8-parallel-csi.c: Fix missing first frames and format
@@ -14,7 +14,7 @@ Signed-off-by: Erik Schumacher <erik.schumacher@iris-sensing.com>
  1 file changed, 7 insertions(+), 4 deletions(-)
 
 diff --git a/drivers/staging/media/imx/imx8-parallel-csi.c b/drivers/staging/media/imx/imx8-parallel-csi.c
-index fe12df0a6168e..8250bf679c9d6 100644
+index fe12df0a6168..8250bf679c9d 100644
 --- a/drivers/staging/media/imx/imx8-parallel-csi.c
 +++ b/drivers/staging/media/imx/imx8-parallel-csi.c
 @@ -269,6 +269,9 @@ static void disp_mix_gasket_config(struct mxc_parallel_csi_dev *pcsidev)

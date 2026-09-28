@@ -1,4 +1,4 @@
-From adf115f39be17484f5ff4f726070b430c6df6f1f Mon Sep 17 00:00:00 2001
+From 756e579b8213d28edc8d0840295ea24a0c6880ac Mon Sep 17 00:00:00 2001
 From: Erik Schumacher <erik.schumacher@iris-sensing.com>
 Date: Tue, 19 Mar 2024 16:48:51 +0000
 Subject: [PATCH] i2c-imx: Introduce optional busy polling for xfer
@@ -15,12 +15,12 @@ imx8mp-irma6r2.dts: Use busy polling on i2c-1 ("epc bus")
 Signed-off-by: Erik Schumacher <erik.schumacher@iris-sensing.com>
 Signed-off-by: Jasper Orschulko <jasper@fancydomain.eu>
 ---
- .../boot/dts/freescale/imx8mp-irma6r2.dts     |  1 +
- drivers/i2c/busses/i2c-imx.c                  | 31 +++++++++++++++++--
- 2 files changed, 30 insertions(+), 2 deletions(-)
+ arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts |  1 +
+ drivers/i2c/busses/i2c-imx.c                     | 14 +++++++++++++-
+ 2 files changed, 14 insertions(+), 1 deletion(-)
 
 diff --git a/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts b/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
-index fd45775873580..58584030b0ee5 100644
+index fd4577587358..58584030b0ee 100644
 --- a/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
 +++ b/arch/arm64/boot/dts/freescale/imx8mp-irma6r2.dts
 @@ -179,6 +179,7 @@ &i2c2 {
@@ -32,7 +32,7 @@ index fd45775873580..58584030b0ee5 100644
  
  	epc660_mipi: epc660_mipi@22 {
 diff --git a/drivers/i2c/busses/i2c-imx.c b/drivers/i2c/busses/i2c-imx.c
-index 4b13c78f462fd..684830cb16203 100644
+index ed0ace73de51..162639ded5f5 100644
 --- a/drivers/i2c/busses/i2c-imx.c
 +++ b/drivers/i2c/busses/i2c-imx.c
 @@ -287,6 +287,8 @@ struct imx_i2c_struct {
@@ -44,25 +44,7 @@ index 4b13c78f462fd..684830cb16203 100644
  };
  
  static const struct imx_i2c_hwdata imx1_i2c_hwdata = {
-@@ -405,6 +407,17 @@ static inline unsigned char imx_i2c_read_reg(struct imx_i2c_struct *i2c_imx,
- 	return readb(i2c_imx->base + (reg << i2c_imx->hwdata->regshift));
- }
- 
-+static inline void imx_i2c_set_interrupt(struct imx_i2c_struct *i2c_imx, bool enable)
-+{
-+	unsigned char val = imx_i2c_read_reg(i2c_imx, IMX_I2C_I2CR);
-+	if (enable) {
-+		val |= I2CR_IIEN;
-+	} else {
-+		val &= ~I2CR_IIEN;
-+	}
-+	imx_i2c_write_reg(val, i2c_imx, IMX_I2C_I2CR);
-+}
-+
- static void i2c_imx_clear_irq(struct imx_i2c_struct *i2c_imx, unsigned int bits)
- {
- 	unsigned int temp;
-@@ -591,7 +604,7 @@ static int i2c_imx_bus_busy(struct imx_i2c_struct *i2c_imx, int for_busy, bool a
+@@ -591,7 +593,7 @@ static int i2c_imx_bus_busy(struct imx_i2c_struct *i2c_imx, int for_busy, bool a
  			return -ETIMEDOUT;
  		}
  		if (atomic)
@@ -71,36 +53,21 @@ index 4b13c78f462fd..684830cb16203 100644
  		else
  			schedule();
  	}
-@@ -1325,9 +1338,15 @@ static int i2c_imx_xfer_common(struct i2c_adapter *adapter,
- {
- 	unsigned int i, temp;
- 	int result;
--	bool is_lastmsg = false;
-+	bool is_lastmsg = false, atomic_prev_value = atomic;
+@@ -1367,6 +1369,13 @@ static int i2c_imx_xfer_common(struct i2c_adapter *adapter,
  	struct imx_i2c_struct *i2c_imx = i2c_get_adapdata(adapter);
+ 	int use_dma = 0;
  
++	/*
++	 * Some devices require polling transfers. Atomic transfers already
++	 * disable controller interrupts and bypass the DMA transfer paths.
++	 */
 +	if (!atomic && i2c_imx->force_atomic_rw)
-+	{
-+		imx_i2c_set_interrupt(i2c_imx, false);
 +		atomic = true;
-+	}
 +
  	/* Start I2C transfer */
  	result = i2c_imx_start(i2c_imx, atomic);
  	if (result) {
-@@ -1404,6 +1423,11 @@ static int i2c_imx_xfer_common(struct i2c_adapter *adapter,
- 	if (i2c_imx->slave)
- 		i2c_imx_slave_init(i2c_imx);
- 
-+	if (!atomic_prev_value && i2c_imx->force_atomic_rw)
-+	{
-+		imx_i2c_set_interrupt(i2c_imx, true);
-+	}
-+
- 	return (result < 0) ? result : num;
- }
- 
-@@ -1760,6 +1784,9 @@ static int i2c_imx_probe(struct platform_device *pdev)
+@@ -1809,6 +1818,9 @@ static int i2c_imx_probe(struct platform_device *pdev)
  		goto clk_notifier_unregister;
  	}
  
