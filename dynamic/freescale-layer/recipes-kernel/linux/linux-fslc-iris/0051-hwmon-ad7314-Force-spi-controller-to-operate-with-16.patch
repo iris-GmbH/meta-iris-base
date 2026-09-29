@@ -1,4 +1,4 @@
-From 8fc69be0b016d8e6a148e23a4aeabe8ce89f17a3 Mon Sep 17 00:00:00 2001
+From 5341c63dda0ad5bff4671fa70694a09ce02f1738 Mon Sep 17 00:00:00 2001
 From: Erik Schumacher <erik.schumacher@iris-sensing.com>
 Date: Thu, 6 Feb 2025 16:04:17 +0000
 Subject: [PATCH] hwmon/ad7314: Force spi controller to operate with 16 bpw
@@ -18,7 +18,7 @@ Signed-off-by: Erik Schumacher <erik.schumacher@iris-sensing.com>
  1 file changed, 2 insertions(+), 1 deletion(-)
 
 diff --git a/drivers/hwmon/ad7314.c b/drivers/hwmon/ad7314.c
-index 59424103f6348..99ee0f5da9b47 100644
+index 59424103f634..99ee0f5da9b4 100644
 --- a/drivers/hwmon/ad7314.c
 +++ b/drivers/hwmon/ad7314.c
 @@ -51,7 +51,7 @@ static int ad7314_spi_read(struct ad7314_data *chip)

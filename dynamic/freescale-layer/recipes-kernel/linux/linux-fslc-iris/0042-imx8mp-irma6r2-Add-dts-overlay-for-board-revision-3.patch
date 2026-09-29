@@ -1,4 +1,4 @@
-From dbb8fedd3065824a8bd225a6774fc51b46a1e70f Mon Sep 17 00:00:00 2001
+From 5326e82b85450ab0d44e4847ac6a0f8e0713a4f8 Mon Sep 17 00:00:00 2001
 From: Ian Dannapel <ian.dannapel@iris-sensing.com>
 Date: Wed, 16 Oct 2024 15:42:26 +0000
 Subject: [PATCH] imx8mp-irma6r2: Add dts overlay for board revision 3
@@ -11,7 +11,7 @@ Signed-off-by: Ian Dannapel <ian.dannapel@iris-sensing.com>
  create mode 100644 arch/arm64/boot/dts/freescale/imx8mp-irma6r2-rev3.dtso
 
 diff --git a/arch/arm64/boot/dts/freescale/Makefile b/arch/arm64/boot/dts/freescale/Makefile
-index 10a180233f2c1..3059977703ba4 100644
+index 10a180233f2c..3059977703ba 100644
 --- a/arch/arm64/boot/dts/freescale/Makefile
 +++ b/arch/arm64/boot/dts/freescale/Makefile
 @@ -134,7 +134,11 @@ dtb-$(CONFIG_ARCH_MXC) += imx8mp-evk.dtb imx8mp-evk-rm67191.dtb imx8mp-evk-it626
@@ -28,7 +28,7 @@ index 10a180233f2c1..3059977703ba4 100644
  dtb-$(CONFIG_ARCH_MXC) += imx8mp-ab2.dtb
 diff --git a/arch/arm64/boot/dts/freescale/imx8mp-irma6r2-rev3.dtso b/arch/arm64/boot/dts/freescale/imx8mp-irma6r2-rev3.dtso
 new file mode 100644
-index 0000000000000..213bc332a35b4
+index 000000000000..213bc332a35b
 --- /dev/null
 +++ b/arch/arm64/boot/dts/freescale/imx8mp-irma6r2-rev3.dtso
 @@ -0,0 +1,96 @@

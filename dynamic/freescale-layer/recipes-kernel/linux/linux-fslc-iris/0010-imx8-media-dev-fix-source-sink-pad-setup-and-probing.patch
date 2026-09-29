@@ -1,4 +1,4 @@
-From 68d024f92345ec82a18aeb1ff55c7ca5d6dee4b0 Mon Sep 17 00:00:00 2001
+From 38a572ba473601ff1ed3b37b49d4b89fe0ca988f Mon Sep 17 00:00:00 2001
 From: Rouven Czerwinski <r.czerwinski@pengutronix.de>
 Date: Thu, 24 Mar 2022 10:04:31 +0100
 Subject: [PATCH] imx8-media-dev: fix source sink pad setup and probing
@@ -23,7 +23,7 @@ Signed-off-by: Jasper Orschulko <jasper@fancydomain.eu>
  1 file changed, 2 insertions(+), 17 deletions(-)
 
 diff --git a/drivers/staging/media/imx/imx8-media-dev.c b/drivers/staging/media/imx/imx8-media-dev.c
-index 534fa5a4cd14d..3a4a76e7a9011 100644
+index 534fa5a4cd14..3a4a76e7a901 100644
 --- a/drivers/staging/media/imx/imx8-media-dev.c
 +++ b/drivers/staging/media/imx/imx8-media-dev.c
 @@ -519,8 +519,8 @@ static int mxc_md_create_links(struct mxc_md *mxc_md)

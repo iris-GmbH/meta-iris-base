@@ -1,4 +1,4 @@
-From a54ecfb0e00e4d9acfeb2185af6b97e9ea06a494 Mon Sep 17 00:00:00 2001
+From ccd94c54d90746f81afb3cfa1a4a0a26868e541b Mon Sep 17 00:00:00 2001
 From: Ian Dannapel <iansdannapel@gmail.com>
 Date: Thu, 20 Jun 2024 15:43:17 +0200
 Subject: [PATCH] fpga-mgr: Add Efinix SPI programming driver
@@ -22,7 +22,7 @@ Signed-off-by: Ian Dannapel <iansdannapel@gmail.com>
  create mode 100644 drivers/fpga/efinix-spi.c
 
 diff --git a/drivers/fpga/Kconfig b/drivers/fpga/Kconfig
-index 2f689ac4ba3a3..4726127e9c385 100644
+index 2f689ac4ba3a..4726127e9c38 100644
 --- a/drivers/fpga/Kconfig
 +++ b/drivers/fpga/Kconfig
 @@ -276,6 +276,13 @@ config FPGA_MGR_LATTICE_SYSCONFIG_SPI
@@ -40,7 +40,7 @@ index 2f689ac4ba3a3..4726127e9c385 100644
  
  endif # FPGA
 diff --git a/drivers/fpga/Makefile b/drivers/fpga/Makefile
-index 352a2612623e0..f05cf3973fba7 100644
+index 352a2612623e..f05cf3973fba 100644
 --- a/drivers/fpga/Makefile
 +++ b/drivers/fpga/Makefile
 @@ -24,6 +24,7 @@ obj-$(CONFIG_FPGA_MGR_LATTICE_SYSCONFIG)	+= lattice-sysconfig.o
@@ -53,7 +53,7 @@ index 352a2612623e0..f05cf3973fba7 100644
  obj-$(CONFIG_FPGA_M10_BMC_SEC_UPDATE)	+= intel-m10-bmc-sec-update.o
 diff --git a/drivers/fpga/efinix-spi.c b/drivers/fpga/efinix-spi.c
 new file mode 100644
-index 0000000000000..ed9a41232a32a
+index 000000000000..ed9a41232a32
 --- /dev/null
 +++ b/drivers/fpga/efinix-spi.c
 @@ -0,0 +1,260 @@

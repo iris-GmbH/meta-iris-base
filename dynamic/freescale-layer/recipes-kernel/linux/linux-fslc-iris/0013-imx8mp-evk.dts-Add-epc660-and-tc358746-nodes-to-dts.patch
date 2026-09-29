@@ -1,4 +1,4 @@
-From 01c31fc586c245b2728afebd288573d463a1c16f Mon Sep 17 00:00:00 2001
+From c779a8cd755729def4c922ef8366421572fca989 Mon Sep 17 00:00:00 2001
 From: Ian Dannapel <ian.dannapel@iris-sensing.com>
 Date: Fri, 13 May 2022 15:27:16 +0200
 Subject: [PATCH] imx8mp-evk.dts: Add epc660 and tc358746 nodes to dts
@@ -14,7 +14,7 @@ node being present in the -evk devicetree
  2 files changed, 70 insertions(+), 27 deletions(-)
 
 diff --git a/arch/arm64/boot/dts/freescale/Makefile b/arch/arm64/boot/dts/freescale/Makefile
-index 64478ccc68b8f..7d7d644fd1dff 100644
+index 64478ccc68b8..7d7d644fd1df 100644
 --- a/arch/arm64/boot/dts/freescale/Makefile
 +++ b/arch/arm64/boot/dts/freescale/Makefile
 @@ -128,7 +128,7 @@ dtb-$(CONFIG_ARCH_MXC) += imx8mp-evk.dtb imx8mp-evk-rm67191.dtb imx8mp-evk-it626
@@ -35,7 +35,7 @@ index 64478ccc68b8f..7d7d644fd1dff 100644
  imx8mp-evk-revb4-dual-os08a20-dtbs := imx8mp-evk-dual-os08a20.dtb imx8mp-evk-revb4.dtbo
  imx8mp-evk-revb4-iqaudio-dacplus-dtbs := imx8mp-evk-iqaudio-dacplus.dtb imx8mp-evk-revb4.dtbo
 diff --git a/arch/arm64/boot/dts/freescale/imx8mp-evk.dts b/arch/arm64/boot/dts/freescale/imx8mp-evk.dts
-index 64803bac7cee3..070e34606bccf 100644
+index 64803bac7cee..070e34606bcc 100644
 --- a/arch/arm64/boot/dts/freescale/imx8mp-evk.dts
 +++ b/arch/arm64/boot/dts/freescale/imx8mp-evk.dts
 @@ -221,6 +221,13 @@ usb3_data_ss: endpoint {

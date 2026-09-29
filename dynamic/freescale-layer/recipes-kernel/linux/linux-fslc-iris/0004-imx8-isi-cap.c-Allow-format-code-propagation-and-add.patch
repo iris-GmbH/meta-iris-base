@@ -1,4 +1,4 @@
-From e4a97498a2dfa869bc2def4ab5c65558ce63ccd8 Mon Sep 17 00:00:00 2001
+From e52bd57618048d01eff938c4350ac7d7537ed0ff Mon Sep 17 00:00:00 2001
 From: Ian Dannapel <ian.dannapel@iris-sensing.com>
 Date: Wed, 18 Sep 2024 12:43:49 +0000
 Subject: [PATCH] imx8-isi-cap.c: Allow format code propagation and add raw
@@ -13,7 +13,7 @@ Signed-off-by: Erik Schumacher <erik.schumacher@iris-sensing.com>
  1 file changed, 43 insertions(+), 8 deletions(-)
 
 diff --git a/drivers/staging/media/imx/imx8-isi-cap.c b/drivers/staging/media/imx/imx8-isi-cap.c
-index a52fff3d5e5c4..4c271ecb2b0bb 100644
+index a52fff3d5e5c..4c271ecb2b0b 100644
 --- a/drivers/staging/media/imx/imx8-isi-cap.c
 +++ b/drivers/staging/media/imx/imx8-isi-cap.c
 @@ -54,6 +54,34 @@ struct mxc_isi_fmt mxc_isi_src_formats[] = {

@@ -1,4 +1,4 @@
-From e31b9a7e1518ac48a51e49898d84d442a42c8c7e Mon Sep 17 00:00:00 2001
+From 8f2d47301d51e45485b6ec55b6fd8d54fd861ad8 Mon Sep 17 00:00:00 2001
 From: Erik Schumacher <erik.schumacher@iris-sensing.com>
 Date: Mon, 24 Jun 2024 15:11:27 +0000
 Subject: [PATCH] tc358746.c: Move vb size calculation to seperate function
@@ -11,7 +11,7 @@ Signed-off-by: Erik Schumacher <erik.schumacher@iris-sensing.com>
  1 file changed, 96 insertions(+), 72 deletions(-)
 
 diff --git a/drivers/media/i2c/tc358746.c b/drivers/media/i2c/tc358746.c
-index f2b1ebc2e5563..746e75cee4bcd 100644
+index f2b1ebc2e556..746e75cee4bc 100644
 --- a/drivers/media/i2c/tc358746.c
 +++ b/drivers/media/i2c/tc358746.c
 @@ -765,12 +765,97 @@ static int tc358746_enum_mbus_code(struct v4l2_subdev *sd,

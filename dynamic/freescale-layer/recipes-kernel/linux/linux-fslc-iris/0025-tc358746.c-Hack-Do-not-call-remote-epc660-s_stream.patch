@@ -1,4 +1,4 @@
-From b697213eab49a471ed192eeb6ce1b00646b336d8 Mon Sep 17 00:00:00 2001
+From 616ebb0ab7bfb6edc6e87dd7a52a2869ecd1c7fa Mon Sep 17 00:00:00 2001
 From: Ian Dannapel <ian.dannapel@iris-sensing.com>
 Date: Mon, 30 Sep 2024 14:23:21 +0000
 Subject: [PATCH] tc358746.c: Hack: Do not call remote (epc660) s_stream
@@ -12,7 +12,7 @@ Signed-off-by: Ian Dannapel <ian.dannapel@iris-sensing.com>
  1 file changed, 1 insertion(+), 5 deletions(-)
 
 diff --git a/drivers/media/i2c/tc358746.c b/drivers/media/i2c/tc358746.c
-index ba988cf1cc4db..c157e083a1a64 100644
+index ba988cf1cc4d..c157e083a1a6 100644
 --- a/drivers/media/i2c/tc358746.c
 +++ b/drivers/media/i2c/tc358746.c
 @@ -720,10 +720,6 @@ static int tc358746_s_stream(struct v4l2_subdev *sd, int enable)
