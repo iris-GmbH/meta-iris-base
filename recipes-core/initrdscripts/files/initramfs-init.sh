@@ -94,25 +94,54 @@ pvsn_wipe() {
     sector_size=512 # 512 bytes
     partition_offset=$(cat "/sys/class/block/mmcblk2p5/start")
     erase_size_bytes=$(cat "/sys/class/block/mmcblk2/device/erase_size")
-    pe_start_bytes=$(pvs --no-heading --no-suffix -o pe_start --unit B | xargs | sed 's/\.00$//') # first physical extent offset in bytes
+    pe_start_bytes=$(pvs /dev/mmcblk2p5 --no-heading --no-suffix -o pe_start --unit B | xargs | sed 's/\.00$//')
+    pe_size=$(pvs /dev/mmcblk2p5 --no-heading --no-suffix -o vg_extent_size --unit B | xargs | sed 's/\.00$//')
+    lv_start_pe=$(pvs /dev/mmcblk2p5 --no-headings -o seg_pe_ranges --select "lv_name = $1" | sed -e 's/.*:\(.*\)-.*/\1/' | xargs)
+    lv_size_pe=$(pvs /dev/mmcblk2p5 --no-headings -o seg_size_pe --select "lv_name = $1" | xargs)
+
+    # Require each query to return one nonempty decimal integer. Multiple
+    # segment rows leave whitespace after xargs and are rejected here too.
+    for value in "$partition_offset" "$erase_size_bytes" "$pe_start_bytes" "$pe_size" "$lv_start_pe" "$lv_size_pe"; do
+        case "$value" in
+            ''|*[!0-9]*)
+                debug "Refusing secure erase for $1: invalid or non-contiguous LVM geometry"
+                exit 1
+                ;;
+        esac
+    done
+    # Require nonzero erase size, extent size and LV extent count, and exact
+    # conversion of byte sizes/offsets to 512-byte sectors. Erase-group
+    # alignment is not required here; the erase range is rounded inward below.
+    if [ "$erase_size_bytes" -eq 0 ] || [ "$pe_size" -eq 0 ] || [ "$lv_size_pe" -eq 0 ] ||
+       [ $((erase_size_bytes % sector_size)) -ne 0 ] ||
+       [ $((pe_start_bytes % sector_size)) -ne 0 ] || [ $((pe_size % sector_size)) -ne 0 ]; then
+        debug "Refusing secure erase for $1: invalid sector geometry"
+        exit 1
+    fi
     pe_start=$((pe_start_bytes / sector_size))
     erase_size=$((erase_size_bytes / sector_size))
-    pv_size=$(pvs --no-heading --no-suffix -o pv_size --unit B | xargs) # physical volume size in bytes
-    pe_count=$(pvs --no-heading -o pv_pe_count | xargs) # physical extent count
-    pe_size=$((pv_size / pe_count)) # physical extent size in bytes (should be 4 MiB)
-    lv_start_pe=$(pvs --no-headings -o seg_pe_ranges --select "lv_name = $1" | sed -e 's/.*:\(.*\)-.*/\1/') # start of logical volume in physical extents
-    lv_size_pe=$(pvs --no-headings -o seg_size_pe --select "lv_name = $1" | xargs) # size of logical volume in physical extents
 
     # convert bytes to mmc sectors (512B per sector)
     start=$((lv_start_pe * pe_size / sector_size + partition_offset + pe_start))
     end=$(((lv_start_pe + lv_size_pe) * pe_size / sector_size + partition_offset + pe_start - 1))
 
-    if [ $((erase_size_bytes % sector_size)) -ne 0 ] || [ $((start % erase_size)) -ne 0 ] || [ $(((end + 1) % erase_size)) -ne 0 ]; then
-        debug "Refusing secure erase for $1: range ${start}-${end} is not aligned to erase_size ${erase_size_bytes} bytes"
-        exit 1
+    # Old provisioning may have placed the PV data at an unaligned offset.
+    # Erase only whole groups inside the LV: rounding outward could destroy
+    # neighbouring data or LVM metadata. The partial edge groups remain unerased.
+    aligned_start=$(((start + erase_size - 1) / erase_size * erase_size))
+    aligned_end=$(((end + 1) / erase_size * erase_size - 1))
+    if [ "$aligned_start" -gt "$aligned_end" ]; then
+        debug "Skipping secure erase for $1: no complete erase group in sectors ${start}-${end}; volume remains unerased"
+        return 0
+    fi
+    if [ "$start" -ne "$aligned_start" ] || [ "$end" -ne "$aligned_end" ]; then
+        debug "Partial secure erase for $1: sectors ${start}-${end} -> ${aligned_start}-${aligned_end}; edge sectors remain unerased"
     fi
 
-    mmc erase secure-erase "$start" "$end" "/dev/mmcblk2"
+    if ! mmc erase secure-erase "$aligned_start" "$aligned_end" "/dev/mmcblk2"; then
+        debug "Secure erase failed for $1; stopping provisioning"
+        exit 1
+    fi
 }
 
 # provisioning flash procedure
