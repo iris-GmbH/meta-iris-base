@@ -122,23 +122,23 @@ pvsn_wipe() {
     erase_size=$((erase_size_bytes / sector_size))
 
     # convert bytes to mmc sectors (512B per sector)
-    start=$((lv_start_pe * pe_size / sector_size + partition_offset + pe_start))
-    end=$(((lv_start_pe + lv_size_pe) * pe_size / sector_size + partition_offset + pe_start - 1))
+    lv_start_sector=$((lv_start_pe * pe_size / sector_size + partition_offset + pe_start))
+    lv_end_sector=$(((lv_start_pe + lv_size_pe) * pe_size / sector_size + partition_offset + pe_start - 1))
 
     # Old provisioning may have placed the PV data at an unaligned offset.
     # Erase only whole groups inside the LV: rounding outward could destroy
     # neighbouring data or LVM metadata. The partial edge groups remain unerased.
-    aligned_start=$(((start + erase_size - 1) / erase_size * erase_size))
-    aligned_end=$(((end + 1) / erase_size * erase_size - 1))
-    if [ "$aligned_start" -gt "$aligned_end" ]; then
-        debug "Skipping secure erase for $1: no complete erase group in sectors ${start}-${end}; volume remains unerased"
+    aligned_start_sector=$(((lv_start_sector + erase_size - 1) / erase_size * erase_size))
+    aligned_end_sector=$(((lv_end_sector + 1) / erase_size * erase_size - 1))
+    if [ "$aligned_start_sector" -gt "$aligned_end_sector" ]; then
+        debug "Skipping secure erase for $1: no complete erase group in sectors ${lv_start_sector}-${lv_end_sector}; volume remains unerased"
         return 0
     fi
-    if [ "$start" -ne "$aligned_start" ] || [ "$end" -ne "$aligned_end" ]; then
-        debug "Partial secure erase for $1: sectors ${start}-${end} -> ${aligned_start}-${aligned_end}; edge sectors remain unerased"
+    if [ "$lv_start_sector" -ne "$aligned_start_sector" ] || [ "$lv_end_sector" -ne "$aligned_end_sector" ]; then
+        debug "Partial secure erase for $1: sectors ${lv_start_sector}-${lv_end_sector} -> ${aligned_start_sector}-${aligned_end_sector}; edge sectors remain unerased"
     fi
 
-    if ! mmc erase secure-erase "$aligned_start" "$aligned_end" "/dev/mmcblk2"; then
+    if ! mmc erase secure-erase "$aligned_start_sector" "$aligned_end_sector" "/dev/mmcblk2"; then
         debug "Secure erase failed for $1; stopping provisioning"
         exit 1
     fi
