@@ -40,6 +40,9 @@ FITIMAGE_UUU_NAME = "irma-fitimage-uuu"
 UUUSCRIPT ?= ""
 VERIFICATIONSCRIPT ?= ""
 
+UUU_SOC_ID:mx8mp-nxp-bsp = "i.MX8MP"
+UUU_SOC_ID:mx93-nxp-bsp = "i.MX93"
+
 # Set file paths of source files
 ROOTFS_EXT ?= "ext4.verity.gz"
 ROOTFS = "${IMAGENAME}-${MACHINE}${IMAGE_NAME_SUFFIX}.${ROOTFS_EXT}"
@@ -81,6 +84,7 @@ SRC_URI = " \
 
 do_deploy () {
     install -d ${UUU_DEPLOY_DIR}
+    printf '%s\n' '${UUU_SOC_ID}' > ${UUU_DEPLOY_DIR}/soc_id
     install -m 0644 ${WORKDIR}/recipe-sysroot/${FLASHBIN} ${UUU_DEPLOY_DIR}/${FLASHBINDEPLOY}
 
     install -m 0644 ${DEPLOY_DIR_IMAGE}/${ROOTFS} ${UUU_DEPLOY_DIR}/${ROOTFSDEPLOY}
