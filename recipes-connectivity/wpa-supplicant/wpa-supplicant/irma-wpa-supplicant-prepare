@@ -1,0 +1,52 @@
+#!/bin/sh
+
+set -eu
+
+REFERENCE_CONF="${1:-/etc/wpa_supplicant.conf}"
+RUNTIME_CONF_DIR="/mnt/iris/wpa_supplicant"
+RUNTIME_CONF="$RUNTIME_CONF_DIR/wpa_supplicant.conf"
+IRMA_CONFIG="/mnt/iris/counter/config_customer.json"
+EAPTLS_DIR="/mnt/iris/eaptls"
+
+if [ ! -f "$IRMA_CONFIG" ]; then
+    echo "Customer configuration file is missing: $IRMA_CONFIG"
+    exit 1
+fi
+
+enabled=$(jq -r '.sets.IRMA6_Customer.parameters["pa.communication.enable_eaptls"].value // false' "$IRMA_CONFIG" 2>/dev/null) || {
+    echo "Cannot read the EAP-TLS setting from $IRMA_CONFIG"
+    exit 1
+}
+if [ "$enabled" != "true" ]; then
+    echo "EAP-TLS is disabled"
+    exit 1
+fi
+
+for file in sensor.key sensor.crt sensor.ca name.txt; do
+    if [ ! -f "$EAPTLS_DIR/$file" ]; then
+        echo "EAP-TLS is enabled but $EAPTLS_DIR/$file is missing"
+        exit 1
+    fi
+done
+
+if [ ! -s "$REFERENCE_CONF" ]; then
+    echo "WPA supplicant reference configuration is missing: $REFERENCE_CONF"
+    exit 1
+fi
+
+identity=$(cat "$EAPTLS_DIR/name.txt")
+if [ -z "$identity" ]; then
+    echo "EAP-TLS identity in $EAPTLS_DIR/name.txt is empty"
+    exit 1
+fi
+
+umask 077
+mkdir -p "$RUNTIME_CONF_DIR"
+temporary_conf="$RUNTIME_CONF.tmp.$$"
+trap 'rm -f "$temporary_conf"' 0 HUP INT TERM
+
+cp "$REFERENCE_CONF" "$temporary_conf"
+escaped_identity=$(printf '%s' "$identity" | sed 's|[&/]|\\&|g')
+sed -i "s/identity=\"[^\"]*\"/identity=\"$escaped_identity\"/" "$temporary_conf"
+mv "$temporary_conf" "$RUNTIME_CONF"
+trap - 0 HUP INT TERM

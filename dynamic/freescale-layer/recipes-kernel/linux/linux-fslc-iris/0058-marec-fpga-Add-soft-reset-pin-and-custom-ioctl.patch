@@ -1,4 +1,4 @@
-From 69d9ff8b86950f5895018f4b1f585d7f0aeee21c Mon Sep 17 00:00:00 2001
+From 02d68315bdf9da1519273b99a430480eef764cc8 Mon Sep 17 00:00:00 2001
 From: Erik Schumacher <erik.schumacher@iris-sensing.com>
 Date: Wed, 23 Jul 2025 15:12:32 +0200
 Subject: [PATCH] marec-fpga: Add soft reset pin and custom ioctl's
@@ -20,7 +20,7 @@ Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
  2 files changed, 61 insertions(+), 19 deletions(-)
 
 diff --git a/arch/arm64/boot/dts/freescale/imx93-matrixup.dts b/arch/arm64/boot/dts/freescale/imx93-matrixup.dts
-index 04c53f39a0335..f44fff75fe1a9 100644
+index 6af4fc7e6a10d..8f70132dd8683 100644
 --- a/arch/arm64/boot/dts/freescale/imx93-matrixup.dts
 +++ b/arch/arm64/boot/dts/freescale/imx93-matrixup.dts
 @@ -271,7 +271,7 @@ marec_fpga: marec_fpga@54 {
@@ -187,5 +187,5 @@ index d4f192e000e3c..02978eca6a246 100644
  	if (sensor->powersave_en1)
  		gpiod_set_value(sensor->powersave_en1, 1);
 -- 
-2.51.0
+2.55.0
 

@@ -1,4 +1,4 @@
-From 8ba8c9ceebbda118394ac41a0ff0c68f6d357d3c Mon Sep 17 00:00:00 2001
+From 16b81d284c69b2202f5751b0d911294b70d05456 Mon Sep 17 00:00:00 2001
 From: Ian Dannapel <ian.dannapel@iris-sensing.com>
 Date: Tue, 17 Dec 2024 11:51:54 +0000
 Subject: [PATCH] trion-mipi.c: Add custom ioctl to load fpga firmware
@@ -66,5 +66,5 @@ index 8818eee584e0..4e149b201aa4 100644
  
  module_i2c_driver(trion_mipi_i2c_driver);
 -- 
-2.43.0
+2.55.0
 

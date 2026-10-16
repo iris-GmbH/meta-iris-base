@@ -1,4 +1,4 @@
-From 3c158133515cd00bea9b64cefe6a5863e8d3897e Mon Sep 17 00:00:00 2001
+From ae088a763da385beba1f07a344f7f7e6e54f2036 Mon Sep 17 00:00:00 2001
 From: Erik Schumacher <erik.schumacher@iris-sensing.com>
 Date: Fri, 18 Oct 2024 12:14:20 +0000
 Subject: [PATCH] imx93-matrixup.dts: Add fpga and related nodes
@@ -224,5 +224,5 @@ index 5c3475170204..44bc63b87fd7 100644
  		fsl,pins = <
  			MX93_PAD_UART1_RXD__LPUART1_RX			0x31e
 -- 
-2.47.0
+2.55.0
 

@@ -1,4 +1,4 @@
-From c58512710318cce2f8ae0d51ed5723cf62bf0b74 Mon Sep 17 00:00:00 2001
+From dd3130a2a9d15431ee524b1b2eb101e3bfd2b9a7 Mon Sep 17 00:00:00 2001
 From: Ian Dannapel <ian.dannapel@iris-sensing.com>
 Date: Mon, 3 Mar 2025 13:38:50 +0000
 Subject: [PATCH] epc660.c: remove register writes on v4l callbacks
@@ -11,7 +11,7 @@ Signed-off-by: Ian Dannapel <ian.dannapel@iris-sensing.com>
  1 file changed, 55 deletions(-)
 
 diff --git a/drivers/media/i2c/epc660.c b/drivers/media/i2c/epc660.c
-index 1bb12f71961d..acfa265daa2b 100644
+index 1bb12f71961d7..acfa265daa2b0 100644
 --- a/drivers/media/i2c/epc660.c
 +++ b/drivers/media/i2c/epc660.c
 @@ -191,37 +191,7 @@ static int epc660_send_i2c_sequence(struct i2c_client *client, const u8 *seq)
@@ -93,5 +93,5 @@ index 1bb12f71961d..acfa265daa2b 100644
  	epc660->rect.height = mf->height;
  
 -- 
-2.44.1
+2.55.0
 

@@ -1,4 +1,4 @@
-From 7538dbdcc87ea4f6cf31a371a1834630d56e4563 Mon Sep 17 00:00:00 2001
+From 57f3967a0755bb1ffccf2aabcae5829b1a8228c9 Mon Sep 17 00:00:00 2001
 From: Erik Schumacher <erik.schumacher@iris-sensing.com>
 Date: Mon, 13 Jan 2025 14:00:46 +0000
 Subject: [PATCH] fpga/xilinx-spi: Lock spi device for exclusive access
@@ -65,5 +65,5 @@ index 4738b50f5935..e0c7fab16cd7 100644
  }
  
 -- 
-2.44.1
+2.55.0
 

@@ -1,4 +1,4 @@
-From eaa7168780676d00926e111627c31af17c2b6509 Mon Sep 17 00:00:00 2001
+From 3ceb47ea2cd078fb648f48662f227e83b74cd957 Mon Sep 17 00:00:00 2001
 From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
 Date: Wed, 2 Oct 2024 08:19:51 +0000
 Subject: [PATCH] imx93-matrixup.dts: Remove lcdif / adv7535 / dsi
@@ -66,5 +66,5 @@ index 5c23cfe61151..8d0e5b3e3b5f 100644
  		compatible = "st,lsm6dso";
  		reg = <0x6a>;
 -- 
-2.47.0
+2.55.0
 

@@ -1,4 +1,4 @@
-From 0a96c08bf35e8da9be25a26f0d188ddbd53ce30b Mon Sep 17 00:00:00 2001
+From c316968b0a958868bd4cfc558151c6385661c346 Mon Sep 17 00:00:00 2001
 From: Erik Schumacher <erik.schumacher@iris-sensing.com>
 Date: Wed, 10 Apr 2024 11:10:18 +0200
 Subject: [PATCH] media/i2c: Add marec-fpga camera driver
@@ -14,7 +14,7 @@ Signed-off-by: Erik Schumacher <erik.schumacher@iris-sensing.com>
  create mode 100644 drivers/media/i2c/marec-fpga.c
 
 diff --git a/drivers/media/i2c/Kconfig b/drivers/media/i2c/Kconfig
-index 1e8141876073..4334fa1e98c1 100644
+index f7e0400f5d3e..cd5640e82aa3 100644
 --- a/drivers/media/i2c/Kconfig
 +++ b/drivers/media/i2c/Kconfig
 @@ -612,6 +612,13 @@ config VIDEO_OX03C10_DRV
@@ -446,5 +446,5 @@ index 000000000000..4ffc39fe22ea
 +MODULE_AUTHOR("Erik Schumacher <Erik.Schumacher@iris-sensing.com>");
 +MODULE_LICENSE("GPL");
 -- 
-2.47.0
+2.55.0
 

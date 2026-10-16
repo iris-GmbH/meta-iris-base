@@ -1,4 +1,4 @@
-From 7a2ab9c55ca7141071c51048be8f2b016f71f43f Mon Sep 17 00:00:00 2001
+From 6b0b667712691473030040b0739d5b4fd9957686 Mon Sep 17 00:00:00 2001
 From: Erik Schumacher <erik.schumacher@iris-sensing.com>
 Date: Wed, 8 Jan 2025 14:09:24 +0000
 Subject: [PATCH] marec-fpga.c: Add custom ioctl to load fpga firmware
@@ -144,5 +144,5 @@ index 4ffc39fe22ea..d4f192e000e3 100644
  }
  
 -- 
-2.44.1
+2.55.0
 

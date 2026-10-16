@@ -1,4 +1,4 @@
-From 4c9bbc5f11cac40881cfc38196ebdfcdfa9e15d1 Mon Sep 17 00:00:00 2001
+From 8cde5c0da57034dd1a97928af8fe7f5d2b12639c Mon Sep 17 00:00:00 2001
 From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
 Date: Wed, 2 Oct 2024 09:03:47 +0000
 Subject: [PATCH] imx93-matrixup.dts: Remove ptn5110, usbotg nodes
@@ -109,5 +109,5 @@ index 48c0d9033908..be9c01a5d6b5 100644
  
  &usdhc1 {
 -- 
-2.47.0
+2.55.0
 

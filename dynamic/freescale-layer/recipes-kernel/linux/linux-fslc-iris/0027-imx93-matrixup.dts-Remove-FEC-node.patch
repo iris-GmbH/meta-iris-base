@@ -1,4 +1,4 @@
-From 53fd31ca986875e6db441e5ab6bb8607c8bdf469 Mon Sep 17 00:00:00 2001
+From af2484a31d5a933280b25cd97981afec8513eeeb Mon Sep 17 00:00:00 2001
 From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
 Date: Wed, 2 Oct 2024 08:14:06 +0000
 Subject: [PATCH] imx93-matrixup.dts: Remove FEC node
@@ -89,5 +89,5 @@ index b0c6a952b346..a9fff768a2de 100644
  		fsl,pins = <
  			MX93_PAD_GPIO_IO25__CAN2_TX	0x139e
 -- 
-2.47.0
+2.55.0
 

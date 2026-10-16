@@ -236,9 +236,10 @@ start_alt_fw_update(){
 		log "Alternative config update failed"
 	fi
 
-	update_security_report
 	# clear lock file
 	rm -f "$LOCK_FILE"
+
+	update_security_report
 }
 
 remove_userdata_sync_flag(){

@@ -1,4 +1,4 @@
-From 74e42fa7056c18699128242e0ed7750f3bef2465 Mon Sep 17 00:00:00 2001
+From 392eb48bac71c065c1152f813cb13cbf2266486c Mon Sep 17 00:00:00 2001
 From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
 Date: Wed, 2 Oct 2024 08:55:26 +0000
 Subject: [PATCH] imx93-matrixup.dts: Adapt pmic, eqos, phy nodes and remove
@@ -345,5 +345,5 @@ index 20b89c075efc..48c0d9033908 100644
  
  &epxp {
 -- 
-2.47.0
+2.55.0
 

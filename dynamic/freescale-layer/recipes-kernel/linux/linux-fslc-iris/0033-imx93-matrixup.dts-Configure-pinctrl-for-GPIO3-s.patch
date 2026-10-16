@@ -1,4 +1,4 @@
-From a17ae64ad5ad85faacfba8a8d409ed2ae9680b57 Mon Sep 17 00:00:00 2001
+From e937f67e9cdc04e3a5325323d55803f343ab9869 Mon Sep 17 00:00:00 2001
 From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
 Date: Mon, 21 Oct 2024 15:24:32 +0200
 Subject: [PATCH] imx93-matrixup.dts: Configure pinctrl for GPIO3's
@@ -162,5 +162,5 @@ index be9c01a5d6b5..5c3475170204 100644
  
  &epxp {
 -- 
-2.47.0
+2.55.0
 

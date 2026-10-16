@@ -1,4 +1,4 @@
-From 96f4bb006eaa12f4b92285ac7cb6208828f928ce Mon Sep 17 00:00:00 2001
+From a21a57b6a8f89e513ffbdb545db2a7e17fb376d4 Mon Sep 17 00:00:00 2001
 From: Ian Dannapel <ian.dannapel@iris-sensing.com>
 Date: Fri, 1 Apr 2022 09:05:57 +0200
 Subject: [PATCH] epc660: Add device driver support
@@ -19,7 +19,7 @@ Signed-off-by: Jasper Orschulko <jasper@fancydomain.eu>
  create mode 100644 include/media/i2c/epc660_sequence.h
 
 diff --git a/drivers/media/i2c/Kconfig b/drivers/media/i2c/Kconfig
-index 4334fa1e98c1..e5cc712d37ff 100644
+index cd5640e82aa3..474495f24f9e 100644
 --- a/drivers/media/i2c/Kconfig
 +++ b/drivers/media/i2c/Kconfig
 @@ -41,6 +41,11 @@ config VIDEO_APTINA_PLL
@@ -1049,5 +1049,5 @@ index 000000000000..1249ebd06e27
 +
 +#endif 	/* _EPC660_SEQUENCE_H */
 -- 
-2.47.0
+2.55.0
 

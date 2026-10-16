@@ -19,6 +19,7 @@ FILES_SYSTEMD = " \
 "
 
 FILES_SYSVINIT = " \
+    ${bindir}/save-timestamp.sh \
     ${sysconfdir}/default/timestamp \
     ${sysconfdir}/init.d/save-rtc-loop \
 "
@@ -34,6 +35,9 @@ INITSCRIPT_PARAMS = "start 45 S ."
 
 do_install() {   
     if ${@bb.utils.contains('DISTRO_FEATURES', 'sysvinit', 'true', 'false', d)}; then
+        install -d ${D}${bindir}
+        install -m 0755 ${WORKDIR}/save-timestamp.sh ${D}${bindir}/save-timestamp.sh
+
         install -d ${D}${sysconfdir}/init.d
         install -m 0755 ${WORKDIR}/save-rtc-loop.sh ${D}${sysconfdir}/init.d/save-rtc-loop
 

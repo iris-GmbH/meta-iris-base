@@ -1,4 +1,4 @@
-From 0a832bc750cacd8104afd04ad07457cd272abffb Mon Sep 17 00:00:00 2001
+From 415d7fe4dada65b7437595459ba7400ec456b589 Mon Sep 17 00:00:00 2001
 From: Ian Dannapel <ian.dannapel@iris-sensing.com>
 Date: Wed, 16 Oct 2024 15:40:41 +0000
 Subject: [PATCH] imx8mp-irma6r2.dts: tc358746: csi-dphy: 450Mhz
@@ -72,5 +72,5 @@ index 58584030b0ee..e22111131aa7 100644
  	};
  };
 -- 
-2.44.1
+2.55.0
 

@@ -1,4 +1,4 @@
-From 4ca3b2f5c6cc85e12daf3c768554ca2409035d19 Mon Sep 17 00:00:00 2001
+From b01eac35174dfa2935a78c63de168a4beb553cca Mon Sep 17 00:00:00 2001
 From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
 Date: Wed, 2 Oct 2024 08:41:38 +0000
 Subject: [PATCH] imx93-matrixup.dts: Remove unused nodes
@@ -392,5 +392,5 @@ index 8d0e5b3e3b5f..20b89c075efc 100644
 -	};
 -};
 -- 
-2.47.0
+2.55.0
 

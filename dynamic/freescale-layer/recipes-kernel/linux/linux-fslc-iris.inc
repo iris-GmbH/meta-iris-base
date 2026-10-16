@@ -19,7 +19,6 @@ SRC_URI:append = " \
     file://0005-imx8-isi-hw.c-Do-not-set-RAW-to-MSB-align-reserved-b.patch \
     file://0006-imx8-parallel-csi.c-Fix-missing-first-frames-and-for.patch \
     file://0007-imx8-isi-fmt.c-Add-RAW8-RAW10-RAW12-and-RAW14-format.patch \
-    file://0008-imx8-isi-core.h-Add-MXC_ISI_OUT_FMT_RAW14-enum.patch \
     file://0009-imx8-mipi-cs2-sam-Add-Raw12-and-Raw14-formats.patch \
     file://0010-imx8-media-dev-fix-source-sink-pad-setup-and-probing.patch \
     file://0011-v4l2-Set-VB2_MAX_FRAME-VIDEO_MAX_FRAME-to-128.patch \

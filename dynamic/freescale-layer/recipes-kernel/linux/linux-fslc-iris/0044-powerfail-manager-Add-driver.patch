@@ -1,4 +1,4 @@
-From b27ebb5782846b8cb2ae9342ffeccb51545401eb Mon Sep 17 00:00:00 2001
+From baca6441d74570c1b82915f6b183f65378174322 Mon Sep 17 00:00:00 2001
 From: Ian Dannapel <ian.dannapel@iris-sensing.com>
 Date: Thu, 19 Dec 2024 14:44:28 +0000
 Subject: [PATCH] powerfail-manager: Add driver
@@ -304,5 +304,5 @@ index 000000000000..3a90316ef2dc
 +MODULE_AUTHOR("Ian Dannapel");
 +MODULE_DESCRIPTION("Power Fail Manager Module");
 -- 
-2.44.1
+2.55.0
 

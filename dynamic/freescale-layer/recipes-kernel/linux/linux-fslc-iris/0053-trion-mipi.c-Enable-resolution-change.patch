@@ -1,4 +1,4 @@
-From a89744970d87b69cf7bf817d70d8c32667e79b81 Mon Sep 17 00:00:00 2001
+From affd617e81398d8d61d62c4ae636ba90eba1d236 Mon Sep 17 00:00:00 2001
 From: Ian Dannapel <ian.dannapel@iris-sensing.com>
 Date: Fri, 14 Feb 2025 11:15:20 +0000
 Subject: [PATCH] trion-mipi.c: Enable resolution change
@@ -9,7 +9,7 @@ Signed-off-by: Ian Dannapel <ian.dannapel@iris-sensing.com>
  1 file changed, 55 insertions(+), 15 deletions(-)
 
 diff --git a/drivers/media/i2c/trion-mipi.c b/drivers/media/i2c/trion-mipi.c
-index 4e149b201aa4..b9d9d552b83b 100644
+index 4e149b201aa4a..b9d9d552b83b8 100644
 --- a/drivers/media/i2c/trion-mipi.c
 +++ b/drivers/media/i2c/trion-mipi.c
 @@ -23,9 +23,11 @@
@@ -137,5 +137,5 @@ index 4e149b201aa4..b9d9d552b83b 100644
  
      // parse endpoints
 -- 
-2.43.0
+2.55.0
 
