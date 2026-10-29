@@ -1,0 +1,132 @@
+From c1419db33802770544cb327067b328b13327081b Mon Sep 17 00:00:00 2001
+From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+Date: Fri, 30 Oct 2026 13:40:54 +0000
+Subject: [PATCH] imx93-matrixup: harden boot and fastboot commands
+
+Disable unused boot paths and UUU shell commands on Matrixup.
+
+Keep USB fastboot support for provisioning, but restrict booting to the
+fixed FIT buffer via authenticated bootm. Enable only the required MMC
+fastboot flashing and OEM eMMC boot partition configuration commands.
+---
+ configs/imx93_matrixup_defconfig | 35 ++++++++++++++++++++++++++------
+ include/configs/imx93_matrixup.h |  3 ---
+ 2 files changed, 29 insertions(+), 9 deletions(-)
+
+diff --git a/configs/imx93_matrixup_defconfig b/configs/imx93_matrixup_defconfig
+index 0dda000579e..4497d788b20 100644
+--- a/configs/imx93_matrixup_defconfig
++++ b/configs/imx93_matrixup_defconfig
+@@ -27,12 +27,15 @@ CONFIG_SPL_IMX_ROMAPI_LOADADDR=0x88000000
+ CONFIG_SYS_LOAD_ADDR=0x80400000
+ CONFIG_SYS_MEMTEST_START=0x80000000
+ CONFIG_SYS_MEMTEST_END=0x90000000
++CONFIG_ENV_VARS_UBOOT_CONFIG=y
+ CONFIG_REMAKE_ELF=y
+ CONFIG_FIT=y
+ CONFIG_FIT_SIGNATURE=y
+-CONFIG_DISTRO_DEFAULTS=y
++# CONFIG_BOOTSTD is not set
++CONFIG_SUPPORT_RAW_INITRD=y
+ CONFIG_OF_SYSTEM_SETUP=y
+-CONFIG_BOOTCOMMAND="run sr_ir_v2_cmd;run distro_bootcmd;run bsp_bootcmd"
++CONFIG_USE_BOOTCOMMAND=y
++CONFIG_BOOTCOMMAND="run sr_ir_v2_cmd;run bsp_bootcmd"
+ CONFIG_DEFAULT_FDT_FILE="imx93-matrixup.dtb"
+ CONFIG_SYS_CBSIZE=2048
+ CONFIG_SYS_PBSIZE=2074
+@@ -57,10 +60,16 @@ CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_SECTOR=0x1040
+ CONFIG_SPL_I2C=y
+ CONFIG_SPL_POWER=y
+ CONFIG_SPL_WATCHDOG=y
++CONFIG_HUSH_PARSER=y
+ CONFIG_SYS_PROMPT="u-boot=> "
+ # CONFIG_CMD_BOOTFLOW is not set
+ # CONFIG_CMD_BOOTI is not set
++# CONFIG_CMD_BOOTEFI is not set
++# CONFIG_BOOTM_PLAN9 is not set
++# CONFIG_BOOTM_RTEMS is not set
++# CONFIG_BOOTM_VXWORKS is not set
+ # CONFIG_CMD_ELF is not set
++# CONFIG_CMD_GO is not set
+ CONFIG_CMD_ERASEENV=y
+ CONFIG_CMD_NVEDIT_EFI=y
+ CONFIG_CRC32_VERIFY=y
+@@ -73,8 +82,11 @@ CONFIG_CMD_I2C=y
+ CONFIG_CMD_MMC=y
+ CONFIG_CMD_OPTEE_RPMB=y
+ CONFIG_CMD_POWEROFF=y
++CONFIG_CMD_PART=y
+ CONFIG_CMD_USB=y
+-CONFIG_CMD_USB_MASS_STORAGE=y
++# CONFIG_CMD_SOURCE is not set
++CONFIG_CMD_DHCP=y
++CONFIG_CMD_TFTPBOOT=y
+ CONFIG_BOOTP_VENDOREX=y
+ CONFIG_CMD_SNTP=y
+ CONFIG_CMD_CACHE=y
+@@ -85,7 +97,11 @@ CONFIG_CMD_GETTIME=y
+ CONFIG_CMD_TIMER=y
+ CONFIG_CMD_REGULATOR=y
+ CONFIG_CMD_HASH=y
++CONFIG_CMD_EXT4=y
+ CONFIG_CMD_EXT4_WRITE=y
++CONFIG_CMD_FAT=y
++CONFIG_CMD_FS_GENERIC=y
++CONFIG_EFI_PARTITION=y
+ CONFIG_OF_CONTROL=y
+ CONFIG_SPL_OF_CONTROL=y
+ CONFIG_ENV_OVERWRITE=y
+@@ -111,11 +127,16 @@ CONFIG_CPU_IMX=y
+ CONFIG_DFU_MMC=y
+ CONFIG_DFU_RAM=y
+ CONFIG_USB_FUNCTION_FASTBOOT=y
+-CONFIG_UDP_FUNCTION_FASTBOOT=y
+-CONFIG_FASTBOOT_BUF_ADDR=0x82800000
++# CONFIG_FASTBOOT_UUU_SUPPORT is not set
++CONFIG_FASTBOOT_BUF_ADDR=0x88000000
+ CONFIG_FASTBOOT_BUF_SIZE=0x20000000
+ CONFIG_FASTBOOT_FLASH=y
+-CONFIG_FASTBOOT_UUU_SUPPORT=y
++CONFIG_FASTBOOT_FLASH_MMC=y
++CONFIG_FASTBOOT_FLASH_MMC_DEV=0
++CONFIG_FASTBOOT_CMD_OEM_PARTCONF=y
++CONFIG_FASTBOOT_CMD_OEM_BOOTBUS=y
++CONFIG_FASTBOOT_BOOTM=y
++# CONFIG_FASTBOOT_OEM_RUN is not set
+ CONFIG_IMX_RGPIO2P=y
+ CONFIG_DM_PCA953X=y
+ CONFIG_ADP5585_GPIO=y
+@@ -171,6 +192,7 @@ CONFIG_DM_THERMAL=y
+ CONFIG_IMX_TMU=y
+ CONFIG_USB=y
+ CONFIG_USB_EHCI_HCD=y
++CONFIG_USB_STORAGE=y
+ CONFIG_USB_HOST_ETHER=y
+ CONFIG_USB_ETHER_ASIX=y
+ CONFIG_USB_ETHER_RTL8152=y
+@@ -179,6 +201,7 @@ CONFIG_USB_GADGET_MANUFACTURER="FSL"
+ CONFIG_USB_GADGET_VENDOR_NUM=0x1fc9
+ CONFIG_USB_GADGET_PRODUCT_NUM=0x0152
+ CONFIG_CI_UDC=y
++CONFIG_USB_FUNCTION_MASS_STORAGE=y
+ CONFIG_USB_PORT_AUTO=y
+ CONFIG_ULP_WATCHDOG=y
+ CONFIG_SPL_RSA=y
+diff --git a/include/configs/imx93_matrixup.h b/include/configs/imx93_matrixup.h
+index 582cb501e72..ff20771343e 100644
+--- a/include/configs/imx93_matrixup.h
++++ b/include/configs/imx93_matrixup.h
+@@ -85,9 +85,6 @@
+ 	"mmcroot=/dev/mmcblk1p2 rootwait rw\0" \
+ 	"mmcautodetect=yes\0" \
+ 	"mmcargs=setenv bootargs ${jh_clk} ${mcore_clk} console=${console} root=${mmcroot} lpj=96000 ${mmcpart}\0 " \
+-	"loadbootscript=fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${script};\0" \
+-	"bootscript=echo Running bootscript from mmc ...; " \
+-		"source\0" \
+ 	"loadimage=fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${image}\0" \
+ 	"loadfdt=fatload mmc ${mmcdev}:${mmcpart} ${fdt_addr_r} ${fdtfile}\0" \
+ 	"fit_img=fitImage.signed\0" \
+-- 
+2.44.4
+

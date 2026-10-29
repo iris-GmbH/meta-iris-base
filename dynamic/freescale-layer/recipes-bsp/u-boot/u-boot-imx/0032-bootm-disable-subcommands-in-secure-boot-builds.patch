@@ -1,0 +1,54 @@
+From 4946ea5cffc683cf6c3fb91310ebbb78fa40f01e Mon Sep 17 00:00:00 2001
+From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+Date: Thu, 29 Oct 2026 13:00:20 +0000
+Subject: [PATCH 51/52] bootm: disable subcommands in secure boot builds
+
+The bootm image authentication is performed only on the normal bootm
+path. bootm subcommands bypass this path, allowing an image to be
+booted without HAB or AHAB authentication.
+
+Disable bootm subcommands when CONFIG_IMX_HAB or CONFIG_AHAB_BOOT is
+enabled, so booting always uses the authenticated, atomic bootm path.
+---
+ cmd/bootm.c | 10 +++++++++-
+ 1 file changed, 9 insertions(+), 1 deletion(-)
+
+diff --git a/cmd/bootm.c b/cmd/bootm.c
+index 36e2feba51d..9b8455d581d 100644
+--- a/cmd/bootm.c
++++ b/cmd/bootm.c
+@@ -40,6 +40,7 @@ static int do_imls(struct cmd_tbl *cmdtp, int flag, int argc,
+ 
+ /* we overload the cmd field with our state machine info instead of a
+  * function pointer */
++#if !defined(CONFIG_IMX_HAB) && !defined(CONFIG_AHAB_BOOT)
+ static struct cmd_tbl cmd_bootm_sub[] = {
+ 	U_BOOT_CMD_MKENT(start, 0, 1, (void *)BOOTM_STATE_START, "", ""),
+ 	U_BOOT_CMD_MKENT(loados, 0, 1, (void *)BOOTM_STATE_LOADOS, "", ""),
+@@ -128,6 +129,7 @@ static int do_bootm_subcommand(struct cmd_tbl *cmdtp, int flag, int argc,
+ 
+ 	return ret ? CMD_RET_FAILURE : 0;
+ }
++#endif /* !CONFIG_IMX_HAB && !CONFIG_AHAB_BOOT */
+ 
+ /*******************************************************************/
+ /* bootm - boot application image from image in memory */
+@@ -152,8 +154,14 @@ int do_bootm(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[])
+ 		 *
+ 		 * Right now we assume the first arg should never be '-'
+ 		 */
+-		if ((*endp != 0) && (*endp != ':') && (*endp != '#'))
++		if ((*endp != 0) && (*endp != ':') && (*endp != '#')) {
++#if defined(CONFIG_IMX_HAB) || defined(CONFIG_AHAB_BOOT)
++			printf("bootm subcommands are disabled in secure-boot builds\n");
++			return CMD_RET_FAILURE;
++#else
+ 			return do_bootm_subcommand(cmdtp, flag, argc, argv);
++#endif
++		}
+ 	}
+ 
+ #ifdef CONFIG_IMX_HAB
+-- 
+2.55.0
+

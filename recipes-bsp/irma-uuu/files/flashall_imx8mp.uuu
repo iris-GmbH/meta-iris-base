@@ -4,16 +4,12 @@ uuu_version 1.4.165
 SDPS: boot -f flash.bin.signed
 
 # Configure boot mode of emmc (boot0 active, x8 buswidth)
-FB: ucmd if env exists emmc_ack; then ; else setenv emmc_ack 0; fi;
-FB: ucmd setenv emmc_cmd mmc partconf ${emmc_dev} ${emmc_ack} 1 0
-FB: ucmd if test "${emmc_skip_fb}" != "yes"; then run emmc_cmd; fi
-FB: ucmd setenv emmc_cmd mmc bootbus ${emmc_dev} 2 1 1;
-FB: ucmd if test "${emmc_skip_fb}" != "yes"; then run emmc_cmd; fi
+FB: oem partconf:0 1
+FB: oem bootbus:2 1 1
 
 # Load kernel and boot from initramfs
-FB: ucmd setenv fastboot_buffer ${fit_addr}
 FB: download -f fitImage-uuu.signed
-FB: acmd bootm ${fit_addr}
+FB: boot
 
 # Wait for emmc and save mmc device path
 FBK: ucmd while [ ! -e /dev/mmcblk*boot0 ]; do sleep 1; echo "wait for /dev/mmcblk*boot* appear"; done;
