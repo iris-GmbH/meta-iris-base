@@ -6,6 +6,8 @@ echo "Calling udhcpc $0: $1"
 
 case "$1" in
     deconfig)
+        readConfigCustomerJson
+        setCommunicationParameters
         createServiceAdapter
         ;;
 esac

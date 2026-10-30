@@ -132,6 +132,8 @@ createServiceAdapter() {
             # Sensor (172.16.x.y) <-> Host (172.17.x.y) -> same subnet and no ip collision possibility
             iface_is_down eth0:1 && ifconfig eth0:1 "$service_ip" netmask 255.254.0.0 && echo "Interface 1: using IP: $service_ip"
         fi
+    elif ! iface_is_down eth0:1; then
+        ifconfig eth0:1 down && echo "Interface 1: service IP disabled"
     fi
 
     # Add maintenance virtual network adapter eth0:2 (only available in Maintenance FW)
