@@ -43,6 +43,7 @@ SRC_URI:append = "\
 	file://0032-bootm-disable-subcommands-in-secure-boot-builds.patch \
 	file://0033-fastboot-disable-UUU-shell-commands.patch \
 	file://0034-imx93-matrixup-harden-boot-and-fastboot-commands.patch \
+	file://0035-imx-preserve-no-interrupt-bootdelay-during-SDP-boot.patch \
 "
 
 SRC_URI:append:poky-iris-deploy = "\
