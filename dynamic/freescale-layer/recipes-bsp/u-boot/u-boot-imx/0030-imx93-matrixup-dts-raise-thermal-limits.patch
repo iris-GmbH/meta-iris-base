@@ -1,0 +1,33 @@
+From d42e0d9d8f6a116cf00acf6b9534b959cd54263e Mon Sep 17 00:00:00 2001
+From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+Date: Tue, 3 Nov 2026 14:50:03 +0100
+Subject: [PATCH] imx93-matrixup: dts: raise thermal limits
+
+Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+---
+ arch/arm/dts/imx93-matrixup.dts | 9 +++++++++
+ 1 file changed, 9 insertions(+)
+
+diff --git a/arch/arm/dts/imx93-matrixup.dts b/arch/arm/dts/imx93-matrixup.dts
+index 955870b8cf1..b32b6afd24f 100644
+--- a/arch/arm/dts/imx93-matrixup.dts
++++ b/arch/arm/dts/imx93-matrixup.dts
+@@ -55,6 +55,15 @@
+ 	status = "okay";
+ };
+ 
++/* Board-specific CPU thermal thresholds, in milli-degrees Celsius. */
++&cpu_alert {
++	temperature = <90000>;
++};
++
++&cpu_crit {
++	temperature = <95000>;
++};
++
+ &dphy {
+ 	status = "okay";
+ };
+-- 
+2.55.0
+
