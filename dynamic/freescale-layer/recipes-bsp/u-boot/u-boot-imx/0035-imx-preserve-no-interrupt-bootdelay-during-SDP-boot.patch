@@ -1,0 +1,33 @@
+From e0b1b613ef163d222227809f693a6358dc51cca6 Mon Sep 17 00:00:00 2001
+From: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+Date: Tue, 3 Nov 2026 14:38:59 +0000
+Subject: [PATCH] imx: preserve no-interrupt bootdelay during SDP boot
+
+The i.MX manufacturing boot path overwrites bootdelay with zero when
+booting from SDP. Preserve an explicitly configured bootdelay of -2 so
+that SDP provisioning starts automatically without permitting UART
+input to interrupt autoboot.
+
+Signed-off-by: Michael Glembotzki <Michael.Glembotzki@iris-sensing.com>
+---
+ common/autoboot.c | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/common/autoboot.c b/common/autoboot.c
+index 1752dd58483..29e31b66470 100644
+--- a/common/autoboot.c
++++ b/common/autoboot.c
+@@ -468,7 +468,9 @@ const char *bootdelay_process(void)
+ 	if (is_boot_from_usb() && env_get("bootcmd_mfg")) {
+ 		disconnect_from_pc();
+ 		printf("Boot from USB for mfgtools\n");
+-		bootdelay = 0;
++		/* Keep a board's explicit no-interrupt policy for SDP boot. */
++		if (bootdelay != -2)
++			bootdelay = 0;
+ 		env_set_default("Use default environment for \
+ 				 mfgtools\n", 0);
+ 	} else if (is_boot_from_usb()) {
+-- 
+2.44.4
+
