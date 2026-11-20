@@ -162,9 +162,11 @@ check_srks() {
 remove_userdata_sync_files() {
 	SYNC_FILE_NAME="userdata_synced"
 
-	USERDATA_ALT_NAME="userdata$FIRMWARE_SUFFIX_ALT"
+	# /mnt/iris is the currently booted slot.  Remove the marker from the
+	# update target separately, rather than mounting the current slot again.
+	USERDATA_ALT_NAME="userdata$FIRMWARE_SUFFIX"
 	USERDATA_ALT_MOUNTP="/tmp/$USERDATA_ALT_NAME"
-	USERDATA_ALT_DEV="/dev/mapper/matrixlvm-userdata_${FIRMWARE_SUFFIX_ALT}"
+	USERDATA_ALT_DEV="/dev/mapper/matrixlvm-userdata_${FIRMWARE_SUFFIX}"
 
 	# remove sync file from current userdata
 	rm -f "/mnt/iris/$SYNC_FILE_NAME"
