@@ -279,17 +279,19 @@ pending_update() {
 prepare_userdata_sync() {
 	SYNC_FILE_NAME="userdata_synced"
 
-	USERDATA_ALT_NAME="userdata$FIRMWARE_SUFFIX_ALT"
+	# /mnt/iris is the currently booted slot.  Remove the marker from the
+	# update target separately, rather than mounting the current slot again.
+	USERDATA_ALT_NAME="userdata$FIRMWARE_SUFFIX"
 	USERDATA_ALT_MOUNTP="/tmp/$USERDATA_ALT_NAME"
 
 	# remove sync file from current userdata
 	rm -f "/mnt/iris/$SYNC_FILE_NAME"
 
 	# remove possible sync file from alternative userdata
-	if [ -b "/dev/mapper/irma6lvm-userdata${FIRMWARE_SUFFIX_ALT}" ]; then
+	if [ -b "/dev/mapper/irma6lvm-userdata${FIRMWARE_SUFFIX}" ]; then
 		dmsetup create ${USERDATA_ALT_NAME} --table \
-		"0 $(blockdev --getsz /dev/mapper/irma6lvm-userdata${FIRMWARE_SUFFIX_ALT}) \
-		crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 /dev/mapper/irma6lvm-userdata${FIRMWARE_SUFFIX_ALT} 0 1 sector_size:4096"
+		"0 $(blockdev --getsz /dev/mapper/irma6lvm-userdata${FIRMWARE_SUFFIX}) \
+		crypt capi:tk(cbc(aes))-plain :64:logon:logkey: 0 /dev/mapper/irma6lvm-userdata${FIRMWARE_SUFFIX} 0 1 sector_size:4096"
 
 		mkdir -p $USERDATA_ALT_MOUNTP
 		mount -t ext4 /dev/mapper/${USERDATA_ALT_NAME} $USERDATA_ALT_MOUNTP
